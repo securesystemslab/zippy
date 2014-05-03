@@ -2140,10 +2140,18 @@ def build(args, parser=None):
                     task._d = max([remainingDepsDepth(t) for t in incompleteDeps]) + 1
             return task._d
 
+        def compareTasks(t1, t2):
+            d = remainingDepsDepth(t1) - remainingDepsDepth(t2)
+            if d == 0:
+                d = len(t1.proj.annotation_processors()) - len(t2.proj.annotation_processors())
+                if d == 0:
+                    d = len(t1.javafilelist) - len(t2.javafilelist)
+            return d
+
         def sortWorklist(tasks):
             for t in tasks:
                 t._d = None
-            return sorted(tasks, lambda x, y: remainingDepsDepth(x) - remainingDepsDepth(y))
+            return sorted(tasks, compareTasks)
 
         import multiprocessing
         cpus = multiprocessing.cpu_count()
