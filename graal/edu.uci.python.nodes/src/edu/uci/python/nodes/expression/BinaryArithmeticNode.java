@@ -247,6 +247,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return str;
         }
 
+        @Specialization(order = 20)
+        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__mul__", left, getLeftNode(), getRightNode());
+            return replace(specialized).executeCall(frame, left, right);
+        }
+
         // TODO: better type error message.
         @Generic
         Object doGeneric(Object left, Object right) {
@@ -302,6 +308,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.div(right);
         }
 
+        @Specialization(order = 20)
+        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__truediv__", left, getLeftNode(), getRightNode());
+            return replace(specialized).executeCall(frame, left, right);
+        }
+
         @Generic
         Object doGeneric(Object left, Object right) {
             throw Py.TypeError("Unsupported operand type for /: " + left + " and " + right);
@@ -323,6 +335,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization
         double doDouble(double left, double right) {
             return Math.floor(left / right);
+        }
+
+        @Specialization(order = 20)
+        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__floordiv__", left, getLeftNode(), getRightNode());
+            return replace(specialized).executeCall(frame, left, right);
         }
 
         @Generic
@@ -352,10 +370,16 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
          * Delegate to Jython for String formatting.
          */
         @SlowPath
-        @Specialization
+        @Specialization(order = 10)
         Object doString(String left, Object right) {
             PyString sleft = new PyString(left);
             return unboxPyObject(sleft.__mod__(adaptToPyObject(right)));
+        }
+
+        @Specialization(order = 20)
+        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__mod__", left, getLeftNode(), getRightNode());
+            return replace(specialized).executeCall(frame, left, right);
         }
 
         @Generic
@@ -380,6 +404,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization
         double doDouble(double left, double right) {
             return Math.pow(left, right);
+        }
+
+        @Specialization(order = 20)
+        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__pow__", left, getLeftNode(), getRightNode());
+            return replace(specialized).executeCall(frame, left, right);
         }
     }
 
