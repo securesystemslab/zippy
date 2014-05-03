@@ -30,7 +30,7 @@ import java.math.BigInteger;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.ExactMath;
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.frame.*;
@@ -256,6 +256,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization(rewriteOn = ArithmeticException.class, order = 0)
         double doInteger(int left, int right) {
             if (right == 0) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
                 throw new ArithmeticException("divide by zero");
             }
 
@@ -340,14 +341,18 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left % right;
         }
 
+        /**
+         * Delegate to Jython for String formatting.
+         */
+        @Specialization
+        Object doString(String left, Object right) {
+            PyString sleft = new PyString(left);
+            return unboxPyObject(sleft.__mod__(adaptToPyObject(right)));
+        }
+
         @Generic
         Object doGeneric(Object left, Object right) {
-            if (left instanceof String) {
-                PyString s = new PyString((String) left);
-                return unboxPyObject(s.__mod__(adaptToPyObject(right)));
-            } else {
-                throw new RuntimeException("Invalid generic!");
-            }
+            throw Py.TypeError("Unsupported operand type for %: " + left + " and " + right);
         }
     }
 
