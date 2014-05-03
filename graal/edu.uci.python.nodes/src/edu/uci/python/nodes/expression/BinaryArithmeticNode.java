@@ -31,6 +31,7 @@ import java.math.BigInteger;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.frame.*;
@@ -350,6 +351,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         /**
          * Delegate to Jython for String formatting.
          */
+        @SlowPath
         @Specialization
         Object doString(String left, Object right) {
             PyString sleft = new PyString(left);
