@@ -60,17 +60,6 @@ public abstract class DispatchBoxedNode extends Node {
     protected DispatchBoxedNode rewrite(PythonObject primary, DispatchBoxedNode next) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
 
-        // PythonModule
-        if (primary instanceof PythonModule) {
-            if (!primary.isOwnAttribute(attributeId)) {
-                throw new IllegalStateException("module: " + primary + " does not contain attribute " + attributeId);
-            }
-
-            DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primary, primary, true, next);
-            replace(newNode);
-            return newNode;
-        }
-
         /**
          * zwei: If a PythonObject's layout is invalid, force it to update its layout from its
          * Class's instanceLayout. This avoids infinite recursion when a PythonObject is created
@@ -86,18 +75,7 @@ public abstract class DispatchBoxedNode extends Node {
             throw Py.AttributeError(primary + " object has no attribute " + attributeId);
         }
 
-        // Plain PythonObject
-        if (!(primary instanceof PythonClass)) {
-
-            // In place attribute
-            if (primary.isOwnAttribute(attributeId)) {
-                DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primary, storage, true, next);
-                replace(newNode);
-                return newNode;
-            }
-        }
-
-        DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primary, storage, false, next);
+        DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primary, storage, primary.isOwnAttribute(attributeId), next);
         replace(newNode);
         return newNode;
     }
