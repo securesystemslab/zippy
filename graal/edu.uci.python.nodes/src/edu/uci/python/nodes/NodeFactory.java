@@ -333,8 +333,8 @@ public class NodeFactory {
         return current;
     }
 
-    public PNode createGetAttribute(PythonContext context, PNode primary, String name) {
-        return new GetAttributeNode.UninitializedGetAttributeNode(context, name, primary);
+    public PNode createGetAttribute(PNode primary, String name) {
+        return new GetAttributeNode.UninitializedGetAttributeNode(name, primary);
     }
 
     public PNode createSlice(PNode lower, PNode upper, PNode step) {

@@ -120,6 +120,9 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
                 throw new IllegalStateException();
             }
 
+// RuntimeValueNode wrapper = new RuntimeValueNode(left);
+// GetAttributeNode calleeNode = new GetAttributeNode.UninitializedGetAttributeNode();
+
             ShapeCheckNode check = ShapeCheckNode.create(left, __add__, left.isOwnAttribute(__add__));
             CallDispatchBoxedNode uninitialized = new CallDispatchBoxedNode.UninitializedDispatchBoxedNode(__add__, EmptyNode.INSTANCE, false);
             CallDispatchBoxedNode dispatch = new CallDispatchBoxedNode.LinkedDispatchBoxedNode(callable, check, (UninitializedDispatchBoxedNode) uninitialized);

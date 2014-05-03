@@ -61,7 +61,7 @@ public class GetAttributeNodeTests {
         values.add(factory.createIntegerLiteral(0));
         values.add(factory.createIntegerLiteral(42));
         PNode plist = factory.createListLiteral(values);
-        PNode getattr = factory.createGetAttribute(context, plist, "append");
+        PNode getattr = factory.createGetAttribute(plist, "append");
 
         BlockNode body = factory.createSingleStatementBlock(getattr);
         RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), body);
@@ -140,7 +140,7 @@ public class GetAttributeNodeTests {
 
         // assemble AST
         PNode objNode = factory.createObjectLiteral(pbObj);
-        PNode getattr = factory.createGetAttribute(context, objNode, "foo");
+        PNode getattr = factory.createGetAttribute(objNode, "foo");
 
         BlockNode body = factory.createSingleStatementBlock(getattr);
         RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), body);

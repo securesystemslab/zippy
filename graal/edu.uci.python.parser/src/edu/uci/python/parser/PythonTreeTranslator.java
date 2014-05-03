@@ -646,7 +646,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitAttribute(Attribute node) throws Exception {
         PNode primary = (PNode) visit(node.getInternalValue());
-        return factory.createGetAttribute(context, primary, node.getInternalAttr());
+        return factory.createGetAttribute(primary, node.getInternalAttr());
     }
 
     @Override
