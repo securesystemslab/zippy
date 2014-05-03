@@ -24,8 +24,6 @@
  */
 package edu.uci.python.nodes.call;
 
-import org.python.core.*;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -63,9 +61,9 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
              * Since built-in classes are immutable, there is no need to probe the exact storage
              * object.
              */
-            check = ShapeCheckNode.create(primary, primary.getObjectLayout(), 0);
+            check = ShapeCheckNode.create(primary, calleeName, false);
         } else {
-            check = createCheckNodeForPythonObject(primary, calleeName);
+            check = ShapeCheckNode.create(primary, calleeName, primary.isOwnAttribute(calleeName));
         }
 
         /**
@@ -91,30 +89,6 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         throw new UnsupportedOperationException();
-    }
-
-    protected static ShapeCheckNode createCheckNodeForPythonObject(PythonObject primary, String calleeName) {
-        if (primary.isOwnAttribute(calleeName)) {
-            return ShapeCheckNode.create(primary, primary.getObjectLayout(), 0);
-        } else {
-            // class chain lookup
-            int depth = 1;
-            PythonClass current = primary.getPythonClass();
-            do {
-                if (current.isOwnAttribute(calleeName)) {
-                    break;
-                }
-
-                current = current.getSuperClass();
-                depth++;
-            } while (current != null);
-
-            if (current == null) {
-                throw Py.AttributeError(primary + " object has no attribute " + calleeName);
-            }
-
-            return ShapeCheckNode.create(primary, current.getObjectLayout(), depth);
-        }
     }
 
     /**

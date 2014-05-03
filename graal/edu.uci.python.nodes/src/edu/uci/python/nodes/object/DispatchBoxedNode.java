@@ -75,9 +75,7 @@ public abstract class DispatchBoxedNode extends Node {
             throw Py.AttributeError(primary + " object has no attribute " + attributeId);
         }
 
-        DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primary, storage, primary.isOwnAttribute(attributeId), next);
-        replace(newNode);
-        return newNode;
+        return replace(LinkedDispatchBoxedNode.create(attributeId, primary, storage, primary.isOwnAttribute(attributeId), next));
     }
 
     @NodeInfo(cost = NodeCost.UNINITIALIZED)
