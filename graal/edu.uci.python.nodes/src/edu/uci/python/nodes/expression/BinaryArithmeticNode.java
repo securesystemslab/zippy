@@ -154,6 +154,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         PBaseSet doPBaseSet(PBaseSet left, PBaseSet right) {
             return left.difference(right);
         }
+
+        @Specialization(order = 20)
+        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__sub__", left, getLeftNode(), getRightNode());
+            return replace(specialized).executeCall(frame, left, right);
+        }
     }
 
     public abstract static class MulNode extends BinaryArithmeticNode {
