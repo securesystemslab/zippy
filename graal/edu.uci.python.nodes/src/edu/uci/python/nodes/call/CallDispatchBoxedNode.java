@@ -81,14 +81,6 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         return new LinkedDispatchBoxedNode(callee, check, next);
     }
 
-    protected static ShapeCheckNode createCheckNodeForPythonModule(PythonModule primary, PNode calleeNode, String calleeName) {
-        if (calleeNode instanceof ReadGlobalNode) {
-            return ((ReadGlobalNode) calleeNode).extractShapeCheckNode();
-        } else {
-            return ShapeCheckNode.create(primary, calleeName, primary.isOwnAttribute(calleeName));
-        }
-    }
-
     /**
      * The primary could be:
      * <p>
