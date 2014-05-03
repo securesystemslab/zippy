@@ -50,12 +50,16 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         return replace(next).executeCall(frame, primaryObj, arguments, keywords);
     }
 
-    protected static CallDispatchBoxedNode create(PythonContext context, PythonObject primary, String calleeName, PythonCallable callee, PNode calleeNode, PKeyword[] keywords) {
-        UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(context, callee.getName(), calleeNode, keywords.length != 0);
+    protected static CallDispatchBoxedNode create(PythonObject primary, String calleeName, PythonCallable callee, PNode calleeNode, PKeyword[] keywords) {
+        UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(callee.getName(), calleeNode, keywords.length != 0);
         ShapeCheckNode check;
 
         if (primary instanceof PythonModule) {
-            check = createCheckNodeForPythonModule(context, (PythonModule) primary, calleeNode, calleeName);
+            if (calleeNode instanceof ReadGlobalNode) {
+                check = ((ReadGlobalNode) calleeNode).extractShapeCheckNode();
+            } else {
+                check = ShapeCheckNode.create(primary, calleeName, primary.isOwnAttribute(calleeName));
+            }
         } else if (primary instanceof PythonBuiltinClass) {
             /**
              * Since built-in classes are immutable, there is no need to probe the exact storage
@@ -77,18 +81,12 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         return new LinkedDispatchBoxedNode(callee, check, next);
     }
 
-    protected static ShapeCheckNode createCheckNodeForPythonModule(PythonContext context, PythonModule primary, PNode calleeNode, String calleeName) {
-        if (primary.isOwnAttribute(calleeName)) {
-            return ShapeCheckNode.create(primary, primary.getObjectLayout(), 0);
-        } else if (calleeNode instanceof ReadGlobalNode) {
-            PythonModule builtinsModule = context.getBuiltins();
-
-            if (builtinsModule.isOwnAttribute(calleeName)) {
-                return ShapeCheckNode.create(primary, builtinsModule.getObjectLayout(), 1);
-            }
+    protected static ShapeCheckNode createCheckNodeForPythonModule(PythonModule primary, PNode calleeNode, String calleeName) {
+        if (calleeNode instanceof ReadGlobalNode) {
+            return ((ReadGlobalNode) calleeNode).extractShapeCheckNode();
+        } else {
+            return ShapeCheckNode.create(primary, calleeName, primary.isOwnAttribute(calleeName));
         }
-
-        throw new UnsupportedOperationException();
     }
 
     /**
@@ -172,13 +170,11 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
     public static final class UninitializedDispatchBoxedNode extends CallDispatchBoxedNode {
 
         @Child protected PNode calleeNode;
-        private final PythonContext context;
         private final boolean hasKeyword;
 
-        public UninitializedDispatchBoxedNode(PythonContext context, String calleeName, PNode calleeNode, boolean hasKeyword) {
+        public UninitializedDispatchBoxedNode(String calleeName, PNode calleeNode, boolean hasKeyword) {
             super(calleeName);
             this.calleeNode = calleeNode;
-            this.context = context;
             this.hasKeyword = hasKeyword;
         }
 
@@ -205,7 +201,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                     throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
                 }
 
-                specialized = replace(create(context, primaryObj, calleeName, callee, calleeNode, keywords));
+                specialized = replace(create(primaryObj, calleeName, callee, calleeNode, keywords));
             } else {
                 specialized = current.replace(new GenericDispatchBoxedNode(calleeName, calleeNode));
             }

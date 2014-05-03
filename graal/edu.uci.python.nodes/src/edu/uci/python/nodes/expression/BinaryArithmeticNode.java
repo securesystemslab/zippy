@@ -121,7 +121,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             }
 
             ShapeCheckNode check = ShapeCheckNode.create(left, __add__, left.isOwnAttribute(__add__));
-            CallDispatchBoxedNode uninitialized = new CallDispatchBoxedNode.UninitializedDispatchBoxedNode(null, __add__, EmptyNode.INSTANCE, false);
+            CallDispatchBoxedNode uninitialized = new CallDispatchBoxedNode.UninitializedDispatchBoxedNode(__add__, EmptyNode.INSTANCE, false);
             CallDispatchBoxedNode dispatch = new CallDispatchBoxedNode.LinkedDispatchBoxedNode(callable, check, (UninitializedDispatchBoxedNode) uninitialized);
             BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNodeFactory.create(__add__, dispatch, getLeftNode(), getRightNode());
             return replace(specialized).executeCall(frame, left, right);

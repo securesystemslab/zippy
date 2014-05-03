@@ -106,7 +106,7 @@ public abstract class PythonCallNode extends PNode {
         if (PythonCallUtil.isPrimaryBoxed(primary) && callee instanceof PythonClass && !(callee instanceof PythonBuiltinClass)) {
 
             PythonClass clazz = (PythonClass) callee;
-            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(context, (PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
             CallConstructorNode specialized = new CallConstructorNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch);
             return replace(specialized).executeCall(frame, (PythonObject) primary, clazz);
         }
@@ -123,7 +123,7 @@ public abstract class PythonCallNode extends PNode {
         }
 
         if (PythonCallUtil.isPrimaryBoxed(primary)) {
-            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(context, (PythonObject) primary, calleeName, callable, calleeNode, keywords);
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, calleeNode, keywords);
             replace(new BoxedCallNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
             return dispatch.executeCall(frame, (PythonObject) primary, arguments, keywords);
         }
