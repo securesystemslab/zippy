@@ -40,42 +40,37 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
         super(specialMethodId);
     }
 
-    public abstract Object executeCall(VirtualFrame frame, PythonObject primary, Object[] arguments);
+    public abstract Object executeCall(VirtualFrame frame, Object left, Object right);
 
-    protected final Object executeCallAndRewrite(CallDispatchSpecialNode next, VirtualFrame frame, PythonObject primary, Object[] arguments) {
+    protected final Object executeCallAndRewrite(CallDispatchSpecialNode next, VirtualFrame frame, Object left, Object right) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        return replace(next).executeCall(frame, primary, arguments);
+        return replace(next).executeCall(frame, left, right);
     }
 
     protected static CallDispatchSpecialNode create(PythonObject primary, String specialMethodId, String resolvedMethodId, PythonCallable callee, boolean reflected) {
         UninitializedDispatchSpecialNode next = new UninitializedDispatchSpecialNode(specialMethodId);
 
         ShapeCheckNode check = ShapeCheckNode.create(primary, specialMethodId, primary.isOwnAttribute(resolvedMethodId));
-
         assert check != null;
-        return new LinkedDispatchSpecialNode(callee, check, next, reflected);
+
+        if (!reflected) {
+            return new LinkedDispatchSpecialNode(callee, check, next);
+        } else {
+            return new LinkedReflectedDispatchSpecialNode(callee, check, next);
+        }
     }
 
-    protected static void swapArguments(Object[] arguments) {
-        final Object temp = arguments[1];
-        arguments[1] = arguments[0];
-        arguments[0] = temp;
-    }
-
-    public static final class LinkedDispatchSpecialNode extends CallDispatchSpecialNode {
+    public static class LinkedDispatchSpecialNode extends CallDispatchSpecialNode {
 
         @Child protected ShapeCheckNode check;
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchSpecialNode next;
 
-        private final boolean reflected;
-
-        public LinkedDispatchSpecialNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchSpecialNode next, boolean reflected) {
+        public LinkedDispatchSpecialNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchSpecialNode next) {
             super(callee.getName());
             this.check = check;
             this.next = next;
             this.invoke = InvokeNode.create(callee, false);
-            this.reflected = reflected;
         }
 
         @Override
@@ -86,27 +81,48 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
             return super.getCost();
         }
 
-        private PythonObject resolvePrimaryOperand(Object[] arguments) {
-            return (PythonObject) (reflected ? arguments[1] : arguments[0]);
-        }
+        protected final boolean accept(Object primary) throws InvalidAssumptionException {
+            PythonObject pyobj;
 
-        private void resolveArguments(Object[] arguments) {
-            if (reflected) {
-                swapArguments(arguments);
+            try {
+                pyobj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primary);
+            } catch (UnexpectedResultException e) {
+                return false;
             }
+
+            return check.accept(pyobj);
         }
 
         @Override
-        public Object executeCall(VirtualFrame frame, PythonObject primary, Object[] arguments) {
+        public Object executeCall(VirtualFrame frame, Object left, Object right) {
             try {
-                if (check.accept(resolvePrimaryOperand(arguments))) {
-                    resolveArguments(arguments);
-                    return invoke.invoke(frame, primary, arguments, PKeyword.EMPTY_KEYWORDS);
+                if (accept(left)) {
+                    return invoke.invoke(frame, left, new Object[]{left, right}, PKeyword.EMPTY_KEYWORDS);
                 } else {
-                    return next.executeCall(frame, primary, arguments);
+                    return next.executeCall(frame, left, right);
                 }
             } catch (InvalidAssumptionException ex) {
-                return executeCallAndRewrite(next, frame, primary, arguments);
+                return executeCallAndRewrite(next, frame, left, right);
+            }
+        }
+    }
+
+    public static final class LinkedReflectedDispatchSpecialNode extends LinkedDispatchSpecialNode {
+
+        public LinkedReflectedDispatchSpecialNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchSpecialNode next) {
+            super(callee, check, next);
+        }
+
+        @Override
+        public Object executeCall(VirtualFrame frame, Object left, Object right) {
+            try {
+                if (accept(right)) {
+                    return invoke.invoke(frame, right, new Object[]{right, left}, PKeyword.EMPTY_KEYWORDS);
+                } else {
+                    return next.executeCall(frame, left, right);
+                }
+            } catch (InvalidAssumptionException ex) {
+                return executeCallAndRewrite(next, frame, left, right);
             }
         }
     }
@@ -119,29 +135,27 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
         }
 
         @Override
-        public Object executeCall(VirtualFrame frame, PythonObject primary, Object[] arguments) {
-            /**
-             * Setting up specialized dispatch node.
-             */
+        public Object executeCall(VirtualFrame frame, Object left, Object right) {
+            CompilerAsserts.neverPartOfCompilation();
+
             String specialMethodId = calleeName;
-            PythonCallable callee = resolveSpecialMethod(primary, specialMethodId);
+            PythonCallable callee = resolveSpecialMethod(left, specialMethodId);
 
             if (callee != null) {
                 // Non reflective special method is found.
-                return callee.call(frame.pack(), arguments);
-            } else {
-                specialMethodId = specialMethodId.replaceFirst("__", "__r");
-                PythonObject right = (PythonObject) arguments[1];
-                callee = resolveSpecialMethod(right, specialMethodId);
-
-                if (callee == null) {
-                    throw new IllegalStateException("Call to " + specialMethodId + " not supported.");
-                }
-
-                // Reflective special method is found.
-                swapArguments(arguments);
-                return callee.call(frame.pack(), arguments);
+                return callee.call(frame.pack(), new Object[]{left, right});
             }
+
+            // primary = PythonTypesGen.PYTHONTYPES.expectPythonObject(right);
+            specialMethodId = calleeName.replaceFirst("__", "__r");
+            callee = resolveSpecialMethod(right, specialMethodId);
+
+            if (callee != null) {
+                // Reflective special method is found.
+                return callee.call(frame.pack(), new Object[]{right, left});
+            }
+
+            throw new IllegalStateException("Call to " + calleeName + " not supported.");
         }
     }
 
@@ -153,7 +167,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
         }
 
         @Override
-        public Object executeCall(VirtualFrame frame, PythonObject primary, Object[] arguments) {
+        public Object executeCall(VirtualFrame frame, Object left, Object right) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             CallDispatchSpecialNode specialized;
@@ -166,33 +180,39 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
              * Setting up specialized dispatch node.
              */
             String specialMethodId = calleeName;
-            PythonCallable callee = resolveSpecialMethod(primary, specialMethodId);
+            PythonCallable callee = resolveSpecialMethod(left, calleeName);
 
             if (callee != null) {
                 // Non reflective special method is found.
-                specialized = replace(create(primary, calleeName, specialMethodId, callee, false));
-            } else {
-                specialMethodId = specialMethodId.replaceFirst("__", "__r");
-                PythonObject right = (PythonObject) arguments[1];
-                callee = resolveSpecialMethod(right, specialMethodId);
-
-                if (callee == null) {
-                    throw new IllegalStateException("Call to " + specialMethodId + " not supported.");
-                }
-
-                // Reflective special method is found.
-                specialized = replace(create(right, calleeName, specialMethodId, callee, true));
+                specialized = replace(create((PythonObject) left, calleeName, specialMethodId, callee, false));
+                return specialized.executeCall(frame, left, right);
             }
 
-            return specialized.executeCall(frame, primary, arguments);
+            specialMethodId = calleeName.replaceFirst("__", "__r");
+            callee = resolveSpecialMethod(right, specialMethodId);
+
+            if (callee != null) {
+                // Reflective special method is found.
+                specialized = replace(create((PythonObject) right, calleeName, specialMethodId, callee, true));
+                return specialized.executeCall(frame, left, right);
+            }
+
+            throw new IllegalStateException("Call to " + calleeName + " not supported.");
         }
     }
 
-    protected static PythonCallable resolveSpecialMethod(PythonObject operand, String specialMethodId) {
+    protected static PythonCallable resolveSpecialMethod(Object operand, String specialMethodId) {
+        PythonObject primary;
+        try {
+            primary = PythonTypesGen.PYTHONTYPES.expectPythonObject(operand);
+        } catch (UnexpectedResultException e1) {
+            return null;
+        }
+
         PythonCallable callee;
 
         try {
-            callee = PythonTypesGen.PYTHONTYPES.expectPythonCallable(operand.getAttribute(specialMethodId));
+            callee = PythonTypesGen.PYTHONTYPES.expectPythonCallable(primary.getAttribute(specialMethodId));
         } catch (UnexpectedResultException e) {
             return null;
         }
