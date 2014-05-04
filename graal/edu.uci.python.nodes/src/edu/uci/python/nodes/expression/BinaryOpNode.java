@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -28,6 +28,7 @@ import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.NodeChild;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.object.*;
 
 @NodeChildren({@NodeChild(value = "leftNode", type = PNode.class), @NodeChild(value = "rightNode", type = PNode.class)})
 public abstract class BinaryOpNode extends PNode {
@@ -35,6 +36,10 @@ public abstract class BinaryOpNode extends PNode {
     public abstract PNode getLeftNode();
 
     public abstract PNode getRightNode();
+
+    protected final static boolean isEitherOperandPythonObject(Object left, Object right) {
+        return left instanceof PythonObject || right instanceof PythonObject;
+    }
 
     @Override
     public String toString() {

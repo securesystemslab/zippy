@@ -29,24 +29,19 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
-import edu.uci.python.nodes.object.*;
-import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.object.*;
 
 public abstract class BinarySpecialMethodCallNode extends BinaryOpNode {
 
-    @Child protected CallDispatchBoxedNode dispatch;
+    @Child protected CallDispatchSpecialNode dispatch;
 
     private final String specialMethodId;
 
-    public static BinarySpecialMethodCallNode create(String specialMethodId, PythonObject primary, PNode left, PNode right) {
-        RuntimeValueNode wrapper = new RuntimeValueNode(primary);
-        GetAttributeNode calleeNode = new GetAttributeNode.UninitializedGetAttributeNode(specialMethodId, wrapper);
-        CallDispatchBoxedNode uninitialized = new CallDispatchBoxedNode.UninitializedDispatchBoxedNode(specialMethodId, calleeNode, false);
+    public static BinarySpecialMethodCallNode create(String specialMethodId, PNode left, PNode right) {
+        CallDispatchSpecialNode uninitialized = new CallDispatchSpecialNode.UninitializedDispatchSpecialNode(specialMethodId);
         return BinarySpecialMethodCallNodeFactory.create(specialMethodId, uninitialized, left, right);
     }
 
-    public BinarySpecialMethodCallNode(String specialMethodId, CallDispatchBoxedNode dispatch) {
+    public BinarySpecialMethodCallNode(String specialMethodId, CallDispatchSpecialNode dispatch) {
         this.dispatch = dispatch;
         this.specialMethodId = specialMethodId;
     }
@@ -59,14 +54,9 @@ public abstract class BinarySpecialMethodCallNode extends BinaryOpNode {
         return specialMethodId;
     }
 
-    @Specialization(order = 0)
-    public Object executeCall(VirtualFrame frame, PythonObject left, Object right) {
-        return dispatch.executeCall(frame, left, new Object[]{left, right}, PKeyword.EMPTY_KEYWORDS);
-    }
-
-    @Specialization(order = 1)
-    public Object executeReflectiveCall(VirtualFrame frame, Object left, PythonObject right) {
-        return dispatch.executeCall(frame, right, new Object[]{right, left}, PKeyword.EMPTY_KEYWORDS);
+    @Specialization
+    public Object executeCall(VirtualFrame frame, Object left, Object right) {
+        return dispatch.executeCall(frame, left, right);
     }
 
 }

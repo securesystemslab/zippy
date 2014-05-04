@@ -39,7 +39,6 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
@@ -104,9 +103,9 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return right;
         }
 
-        @Specialization(order = 20)
-        Object doPythonObject(VirtualFrame frame, PythonObject left, Object right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__add__", left, getLeftNode(), getRightNode());
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__add__", getLeftNode(), getRightNode());
             return replace(specialized).executeCall(frame, left, right);
         }
 
@@ -156,9 +155,9 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.difference(right);
         }
 
-        @Specialization(order = 20)
-        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__sub__", left, getLeftNode(), getRightNode());
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__sub__", getLeftNode(), getRightNode());
             return replace(specialized).executeCall(frame, left, right);
         }
     }
@@ -247,9 +246,9 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return str;
         }
 
-        @Specialization(order = 20)
-        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__mul__", left, getLeftNode(), getRightNode());
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__mul__", getLeftNode(), getRightNode());
             return replace(specialized).executeCall(frame, left, right);
         }
 
@@ -308,9 +307,9 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.div(right);
         }
 
-        @Specialization(order = 20)
-        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__truediv__", left, getLeftNode(), getRightNode());
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__truediv__", getLeftNode(), getRightNode());
             return replace(specialized).executeCall(frame, left, right);
         }
 
@@ -337,9 +336,9 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return Math.floor(left / right);
         }
 
-        @Specialization(order = 20)
-        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__floordiv__", left, getLeftNode(), getRightNode());
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__floordiv__", getLeftNode(), getRightNode());
             return replace(specialized).executeCall(frame, left, right);
         }
 
@@ -376,9 +375,9 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return unboxPyObject(sleft.__mod__(adaptToPyObject(right)));
         }
 
-        @Specialization(order = 20)
-        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__mod__", left, getLeftNode(), getRightNode());
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__mod__", getLeftNode(), getRightNode());
             return replace(specialized).executeCall(frame, left, right);
         }
 
@@ -406,9 +405,9 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return Math.pow(left, right);
         }
 
-        @Specialization(order = 20)
-        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__pow__", left, getLeftNode(), getRightNode());
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__pow__", getLeftNode(), getRightNode());
             return replace(specialized).executeCall(frame, left, right);
         }
     }
