@@ -105,7 +105,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization(order = 20)
-        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
+        Object doPythonObject(VirtualFrame frame, PythonObject left, Object right) {
             BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__add__", left, getLeftNode(), getRightNode());
             return replace(specialized).executeCall(frame, left, right);
         }

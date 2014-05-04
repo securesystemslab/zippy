@@ -60,7 +60,7 @@ public abstract class BinarySpecialMethodCallNode extends BinaryOpNode {
     }
 
     @Specialization
-    public Object executeCall(VirtualFrame frame, PythonObject left, PythonObject right) {
+    public Object executeCall(VirtualFrame frame, PythonObject left, Object right) {
         return dispatch.executeCall(frame, left, new Object[]{left, right}, PKeyword.EMPTY_KEYWORDS);
     }
 

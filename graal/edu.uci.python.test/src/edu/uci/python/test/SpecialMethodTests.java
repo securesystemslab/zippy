@@ -31,7 +31,7 @@ import org.junit.*;
 public class SpecialMethodTests {
 
     @Test
-    public void __add__() {
+    public void __add__0() {
         String source = "class Num:\n" + //
                         "  def __init__(self, n):\n" + //
                         "    self.n = n\n" + //
@@ -43,6 +43,21 @@ public class SpecialMethodTests {
                         "n0 = Num(42)\n" + //
                         "n1 = Num(1)\n" + //
                         "print(n0 + n1)\n";
+        assertPrints("43\n", source);
+    }
+
+    @Test
+    public void __add__1() {
+        String source = "class Num:\n" + //
+                        "  def __init__(self, n):\n" + //
+                        "    self.n = n\n" + //
+                        "  def __add__(self, other):\n" + //
+                        "    return Num(self.n + other)\n" + //
+                        "  def __repr__(self):\n" + //
+                        "    return self.n\n" + //
+                        "" + //
+                        "n0 = Num(42)\n" + //
+                        "print(n0 + 1)\n";
         assertPrints("43\n", source);
     }
 
