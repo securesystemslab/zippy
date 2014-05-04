@@ -139,7 +139,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
             CompilerAsserts.neverPartOfCompilation();
 
             String specialMethodId = calleeName;
-            PythonCallable callee = resolveSpecialMethod(left, specialMethodId);
+            PythonCallable callee = PythonCallUtil.resolveSpecialMethod(left, specialMethodId);
 
             if (callee != null) {
                 // Non reflective special method is found.
@@ -148,7 +148,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
 
             // primary = PythonTypesGen.PYTHONTYPES.expectPythonObject(right);
             specialMethodId = calleeName.replaceFirst("__", "__r");
-            callee = resolveSpecialMethod(right, specialMethodId);
+            callee = PythonCallUtil.resolveSpecialMethod(right, specialMethodId);
 
             if (callee != null) {
                 // Reflective special method is found.
@@ -180,7 +180,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
              * Setting up specialized dispatch node.
              */
             String specialMethodId = calleeName;
-            PythonCallable callee = resolveSpecialMethod(left, calleeName);
+            PythonCallable callee = PythonCallUtil.resolveSpecialMethod(left, calleeName);
 
             if (callee != null) {
                 // Non reflective special method is found.
@@ -189,7 +189,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
             }
 
             specialMethodId = calleeName.replaceFirst("__", "__r");
-            callee = resolveSpecialMethod(right, specialMethodId);
+            callee = PythonCallUtil.resolveSpecialMethod(right, specialMethodId);
 
             if (callee != null) {
                 // Reflective special method is found.
@@ -199,25 +199,6 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
 
             throw new IllegalStateException("Call to " + calleeName + " not supported.");
         }
-    }
-
-    protected static PythonCallable resolveSpecialMethod(Object operand, String specialMethodId) {
-        PythonObject primary;
-        try {
-            primary = PythonTypesGen.PYTHONTYPES.expectPythonObject(operand);
-        } catch (UnexpectedResultException e1) {
-            return null;
-        }
-
-        PythonCallable callee;
-
-        try {
-            callee = PythonTypesGen.PYTHONTYPES.expectPythonCallable(primary.getAttribute(specialMethodId));
-        } catch (UnexpectedResultException e) {
-            return null;
-        }
-
-        return callee;
     }
 
 }

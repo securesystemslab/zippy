@@ -33,6 +33,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.literal.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
@@ -119,6 +120,25 @@ public class PythonCallUtil {
         }
 
         return keywordNames;
+    }
+
+    protected static PythonCallable resolveSpecialMethod(Object operand, String specialMethodId) {
+        PythonObject primary;
+        try {
+            primary = PythonTypesGen.PYTHONTYPES.expectPythonObject(operand);
+        } catch (UnexpectedResultException e1) {
+            return null;
+        }
+
+        PythonCallable callee;
+
+        try {
+            callee = PythonTypesGen.PYTHONTYPES.expectPythonCallable(primary.getAttribute(specialMethodId));
+        } catch (UnexpectedResultException e) {
+            return null;
+        }
+
+        return callee;
     }
 
 }
