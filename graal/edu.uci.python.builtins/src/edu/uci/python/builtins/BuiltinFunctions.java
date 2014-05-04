@@ -30,6 +30,7 @@ import java.util.*;
 import org.python.core.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.YesNodeFactory;
 import edu.uci.python.nodes.function.*;
@@ -47,6 +48,7 @@ import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtype.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -550,6 +552,8 @@ public final class BuiltinFunctions extends PythonBuiltins {
     @Builtin(name = "len", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
     public abstract static class LenNode extends PythonBuiltinNode {
 
+        @CompilationFinal @Child protected CallDispatchSpecialNode dispatch;
+
         @Specialization(order = 0)
         public int len(String arg) {
             return arg.length();
@@ -582,6 +586,20 @@ public final class BuiltinFunctions extends PythonBuiltins {
         @Specialization(order = 10)
         public int len(PIterable iterable) {
             return iterable.len();
+        }
+
+        @Specialization(order = 20)
+        public int len(VirtualFrame frame, PythonObject obj) {
+            if (dispatch == null) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                dispatch = insert(new CallDispatchSpecialNode.UninitializedDispatchSpecialNode("__len__"));
+            }
+
+            try {
+                return PythonTypesGen.PYTHONTYPES.expectInteger(dispatch.executeCall(frame, obj, PNone.NONE));
+            } catch (UnexpectedResultException e) {
+                throw new IllegalStateException();
+            }
         }
 
         @Generic

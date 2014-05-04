@@ -111,4 +111,17 @@ public class SpecialMethodTests {
         assertPrints("41\n", source);
     }
 
+    @Test
+    public void __len__() {
+        String source = "class Num:\n" + //
+                        "  def __init__(self, n):\n" + //
+                        "    self.n = n\n" + //
+                        "  def __len__(self):\n" + //
+                        "    return self.n\n" + //
+                        "" + //
+                        "n0 = Num(42)\n" + //
+                        "print(len(n0))\n";
+        assertPrints("42\n", source);
+    }
+
 }
