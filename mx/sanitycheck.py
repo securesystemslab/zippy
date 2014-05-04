@@ -112,8 +112,8 @@ pythonTestBenchmarks = {
 
 python2MicroBenchmarks = {
     'arith-binop'           : '0',
-    'for-range2'            : '0',
-    'function-call2'        : '0',
+    'for-range'             : '0',
+    'function-call'         : '0',
     'list-comp'             : '0',
     'list-indexing'         : '0',
     'list-iterating'        : '0',
@@ -147,10 +147,10 @@ pythonMicroBenchmarks = {
     'genexp-builtin-call'   : '0',
     'attribute-access'      : '0',
     'attribute-access-polymorphic' : '0',
-    #'attribute-bool'        : '0',
+    'attribute-bool'        : '0',
     'call-method-polymorphic': '0',
-    #'boolean-logic'         : '0',
-    #'object-allocate'       : '0',
+    'boolean-logic'         : '0',
+    'object-allocate'       : '0',
     'special-add'           : '0',
 }
 

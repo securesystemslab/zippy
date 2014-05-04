@@ -47,10 +47,10 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
         return replace(next).executeCall(frame, left, right);
     }
 
-    protected static CallDispatchSpecialNode create(PythonObject primary, String specialMethodId, String resolvedMethodId, PythonCallable callee, boolean reflected) {
+    protected static CallDispatchSpecialNode create(PythonObject primary, String specialMethodId, PythonCallable callee, boolean reflected) {
         UninitializedDispatchSpecialNode next = new UninitializedDispatchSpecialNode(specialMethodId);
 
-        ShapeCheckNode check = ShapeCheckNode.create(primary, specialMethodId, primary.isOwnAttribute(resolvedMethodId));
+        ShapeCheckNode check = ShapeCheckNode.create(primary, specialMethodId, primary.isOwnAttribute(specialMethodId));
         assert check != null;
 
         if (!reflected) {
@@ -184,7 +184,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
 
             if (callee != null) {
                 // Non reflective special method is found.
-                specialized = replace(create((PythonObject) left, calleeName, specialMethodId, callee, false));
+                specialized = replace(create((PythonObject) left, specialMethodId, callee, false));
                 return specialized.executeCall(frame, left, right);
             }
 
@@ -193,7 +193,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
 
             if (callee != null) {
                 // Reflective special method is found.
-                specialized = replace(create((PythonObject) right, calleeName, specialMethodId, callee, true));
+                specialized = replace(create((PythonObject) right, specialMethodId, callee, true));
                 return specialized.executeCall(frame, left, right);
             }
 

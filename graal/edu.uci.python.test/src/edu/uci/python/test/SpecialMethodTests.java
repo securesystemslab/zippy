@@ -62,6 +62,40 @@ public class SpecialMethodTests {
     }
 
     @Test
+    public void __add__2() {
+        String source = "class Num:\n" + //
+                        "  def __init__(self, n):\n" + //
+                        "    self.n = n\n" + //
+                        "  def __radd__(self, other):\n" + //
+                        "    return Num(self.n + other)\n" + //
+                        "  def __repr__(self):\n" + //
+                        "    return self.n\n" + //
+                        "" + //
+                        "n0 = Num(42)\n" + //
+                        "print(1 + n0)\n";
+        assertPrints("43\n", source);
+    }
+
+    @Test
+    public void __add__And__rand__Polymorphic() {
+        String source = "class Num:\n" + //
+                        "  def __init__(self, n):\n" + //
+                        "    self.n = n\n" + //
+                        "  def __add__(self, other):\n" + //
+                        "    return Num(self.n + other)\n" + //
+                        "  def __radd__(self, other):\n" + //
+                        "    return Num(self.n + other)\n" + //
+                        "  def __repr__(self):\n" + //
+                        "    return self.n\n" + //
+                        "" + //
+                        "def doAdd(left, right):\n" + //
+                        "  return left + right\n" + //
+                        "print(doAdd(Num(42), 1))\n" + //
+                        "print(doAdd(1, Num(42)))\n";
+        assertPrints("43\n43\n", source);
+    }
+
+    @Test
     public void __sub__() {
         String source = "class Num:\n" + //
                         "  def __init__(self, n):\n" + //
