@@ -174,17 +174,9 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         public Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
-            CallDispatchNode current = this;
-            int depth = 0;
-
-            while (current.getParent() instanceof CallDispatchNode) {
-                current = (CallDispatchNode) current.getParent();
-                depth++;
-            }
-
             CallDispatchBoxedNode specialized;
 
-            if (depth < PythonOptions.CallSiteInlineCacheMaxDepth) {
+            if (getDispatchDepth() < PythonOptions.CallSiteInlineCacheMaxDepth) {
                 PythonCallable callee;
 
                 try {
@@ -195,7 +187,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
                 specialized = replace(create(primaryObj, calleeName, callee, calleeNode, keywords));
             } else {
-                specialized = current.replace(new GenericDispatchBoxedNode(calleeName, calleeNode));
+                specialized = getTop().replace(new GenericDispatchBoxedNode(calleeName, calleeNode));
             }
 
             return specialized.executeCall(frame, primaryObj, arguments, keywords);

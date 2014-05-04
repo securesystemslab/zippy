@@ -38,4 +38,26 @@ public abstract class CallDispatchNode extends Node {
         this.calleeName = calleeName;
     }
 
+    protected int getDispatchDepth() {
+        CallDispatchNode current = this;
+        int depth = 0;
+
+        while (current.getParent() instanceof CallDispatchNode) {
+            current = (CallDispatchNode) current.getParent();
+            depth++;
+        }
+
+        return depth;
+    }
+
+    protected CallDispatchNode getTop() {
+        CallDispatchNode current = this;
+
+        while (current.getParent() instanceof CallDispatchNode) {
+            current = (CallDispatchNode) current.getParent();
+        }
+
+        return current;
+    }
+
 }

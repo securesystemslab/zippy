@@ -130,18 +130,12 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object[] arguments, PKeyword[] keywords) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
-            CallDispatchNode current = this;
-            int depth = 0;
-            while (current.getParent() instanceof CallDispatchNode) {
-                current = (CallDispatchNode) current.getParent();
-                depth++;
-            }
-
             CallDispatchNoneNode specialized;
-            if (depth < PythonOptions.CallSiteInlineCacheMaxDepth) {
+
+            if (getDispatchDepth() < PythonOptions.CallSiteInlineCacheMaxDepth) {
                 specialized = replace(CallDispatchNoneNode.create(callee, keywords));
             } else {
-                specialized = current.replace(new GenericDispatchNoneNode(calleeName));
+                specialized = getTop().replace(new GenericDispatchNoneNode(calleeName));
             }
 
             return specialized.executeCall(frame, callee, arguments, keywords);

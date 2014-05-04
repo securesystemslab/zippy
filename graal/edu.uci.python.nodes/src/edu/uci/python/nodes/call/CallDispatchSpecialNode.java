@@ -156,18 +156,10 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
         public Object executeCall(VirtualFrame frame, PythonObject primary, Object[] arguments) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
-            CallDispatchNode current = this;
-            int depth = 0;
-
-            while (current.getParent() instanceof CallDispatchNode) {
-                current = (CallDispatchNode) current.getParent();
-                depth++;
-            }
-
             CallDispatchSpecialNode specialized;
 
-            if (depth >= PythonOptions.CallSiteInlineCacheMaxDepth) {
-                specialized = current.replace(new GenericDispatchSpecialNode(calleeName));
+            if (getDispatchDepth() >= PythonOptions.CallSiteInlineCacheMaxDepth) {
+                specialized = getTop().replace(new GenericDispatchSpecialNode(calleeName));
             }
 
             /**
