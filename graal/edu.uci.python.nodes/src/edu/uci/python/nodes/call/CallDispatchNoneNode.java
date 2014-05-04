@@ -55,11 +55,12 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         }
 
         if (callee instanceof PFunction) {
-            return new LinkedDispatchNoneNode((PFunction) callee, next);
+            return new LinkedDispatchNoneNode(callee, next);
         }
 
         if (callee instanceof PythonClass) {
-            return new GenericDispatchNoneNode(callee.getName());
+            PythonClass clazz = (PythonClass) callee;
+            return new LinkedDispatchNoneNode((PythonCallable) clazz.getAttribute("__init__"), next);
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
@@ -78,7 +79,7 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         @Child protected CallDispatchNoneNode next;
         private final PythonCallable cachedCallee;
 
-        public LinkedDispatchNoneNode(PFunction callee, UninitializedDispatchNoneNode next) {
+        public LinkedDispatchNoneNode(PythonCallable callee, UninitializedDispatchNoneNode next) {
             super(callee.getName());
             this.invokeNode = InvokeNode.create(callee, next.hasKeyword);
             this.next = next;
