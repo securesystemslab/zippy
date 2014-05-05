@@ -27,8 +27,7 @@
  * linux [depending on the settings]: ~2097k)
  * see http://msdn.microsoft.com/en-us/library/ms682425%28VS.85%29.aspx
  */
-
-import org.junit.runner.*;
+import com.oracle.graal.test.*;
 import java.io.*;
 import java.util.*;
 
@@ -72,6 +71,6 @@ public class JUnitWrapper {
         } else {
             System.out.printf("executing junit tests now... (%d test classes)\n", strargs.length);
         }
-        JUnitCore.main(strargs);
+        GraalJUnitCore.main(strargs);
     }
 }
