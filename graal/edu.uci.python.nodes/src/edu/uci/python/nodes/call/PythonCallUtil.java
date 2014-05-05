@@ -35,6 +35,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
@@ -106,8 +107,16 @@ public class PythonCallUtil {
         return node.primaryNode == EmptyNode.INSTANCE && primary == PNone.NONE;
     }
 
-    protected static boolean haveToPassPrimary(Object primary, PythonCallNode node) {
-        return !isPrimaryNone(primary, node) && !(primary instanceof PythonClass) && !(primary instanceof PythonModule) && !(primary instanceof PyObject);
+    protected static boolean isConstructorCall(Object primary, PythonCallable callee) {
+        return PythonCallUtil.isPrimaryBoxed(primary) && callee instanceof PythonClass && !(callee instanceof PythonBuiltinClass);
+    }
+
+    protected static boolean haveToPassPrimary(Object primary, PythonCallable callee, PythonCallNode node) {
+        return !isPrimaryNone(primary, node) && //
+                        !(primary instanceof PythonClass) && //
+                        !(primary instanceof PythonModule) && //
+                        !(primary instanceof PyObject) || //
+                        isConstructorCall(primary, callee);
     }
 
     @ExplodeLoop

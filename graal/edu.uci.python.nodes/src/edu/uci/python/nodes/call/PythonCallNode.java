@@ -37,7 +37,6 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
@@ -84,7 +83,7 @@ public abstract class PythonCallNode extends PNode {
         CompilerDirectives.transferToInterpreterAndInvalidate();
 
         /**
-         * Dealing with calls into Jython runtime.
+         * Calls into Jython runtime.
          */
         if (callee instanceof PyObject) {
             PyObject pyobj = (PyObject) callee;
@@ -110,29 +109,32 @@ public abstract class PythonCallNode extends PNode {
         }
 
         /**
-         * Non built-in constructors use CallConstructorNode. <br>
-         * Built-in constructors use regular BoxedCallNode with no special calling convention.
+         * Determines the shape of the call site.<br>
+         * Performs the arith check.<br>
+         * Evaluates the arguments.
          */
-        if (PythonCallUtil.isPrimaryBoxed(primary) && callee instanceof PythonClass && !(callee instanceof PythonBuiltinClass)) {
-
-            PythonClass clazz = (PythonClass) callee;
-            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
-            CallConstructorNode specialized = new CallConstructorNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch);
-            return replace(specialized).executeCall(frame, (PythonObject) primary, clazz);
-        }
-
-        boolean passPrimaryAsArgument = PythonCallUtil.haveToPassPrimary(primary, this);
+        boolean passPrimaryAsArgument = PythonCallUtil.haveToPassPrimary(primary, callable, this);
         callable.arityCheck(passPrimaryAsArgument ? argumentNodes.length + 1 : argumentNodes.length, keywordNodes.length, PythonCallUtil.getKeywordNames(this));
         Object[] arguments = executeArguments(frame, passPrimaryAsArgument, primary, argumentNodes);
         PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
 
-        if (PythonCallUtil.isPrimaryNone(primary, this)) {
+        /**
+         * Non built-in constructors use CallConstructorNode. <br>
+         * Built-in constructors use regular BoxedCallNode with no special calling convention.
+         */
+        if (isConstructorCall(primary, callable)) {
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
+            CallConstructorNode specialized = new CallConstructorNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch);
+            return replace(specialized).executeCall(frame, (PythonObject) primary, (PythonClass) callable);
+        }
+
+        if (isPrimaryNone(primary, this)) {
             CallDispatchNoneNode dispatch = CallDispatchNoneNode.create(callable, keywords);
             replace(new NoneCallNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch));
             return dispatch.executeCall(frame, callable, arguments, keywords);
         }
 
-        if (PythonCallUtil.isPrimaryBoxed(primary)) {
+        if (isPrimaryBoxed(primary)) {
             CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, calleeNode, keywords);
             replace(new BoxedCallNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
             return dispatch.executeCall(frame, (PythonObject) primary, arguments, keywords);

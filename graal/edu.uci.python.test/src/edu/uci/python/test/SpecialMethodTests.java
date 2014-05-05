@@ -125,7 +125,7 @@ public class SpecialMethodTests {
     }
 
     @Test
-    public void __call__() {
+    public void __call__global() {
         String source = "class Num:\n" + //
                         "  def __init__(self, n):\n" + //
                         "    self.n = n\n" + //
@@ -134,6 +134,20 @@ public class SpecialMethodTests {
                         "" + //
                         "n0 = Num(42)\n" + //
                         "n0()\n";
+        assertPrints("42\n", source);
+    }
+
+    @Test
+    public void __call__local() {
+        String source = "class Num:\n" + //
+                        "  def __init__(self, n):\n" + //
+                        "    self.n = n\n" + //
+                        "  def __call__(self):\n" + //
+                        "    print(self.n)\n" + //
+                        "\n" + //
+                        "def docall(num):\n" + //
+                        "  num()\n" + //
+                        "docall(Num(42))\n";
         assertPrints("42\n", source);
     }
 
