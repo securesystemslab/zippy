@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,51 +22,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object;
+package edu.uci.python.builtins.type;
 
-import org.python.core.*;
+import java.util.*;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.dsl.*;
 
-public final class ArrayObjectStorageLocation extends StorageLocation {
+import edu.uci.python.builtins.*;
+import edu.uci.python.nodes.function.*;
+import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.sequence.*;
 
-    private final int index;
-
-    public ArrayObjectStorageLocation(ObjectLayout objectLayout, int index) {
-        super(objectLayout);
-        this.index = index;
-    }
-
-    @Override
-    public boolean isSet(PythonObject object) {
-        return object.arrayObjects[index] != null;
-    }
+/**
+ * @author zwei
+ */
+public final class SetBuiltins extends PythonBuiltins {
 
     @Override
-    public Object read(PythonObject object) {
-        final Object result = ObjectLayoutUtil.readObjectArrayUnsafeAt(object.arrayObjects, index, this);
+    protected List<? extends NodeFactory<? extends PythonBuiltinNode>> getNodeFactories() {
+        return SetBuiltinsFactory.getFactories();
+    }
 
-        if (result != null) {
-            return result;
+    @Builtin(name = "clear", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class ClearNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object clear(PSet self) {
+            self.clear();
+            return PNone.NONE;
         }
-
-        CompilerDirectives.transferToInterpreterAndInvalidate();
-        throw Py.AttributeError(object + " object has no attribute " + getObjectLayout().findAttributeId(this));
-    }
-
-    @Override
-    public void write(PythonObject object, Object value) {
-        ObjectLayoutUtil.writeObjectArrayUnsafeAt(object.arrayObjects, index, value, this);
-    }
-
-    @Override
-    public Class getStoredClass() {
-        return Object.class;
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " at " + index;
     }
 
 }

@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,10 +24,16 @@
  */
 package edu.uci.python.nodes.function;
 
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.object.*;
 
 /**
  * @author Gulfem
@@ -38,5 +44,26 @@ import edu.uci.python.runtime.*;
 public abstract class PythonBuiltinNode extends PNode {
 
     public abstract PythonContext getContext();
+
+    protected boolean emptyArguments(VirtualFrame frame) {
+        PArguments args = frame.getArguments(PArguments.class);
+        return args.getArgumentsLength() == 0;
+    }
+
+    /**
+     * This is obviously a slow path.
+     */
+    @SlowPath
+    public static String callAttributeSlowPath(PythonObject obj, String attributeId) {
+        PythonCallable callable;
+
+        try {
+            callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(obj.getAttribute(attributeId));
+        } catch (UnexpectedResultException e) {
+            throw new IllegalStateException();
+        }
+
+        return callable.call(null, new Object[]{obj}).toString();
+    }
 
 }

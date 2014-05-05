@@ -55,7 +55,7 @@ def measure():
     print("mandelbrot: " + duration)
 
 # warm up
-for run in range(60):
+for run in range(10):
     main(300)
     print()
 

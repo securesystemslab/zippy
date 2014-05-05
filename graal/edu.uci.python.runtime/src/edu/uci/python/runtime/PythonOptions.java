@@ -75,9 +75,9 @@ public class PythonOptions {
     }
 
     // Profiling
-    public static final boolean ProfileNodes = false;
+    public static final boolean AddProfilingInstrumentation = false;
 
-    public static final boolean CreateWrapperNodes = true;
+    public static final boolean ProfileNodes = false;
 
     public static final boolean ProfileCallSites = false;
 

@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.object;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -50,6 +52,45 @@ public abstract class ShapeCheckNode extends Node {
         }
     }
 
+    public static ShapeCheckNode create(PythonObject primary, String attributeId, boolean isAttributeInPlace) {
+        if (isAttributeInPlace) {
+            assert primary.isOwnAttribute(attributeId);
+            return new PythonObjectCheckNode(primary);
+        }
+
+        int depth = 0;
+        PythonClass current;
+
+        if (primary instanceof PythonClass) {
+            current = (PythonClass) primary;
+        } else {
+            current = primary.getPythonClass();
+            depth++;
+        }
+
+        // class chain lookup
+        do {
+            if (current.isOwnAttribute(attributeId)) {
+                break;
+            }
+
+            current = current.getSuperClass();
+            depth++;
+        } while (current != null);
+
+        if (current == null) {
+            throw Py.AttributeError(primary + " object has no attribute " + attributeId);
+        }
+
+        if (depth == 0) {
+            return new PythonObjectCheckNode(primary);
+        } else if (depth == 1) {
+            return new PythonClassCheckNode(primary, current.getObjectLayout());
+        } else {
+            return new ClassChainCheckNode(primary, current.getObjectLayout(), depth);
+        }
+    }
+
     public static final class PythonObjectCheckNode extends ShapeCheckNode {
 
         private final Assumption stableAssumption;
@@ -57,6 +98,7 @@ public abstract class ShapeCheckNode extends Node {
         public PythonObjectCheckNode(PythonObject python) {
             super(python.getObjectLayout());
             stableAssumption = python.getStableAssumption();
+            assert stableAssumption.isValid();
         }
 
         @Override
@@ -75,6 +117,8 @@ public abstract class ShapeCheckNode extends Node {
             super(primary.getObjectLayout());
             this.storageStableAssumption = storageLayout.getValidAssumption();
             this.objectStableAssumption = primary.getStableAssumption();
+            assert storageStableAssumption.isValid();
+            assert objectStableAssumption.isValid();
         }
 
         @Override
@@ -99,12 +143,14 @@ public abstract class ShapeCheckNode extends Node {
         public ClassChainCheckNode(PythonObject primary, ObjectLayout storageLayout, int depth) {
             super(primary.getObjectLayout());
             this.objectStableAssumption = primary.getStableAssumption();
+            assert objectStableAssumption.isValid();
 
             Assumption[] classStables = new Assumption[depth - 1];
             PythonClass current = primary.getPythonClass();
 
             for (int i = 0; i < depth - 1; i++) {
                 classStables[i] = current.getStableAssumption();
+                assert classStables[i].isValid();
                 current = current.getSuperClass();
                 assert current != null;
             }
@@ -112,6 +158,7 @@ public abstract class ShapeCheckNode extends Node {
             this.classStableAssumptions = classStables;
             this.storageStableAssumption = storageLayout.getValidAssumption();
             assert storageStableAssumption == current.getStableAssumption();
+            assert storageStableAssumption.isValid();
         }
 
         @ExplodeLoop

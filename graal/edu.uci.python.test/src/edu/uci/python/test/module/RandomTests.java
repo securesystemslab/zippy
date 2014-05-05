@@ -22,51 +22,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object;
+package edu.uci.python.test.module;
 
-import org.python.core.*;
+import org.junit.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import com.oracle.truffle.api.*;
+public class RandomTests {
 
-public final class ArrayObjectStorageLocation extends StorageLocation {
-
-    private final int index;
-
-    public ArrayObjectStorageLocation(ObjectLayout objectLayout, int index) {
-        super(objectLayout);
-        this.index = index;
+    @Test
+    public void randomRandom() {
+        String source = "import random\n" + //
+                        "random.seed(1)\n" + //
+                        "print(int(random.random()))\n";
+        assertPrints("0\n", source);
     }
 
-    @Override
-    public boolean isSet(PythonObject object) {
-        return object.arrayObjects[index] != null;
+    @Test
+    public void randRange0() {
+        String source = "import random\n" + //
+                        "random.seed(1)\n" + //
+                        "stop = 10\n" + //
+                        "ran = random.randrange(stop)\n" + //
+                        "print(ran // stop)\n";
+        assertPrints("0\n", source);
     }
 
-    @Override
-    public Object read(PythonObject object) {
-        final Object result = ObjectLayoutUtil.readObjectArrayUnsafeAt(object.arrayObjects, index, this);
-
-        if (result != null) {
-            return result;
-        }
-
-        CompilerDirectives.transferToInterpreterAndInvalidate();
-        throw Py.AttributeError(object + " object has no attribute " + getObjectLayout().findAttributeId(this));
-    }
-
-    @Override
-    public void write(PythonObject object, Object value) {
-        ObjectLayoutUtil.writeObjectArrayUnsafeAt(object.arrayObjects, index, value, this);
-    }
-
-    @Override
-    public Class getStoredClass() {
-        return Object.class;
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " at " + index;
+    @Test
+    public void randRange1() {
+        String source = "import random\n" + //
+                        "stop = 9223372036854775807\n" + //
+                        "ran = random.randrange(stop)\n" + //
+                        "print(ran // stop)\n";
+        assertPrints("0\n", source);
     }
 
 }

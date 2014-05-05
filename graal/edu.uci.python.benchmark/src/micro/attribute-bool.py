@@ -54,4 +54,4 @@ def measure(num):
 for i in range(2000):
     dostuff()
 
-measure(5000)
+measure(3000)

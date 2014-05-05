@@ -1354,7 +1354,7 @@ def bench(args):
         benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
 
     if 'cpython-micro' in args:
-        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
+        benchmarks += sanitycheck.getPython2MicroBenchmarks(vm)
         vm = 'cpython'
 
     if 'jython-micro' in args:

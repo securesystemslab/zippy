@@ -57,13 +57,15 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
-        return new SetAttributeNode.UninitializedSetAttributeNode(attributeId, new ObjectLiteralNode(globalScope), rhs, context);
+        return new SetAttributeNode.UninitializedSetAttributeNode(attributeId, new ObjectLiteralNode(globalScope), rhs);
     }
 
     @Override
     public PNode extractPrimary() {
         return new ObjectLiteralNode(globalScope);
     }
+
+    public abstract ShapeCheckNode extractShapeCheckNode();
 
     @Override
     public String getAttributeId() {
@@ -88,6 +90,11 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
             super(context, globalScope, attributeId);
             this.check = ShapeCheckNode.create(globalScope, globalScope.getObjectLayout(), 0);
             this.read = AttributeReadNode.create(globalScope.getOwnValidLocation(attributeId));
+        }
+
+        @Override
+        public ShapeCheckNode extractShapeCheckNode() {
+            return NodeUtil.cloneNode(check);
         }
 
         @Override
@@ -154,6 +161,11 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
                 return specializeAndExecute(frame);
             }
         }
+
+        @Override
+        public ShapeCheckNode extractShapeCheckNode() {
+            return NodeUtil.cloneNode(check);
+        }
     }
 
     public static final class UninitializedReadGlobalNode extends ReadGlobalNode {
@@ -193,6 +205,11 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
             }
 
             return value;
+        }
+
+        @Override
+        public ShapeCheckNode extractShapeCheckNode() {
+            throw new UnsupportedOperationException();
         }
     }
 

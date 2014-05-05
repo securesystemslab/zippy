@@ -37,13 +37,13 @@ public class ProfilerTranslator implements NodeVisitor {
         } else if (node instanceof DictLiteralNode) {
             createWrapperNode((PNode) node);
         } else if (node instanceof SubscriptLoadIndexNode) {
-            SubscriptLoadIndexNode subscritLoadIndexNode = (SubscriptLoadIndexNode) node;
-            WrapperNode wrapperNode = new WrapperNode(subscritLoadIndexNode);
-            subscritLoadIndexNode.replace(wrapperNode);
+// SubscriptLoadIndexNode subscritLoadIndexNode = (SubscriptLoadIndexNode) node;
+// WrapperNode wrapperNode = new WrapperNode(subscritLoadIndexNode);
+// subscritLoadIndexNode.replace(wrapperNode);
         } else if (node instanceof SubscriptStoreIndexNode) {
-            SubscriptStoreIndexNode subscriptStoreIndexNode = (SubscriptStoreIndexNode) node;
-            WrapperNode wrapperNode = new WrapperNode(subscriptStoreIndexNode);
-            subscriptStoreIndexNode.replace(wrapperNode);
+// SubscriptStoreIndexNode subscriptStoreIndexNode = (SubscriptStoreIndexNode) node;
+// WrapperNode wrapperNode = new WrapperNode(subscriptStoreIndexNode);
+// subscriptStoreIndexNode.replace(wrapperNode);
         }
         return true;
     }

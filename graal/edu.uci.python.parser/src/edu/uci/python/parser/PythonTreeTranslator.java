@@ -604,46 +604,46 @@ public class PythonTreeTranslator extends Visitor {
     }
 
     public PNode createComparisonOperations(PNode left, List<cmpopType> ops, List<PNode> rights) {
+        PNode assignment = null;
+        PNode leftOp = left;
+        PNode rightOp = rights.get(0);
         /**
          * Simple comparison.
          */
         if (ops.size() == 1 && rights.size() == 1) {
-            return factory.createComparisonOperation(ops.get(0), left, rights.get(0));
+            return factory.createComparisonOperation(ops.get(0), leftOp, rightOp);
         }
 
         /**
          * Chained comparisons.
          */
-        List<PNode> assignmentsToBeLifted = new ArrayList<>();
-
-        // Left most compare.
-        ReadNode tempVar = environment.makeTempLocalVariable();
-        PNode assignmentToBeLifted = tempVar.makeWriteNode(rights.get(0));
-        assignmentsToBeLifted.add(assignmentToBeLifted);
-        PNode currentCompare = factory.createComparisonOperation(ops.get(0), left, (PNode) tempVar);
-
-        // the rest
-        for (int i = 1; i < rights.size(); i++) {
-            PNode leftOp;
-            PNode rightOp;
-            PNode duplicatedTempVariable = factory.duplicate((Node) tempVar, PNode.class);
-
+        PNode newComparison = null;
+        PNode currentCompare = null;
+        for (int i = 0; i < rights.size(); i++) {
+            rightOp = rights.get(i);
             if (i == rights.size() - 1) {
-                leftOp = duplicatedTempVariable;
-                rightOp = rights.get(i);
+                // Guard to prevent creating a temp variable for rightOp in the last comparison
+                newComparison = factory.createComparisonOperation(ops.get(i), leftOp, rightOp);
             } else {
-                leftOp = duplicatedTempVariable;
-                tempVar = environment.makeTempLocalVariable();
-                rightOp = duplicatedTempVariable;
-                assignmentToBeLifted = tempVar.makeWriteNode(rights.get(i));
-                assignmentsToBeLifted.add(assignmentToBeLifted);
+                if (!(rightOp instanceof LiteralNode || rightOp instanceof ReadNode)) {
+                    ReadNode tempVar = environment.makeTempLocalVariable();
+                    assignment = tempVar.makeWriteNode(rights.get(i));
+                    rightOp = (PNode) tempVar;
+                    newComparison = factory.createComparisonOperation(ops.get(i), leftOp, rightOp);
+                    newComparison = factory.createNonVoidBlockNode(new PNode[]{assignment, newComparison});
+                } else {
+                    // Atomic comparison
+                    newComparison = factory.createComparisonOperation(ops.get(i), leftOp, rightOp);
+                }
+                leftOp = factory.duplicate(rightOp, PNode.class);
             }
-
-            PNode newCompare = factory.createComparisonOperation(ops.get(i), leftOp, rightOp);
-            currentCompare = AndNodeFactory.create(currentCompare, newCompare);
+            if (i == 0) {
+                currentCompare = newComparison;
+            } else {
+                currentCompare = AndNodeFactory.create(currentCompare, newComparison);
+            }
         }
 
-        environment.storeStatementPatch(assignmentsToBeLifted);
         return currentCompare;
     }
 
@@ -657,7 +657,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitAttribute(Attribute node) throws Exception {
         PNode primary = (PNode) visit(node.getInternalValue());
-        return factory.createGetAttribute(context, primary, node.getInternalAttr());
+        return factory.createGetAttribute(primary, node.getInternalAttr());
     }
 
     @Override

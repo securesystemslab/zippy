@@ -1,5 +1,5 @@
 import math, sys, time
-import _random as random
+import random as random
 SIZE = 9
 GAMES = 200
 KOMI = 7.5

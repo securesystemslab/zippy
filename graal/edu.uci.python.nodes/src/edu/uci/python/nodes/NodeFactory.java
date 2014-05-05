@@ -96,8 +96,12 @@ public class NodeFactory {
         return new BlockNode(array);
     }
 
-    public BlockNode createBlock(PNode[] statments) {
-        return new BlockNode(statments);
+    public BlockNode createBlock(PNode[] statements) {
+        return new BlockNode(statements);
+    }
+
+    public PNode createNonVoidBlockNode(PNode[] statements) {
+        return new NonVoidBlockNode(statements);
     }
 
     public PNode createImport(PythonContext context, String importee) {
@@ -329,8 +333,8 @@ public class NodeFactory {
         return current;
     }
 
-    public PNode createGetAttribute(PythonContext context, PNode primary, String name) {
-        return new GetAttributeNode.UninitializedGetAttributeNode(context, name, primary);
+    public PNode createGetAttribute(PNode primary, String name) {
+        return new GetAttributeNode.UninitializedGetAttributeNode(name, primary);
     }
 
     public PNode createSlice(PNode lower, PNode upper, PNode step) {

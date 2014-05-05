@@ -69,6 +69,14 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         }
 
         @Override
+        public NodeCost getCost() {
+            if (next != null && next.getCost() == NodeCost.MONOMORPHIC) {
+                return NodeCost.POLYMORPHIC;
+            }
+            return super.getCost();
+        }
+
+        @Override
         protected Object executeCall(VirtualFrame frame, Object primaryObj, Object[] arguments, PKeyword[] keywords) {
             if (primaryObj.getClass() == cachedPrimaryType) {
                 return invoke.invoke(frame, primaryObj, arguments, keywords);
@@ -78,6 +86,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.MEGAMORPHIC)
     public static final class GenericDispatchUnboxedNode extends CallDispatchUnboxedNode {
 
         @Child protected PNode calleeNode;
@@ -100,6 +109,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.UNINITIALIZED)
     public static final class UninitializedDispatchUnboxedNode extends CallDispatchUnboxedNode {
 
         @Child protected PNode calleeNode;
@@ -115,15 +125,9 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
         protected Object executeCall(VirtualFrame frame, Object primaryObj, Object[] arguments, PKeyword[] keywords) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
-            CallDispatchNode current = this;
-            int depth = 0;
-            while (current.getParent() instanceof CallDispatchNode) {
-                current = (CallDispatchNode) current.getParent();
-                depth++;
-            }
-
             CallDispatchUnboxedNode specialized;
-            if (depth < PythonOptions.CallSiteInlineCacheMaxDepth) {
+
+            if (getDispatchDepth() < PythonOptions.CallSiteInlineCacheMaxDepth) {
                 PythonCallable callee;
                 try {
                     callee = calleeNode.executePythonCallable(frame);
@@ -132,7 +136,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
                 }
                 specialized = replace(CallDispatchUnboxedNode.create(primaryObj, callee, calleeNode, keywords));
             } else {
-                specialized = current.replace(new GenericDispatchUnboxedNode(calleeName, calleeNode));
+                specialized = getTop().replace(new GenericDispatchUnboxedNode(calleeName, calleeNode));
             }
 
             return specialized.executeCall(frame, primaryObj, arguments, keywords);

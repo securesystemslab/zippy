@@ -28,25 +28,21 @@ import java.io.*;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
+
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.literal.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtin.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class PythonCallUtil {
 
-    protected static boolean isPrimaryBoxed(Object primary) {
-        if (primary instanceof PythonModule) {
-            return true;
-        } else if (primary instanceof PythonClass) {
-            return true;
-        } else if (primary instanceof PythonObject) {
-            return true;
-        }
-
-        return false;
-    }
+    public static final Object[] EMPTY_ARGUMENTS = new Object[0];
 
     protected static void logJythonRuntime(PyObject callee) {
         if (PythonOptions.TraceJythonRuntime) {
@@ -55,12 +51,94 @@ public class PythonCallUtil {
         }
     }
 
-    protected static boolean isBuiltin(PythonCallable callee) {
-        return callee instanceof PBuiltinFunction || callee instanceof PBuiltinMethod || callee instanceof PythonBuiltinClass;
+    /**
+     * Pack primary into the evaluated arguments array if passPrimary is true.
+     *
+     */
+    @ExplodeLoop
+    protected static final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary, PNode[] arguments) {
+        final int length = passPrimary ? arguments.length + 1 : arguments.length;
+        final Object[] evaluated = length == 0 ? EMPTY_ARGUMENTS : new Object[length];
+        final int offset;
+
+        if (passPrimary) {
+            evaluated[0] = primary;
+            offset = 1;
+        } else {
+            offset = 0;
+        }
+
+        for (int i = 0; i < arguments.length; i++) {
+            evaluated[i + offset] = arguments[i].execute(frame);
+        }
+
+        return evaluated;
     }
 
-    protected static boolean isNotBuiltin(PythonCallable callee) {
-        return callee instanceof PFunction || callee instanceof PMethod || callee instanceof PythonClass;
+    @ExplodeLoop
+    public static final Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
+        final int length = arguments.length;
+        final Object[] evaluated = length == 0 ? EMPTY_ARGUMENTS : new Object[length];
+
+        for (int i = 0; i < arguments.length; i++) {
+            evaluated[i] = arguments[i].execute(frame);
+        }
+
+        return evaluated;
+    }
+
+    @ExplodeLoop
+    protected static final PKeyword[] executeKeywordArguments(VirtualFrame frame, PNode[] arguments) {
+        PKeyword[] evaluated = arguments.length == 0 ? PKeyword.EMPTY_KEYWORDS : new PKeyword[arguments.length];
+
+        for (int i = 0; i < arguments.length; i++) {
+            evaluated[i] = (PKeyword) arguments[i].execute(frame);
+        }
+
+        return evaluated;
+    }
+
+    protected static boolean isPrimaryBoxed(Object primary) {
+        return primary instanceof PythonObject;
+    }
+
+    protected static boolean isPrimaryNone(Object primary, PythonCallNode node) {
+        return node.primaryNode == EmptyNode.INSTANCE && primary == PNone.NONE;
+    }
+
+    protected static boolean haveToPassPrimary(Object primary, PythonCallNode node) {
+        return !isPrimaryNone(primary, node) && !(primary instanceof PythonClass) && !(primary instanceof PythonModule) && !(primary instanceof PyObject);
+    }
+
+    @ExplodeLoop
+    protected static String[] getKeywordNames(PythonCallNode node) {
+        String[] keywordNames = new String[node.keywordNodes.length];
+
+        for (int i = 0; i < node.keywordNodes.length; i++) {
+            KeywordLiteralNode keywordLiteral = (KeywordLiteralNode) node.keywordNodes[i];
+            keywordNames[i] = keywordLiteral.getName();
+        }
+
+        return keywordNames;
+    }
+
+    protected static PythonCallable resolveSpecialMethod(Object operand, String specialMethodId) {
+        PythonObject primary;
+        try {
+            primary = PythonTypesGen.PYTHONTYPES.expectPythonObject(operand);
+        } catch (UnexpectedResultException e1) {
+            return null;
+        }
+
+        PythonCallable callee;
+
+        try {
+            callee = PythonTypesGen.PYTHONTYPES.expectPythonCallable(primary.getAttribute(specialMethodId));
+        } catch (UnexpectedResultException e) {
+            return null;
+        }
+
+        return callee;
     }
 
 }

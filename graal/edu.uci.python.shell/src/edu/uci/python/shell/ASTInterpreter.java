@@ -43,8 +43,11 @@ public class ASTInterpreter {
         RootCallTarget module = Truffle.getRuntime().createCallTarget(root);
         // Added here because createCallTarget adopts all chidlren, i.e. adds all parent
 // relationships.
-        ProfilerTranslator pt = new ProfilerTranslator(result.getContext());
-        pt.translate(result, root);
+
+        if (PythonOptions.AddProfilingInstrumentation) {
+            ProfilerTranslator pt = new ProfilerTranslator(result.getContext());
+            pt.translate(result, root);
+        }
 
         Arguments arguments = PArguments.EMPTY_ARGUMENT;
         module.call(null, arguments);

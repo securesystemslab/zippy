@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,9 +30,11 @@ import java.math.BigInteger;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.ExactMath;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.dsl.Generic;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
@@ -100,6 +102,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return right;
         }
 
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            return doSpecialMethodCall(frame, "__add__", left, right);
+        }
+
         // TODO: type info for operands in type error message.
         @Generic
         Object doGeneric(Object left, Object right) {
@@ -144,6 +151,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization(order = 6)
         PBaseSet doPBaseSet(PBaseSet left, PBaseSet right) {
             return left.difference(right);
+        }
+
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            return doSpecialMethodCall(frame, "__sub__", left, right);
         }
     }
 
@@ -231,6 +243,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return str;
         }
 
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            return doSpecialMethodCall(frame, "__mul__", left, right);
+        }
+
         // TODO: better type error message.
         @Generic
         Object doGeneric(Object left, Object right) {
@@ -247,6 +264,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization(rewriteOn = ArithmeticException.class, order = 0)
         double doInteger(int left, int right) {
             if (right == 0) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
                 throw new ArithmeticException("divide by zero");
             }
 
@@ -285,6 +303,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.div(right);
         }
 
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            return doSpecialMethodCall(frame, "__truediv__", left, right);
+        }
+
         @Generic
         Object doGeneric(Object left, Object right) {
             throw Py.TypeError("Unsupported operand type for /: " + left + " and " + right);
@@ -306,6 +329,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization
         double doDouble(double left, double right) {
             return Math.floor(left / right);
+        }
+
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            return doSpecialMethodCall(frame, "__floordiv__", left, right);
         }
 
         @Generic
@@ -331,14 +359,24 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left % right;
         }
 
+        /**
+         * Delegate to Jython for String formatting.
+         */
+        @SlowPath
+        @Specialization(order = 10)
+        Object doString(String left, Object right) {
+            PyString sleft = new PyString(left);
+            return unboxPyObject(sleft.__mod__(adaptToPyObject(right)));
+        }
+
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            return doSpecialMethodCall(frame, "__mod__", left, right);
+        }
+
         @Generic
         Object doGeneric(Object left, Object right) {
-            if (left instanceof String) {
-                PyString s = new PyString((String) left);
-                return unboxPyObject(s.__mod__(adaptToPyObject(right)));
-            } else {
-                throw new RuntimeException("Invalid generic!");
-            }
+            throw Py.TypeError("Unsupported operand type for %: " + left + " and " + right);
         }
     }
 
@@ -358,6 +396,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization
         double doDouble(double left, double right) {
             return Math.pow(left, right);
+        }
+
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        Object doPythonObject(VirtualFrame frame, Object left, Object right) {
+            return doSpecialMethodCall(frame, "__pow__", left, right);
         }
     }
 

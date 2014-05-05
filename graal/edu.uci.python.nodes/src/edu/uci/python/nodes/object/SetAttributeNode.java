@@ -30,7 +30,6 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 
 /*-
@@ -66,19 +65,17 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
     @Child protected SetDispatchNode dispatch;
 
     private final String attributeId;
-    private final PythonContext context;
 
-    public SetAttributeNode(String attributeId, PNode primary, PNode rhs, PythonContext context) {
+    public SetAttributeNode(String attributeId, PNode primary, PNode rhs) {
         this.primaryNode = primary;
         this.rhs = rhs;
         this.attributeId = attributeId;
-        this.context = context;
         this.dispatch = new SetDispatchNode.UninitializedSetDispatchNode(attributeId);
     }
 
     @Override
     public PNode makeReadNode() {
-        return new GetAttributeNode.UninitializedGetAttributeNode(context, attributeId, primaryNode);
+        return new GetAttributeNode.UninitializedGetAttributeNode(attributeId, primaryNode);
     }
 
     @Override
@@ -119,13 +116,13 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
         SetAttributeNode specialized;
 
         if (value instanceof Integer) {
-            specialized = new SetIntAttributeNode(attributeId, primaryNode, rhs, context);
+            specialized = new SetIntAttributeNode(attributeId, primaryNode, rhs);
         } else if (value instanceof Double) {
-            specialized = new SetDoubleAttributeNode(attributeId, primaryNode, rhs, context);
+            specialized = new SetDoubleAttributeNode(attributeId, primaryNode, rhs);
         } else if (value instanceof Boolean) {
-            specialized = new SetBooleanAttributeNode(attributeId, primaryNode, rhs, context);
+            specialized = new SetBooleanAttributeNode(attributeId, primaryNode, rhs);
         } else {
-            specialized = new SetObjectAttributeNode(attributeId, primaryNode, rhs, context);
+            specialized = new SetObjectAttributeNode(attributeId, primaryNode, rhs);
         }
 
         return replace(specialized);
@@ -133,16 +130,16 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
 
     public static final class UninitializedSetAttributeNode extends SetAttributeNode {
 
-        public UninitializedSetAttributeNode(String attributeId, PNode primary, PNode rhs, PythonContext context) {
-            super(attributeId, primary, rhs, context);
+        public UninitializedSetAttributeNode(String attributeId, PNode primary, PNode rhs) {
+            super(attributeId, primary, rhs);
         }
 
     }
 
     public static final class SetObjectAttributeNode extends SetAttributeNode {
 
-        public SetObjectAttributeNode(String attributeId, PNode primary, PNode rhs, PythonContext context) {
-            super(attributeId, primary, rhs, context);
+        public SetObjectAttributeNode(String attributeId, PNode primary, PNode rhs) {
+            super(attributeId, primary, rhs);
         }
 
         @Override
@@ -161,8 +158,8 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
 
     public static final class SetIntAttributeNode extends SetAttributeNode {
 
-        public SetIntAttributeNode(String attributeId, PNode primary, PNode rhs, PythonContext context) {
-            super(attributeId, primary, rhs, context);
+        public SetIntAttributeNode(String attributeId, PNode primary, PNode rhs) {
+            super(attributeId, primary, rhs);
         }
 
         @Override
@@ -193,8 +190,8 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
 
     public static final class SetDoubleAttributeNode extends SetAttributeNode {
 
-        public SetDoubleAttributeNode(String attributeId, PNode primary, PNode rhs, PythonContext context) {
-            super(attributeId, primary, rhs, context);
+        public SetDoubleAttributeNode(String attributeId, PNode primary, PNode rhs) {
+            super(attributeId, primary, rhs);
         }
 
         @Override
@@ -225,8 +222,8 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
 
     public static final class SetBooleanAttributeNode extends SetAttributeNode {
 
-        public SetBooleanAttributeNode(String attributeId, PNode primary, PNode rhs, PythonContext context) {
-            super(attributeId, primary, rhs, context);
+        public SetBooleanAttributeNode(String attributeId, PNode primary, PNode rhs) {
+            super(attributeId, primary, rhs);
         }
 
         @Override

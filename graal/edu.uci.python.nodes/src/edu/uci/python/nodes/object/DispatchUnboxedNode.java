@@ -142,6 +142,14 @@ public abstract class DispatchUnboxedNode extends Node {
             return read;
         }
 
+        @Override
+        public NodeCost getCost() {
+            if (next != null && next.getCost() == NodeCost.MONOMORPHIC) {
+                return NodeCost.POLYMORPHIC;
+            }
+            return super.getCost();
+        }
+
         protected boolean dispatchGuard(Object primary) {
             return primary.getClass() == cachedClass;
         }

@@ -66,12 +66,12 @@ public class PList extends PSequence {
     }
 
     @Override
-    public PythonBuiltinClass __class__() {
+    public final PythonBuiltinClass __class__() {
         return __class__;
     }
 
     @Override
-    public PythonCallable __getattribute__(String name) {
+    public final PythonCallable __getattribute__(String name) {
         return (PythonCallable) __class__.getAttribute(name);
     }
 
@@ -94,13 +94,13 @@ public class PList extends PSequence {
     }
 
     @Override
-    public Object getItem(int idx) {
+    public final Object getItem(int idx) {
         int index = SequenceUtil.normalizeIndex(idx, store.length());
         return store.getItemInBound(index);
     }
 
     @Override
-    public void setItem(int idx, Object value) {
+    public final void setItem(int idx, Object value) {
         int index = SequenceUtil.normalizeIndex(idx, store.length());
         try {
             store.setItemInBound(index, value);
@@ -116,23 +116,23 @@ public class PList extends PSequence {
     }
 
     @Override
-    public Object getSlice(PSlice slice) {
+    public final Object getSlice(PSlice slice) {
         int length = slice.computeActualIndices(store.length());
         return getSlice(slice.getStart(), slice.getStop(), slice.getStep(), length);
     }
 
     @Override
-    public Object getSlice(int start, int stop, int step, int length) {
+    public final Object getSlice(int start, int stop, int step, int length) {
         return new PList(store.getSliceInBound(start, stop, step, length));
     }
 
     @Override
-    public void setSlice(PSlice slice, PSequence value) {
+    public final void setSlice(PSlice slice, PSequence value) {
         setSlice(slice.getStart(), slice.getStop(), slice.getStep(), value);
     }
 
     @Override
-    public void setSlice(int start, int stop, int step, PSequence value) {
+    public final void setSlice(int start, int stop, int step, PSequence value) {
         final int normalizedStart = SequenceUtil.normalizeSliceStart(start, step, store.length());
         int normalizedStop = SequenceUtil.normalizeSliceStop(stop, step, store.length());
 
@@ -154,17 +154,17 @@ public class PList extends PSequence {
     }
 
     @Override
-    public void delItem(int idx) {
+    public final void delItem(int idx) {
         store.delItemInBound(idx);
     }
 
     @Override
-    public boolean lessThan(PSequence sequence) {
+    public final boolean lessThan(PSequence sequence) {
         return false;
     }
 
     @Override
-    public String toString() {
+    public final String toString() {
         StringBuilder buf = new StringBuilder("[");
 
         for (int i = 0; i < store.length(); i++) {
@@ -186,20 +186,20 @@ public class PList extends PSequence {
     }
 
     @Override
-    public Object getMax() {
+    public final Object getMax() {
         Object[] copy = store.getCopyOfInternalArray();
         Arrays.sort(copy);
         return copy[copy.length - 1];
     }
 
     @Override
-    public Object getMin() {
+    public final Object getMin() {
         Object[] copy = store.getCopyOfInternalArray();
         Arrays.sort(copy);
         return copy[0];
     }
 
-    public void sort() {
+    public final void sort() {
         store.sort();
     }
 
@@ -208,7 +208,7 @@ public class PList extends PSequence {
         return store.length();
     }
 
-    public PList __mul__(int value) {
+    public final PList __mul__(int value) {
         assert value > 0;
         SequenceStorage newStore = store.copy();
 
@@ -223,7 +223,7 @@ public class PList extends PSequence {
         return new PList(newStore);
     }
 
-    public void reverse() {
+    public final void reverse() {
         store.reverse();
     }
 
@@ -245,7 +245,7 @@ public class PList extends PSequence {
         }
     }
 
-    public void extend(PList appendee) {
+    public final void extend(PList appendee) {
         SequenceStorage other = appendee.getStorage();
 
         try {
@@ -261,7 +261,7 @@ public class PList extends PSequence {
         }
     }
 
-    public PList __add__(PList other) {
+    public final PList __add__(PList other) {
         SequenceStorage otherStore = other.getStorage();
         SequenceStorage newStore = store.copy();
 
@@ -281,7 +281,7 @@ public class PList extends PSequence {
     }
 
     @Override
-    public int index(Object value) {
+    public final int index(Object value) {
         int index = store.index(value);
 
         if (index != -1) {
@@ -292,7 +292,7 @@ public class PList extends PSequence {
         }
     }
 
-    public void insert(int index, Object value) {
+    public final void insert(int index, Object value) {
         try {
             store.insertItem(index, value);
         } catch (SequenceStoreException e) {
@@ -307,7 +307,7 @@ public class PList extends PSequence {
     }
 
     @Override
-    public boolean equals(Object other) {
+    public final boolean equals(Object other) {
         if (!(other instanceof PList)) {
             return false;
         }
@@ -333,7 +333,7 @@ public class PList extends PSequence {
     }
 
     @Override
-    public int hashCode() {
+    public final int hashCode() {
         return super.hashCode();
     }
 

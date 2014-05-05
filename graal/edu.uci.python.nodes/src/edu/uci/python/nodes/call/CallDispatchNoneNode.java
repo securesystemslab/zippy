@@ -26,6 +26,7 @@ package edu.uci.python.nodes.call;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
@@ -54,11 +55,12 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         }
 
         if (callee instanceof PFunction) {
-            return new LinkedDispatchNoneNode((PFunction) callee, next);
+            return new LinkedDispatchNoneNode(callee, next);
         }
 
         if (callee instanceof PythonClass) {
-            return new GenericDispatchNoneNode(callee.getName());
+            PythonClass clazz = (PythonClass) callee;
+            return new LinkedDispatchNoneNode((PythonCallable) clazz.getAttribute("__init__"), next);
         }
 
         throw new UnsupportedOperationException("Unsupported callee type " + callee);
@@ -74,14 +76,22 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
     public static final class LinkedDispatchNoneNode extends CallDispatchNoneNode {
 
         @Child protected InvokeNode invokeNode;
-        @Child protected CallDispatchNoneNode nextNode;
+        @Child protected CallDispatchNoneNode next;
         private final PythonCallable cachedCallee;
 
-        public LinkedDispatchNoneNode(PFunction callee, UninitializedDispatchNoneNode next) {
+        public LinkedDispatchNoneNode(PythonCallable callee, UninitializedDispatchNoneNode next) {
             super(callee.getName());
-            invokeNode = InvokeNode.create(callee, next.hasKeyword);
-            nextNode = next;
-            cachedCallee = callee;
+            this.invokeNode = InvokeNode.create(callee, next.hasKeyword);
+            this.next = next;
+            this.cachedCallee = callee;
+        }
+
+        @Override
+        public NodeCost getCost() {
+            if (next != null && next.getCost() == NodeCost.MONOMORPHIC) {
+                return NodeCost.POLYMORPHIC;
+            }
+            return super.getCost();
         }
 
         @Override
@@ -90,10 +100,11 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
                 return invokeNode.invoke(frame, null, arguments, keywords);
             }
 
-            return nextNode.executeCall(frame, callee, arguments, keywords);
+            return next.executeCall(frame, callee, arguments, keywords);
         }
     }
 
+    @NodeInfo(cost = NodeCost.MEGAMORPHIC)
     public static final class GenericDispatchNoneNode extends CallDispatchNoneNode {
 
         public GenericDispatchNoneNode(String calleeName) {
@@ -106,6 +117,7 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         }
     }
 
+    @NodeInfo(cost = NodeCost.UNINITIALIZED)
     public static final class UninitializedDispatchNoneNode extends CallDispatchNoneNode {
 
         private final boolean hasKeyword;
@@ -119,18 +131,12 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object[] arguments, PKeyword[] keywords) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
-            CallDispatchNode current = this;
-            int depth = 0;
-            while (current.getParent() instanceof CallDispatchNode) {
-                current = (CallDispatchNode) current.getParent();
-                depth++;
-            }
-
             CallDispatchNoneNode specialized;
-            if (depth < PythonOptions.CallSiteInlineCacheMaxDepth) {
+
+            if (getDispatchDepth() < PythonOptions.CallSiteInlineCacheMaxDepth) {
                 specialized = replace(CallDispatchNoneNode.create(callee, keywords));
             } else {
-                specialized = current.replace(new GenericDispatchNoneNode(calleeName));
+                specialized = getTop().replace(new GenericDispatchNoneNode(calleeName));
             }
 
             return specialized.executeCall(frame, callee, arguments, keywords);

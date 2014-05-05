@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,7 +26,7 @@ package edu.uci.python.runtime.datatype;
 
 import edu.uci.python.runtime.standardtype.*;
 
-public class PComplex extends PythonBuiltinObject {
+public final class PComplex extends PythonBuiltinObject {
 
     private final double real;
     private final double imag;
@@ -82,31 +82,31 @@ public class PComplex extends PythonBuiltinObject {
         return (real != c.real || imag != c.imag);
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "static-method"})
     public boolean greaterEqual(PComplex c) {
         throw new RuntimeException("cannot compare complex numbers using <, <=, >, >=");
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "static-method"})
     public boolean greaterThan(PComplex c) {
         throw new RuntimeException("cannot compare complex numbers using <, <=, >, >=");
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "static-method"})
     public boolean lessEqual(PComplex c) {
         throw new RuntimeException("cannot compare complex numbers using <, <=, >, >=");
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "static-method"})
     public boolean lessThan(PComplex c) {
         throw new RuntimeException("cannot compare complex numbers using <, <=, >, >=");
     }
 
-    public final double getReal() {
+    public double getReal() {
         return real;
     }
 
-    public final double getImag() {
+    public double getImag() {
         return imag;
     }
 

@@ -86,6 +86,12 @@ public class PythonObject {
         this.objectLayout = newLayout;
     }
 
+    public final void syncObjectLayoutWithClass() {
+        if (objectLayout != pythonClass.getInstanceObjectLayout()) {
+            objectLayout = pythonClass.getInstanceObjectLayout();
+        }
+    }
+
     /**
      * Does this object have an instance variable defined?
      */
@@ -97,6 +103,18 @@ public class PythonObject {
         final StorageLocation location = objectLayout.findStorageLocation(attributeId);
         assert location != null;
         return location;
+    }
+
+    public PythonObject getValidStorageFullLookup(String attributeId) {
+        PythonObject storage = null;
+
+        if (isOwnAttribute(attributeId)) {
+            storage = this;
+        } else if (pythonClass != null) {
+            storage = pythonClass.getValidStorageFullLookup(attributeId);
+        }
+
+        return storage;
     }
 
     private void allocateObjectStorageLocations() {

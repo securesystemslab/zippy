@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,44 +22,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test.grammar;
+package edu.uci.python.nodes.statement;
 
-import static edu.uci.python.test.PythonTests.*;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
-import java.nio.file.*;
+import edu.uci.python.nodes.*;
 
-import org.junit.*;
+public class NonVoidBlockNode extends StatementNode {
 
-public class BinaryComparisonTests {
+    @Children protected final PNode[] statements;
 
-    @Test
-    public void chainedComparisons() {
-        String source = "print(2 < 5 > 3)";
-        assertPrints("True\n", source);
+    public NonVoidBlockNode(PNode[] statments) {
+        this.statements = statments;
     }
 
-    @Test
-    public void chainedEquals() {
-        String source = "print(11 == 11 == 12 == 11 == 11)";
-        assertPrints("False\n", source);
+    @ExplodeLoop
+    @Override
+    public Object execute(VirtualFrame frame) {
+        assert statements.length > 1;
+        for (int i = 0; i < (statements.length - 1); i++) {
+            statements[i].executeVoid(frame);
+        }
+
+        return statements[statements.length - 1].execute(frame);
     }
 
-    @Test
-    public void moreComplexChainedEquals() {
-        String source = "a = 11\n" + //
-                        "print(11 == a == 11)";
-        assertPrints("True\n", source);
-    }
-
-    @Test
-    public void equalAndEqual() {
-        String source = "a = 11;b = 3; print(3 == b == 3 and 11 == 11 == a)";
-        assertPrints("True\n", source);
-    }
-
-    @Test
-    public void binaryMultipleComparisionAndFunction() {
-        Path script = Paths.get("compare-multiple-test.py");
-        assertPrints("a = 10\n", script);
-    }
 }

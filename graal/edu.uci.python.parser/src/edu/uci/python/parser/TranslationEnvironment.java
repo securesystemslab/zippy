@@ -175,7 +175,7 @@ public class TranslationEnvironment {
             case Function:
                 return (ReadNode) (slot != null ? factory.createReadLocal(slot) : findVariableInEnclosingOrGlobalScope(name));
             case Class:
-                return (ReadNode) (slot != null ? factory.createGetAttribute(context, ReadIndexedArgumentNode.create(0), name) : findVariableInEnclosingOrGlobalScope(name));
+                return (ReadNode) (slot != null ? factory.createGetAttribute(ReadIndexedArgumentNode.create(0), name) : findVariableInEnclosingOrGlobalScope(name));
             default:
                 throw new IllegalStateException("Unexpected scopeKind " + getScopeKind());
         }
@@ -309,7 +309,6 @@ public class TranslationEnvironment {
         } else {
             this.statementPatch.addAll(patch);
         }
-
     }
 
 }

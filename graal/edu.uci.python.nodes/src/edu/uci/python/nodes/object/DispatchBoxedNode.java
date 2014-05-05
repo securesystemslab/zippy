@@ -60,55 +60,22 @@ public abstract class DispatchBoxedNode extends Node {
     protected DispatchBoxedNode rewrite(PythonObject primary, DispatchBoxedNode next) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
 
-        // PythonModule
-        if (primary instanceof PythonModule) {
-            if (!primary.isOwnAttribute(attributeId)) {
-                throw new IllegalStateException("module: " + primary + " does not contain attribute " + attributeId);
-            }
-
-            DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primary, primary, primary.getOwnValidLocation(attributeId), 0, next);
-            replace(newNode);
-            return newNode;
+        /**
+         * zwei: If a PythonObject's layout is invalid, force it to update its layout from its
+         * Class's instanceLayout. This avoids infinite recursion when a PythonObject is created
+         * with an old instanceLayout and invalidates the previous dispatchNode.
+         */
+        if (!primary.getStableAssumption().isValid()) {
+            primary.syncObjectLayoutWithClass();
         }
 
-        int depth = 0;
-        PythonClass current = null;
-        // Plain PythonObject
-        if (!(primary instanceof PythonClass)) {
+        PythonObject storage = primary.getValidStorageFullLookup(attributeId);
 
-            // In place attribute
-            if (primary.isOwnAttribute(attributeId)) {
-                DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primary, primary, primary.getOwnValidLocation(attributeId), 0, next);
-                replace(newNode);
-                return newNode;
-            }
-
-            depth++;
-            current = primary.getPythonClass();
-        }
-
-        // if primary itself is a PythonClass
-        if (current == null) {
-            current = (PythonClass) primary;
-        }
-
-        // class chain lookup
-        do {
-            if (current.isOwnAttribute(attributeId)) {
-                break;
-            }
-
-            current = current.getSuperClass();
-            depth++;
-        } while (current != null);
-
-        if (current == null) {
+        if (storage == null) {
             throw Py.AttributeError(primary + " object has no attribute " + attributeId);
         }
 
-        DispatchBoxedNode newNode = LinkedDispatchBoxedNode.create(attributeId, primary, current, current.getOwnValidLocation(attributeId), depth, next);
-        replace(newNode);
-        return newNode;
+        return replace(LinkedDispatchBoxedNode.create(attributeId, primary, storage, primary.isOwnAttribute(attributeId), next));
     }
 
     @NodeInfo(cost = NodeCost.UNINITIALIZED)
@@ -141,6 +108,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
     }
 
+    @NodeInfo(cost = NodeCost.MEGAMORPHIC)
     public static final class GenericDispatchBoxedNode extends DispatchBoxedNode {
 
         public GenericDispatchBoxedNode(String attributeId) {
@@ -169,12 +137,12 @@ public abstract class DispatchBoxedNode extends Node {
             this.cachedStorage = storage;
         }
 
-        public static LinkedDispatchBoxedNode create(String attributeId, PythonObject primary, PythonObject storage, StorageLocation location, int depth, DispatchBoxedNode next) {
-            ShapeCheckNode check = ShapeCheckNode.create(primary, storage.getObjectLayout(), depth);
-            AttributeReadNode read = AttributeReadNode.create(location);
+        public static LinkedDispatchBoxedNode create(String attributeId, PythonObject primary, PythonObject storage, boolean isAttributeInPlace, DispatchBoxedNode next) {
+            ShapeCheckNode check = ShapeCheckNode.create(primary, attributeId, isAttributeInPlace);
+            AttributeReadNode read = AttributeReadNode.create(storage.getOwnValidLocation(attributeId));
 
             if (!(primary instanceof PythonClass)) {
-                if (depth == 0) {
+                if (isAttributeInPlace) {
                     assert primary == storage;
                     return new LinkedDispatchBoxedNode(attributeId, check, read, null, next);
                 } else {
@@ -193,6 +161,14 @@ public abstract class DispatchBoxedNode extends Node {
 
         private PythonObject getStorage(PythonObject primary) {
             return cachedStorage == null ? primary : cachedStorage;
+        }
+
+        @Override
+        public NodeCost getCost() {
+            if (next != null && next.getCost() == NodeCost.MONOMORPHIC) {
+                return NodeCost.POLYMORPHIC;
+            }
+            return super.getCost();
         }
 
         @Override

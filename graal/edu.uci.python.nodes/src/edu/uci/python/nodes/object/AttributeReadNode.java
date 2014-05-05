@@ -32,6 +32,8 @@ import edu.uci.python.runtime.object.*;
 public abstract class AttributeReadNode extends Node {
 
     public static AttributeReadNode create(StorageLocation location) {
+        assert location != null;
+
         if (location instanceof ArrayObjectStorageLocation) {
             return new ReadArrayObjectAttributeNode((ArrayObjectStorageLocation) location);
         } else if (location instanceof BooleanStorageLocation) {

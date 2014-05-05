@@ -34,8 +34,8 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.object.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
@@ -46,6 +46,7 @@ import edu.uci.python.runtime.standardtype.*;
 public abstract class PythonCallNode extends PNode {
 
     @Child protected PNode primaryNode;
+    @Child protected PNode calleeNode;
     @Children protected final PNode[] argumentNodes;
     @Children protected final PNode[] keywordNodes;
 
@@ -53,10 +54,11 @@ public abstract class PythonCallNode extends PNode {
     protected final boolean passPrimaryAsTheFirstArgument;
     protected final PythonContext context;
 
-    public PythonCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments, PNode[] keywords, boolean passPrimary) {
+    public PythonCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, boolean passPrimary) {
         this.context = context;
         this.calleeName = calleeName;
         this.primaryNode = primary;
+        this.calleeNode = callee;
         this.argumentNodes = arguments;
         this.keywordNodes = keywords;
         this.passPrimaryAsTheFirstArgument = passPrimary;
@@ -78,58 +80,75 @@ public abstract class PythonCallNode extends PNode {
         return new UninitializedCallNode(context, primaryNode, calleeName, calleeNode, argumentNodes, keywords);
     }
 
-    /**
-     * Pack primary into the evaluated arguments array if passPrimary is true.
-     *
-     */
-    @ExplodeLoop
-    protected static final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary, PNode[] arguments) {
-        final int length = passPrimary ? arguments.length + 1 : arguments.length;
-        final Object[] evaluated = new Object[length];
-        final int offset;
+    protected Object rewriteAndExecuteCall(VirtualFrame frame, Object primary, Object callee) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
 
-        if (passPrimary) {
-            evaluated[0] = primary;
-            offset = 1;
-        } else {
-            offset = 0;
+        /**
+         * Dealing with calls into Jython runtime.
+         */
+        if (callee instanceof PyObject) {
+            PyObject pyobj = (PyObject) callee;
+            logJythonRuntime(pyobj);
+            return replace(new CallJythonNode(context, pyobj.toString(), primaryNode, calleeNode, argumentNodes, keywordNodes)).executeCall(frame, pyobj);
         }
 
-        for (int i = 0; i < arguments.length; i++) {
-            evaluated[i + offset] = arguments[i].execute(frame);
+        PythonCallable callable;
+        try {
+            callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(callee);
+        } catch (UnexpectedResultException e) {
+            // __call__ dispatch
+            callable = resolveSpecialMethod(callee, "__call__");
+
+            if (callable == null) {
+                throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
+            }
+
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) callee, "__call__", callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
+            replace(new CallPythonObjectNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch));
+            Object[] arguments = executeArguments(frame, true, callee, argumentNodes);
+            return dispatch.executeCall(frame, (PythonObject) callee, arguments, PKeyword.EMPTY_KEYWORDS);
         }
 
-        return evaluated;
-    }
+        /**
+         * Non built-in constructors use CallConstructorNode. <br>
+         * Built-in constructors use regular BoxedCallNode with no special calling convention.
+         */
+        if (PythonCallUtil.isPrimaryBoxed(primary) && callee instanceof PythonClass && !(callee instanceof PythonBuiltinClass)) {
 
-    @ExplodeLoop
-    public static final Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
-        Object[] evaluated = new Object[arguments.length];
-
-        for (int i = 0; i < arguments.length; i++) {
-            evaluated[i] = arguments[i].execute(frame);
+            PythonClass clazz = (PythonClass) callee;
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
+            CallConstructorNode specialized = new CallConstructorNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch);
+            return replace(specialized).executeCall(frame, (PythonObject) primary, clazz);
         }
 
-        return evaluated;
-    }
+        boolean passPrimaryAsArgument = PythonCallUtil.haveToPassPrimary(primary, this);
+        callable.arityCheck(passPrimaryAsArgument ? argumentNodes.length + 1 : argumentNodes.length, keywordNodes.length, PythonCallUtil.getKeywordNames(this));
+        Object[] arguments = executeArguments(frame, passPrimaryAsArgument, primary, argumentNodes);
+        PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
 
-    @ExplodeLoop
-    protected static final PKeyword[] executeKeywordArguments(VirtualFrame frame, PNode[] arguments) {
-        PKeyword[] evaluated = arguments.length == 0 ? PKeyword.EMPTY_KEYWORDS : new PKeyword[arguments.length];
-
-        for (int i = 0; i < arguments.length; i++) {
-            evaluated[i] = (PKeyword) arguments[i].execute(frame);
+        if (PythonCallUtil.isPrimaryNone(primary, this)) {
+            CallDispatchNoneNode dispatch = CallDispatchNoneNode.create(callable, keywords);
+            replace(new NoneCallNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch));
+            return dispatch.executeCall(frame, callable, arguments, keywords);
         }
 
-        return evaluated;
+        if (PythonCallUtil.isPrimaryBoxed(primary)) {
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, calleeNode, keywords);
+            replace(new BoxedCallNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
+            return dispatch.executeCall(frame, (PythonObject) primary, arguments, keywords);
+        }
+
+        CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(primary, callable, calleeNode, keywords);
+        replace(new UnboxedCallNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
+        return dispatch.executeCall(frame, primary, arguments, keywords);
     }
 
     public static final class BoxedCallNode extends PythonCallNode {
 
         @Child protected CallDispatchBoxedNode dispatchBoxedNode;
 
-        public BoxedCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments, PNode[] keywords, CallDispatchBoxedNode dispatch, boolean passPrimary) {
-            super(context, calleeName, primary, arguments, keywords, passPrimary);
+        public BoxedCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchBoxedNode dispatch, boolean passPrimary) {
+            super(context, calleeName, primary, callee, arguments, keywords, passPrimary);
             dispatchBoxedNode = dispatch;
         }
 
@@ -140,12 +159,11 @@ public abstract class PythonCallNode extends PNode {
             try {
                 primary = primaryNode.executePythonObject(frame);
             } catch (UnexpectedResultException e) {
-                CompilerDirectives.transferToInterpreterAndInvalidate();
-                throw new IllegalStateException();
+                return rewriteAndExecuteCall(frame, e.getResult(), calleeNode.execute(frame));
             }
 
             Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
-            PKeyword[] keywords = PythonCallNode.executeKeywordArguments(frame, keywordNodes);
+            PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             return dispatchBoxedNode.executeCall(frame, primary, arguments, keywords);
         }
     }
@@ -154,8 +172,8 @@ public abstract class PythonCallNode extends PNode {
 
         @Child protected CallDispatchUnboxedNode dispatchNode;
 
-        public UnboxedCallNode(PythonContext context, String calleeName, PNode primary, PNode[] arguments, PNode[] keywords, CallDispatchUnboxedNode dispatch, boolean passPrimary) {
-            super(context, calleeName, primary, arguments, keywords, passPrimary);
+        public UnboxedCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchUnboxedNode dispatch, boolean passPrimary) {
+            super(context, calleeName, primary, callee, arguments, keywords, passPrimary);
             dispatchNode = dispatch;
         }
 
@@ -163,19 +181,17 @@ public abstract class PythonCallNode extends PNode {
         public Object execute(VirtualFrame frame) {
             Object primary = primaryNode.execute(frame);
             Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
-            PKeyword[] keywords = PythonCallNode.executeKeywordArguments(frame, keywordNodes);
+            PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             return dispatchNode.executeCall(frame, primary, arguments, keywords);
         }
     }
 
     public static final class NoneCallNode extends PythonCallNode {
 
-        @Child protected PNode calleeNode;
         @Child protected CallDispatchNoneNode dispatchNode;
 
         public NoneCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchNoneNode dispatch) {
-            super(context, calleeName, primary, arguments, keywords, false);
-            this.calleeNode = callee;
+            super(context, calleeName, primary, callee, arguments, keywords, false);
             this.dispatchNode = dispatch;
         }
 
@@ -186,23 +202,21 @@ public abstract class PythonCallNode extends PNode {
             try {
                 callee = calleeNode.executePythonCallable(frame);
             } catch (UnexpectedResultException e) {
-                throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
+                return rewriteAndExecuteCall(frame, PNone.NONE, e.getResult());
             }
 
             Object[] arguments = executeArguments(frame, argumentNodes);
-            PKeyword[] keywords = PythonCallNode.executeKeywordArguments(frame, keywordNodes);
+            PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             return dispatchNode.executeCall(frame, callee, arguments, keywords);
         }
     }
 
     public static final class CallConstructorNode extends PythonCallNode {
 
-        @Child protected PNode calleeNode;
         @Child protected CallDispatchBoxedNode dispatchNode;
 
         public CallConstructorNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchBoxedNode dispatch) {
-            super(context, calleeName, primary, arguments, keywords, true);
-            calleeNode = callee;
+            super(context, calleeName, primary, callee, arguments, keywords, true);
             dispatchNode = dispatch;
         }
 
@@ -213,7 +227,7 @@ public abstract class PythonCallNode extends PNode {
             try {
                 primary = primaryNode.executePythonObject(frame);
             } catch (UnexpectedResultException e) {
-                throw new IllegalStateException();
+                return rewriteAndExecuteCall(frame, e.getResult(), calleeNode.execute(frame));
             }
 
             PythonClass callee;
@@ -221,29 +235,51 @@ public abstract class PythonCallNode extends PNode {
             try {
                 callee = calleeNode.executePythonClass(frame);
             } catch (UnexpectedResultException e) {
-                throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
+                return rewriteAndExecuteCall(frame, primary, e.getResult());
             }
 
             return executeCall(frame, primary, callee);
         }
 
-        protected Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
+        private Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
             PythonObject newInstance = new PythonObject(clazz);
             Object[] arguments = executeArguments(frame, true, newInstance, argumentNodes);
-            PKeyword[] keywords = PythonCallNode.executeKeywordArguments(frame, keywordNodes);
+            PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
-            newInstance.switchToPrivateLayout();
             return newInstance;
         }
     }
 
+    public static final class CallPythonObjectNode extends PythonCallNode {
+
+        @Child protected CallDispatchBoxedNode dispatchNode;
+
+        public CallPythonObjectNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchBoxedNode dispatch) {
+            super(context, calleeName, primary, callee, arguments, keywords, true);
+            dispatchNode = dispatch;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            PythonObject primary;
+
+            try {
+                primary = calleeNode.executePythonObject(frame);
+            } catch (UnexpectedResultException e) {
+                return rewriteAndExecuteCall(frame, primaryNode.execute(frame), e.getResult());
+            }
+
+            Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
+            PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
+            return dispatchNode.executeCall(frame, primary, arguments, keywords);
+        }
+
+    }
+
     public static final class CallJythonNode extends PythonCallNode {
 
-        @Child protected PNode calleeNode;
-
         public CallJythonNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords) {
-            super(context, calleeName, primary, arguments, keywords, false);
-            this.calleeNode = callee;
+            super(context, calleeName, primary, callee, arguments, keywords, false);
         }
 
         @Override
@@ -253,13 +289,13 @@ public abstract class PythonCallNode extends PNode {
             try {
                 callee = calleeNode.executePyObject(frame);
             } catch (UnexpectedResultException e) {
-                throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
+                return rewriteAndExecuteCall(frame, PNone.NONE, e.getResult());
             }
 
             return executeCall(frame, callee);
         }
 
-        protected Object executeCall(VirtualFrame frame, PyObject callee) {
+        private Object executeCall(VirtualFrame frame, PyObject callee) {
             Object[] arguments = executeArguments(frame, argumentNodes);
             PyObject[] pyargs = adaptToPyObjects(arguments);
             return unboxPyObject(callee.__call__(pyargs));
@@ -268,10 +304,8 @@ public abstract class PythonCallNode extends PNode {
 
     public static final class UninitializedCallNode extends PythonCallNode {
 
-        @Child protected PNode calleeNode;
-
         public UninitializedCallNode(PythonContext context, PNode primary, String calleeName, PNode callee, PNode[] arguments, PNode[] keywords) {
-            super(context, calleeName, primary, arguments, keywords, false);
+            super(context, calleeName, primary, callee, arguments, keywords, false);
             this.calleeNode = callee;
         }
 
@@ -284,71 +318,7 @@ public abstract class PythonCallNode extends PNode {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             Object primary = primaryNode.execute(frame);
-            PythonCallable callee;
-
-            try {
-                callee = calleeNode.executePythonCallable(frame);
-            } catch (UnexpectedResultException e) {
-                Object result = e.getResult();
-                if (result instanceof PyObject) {
-                    PyObject pyobj = (PyObject) result;
-                    logJythonRuntime(pyobj);
-                    return replace(new CallJythonNode(context, pyobj.toString(), primaryNode, calleeNode, argumentNodes, keywordNodes)).executeCall(frame, pyobj);
-                }
-
-                throw Py.TypeError("'" + getPythonTypeName(result) + "' object is not callable");
-            }
-
-            /**
-             * Non built-in constructors use CallConstructorNode. <br>
-             * Built-in constructors use regular BoxedCallNode with no special calling convention.
-             */
-            if (isPrimaryBoxed(primary) && callee instanceof PythonClass && !(callee instanceof PythonBuiltinClass)) {
-                PythonClass clazz = (PythonClass) callee;
-                CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(context, (PythonObject) primary, calleeName, callee, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
-                CallConstructorNode specialized = new CallConstructorNode(context, callee.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch);
-                return replace(specialized).executeCall(frame, (PythonObject) primary, clazz);
-            }
-
-            boolean passPrimaryAsArgument = haveToPassPrimary(primary);
-            callee.arityCheck(passPrimaryAsArgument ? argumentNodes.length + 1 : argumentNodes.length, keywordNodes.length, getKeywordNames());
-            Object[] arguments = executeArguments(frame, passPrimaryAsArgument, primary, argumentNodes);
-            PKeyword[] keywords = PythonCallNode.executeKeywordArguments(frame, keywordNodes);
-
-            if (isPrimaryNone(primary)) {
-                CallDispatchNoneNode dispatch = CallDispatchNoneNode.create(callee, keywords);
-                replace(new NoneCallNode(context, callee.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch));
-                return dispatch.executeCall(frame, callee, arguments, keywords);
-            }
-
-            if (isPrimaryBoxed(primary)) {
-                CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(context, (PythonObject) primary, calleeName, callee, calleeNode, keywords);
-                replace(new BoxedCallNode(context, callee.getName(), primaryNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
-                return dispatch.executeCall(frame, (PythonObject) primary, arguments, keywords);
-            }
-
-            CallDispatchUnboxedNode dispatch = CallDispatchUnboxedNode.create(primary, callee, calleeNode, keywords);
-            replace(new UnboxedCallNode(context, callee.getName(), primaryNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
-            return dispatch.executeCall(frame, primary, arguments, keywords);
-        }
-
-        private String[] getKeywordNames() {
-            String[] keywordNames = new String[keywordNodes.length];
-
-            for (int i = 0; i < keywordNodes.length; i++) {
-                KeywordLiteralNode keywordLiteral = (KeywordLiteralNode) keywordNodes[i];
-                keywordNames[i] = keywordLiteral.getName();
-            }
-
-            return keywordNames;
-        }
-
-        private boolean isPrimaryNone(Object primary) {
-            return primaryNode == EmptyNode.INSTANCE && primary == PNone.NONE;
-        }
-
-        private boolean haveToPassPrimary(Object primary) {
-            return !isPrimaryNone(primary) && !(primary instanceof PythonClass) && !(primary instanceof PythonModule) && !(primary instanceof PyObject);
+            return rewriteAndExecuteCall(frame, primary, calleeNode.execute(frame));
         }
     }
 

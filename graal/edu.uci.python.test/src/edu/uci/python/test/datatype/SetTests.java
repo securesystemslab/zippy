@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,51 +22,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object;
+package edu.uci.python.test.datatype;
 
-import org.python.core.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import com.oracle.truffle.api.*;
+import org.junit.*;
 
-public final class ArrayObjectStorageLocation extends StorageLocation {
+public class SetTests {
 
-    private final int index;
-
-    public ArrayObjectStorageLocation(ObjectLayout objectLayout, int index) {
-        super(objectLayout);
-        this.index = index;
+    @Test
+    public void setNone() {
+        String source = "set(None)";
+        assertError("TypeError: 'None' object is not iterable\n", source);
     }
 
-    @Override
-    public boolean isSet(PythonObject object) {
-        return object.arrayObjects[index] != null;
-    }
-
-    @Override
-    public Object read(PythonObject object) {
-        final Object result = ObjectLayoutUtil.readObjectArrayUnsafeAt(object.arrayObjects, index, this);
-
-        if (result != null) {
-            return result;
-        }
-
-        CompilerDirectives.transferToInterpreterAndInvalidate();
-        throw Py.AttributeError(object + " object has no attribute " + getObjectLayout().findAttributeId(this));
-    }
-
-    @Override
-    public void write(PythonObject object, Object value) {
-        ObjectLayoutUtil.writeObjectArrayUnsafeAt(object.arrayObjects, index, value, this);
-    }
-
-    @Override
-    public Class getStoredClass() {
-        return Object.class;
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " at " + index;
+    @Test
+    public void setClear() {
+        String source = "s = set([1,2,3])\n" + //
+                        "print(s)\n" + //
+                        "s.clear()\n" + //
+                        "print(s)";
+        assertPrints("{1, 2, 3}\nset()\n", source);
     }
 
 }

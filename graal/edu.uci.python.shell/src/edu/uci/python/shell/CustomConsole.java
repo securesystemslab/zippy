@@ -94,10 +94,6 @@ public class CustomConsole extends JLineConsole {
             printProfilerResults();
         }
 
-        if (PythonOptions.CreateWrapperNodes) {
-            WrapperNode.print();
-        }
-
         if (PythonOptions.ProfileFunctionCalls) {
             printBanner("Function Invocation Count Results");
             Profiler.getInstance().printProfilerResults();

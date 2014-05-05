@@ -67,19 +67,17 @@ import edu.uci.python.runtime.standardtype.*;
  */
 public abstract class GetAttributeNode extends PNode implements ReadNode, HasPrimaryNode {
 
-    protected final PythonContext context;
     protected final String attributeId;
     @Child protected PNode primaryNode;
 
-    public GetAttributeNode(PythonContext context, String attributeId, PNode primary) {
-        this.context = context;
+    public GetAttributeNode(String attributeId, PNode primary) {
         this.attributeId = attributeId;
         this.primaryNode = primary;
     }
 
     @Override
     public PNode makeWriteNode(PNode rhs) {
-        return new SetAttributeNode.UninitializedSetAttributeNode(attributeId, primaryNode, rhs, context);
+        return new SetAttributeNode.UninitializedSetAttributeNode(attributeId, primaryNode, rhs);
     }
 
     @Override
@@ -98,8 +96,8 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
 
         @Child protected DispatchBoxedNode attribute;
 
-        public BoxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, DispatchBoxedNode cache) {
-            super(context, attributeId, primary);
+        public BoxedGetAttributeNode(String attributeId, PNode primary, DispatchBoxedNode cache) {
+            super(attributeId, primary);
             this.attribute = cache;
             this.adoptChildren();
         }
@@ -168,8 +166,8 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
      */
     public static final class BoxedGetMethodNode extends BoxedGetAttributeNode {
 
-        public BoxedGetMethodNode(PythonContext context, String attributeId, PNode primary, DispatchBoxedNode cache) {
-            super(context, attributeId, primary, cache);
+        public BoxedGetMethodNode(String attributeId, PNode primary, DispatchBoxedNode cache) {
+            super(attributeId, primary, cache);
         }
 
         @Override
@@ -197,8 +195,8 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
 
         @Child protected DispatchUnboxedNode attribute;
 
-        public UnboxedGetAttributeNode(PythonContext context, String attributeId, PNode primary, DispatchUnboxedNode cache) {
-            super(context, attributeId, primary);
+        public UnboxedGetAttributeNode(String attributeId, PNode primary, DispatchUnboxedNode cache) {
+            super(attributeId, primary);
             this.attribute = cache;
             this.adoptChildren();
         }
@@ -253,8 +251,8 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
 
         private final PBuiltinMethod cachedMethod;
 
-        public UnboxedGetMethodNode(PythonContext context, String attributeId, PNode primary, DispatchUnboxedNode cache, PBuiltinMethod cachedMethod) {
-            super(context, attributeId, primary, cache);
+        public UnboxedGetMethodNode(String attributeId, PNode primary, DispatchUnboxedNode cache, PBuiltinMethod cachedMethod) {
+            super(attributeId, primary, cache);
             this.cachedMethod = cachedMethod;
         }
 
@@ -274,8 +272,8 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
 
     public static final class GetPyObjectAttributeNode extends GetAttributeNode {
 
-        public GetPyObjectAttributeNode(PythonContext context, String attributeId, PNode primary) {
-            super(context, attributeId, primary);
+        public GetPyObjectAttributeNode(String attributeId, PNode primary) {
+            super(attributeId, primary);
         }
 
         @Override
@@ -309,18 +307,18 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
              * Always go with the slow route to perform generic lookup (dependency to PyObject).
              * Should be remove once all built-in modules are implemented.
              */
-            return replace(new GetPyObjectAttributeNode(context, attributeId, primaryNode)).executeWithPrimary(frame, primary);
+            return replace(new GetPyObjectAttributeNode(attributeId, primaryNode)).executeWithPrimary(frame, primary);
         }
     }
 
     private Object boxedSpecializeAndExecute(VirtualFrame frame, PythonObject primary) {
         DispatchBoxedNode dispatch = new DispatchBoxedNode.UninitializedDispatchBoxedNode(attributeId);
-        BoxedGetAttributeNode specialized = new BoxedGetAttributeNode(context, attributeId, primaryNode, dispatch);
+        BoxedGetAttributeNode specialized = new BoxedGetAttributeNode(attributeId, primaryNode, dispatch);
         Object value = specialized.executeWithPrimary(frame, primary);
 
         if (value instanceof PFunction && !(primary instanceof PythonClass) && !(primary instanceof PythonModule)) {
             value = new PMethod(primary, (PFunction) value);
-            specialized = new BoxedGetMethodNode(context, attributeId, primaryNode, specialized.attribute);
+            specialized = new BoxedGetMethodNode(attributeId, primaryNode, specialized.attribute);
         }
 
         replace(specialized);
@@ -336,12 +334,12 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
         }
 
         DispatchUnboxedNode dispatch = new DispatchUnboxedNode.UninitializedDispatchUnboxedNode(attributeId);
-        UnboxedGetAttributeNode specialized = new UnboxedGetAttributeNode(context, attributeId, primaryNode, dispatch);
+        UnboxedGetAttributeNode specialized = new UnboxedGetAttributeNode(attributeId, primaryNode, dispatch);
         Object value = specialized.executeWithPrimary(frame, builtinPrimary);
 
         if (value instanceof PBuiltinFunction && !(primary instanceof PythonBuiltinClass)) {
             value = new PBuiltinMethod(builtinPrimary, (PBuiltinFunction) value);
-            specialized = new UnboxedGetMethodNode(context, attributeId, primaryNode, specialized.attribute, (PBuiltinMethod) value);
+            specialized = new UnboxedGetMethodNode(attributeId, primaryNode, specialized.attribute, (PBuiltinMethod) value);
         }
 
         replace(specialized);
@@ -350,8 +348,8 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
 
     public static final class UninitializedGetAttributeNode extends GetAttributeNode {
 
-        public UninitializedGetAttributeNode(PythonContext context, String attributeId, PNode primary) {
-            super(context, attributeId, primary);
+        public UninitializedGetAttributeNode(String attributeId, PNode primary) {
+            super(attributeId, primary);
         }
 
         @Override
