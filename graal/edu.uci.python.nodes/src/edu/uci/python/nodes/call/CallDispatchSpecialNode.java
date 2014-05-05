@@ -146,7 +146,6 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
                 return callee.call(frame.pack(), new Object[]{left, right});
             }
 
-            // primary = PythonTypesGen.PYTHONTYPES.expectPythonObject(right);
             specialMethodId = calleeName.replaceFirst("__", "__r");
             callee = PythonCallUtil.resolveSpecialMethod(right, specialMethodId);
 

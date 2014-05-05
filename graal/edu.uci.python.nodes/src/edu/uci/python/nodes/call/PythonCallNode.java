@@ -96,7 +96,17 @@ public abstract class PythonCallNode extends PNode {
         try {
             callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(callee);
         } catch (UnexpectedResultException e) {
-            throw Py.TypeError("'" + getPythonTypeName(e.getResult()) + "' object is not callable");
+            // __call__ dispatch
+            callable = resolveSpecialMethod(callee, "__call__");
+
+            if (callable == null) {
+                throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
+            }
+
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) callee, "__call__", callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
+            replace(new CallPythonObjectNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch));
+            Object[] arguments = executeArguments(frame, true, callee, argumentNodes);
+            return dispatch.executeCall(frame, (PythonObject) callee, arguments, PKeyword.EMPTY_KEYWORDS);
         }
 
         /**
@@ -238,6 +248,32 @@ public abstract class PythonCallNode extends PNode {
             dispatchNode.executeCall(frame, primary, arguments, keywords);
             return newInstance;
         }
+    }
+
+    public static final class CallPythonObjectNode extends PythonCallNode {
+
+        @Child protected CallDispatchBoxedNode dispatchNode;
+
+        public CallPythonObjectNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchBoxedNode dispatch) {
+            super(context, calleeName, primary, callee, arguments, keywords, true);
+            dispatchNode = dispatch;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            PythonObject primary;
+
+            try {
+                primary = calleeNode.executePythonObject(frame);
+            } catch (UnexpectedResultException e) {
+                return rewriteAndExecuteCall(frame, primaryNode.execute(frame), e.getResult());
+            }
+
+            Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
+            PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
+            return dispatchNode.executeCall(frame, primary, arguments, keywords);
+        }
+
     }
 
     public static final class CallJythonNode extends PythonCallNode {

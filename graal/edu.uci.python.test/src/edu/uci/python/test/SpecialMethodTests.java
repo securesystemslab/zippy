@@ -124,4 +124,17 @@ public class SpecialMethodTests {
         assertPrints("42\n", source);
     }
 
+    @Test
+    public void __call__() {
+        String source = "class Num:\n" + //
+                        "  def __init__(self, n):\n" + //
+                        "    self.n = n\n" + //
+                        "  def __call__(self):\n" + //
+                        "    print(self.n)\n" + //
+                        "" + //
+                        "n0 = Num(42)\n" + //
+                        "n0()\n";
+        assertPrints("42\n", source);
+    }
+
 }

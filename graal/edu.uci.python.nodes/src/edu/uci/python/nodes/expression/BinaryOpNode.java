@@ -37,11 +37,11 @@ import edu.uci.python.runtime.object.*;
 @NodeChildren({@NodeChild(value = "leftNode", type = PNode.class), @NodeChild(value = "rightNode", type = PNode.class)})
 public abstract class BinaryOpNode extends PNode {
 
-    @CompilationFinal @Child protected CallDispatchSpecialNode dispatch;
-
     public abstract PNode getLeftNode();
 
     public abstract PNode getRightNode();
+
+    @CompilationFinal @Child protected CallDispatchSpecialNode dispatch;
 
     protected final static boolean isEitherOperandPythonObject(Object left, Object right) {
         return left instanceof PythonObject || right instanceof PythonObject;
@@ -60,4 +60,5 @@ public abstract class BinaryOpNode extends PNode {
     public String toString() {
         return this.getClass().getSimpleName() + "(" + getLeftNode() + ", " + getRightNode() + ")";
     }
+
 }
