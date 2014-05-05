@@ -589,17 +589,13 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization(order = 20)
-        public int len(VirtualFrame frame, PythonObject obj) {
+        public Object len(VirtualFrame frame, PythonObject obj) {
             if (dispatch == null) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 dispatch = insert(new CallDispatchSpecialNode.UninitializedDispatchSpecialNode("__len__"));
             }
 
-            try {
-                return PythonTypesGen.PYTHONTYPES.expectInteger(dispatch.executeCall(frame, obj, PNone.NONE));
-            } catch (UnexpectedResultException e) {
-                throw new IllegalStateException();
-            }
+            return dispatch.executeCall(frame, obj, PNone.NONE);
         }
 
         @Generic
