@@ -288,7 +288,6 @@ public abstract class PythonCallNode extends PNode {
             PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             return dispatchNode.executeCall(frame, primary, arguments, keywords);
         }
-
     }
 
     public static final class CallJythonNode extends PythonCallNode {
