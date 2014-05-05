@@ -1,19 +1,18 @@
 #   Copyright (C) 2005 Carl Friedrich Bolz
 
+# 05/05/14 modified by zwei
+# remove the use of functool and operator
+
 """create chaosgame-like fractals
 """
 
 from __future__ import division
 
-import operator
 import random
 random.seed(1234)
 import math
-import os
 import sys
 import time
-
-from functools import reduce
 
 class GVector(object):
     def __init__(self, x = 0, y = 0, z = 0):
@@ -150,7 +149,8 @@ class Chaosgame(object):
                 curr = spl(t)
                 length += curr.dist(last)
             self.num_trafos.append(max(1, int(length / maxlength * 1.5)))
-        self.num_total = reduce(operator.add, self.num_trafos, 0)
+        # self.num_total = reduce(operator.add, self.num_trafos, 0)
+        self.num_total = reduceByAdd(self.num_trafos, 0)
 
 
     def get_random_trafo(self):
@@ -184,7 +184,7 @@ class Chaosgame(object):
             basepoint.y += -derivative.x / derivative.Mag() * (y - 0.5) * \
                            self.thickness
         else:
-            print("r")
+            print_("r", end='')
         self.truncate(basepoint)
         return basepoint
 
@@ -221,6 +221,13 @@ class Chaosgame(object):
             times.append(t2 - t1)
         return times
 
+def reduceByAdd(iterable, initializer):
+    result = initializer
+
+    for elem in iterable:
+        result + elem
+
+    return result
 
 def main(n):
     splines = [
@@ -249,15 +256,5 @@ def main(n):
     c = Chaosgame(splines, 0.25)
     return c.create_image_chaos(1000, 1200, n)
 
-main(100)
-# 
-# if __name__ == "__main__":
-#     import py3_util as util
-#     parser = optparse.OptionParser(
-#         usage="%prog [options]",
-#         description="Test the performance of the Chaos benchmark")
-#     util.add_standard_options_to(parser)
-#     options, args = parser.parse_args()
-# 
-#     util.run_benchmark(options, options.num_runs, main)
 
+main(1)
