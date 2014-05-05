@@ -946,7 +946,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist):
         f_testfile.close()
         harness(projectscp, vmArgs)
 
-def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False):
+def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, enable_timing=False):
     mxdir = dirname(__file__)
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
@@ -956,7 +956,11 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False):
         (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
         os.close(_)
     corecp = mx.classpath(['com.oracle.graal.test'])
-    coreArgs = ['-JUnitVerbose'] if verbose else []
+    coreArgs = []
+    if verbose:
+        coreArgs.append('-JUnitVerbose')
+    if enable_timing:
+        coreArgs.append('-JUnitEnableTiming')
 
     def harness(projectscp, vmArgs):
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
@@ -986,6 +990,7 @@ _unittestHelpSuffix = """
       --whitelist            run only testcases which are included
                              in the given whitelist
       --verbose              enable verbose JUnit output
+      --enable-timing        enable JUnit test timing
 
     To avoid conflicts with VM options '--' can be used as delimiter.
 
@@ -1024,6 +1029,7 @@ def unittest(args):
         )
     parser.add_argument('--whitelist', help='run testcases specified in whitelist only', metavar='<path>')
     parser.add_argument('--verbose', help='enable verbose JUnit output', action='store_true')
+    parser.add_argument('--enable-timing', help='enable JUnit test timing', action='store_true')
 
     ut_args = []
     delimiter = False
@@ -1050,7 +1056,7 @@ def unittest(args):
         except IOError:
             mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
 
-    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist, verbose=parsed_args.verbose)
+    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist, verbose=parsed_args.verbose, enable_timing=parsed_args.enable_timing)
 
 def shortunittest(args):
     """alias for 'unittest --whitelist test/whitelist_shortunittest.txt'{0}"""
