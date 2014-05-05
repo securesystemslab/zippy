@@ -1168,12 +1168,12 @@ def _basic_gate_body(args, tasks):
 
     with VM('server', 'product'):  # hosted mode
         t = Task('UnitTests:hosted-product')
-        unittest([])
+        unittest(['--enable-timing', '--verbose'])
         tasks.append(t.stop())
 
     with VM('server', 'product'):  # hosted mode
         t = Task('UnitTests-BaselineCompiler:hosted-product')
-        unittest(['--whitelist', 'test/whitelist_baseline.txt', '-G:+UseBaselineCompiler'])
+        unittest(['--enable-timing', '--verbose', '--whitelist', 'test/whitelist_baseline.txt', '-G:+UseBaselineCompiler'])
         tasks.append(t.stop())
 
     for vmbuild in ['fastdebug', 'product']:
