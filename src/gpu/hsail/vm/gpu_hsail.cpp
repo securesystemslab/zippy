@@ -243,6 +243,8 @@ private:
         return _last_idx;
       }
     }
+    ShouldNotReachHere();
+    return -1;
   }
 
 public:
