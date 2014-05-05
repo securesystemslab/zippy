@@ -1300,8 +1300,21 @@ def _waitWithTimeout(process, args, timeout):
         time.sleep(delay)
 
 # Makes the current subprocess accessible to the abort() function
-# This is a tuple of the Popen object and args.
-_currentSubprocess = (None, None)
+# This is a list of tuples of the subprocess.Popen or
+# multiprocessing.Process object and args.
+_currentSubprocesses = []
+
+def _addSubprocess(p, args):
+    entry = (p, args)
+    _currentSubprocesses.append(entry)
+    return entry
+
+def _removeSubprocess(entry):
+    if entry and entry in _currentSubprocesses:
+        try:
+            _currentSubprocesses.remove(entry)
+        except:
+            pass
 
 def waitOn(p):
     if get_os() == 'windows':
@@ -1340,8 +1353,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
     if timeout is None and _opts.ptimeout != 0:
         timeout = _opts.ptimeout
 
-    global _currentSubprocess
-
+    sub = None
     try:
         # On Unix, the new subprocess should be in a separate group so that a timeout alarm
         # can use os.killpg() to kill the whole subprocess group
@@ -1359,7 +1371,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
         stdout = out if not callable(out) else subprocess.PIPE
         stderr = err if not callable(err) else subprocess.PIPE
         p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn, creationflags=creationflags, env=env)
-        _currentSubprocess = (p, args)
+        sub = _addSubprocess(p, args)
         if callable(out):
             t = Thread(target=redirect, args=(p.stdout, out))
             t.daemon = True  # thread dies with the program
@@ -1382,7 +1394,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
     except KeyboardInterrupt:
         abort(1)
     finally:
-        _currentSubprocess = (None, None)
+        _removeSubprocess(sub)
 
     if retcode and nonZeroIsFatal:
         if _opts.verbose:
@@ -1663,21 +1675,20 @@ def expandvars_in_property(value):
     return result
 
 def _send_sigquit():
-    p, args = _currentSubprocess
+    for p, args in _currentSubprocesses:
 
-    def _isJava():
-        if args:
-            name = args[0].split(os.sep)[-1]
-            return name == "java"
-        return False
+        def _isJava():
+            if args:
+                name = args[0].split(os.sep)[-1]
+                return name == "java"
+            return False
 
-    if p is not None and _isJava():
-        if get_os() == 'windows':
-            log("mx: implement me! want to send SIGQUIT to my child process")
-        else:
-            _kill_process_group(p.pid, sig=signal.SIGQUIT)
-        time.sleep(0.1)
-
+        if p is not None and _isJava():
+            if get_os() == 'windows':
+                log("mx: implement me! want to send SIGQUIT to my child process")
+            else:
+                _kill_process_group(p.pid, sig=signal.SIGQUIT)
+            time.sleep(0.1)
 
 def abort(codeOrMessage):
     """
@@ -1692,12 +1703,14 @@ def abort(codeOrMessage):
 
     # import traceback
     # traceback.print_stack()
-    p, _ = _currentSubprocess
-    if p is not None:
-        if get_os() == 'windows':
-            p.kill()
-        else:
-            _kill_process_group(p.pid, signal.SIGKILL)
+    for p, args in _currentSubprocesses:
+        try:
+            if get_os() == 'windows':
+                p.terminate()
+            else:
+                _kill_process_group(p.pid, signal.SIGKILL)
+        except BaseException as e:
+            log('error while killing subprocess {} "{}": {}'.format(p.pid, ' '.join(args), e))
 
     raise SystemExit(codeOrMessage)
 
@@ -1798,7 +1811,7 @@ def _defaultEcjPath():
     return get_env('JDT', join(_primary_suite.mxDir, 'ecj.jar'))
 
 class JavaCompileTask:
-    def __init__(self, args, proj, reason, javafilelist, jdk, outputDir, deps):
+    def __init__(self, args, proj, reason, javafilelist, jdk, outputDir, jdtJar, deps):
         self.proj = proj
         self.reason = reason
         self.javafilelist = javafilelist
@@ -1806,6 +1819,7 @@ class JavaCompileTask:
         self.jdk = jdk
         self.outputDir = outputDir
         self.done = False
+        self.jdtJar = jdtJar
         self.args = args
 
     def __str__(self):
@@ -1840,20 +1854,8 @@ class JavaCompileTask:
         cp = classpath(self.proj.name, includeSelf=True)
         toBeDeleted = [argfileName]
 
-        jdtJar = None
-        if not args.javac and args.jdt is not None:
-            if not args.jdt.endswith('.jar'):
-                abort('Path for Eclipse batch compiler does not look like a jar file: ' + args.jdt)
-            jdtJar = args.jdt
-            if not exists(jdtJar):
-                if os.path.abspath(jdtJar) == os.path.abspath(_defaultEcjPath()) and get_env('JDT', None) is None:
-                    # Silently ignore JDT if default location is used but does not exist
-                    jdtJar = None
-                else:
-                    abort('Eclipse batch compiler jar does not exist: ' + args.jdt)
-
         try:
-            if not jdtJar:
+            if not self.jdtJar:
                 mainJava = java()
                 if not args.error_prone:
                     self.logCompilation('javac')
@@ -1878,7 +1880,7 @@ class JavaCompileTask:
             else:
                 self.logCompilation('JDT')
 
-                jdtVmArgs = ['-Xmx1g', '-jar', jdtJar]
+                jdtVmArgs = ['-Xmx1g', '-jar', self.jdtJar]
 
                 jdtArgs = ['-' + compliance,
                          '-cp', cp, '-g', '-enableJavadoc',
@@ -1946,11 +1948,22 @@ def build(args, parser=None):
     compilerSelect.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler', default=_defaultEcjPath(), metavar='<path>')
     compilerSelect.add_argument('--force-javac', action='store_true', dest='javac', help='use javac despite ecj.jar is found or not')
 
-
     if suppliedParser:
         parser.add_argument('remainder', nargs=REMAINDER, metavar='...')
 
     args = parser.parse_args(args)
+
+    jdtJar = None
+    if not args.javac and args.jdt is not None:
+        if not args.jdt.endswith('.jar'):
+            abort('Path for Eclipse batch compiler does not look like a jar file: ' + args.jdt)
+        jdtJar = args.jdt
+        if not exists(jdtJar):
+            if os.path.abspath(jdtJar) == os.path.abspath(_defaultEcjPath()) and get_env('JDT', None) is None:
+                # Silently ignore JDT if default location is used but does not exist
+                jdtJar = None
+            else:
+                abort('Eclipse batch compiler jar does not exist: ' + args.jdt)
 
     if args.only is not None:
         # N.B. This build will not include dependencies including annotation processor dependencies
@@ -2087,7 +2100,7 @@ def build(args, parser=None):
             logv('[no Java sources for {0} - skipping]'.format(p.name))
             continue
 
-        task = JavaCompileTask(args, p, buildReason, javafilelist, jdk, outputDir, taskDeps)
+        task = JavaCompileTask(args, p, buildReason, javafilelist, jdk, outputDir, jdtJar, taskDeps)
 
         if args.parallelize:
             # Best to initialize class paths on main process
@@ -2113,6 +2126,7 @@ def build(args, parser=None):
                 if t.proc.is_alive():
                     active.append(t)
                 else:
+                    _removeSubprocess(t.sub)
                     if t.proc.exitcode != 0:
                         return ([], joinTasks(tasks))
             return (active, [])
@@ -2126,10 +2140,18 @@ def build(args, parser=None):
                     task._d = max([remainingDepsDepth(t) for t in incompleteDeps]) + 1
             return task._d
 
+        def compareTasks(t1, t2):
+            d = remainingDepsDepth(t1) - remainingDepsDepth(t2)
+            if d == 0:
+                t1Work = (1 + len(t1.proj.annotation_processors())) * len(t1.javafilelist)
+                t2Work = (1 + len(t2.proj.annotation_processors())) * len(t2.javafilelist)
+                d = t1Work - t2Work
+            return d
+
         def sortWorklist(tasks):
             for t in tasks:
                 t._d = None
-            return sorted(tasks, lambda x, y: remainingDepsDepth(x) - remainingDepsDepth(y))
+            return sorted(tasks, compareTasks)
 
         import multiprocessing
         cpus = multiprocessing.cpu_count()
@@ -2162,6 +2184,7 @@ def build(args, parser=None):
                     task.proc = multiprocessing.Process(target=executeTask, args=(task,))
                     task.proc.start()
                     active.append(task)
+                    task.sub = _addSubprocess(task.proc, ['JavaCompileTask', str(task)])
                 if len(active) == cpus:
                     break
 

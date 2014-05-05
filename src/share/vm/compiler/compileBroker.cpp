@@ -370,8 +370,6 @@ void CompileTask::print_line_on_error(outputStream* st, char* buf, int buflen) {
 // CompileTask::print_line
 void CompileTask::print_line() {
   ttyLocker ttyl;  // keep the following output all in one block
-  // print compiler name if requested
-  if (CIPrintCompilerName) tty->print("%s:", CompileBroker::compiler_name(comp_level()));
   print_compilation();
 }
 
@@ -384,6 +382,8 @@ void CompileTask::print_compilation_impl(outputStream* st, Method* method, int c
   if (!short_form) {
     st->print("%7d ", (int) st->time_stamp().milliseconds());  // print timestamp
   }
+  // print compiler name if requested
+  if (CIPrintCompilerName) tty->print("%s:", CompileBroker::compiler_name(comp_level));
   st->print("%4d ", compile_id);    // print compilation number
 
   // For unloaded methods the transition to zombie occurs after the
