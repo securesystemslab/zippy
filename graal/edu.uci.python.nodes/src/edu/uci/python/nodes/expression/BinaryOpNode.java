@@ -24,14 +24,20 @@
  */
 package edu.uci.python.nodes.expression;
 
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.*;
 import com.oracle.truffle.api.dsl.NodeChildren;
 import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.*;
 import edu.uci.python.runtime.object.*;
 
 @NodeChildren({@NodeChild(value = "leftNode", type = PNode.class), @NodeChild(value = "rightNode", type = PNode.class)})
 public abstract class BinaryOpNode extends PNode {
+
+    @CompilationFinal @Child protected CallDispatchSpecialNode dispatch;
 
     public abstract PNode getLeftNode();
 
@@ -39,6 +45,15 @@ public abstract class BinaryOpNode extends PNode {
 
     protected final static boolean isEitherOperandPythonObject(Object left, Object right) {
         return left instanceof PythonObject || right instanceof PythonObject;
+    }
+
+    protected final Object doSpecialMethodCall(VirtualFrame frame, String specialMethodId, Object left, Object right) {
+        if (dispatch == null) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            dispatch = insert(new CallDispatchSpecialNode.UninitializedDispatchSpecialNode(specialMethodId));
+        }
+
+        return dispatch.executeCall(frame, left, right);
     }
 
     @Override

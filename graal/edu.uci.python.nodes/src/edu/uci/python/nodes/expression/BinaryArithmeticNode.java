@@ -36,7 +36,6 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.call.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
@@ -105,8 +104,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 20, guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__add__", getLeftNode(), getRightNode());
-            return replace(specialized).executeCall(frame, left, right);
+            return doSpecialMethodCall(frame, "__add__", left, right);
         }
 
         // TODO: type info for operands in type error message.
@@ -157,8 +155,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 20, guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__sub__", getLeftNode(), getRightNode());
-            return replace(specialized).executeCall(frame, left, right);
+            return doSpecialMethodCall(frame, "__sub__", left, right);
         }
     }
 
@@ -248,8 +245,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 20, guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__mul__", getLeftNode(), getRightNode());
-            return replace(specialized).executeCall(frame, left, right);
+            return doSpecialMethodCall(frame, "__mul__", left, right);
         }
 
         // TODO: better type error message.
@@ -309,8 +305,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 20, guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__truediv__", getLeftNode(), getRightNode());
-            return replace(specialized).executeCall(frame, left, right);
+            return doSpecialMethodCall(frame, "__truediv__", left, right);
         }
 
         @Generic
@@ -338,8 +333,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 20, guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__floordiv__", getLeftNode(), getRightNode());
-            return replace(specialized).executeCall(frame, left, right);
+            return doSpecialMethodCall(frame, "__floordiv__", left, right);
         }
 
         @Generic
@@ -377,8 +371,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 20, guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__mod__", getLeftNode(), getRightNode());
-            return replace(specialized).executeCall(frame, left, right);
+            return doSpecialMethodCall(frame, "__mod__", left, right);
         }
 
         @Generic
@@ -407,8 +400,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 20, guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
-            BinarySpecialMethodCallNode specialized = BinarySpecialMethodCallNode.create("__pow__", getLeftNode(), getRightNode());
-            return replace(specialized).executeCall(frame, left, right);
+            return doSpecialMethodCall(frame, "__pow__", left, right);
         }
     }
 
