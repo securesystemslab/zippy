@@ -37,7 +37,6 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
@@ -113,9 +112,9 @@ public abstract class PythonCallNode extends PNode {
          * Non built-in constructors use CallConstructorNode. <br>
          * Built-in constructors use regular BoxedCallNode with no special calling convention.
          */
-        if (PythonCallUtil.isPrimaryBoxed(primary) && callee instanceof PythonClass && !(callee instanceof PythonBuiltinClass)) {
-
+        if (isConstructorCall(primary, callee)) {
             PythonClass clazz = (PythonClass) callee;
+            callable.arityCheck(argumentNodes.length + 1, keywordNodes.length, PythonCallUtil.getKeywordNames(this));
             CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
             CallConstructorNode specialized = new CallConstructorNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch);
             return replace(specialized).executeCall(frame, (PythonObject) primary, clazz);
@@ -126,13 +125,13 @@ public abstract class PythonCallNode extends PNode {
         Object[] arguments = executeArguments(frame, passPrimaryAsArgument, primary, argumentNodes);
         PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
 
-        if (PythonCallUtil.isPrimaryNone(primary, this)) {
+        if (isPrimaryNone(primary, this)) {
             CallDispatchNoneNode dispatch = CallDispatchNoneNode.create(callable, keywords);
             replace(new NoneCallNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch));
             return dispatch.executeCall(frame, callable, arguments, keywords);
         }
 
-        if (PythonCallUtil.isPrimaryBoxed(primary)) {
+        if (isPrimaryBoxed(primary)) {
             CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, calleeNode, keywords);
             replace(new BoxedCallNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch, passPrimaryAsArgument));
             return dispatch.executeCall(frame, (PythonObject) primary, arguments, keywords);

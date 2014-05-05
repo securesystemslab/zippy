@@ -410,13 +410,18 @@ public final class BuiltinConstructors extends PythonBuiltins {
     }
 
     // object()
-    @Builtin(name = "object", fixedNumOfArguments = 0, isConstructor = true)
+    @Builtin(name = "object", maxNumOfArguments = 1, isConstructor = true)
     public abstract static class ObjectNode extends PythonBuiltinNode {
 
         @Specialization
-        public PythonObject doObject() {
+        public PythonObject doObject(@SuppressWarnings("unused") PNone none) {
             PythonContext context = getContext();
             return new PythonObject(context.getObjectClass());
+        }
+
+        @Specialization
+        public PythonObject doObject(PythonObject newInstance) {
+            return newInstance;
         }
     }
 
