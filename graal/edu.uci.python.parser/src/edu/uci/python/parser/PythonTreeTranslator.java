@@ -69,6 +69,8 @@ public class PythonTreeTranslator extends Visitor {
     private final PythonModule module;
     private final Source source;
 
+    // private final PythonNodeProber astProber;
+
     public PythonTreeTranslator(PythonContext context, TranslationEnvironment environment, PythonModule module, Source source) {
         this.context = context;
         this.factory = new NodeFactory();
@@ -78,11 +80,6 @@ public class PythonTreeTranslator extends Visitor {
         this.result = new PythonParseResult(environment.getModule());
         this.module = module;
         this.source = source;
-    }
-
-    private void assignSource(PythonTree node, PNode truffleNode) {
-        SourceSection sourceSection = new DefaultSourceSection(source, node.getText(), node.getLine(), node.getCharPositionInLine(), node.getTokenStartIndex(), node.getText().length());
-        truffleNode.assignSourceSection(sourceSection);
     }
 
     public PythonParseResult translate(PythonTree root) {
@@ -98,6 +95,12 @@ public class PythonTreeTranslator extends Visitor {
         result.setModule(moduleNode);
         result.setContext(context);
         return result;
+    }
+
+    private PNode assignSource(PythonTree node, PNode truffleNode) {
+        SourceSection sourceSection = new DefaultSourceSection(source, node.getText(), node.getLine(), node.getCharPositionInLine(), node.getTokenStartIndex(), node.getText().length());
+        truffleNode.assignSourceSection(sourceSection);
+        return truffleNode;
     }
 
     @Override
@@ -533,7 +536,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitList(org.python.antlr.ast.List node) throws Exception {
         List<PNode> elts = walkExprList(node.getInternalElts());
-        return factory.createListLiteral(elts);
+        return assignSource(node, factory.createListLiteral(elts));
     }
 
     @Override
@@ -544,20 +547,20 @@ public class PythonTreeTranslator extends Visitor {
             setFromLost.add(listNode);
         }
 
-        return factory.createSetLiteral(setFromLost);
+        return assignSource(node, factory.createSetLiteral(setFromLost));
     }
 
     @Override
     public Object visitTuple(Tuple node) throws Exception {
         List<PNode> elts = walkExprList(node.getInternalElts());
-        return factory.createTupleLiteral(elts);
+        return assignSource(node, factory.createTupleLiteral(elts));
     }
 
     @Override
     public Object visitDict(Dict node) throws Exception {
         List<PNode> keys = walkExprList(node.getInternalKeys());
         List<PNode> vals = walkExprList(node.getInternalValues());
-        return factory.createDictLiteral(keys, vals);
+        return assignSource(node, factory.createDictLiteral(keys, vals));
     }
 
     // zwei TODO: Translate AugAssign to in-place operations ?

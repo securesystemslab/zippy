@@ -44,8 +44,14 @@ package com.oracle.truffle.api.instrument;
  * that order.
  * <p>
  * <strong>Disclaimer:</strong> experimental interface under development.
+ * 
+ * @see Instrumentation
+ * @see Probe
+ * @see Wrapper
  */
 public enum PhylumTag {
+
+    // TODO (mlvdv) generalize this to an interface.
 
     /**
      * Marker for a variable assignment.

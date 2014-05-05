@@ -28,17 +28,16 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.source.*;
 
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public class PythonContext implements ExecutionContext {
+public class PythonContext extends AbstractExecutionContext {
 
     private PythonModule mainModule;
     private final PythonModule builtinsModule;
@@ -49,7 +48,7 @@ public class PythonContext implements ExecutionContext {
     private final PythonBuiltinClass objectClass;
     private final PythonBuiltinClass moduleClass;
 
-    private final SourceManager sourceManager;
+    // private final SourceManager sourceManager;
     private final PythonParser parser;
     private final ImportManager importManager;
 
@@ -73,7 +72,7 @@ public class PythonContext implements ExecutionContext {
         assert objectClass.usePrivateLayout() && objectClass.getObjectLayout().isEmpty();
         assert moduleClass.usePrivateLayout() && moduleClass.getObjectLayout().isEmpty();
 
-        this.sourceManager = new SourceManager();
+        // this.sourceManager = new SourceManager();
         this.parser = parser;
         this.importManager = new ImportManager(this);
 
@@ -150,10 +149,6 @@ public class PythonContext implements ExecutionContext {
         return parser;
     }
 
-    public SourceManager getSourceManager() {
-        return sourceManager;
-    }
-
     public ImportManager getImportManager() {
         return importManager;
     }
@@ -187,28 +182,20 @@ public class PythonContext implements ExecutionContext {
         }
     }
 
-    public void shutdown() {
-        executorService.shutdown();
-    }
-
     public String getLanguageShortName() {
-        // TODO Auto-generated method stub
-        return null;
+        return "PYTHON";
     }
 
-    public Instrumentation instrumentation() {
+    @Override
+    public void setInstrumentEventListener(InstrumentEventListener listener) {
         // TODO Auto-generated method stub
-        return null;
+
     }
 
-    public Visualizer visualizer() {
+    @Override
+    public InstrumentEventListener getInstrumentEventListener() {
         // TODO Auto-generated method stub
         return null;
-    }
-
-    public void addNodeProber(ASTNodeProber nodeProber) {
-        // TODO Auto-generated method stub
-
     }
 
 }

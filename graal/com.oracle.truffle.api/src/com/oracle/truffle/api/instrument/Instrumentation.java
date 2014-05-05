@@ -29,6 +29,17 @@ import java.util.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.source.*;
 
+/**
+ * Access provided for the benefit of <em>tools</em> to the <em>instrumentation</em> services
+ * associated with each Truffle guest language implementation's runtime
+ * {@linkplain ExecutionContext context}.
+ * <p>
+ * <strong>Disclaimer:</strong> experimental interface under development.
+ * 
+ * @see Probe
+ * @see ExecutionEvents
+ * @see Instrument
+ */
 public interface Instrumentation {
 
     /**

@@ -30,7 +30,14 @@ import com.oracle.truffle.api.nodes.*;
 
 /**
  * A client of the instrumentation framework that requests event notifications from the language
- * engine.
+ * engine. Some standard events are included, but language- and tool-specific extensions are
+ * expected.
+ * <p>
+ * <strong>Disclaimer:</strong> experimental interface under development.
+ * 
+ * @see Instrumentation
+ * @see Probe
+ * @see Wrapper
  */
 public interface InstrumentEventListener {
 

@@ -53,7 +53,10 @@ public class CustomConsole extends JLineConsole {
             Source source = context.getSourceManager().get(name);
             execfile(context, source);
         } finally {
-            context.shutdown();
+            /**
+             * look at shutdown
+             */
+            // context.shutdown();
         }
     }
 
@@ -89,6 +92,10 @@ public class CustomConsole extends JLineConsole {
 
         if (PythonOptions.ProfileNodes) {
             printProfilerResults();
+        }
+
+        if (PythonOptions.CreateWrapperNodes) {
+            WrapperNode.print();
         }
 
         if (PythonOptions.ProfileFunctionCalls) {

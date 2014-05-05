@@ -24,9 +24,20 @@
  */
 package com.oracle.truffle.api.instrument;
 
+import com.oracle.truffle.api.nodes.*;
+
 /**
  * Implementation of a policy for <em>instrumenting</em> Truffle ASTs with {@link Probe}s at
  * particular nodes by inserting node {@link Wrapper}s.
+ * <p>
+ * The current implementation is provisional and does not completely encapsulate everything that
+ * needs to be implemented for a particular use-case or set of use-cases. In particular, the AST
+ * building code for each language implementation must have hand-coded applications of node probing
+ * methods at the desired locations. For the duration of this approach, this must be done for any
+ * node that any client tool wishes to probe.
+ * <p>
+ * A better approach will be to implement such policies as a Truffle {@link NodeVisitor}, but that
+ * is not possible at this time.
  * <p>
  * <strong>Disclaimer:</strong> experimental interface under development.
  */

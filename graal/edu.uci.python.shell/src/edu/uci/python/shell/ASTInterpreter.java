@@ -24,9 +24,15 @@
  */
 package edu.uci.python.shell;
 
+import java.util.*;
+
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.instrument.*;
+import com.oracle.truffle.api.instrument.impl.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 
@@ -35,8 +41,26 @@ public class ASTInterpreter {
     public static void interpret(PythonParseResult result) {
         ModuleNode root = (ModuleNode) result.getModuleRoot();
         RootCallTarget module = Truffle.getRuntime().createCallTarget(root);
+        // Added here because createCallTarget adopts all chidlren, i.e. adds all parent
+// relationships.
+        ProfilerTranslator pt = new ProfilerTranslator(result.getContext());
+        pt.translate(result, root);
+
         Arguments arguments = PArguments.EMPTY_ARGUMENT;
         module.call(null, arguments);
-    }
 
+        for (Probe probe : result.getContext().getInstrumentation().findProbesTaggedAs(PhylumTag.STATEMENT)) {
+            if (probe instanceof InstrumentationNode) {
+                InstrumentationNode instrumentation = (InstrumentationNode) probe;
+                while (instrumentation.next != null) {
+                    Iterator<Node> iterator = instrumentation.getChildren().iterator();
+                    while (iterator.hasNext()) {
+                        Node child = iterator.next();
+                        System.out.println("CHILD " + child.toString());
+                        instrumentation = instrumentation.next;
+                    }
+                }
+            }
+        }
+    }
 }

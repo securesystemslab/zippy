@@ -67,9 +67,6 @@ public class PythonParserImpl implements PythonParser {
         PythonTreeTranslator ptt = new PythonTreeTranslator(context, environment, module, source);
         PythonParseResult result = ptt.translate(node);
 
-        ProfilerTranslator pt = new ProfilerTranslator();
-        pt.translate(result.getModuleRoot());
-
         if (PythonOptions.OptimizeGeneratorExpressions) {
             for (RootNode functionRoot : result.getFunctionRoots()) {
                 if (functionRoot instanceof FunctionRootNode) {

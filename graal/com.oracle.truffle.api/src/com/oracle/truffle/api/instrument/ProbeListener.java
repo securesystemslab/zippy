@@ -28,6 +28,10 @@ import com.oracle.truffle.api.*;
 
 /**
  * Client for receiving events relate to {@link Probe} management. Does not report AST copying.
+ * <p>
+ * <strong>Disclaimer:</strong> experimental interface under development.
+ *
+ * @See Instrumentation
  */
 public interface ProbeListener {
 

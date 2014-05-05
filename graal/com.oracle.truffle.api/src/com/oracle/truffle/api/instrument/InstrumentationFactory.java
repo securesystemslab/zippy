@@ -27,6 +27,14 @@ package com.oracle.truffle.api.instrument;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.instrument.impl.*;
 
+/**
+ * Factory for the instance of {@link Instrumentation} that must be attached to each runtime
+ * {@linkplain ExecutionContext context} for a Truffle-implemented guest language.
+ *
+ * @see Instrumentation
+ * @see Probe
+ * @see Wrapper
+ */
 public class InstrumentationFactory {
 
     public static Instrumentation create(ExecutionContext context) {
