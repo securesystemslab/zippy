@@ -946,7 +946,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist):
         f_testfile.close()
         harness(projectscp, vmArgs)
 
-def _unittest(args, annotations, prefixcp="", whitelist=None):
+def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False):
     mxdir = dirname(__file__)
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
@@ -956,6 +956,7 @@ def _unittest(args, annotations, prefixcp="", whitelist=None):
         (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
         os.close(_)
     corecp = mx.classpath(['com.oracle.graal.test'])
+    coreArgs = ['-JUnitVerbose'] if verbose else []
 
     def harness(projectscp, vmArgs):
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
@@ -969,9 +970,9 @@ def _unittest(args, annotations, prefixcp="", whitelist=None):
         if len(testclasses) == 1:
             # Execute Junit directly when one test is being run. This simplifies
             # replaying the VM execution in a native debugger (e.g., gdb).
-            vm(prefixArgs + vmArgs + ['-cp', prefixcp + corecp + ':' + projectscp, 'com.oracle.graal.test.GraalJUnitCore'] + testclasses)
+            vm(prefixArgs + vmArgs + ['-cp', prefixcp + corecp + ':' + projectscp, 'com.oracle.graal.test.GraalJUnitCore'] + coreArgs + testclasses)
         else:
-            vm(prefixArgs + vmArgs + ['-cp', prefixcp + corecp + ':' + projectscp + os.pathsep + mxdir, name] + [testfile])
+            vm(prefixArgs + vmArgs + ['-cp', prefixcp + corecp + ':' + projectscp + os.pathsep + mxdir, name] + [testfile] + coreArgs)
 
     try:
         _run_tests(args, harness, annotations, testfile, whitelist)
@@ -984,6 +985,7 @@ _unittestHelpSuffix = """
 
       --whitelist            run only testcases which are included
                              in the given whitelist
+      --verbose              enable verbose JUnit output
 
     To avoid conflicts with VM options '--' can be used as delimiter.
 
@@ -1021,6 +1023,7 @@ def unittest(args):
           epilog=_unittestHelpSuffix,
         )
     parser.add_argument('--whitelist', help='run testcases specified in whitelist only', metavar='<path>')
+    parser.add_argument('--verbose', help='enable verbose JUnit output', action='store_true')
 
     ut_args = []
     delimiter = False
@@ -1047,7 +1050,7 @@ def unittest(args):
         except IOError:
             mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
 
-    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist)
+    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist, verbose=parsed_args.verbose)
 
 def shortunittest(args):
     """alias for 'unittest --whitelist test/whitelist_shortunittest.txt'{0}"""

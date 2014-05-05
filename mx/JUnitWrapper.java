@@ -43,6 +43,10 @@ public class JUnitWrapper {
             System.exit(1);
         }
         ArrayList<String> tests = new ArrayList<String>(1000);
+        // add JUnit command line arguments
+        for (int i = 1; i < args.length; i++) {
+            tests.add(args[i]);
+        }
         BufferedReader br = null;
         try {
             br = new BufferedReader(new FileReader(args[0]));
