@@ -48,10 +48,6 @@ void GraalCompiler::initialize() {
     return;
   }
 
-  ThreadToNativeFromVM trans(JavaThread::current());
-  JavaThread* THREAD = JavaThread::current();
-  TRACE_graal_1("GraalCompiler::initialize");
-
   uintptr_t heap_end = (uintptr_t) Universe::heap()->reserved_region().end();
   uintptr_t allocation_end = heap_end + ((uintptr_t)16) * 1024 * 1024 * 1024;
   AMD64_ONLY(guarantee(heap_end < allocation_end, "heap end too close to end of address space (might lead to erroneous TLAB allocations)"));
@@ -70,6 +66,10 @@ void GraalCompiler::initialize() {
     }
   }
 #endif
+
+  ThreadToNativeFromVM trans(JavaThread::current());
+  JavaThread* THREAD = JavaThread::current();
+  TRACE_graal_1("GraalCompiler::initialize");
 
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/oracle/graal/hotspot/bridge/CompilerToVMImpl");
