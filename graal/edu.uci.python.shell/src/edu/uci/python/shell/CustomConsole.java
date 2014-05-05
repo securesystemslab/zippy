@@ -39,7 +39,7 @@ import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
-
+import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class CustomConsole extends JLineConsole {
@@ -97,6 +97,11 @@ public class CustomConsole extends JLineConsole {
         if (PythonOptions.ProfileFunctionCalls) {
             printBanner("Function Invocation Count Results");
             Profiler.getInstance().printProfilerResults();
+        }
+
+        if (PythonOptions.ProfileLists) {
+            printBanner("List Count Results");
+            PList.printProfilerResults();
         }
 
         Py.flushLine();
