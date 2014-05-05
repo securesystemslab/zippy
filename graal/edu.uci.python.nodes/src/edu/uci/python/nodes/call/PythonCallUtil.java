@@ -107,12 +107,16 @@ public class PythonCallUtil {
         return node.primaryNode == EmptyNode.INSTANCE && primary == PNone.NONE;
     }
 
-    protected static boolean isConstructorCall(Object primary, Object callee) {
+    protected static boolean isConstructorCall(Object primary, PythonCallable callee) {
         return PythonCallUtil.isPrimaryBoxed(primary) && callee instanceof PythonClass && !(callee instanceof PythonBuiltinClass);
     }
 
-    protected static boolean haveToPassPrimary(Object primary, PythonCallNode node) {
-        return !isPrimaryNone(primary, node) && !(primary instanceof PythonClass) && !(primary instanceof PythonModule) && !(primary instanceof PyObject);
+    protected static boolean haveToPassPrimary(Object primary, PythonCallable callee, PythonCallNode node) {
+        return !isPrimaryNone(primary, node) && //
+                        !(primary instanceof PythonClass) && //
+                        !(primary instanceof PythonModule) && //
+                        !(primary instanceof PyObject) || //
+                        isConstructorCall(primary, callee);
     }
 
     @ExplodeLoop

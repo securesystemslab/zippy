@@ -56,4 +56,5 @@ public class SetAttributeDispatchTests {
             assertEquals(1, dispatches.size());
         }
     }
+
 }
