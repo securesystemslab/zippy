@@ -317,6 +317,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     public abstract static class InNode extends BinaryComparisonNode {
 
         @Specialization
+        public boolean doBaseSet(Object left, PBaseSet right) {
+            return right.contains(left);
+        }
+
+        @Specialization
         public boolean doPSequence(Object left, PSequence right) {
             boolean has = false;
             PIterator iter = right.__iter__();
@@ -345,6 +350,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     }
 
     public abstract static class NotInNode extends BinaryComparisonNode {
+
+        @Specialization
+        public boolean doBaseSet(Object left, PBaseSet right) {
+            return !right.contains(left);
+        }
 
         @Specialization
         public boolean doPSequence(Object left, PSequence right) {
