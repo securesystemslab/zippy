@@ -130,6 +130,7 @@ python2MicroBenchmarks = {
     #'boolean-logic'         : '0',
     #'object-allocate'       : '0',
     'special-add'           : '0',
+    'special-add-int'       : '0',
     'special-len'           : '0',
 }
 
@@ -153,6 +154,7 @@ pythonMicroBenchmarks = {
     'boolean-logic'         : '0',
     'object-allocate'       : '0',
     'special-add'           : '0',
+    'special-add-int'       : '0',
     'special-len'           : '0',
 }
 
