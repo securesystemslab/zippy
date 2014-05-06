@@ -38,29 +38,9 @@ import edu.uci.python.runtime.standardtype.*;
 public abstract class PythonObject {
 
     @CompilationFinal protected PythonClass pythonClass;
+
     private ObjectLayout objectLayout;
     private boolean usePrivateLayout;
-
-// public static final int PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT = 5;
-// protected int primitiveInt0;
-// protected int primitiveInt1;
-// protected int primitiveInt2;
-// protected int primitiveInt3;
-// protected int primitiveInt4;
-//
-// public static final int PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT = 5;
-// protected double primitiveDouble0;
-// protected double primitiveDouble1;
-// protected double primitiveDouble2;
-// protected double primitiveDouble3;
-// protected double primitiveDouble4;
-//
-// public static final int FIELD_OBJECT_STORAGE_LOCATIONS_COUNT = 5;
-// protected Object fieldObject0;
-// protected Object fieldObject1;
-// protected Object fieldObject2;
-// protected Object fieldObject3;
-// protected Object fieldObject4;
 
     // A bit map to indicate which primitives are set.
     protected int primitiveSetMap;
@@ -133,17 +113,15 @@ public abstract class PythonObject {
     }
 
     /**
-     * The new APIs, more Python like..
-     * <p>
      * Object and its Type (Class) maintain their own 'dictionary'.<br>
      * Class variables and methods are not inlined in the instantiated object's layout.<br>
      * Class attribute modification after the object instantiation does not affect the object's
-     * layout. Likewise, object attribute modification after instantiation updates its own layout.
+     * layout. Likewise, object attribute modification after instantiation updates the instance
+     * layout of its class.
      * <p>
      * As described in the Python documentation, the attribute lookup order is:<br>
      * Object's dict -> its type's dict -> super classes' dicts.<br>
-     * More advanced Method Resolution Order (C3 MRO), descriptors and special method overriding are
-     * not covered here..
+     * More advanced Method Resolution Order (C3 MRO) is not yet supported.
      */
     public Object getAttribute(String name) {
         // Find the storage location
@@ -181,11 +159,9 @@ public abstract class PythonObject {
              * layout and update the layout of this object.
              */
             updateLayout(objectLayout.withGeneralisedVariable(name));
-
             storageLocation = objectLayout.findStorageLocation(name);
 
             // Try to write to the generalized storage location
-
             try {
                 storageLocation.write(this, value);
             } catch (GeneralizeStorageLocationException e1) {
@@ -262,7 +238,7 @@ public abstract class PythonObject {
         return attributesMap;
     }
 
-    protected void setAttributes(Map<String, Object> attributes) {
+    private void setAttributes(Map<String, Object> attributes) {
         for (Entry<String, Object> entry : attributes.entrySet()) {
             final StorageLocation storageLocation = objectLayout.findStorageLocation(entry.getKey());
 
