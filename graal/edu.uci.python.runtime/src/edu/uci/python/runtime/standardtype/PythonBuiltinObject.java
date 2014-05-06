@@ -26,7 +26,6 @@ package edu.uci.python.runtime.standardtype;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
-import edu.uci.python.runtime.function.*;
 
 /**
  * The base class of all Python built-in data types (int, complex, tuple...). Subclasses of
@@ -46,9 +45,8 @@ public abstract class PythonBuiltinObject {
         return __class__;
     }
 
-    @SuppressWarnings("unused")
-    public PythonCallable __getattribute__(String name) {
-        throw new UnsupportedOperationException();
+    public Object __getattribute__(String name) {
+        return __class__().getAttribute(name);
     }
 
 }

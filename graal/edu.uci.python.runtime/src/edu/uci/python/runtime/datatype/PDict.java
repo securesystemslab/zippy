@@ -29,7 +29,6 @@ import java.util.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -72,11 +71,6 @@ public final class PDict extends PythonBuiltinObject implements PIterable {
     @Override
     public PythonBuiltinClass __class__() {
         return __class__;
-    }
-
-    @Override
-    public PythonCallable __getattribute__(String name) {
-        return (PythonCallable) __class__.getAttribute(name);
     }
 
     public Object getItem(Object key) {
