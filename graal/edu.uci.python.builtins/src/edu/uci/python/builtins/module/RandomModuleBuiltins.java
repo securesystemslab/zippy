@@ -164,6 +164,7 @@ public class RandomModuleBuiltins extends PythonBuiltins {
 
     @Builtin(name = "getstate", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
     public abstract static class GetStateNode extends PythonBuiltinNode {
+
         @SuppressWarnings("unused")
         @Specialization
         public PTuple getstate(PNone none) {

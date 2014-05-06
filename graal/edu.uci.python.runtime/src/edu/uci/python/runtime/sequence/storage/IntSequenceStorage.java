@@ -24,7 +24,10 @@
  */
 package edu.uci.python.runtime.sequence.storage;
 
+import java.io.*;
 import java.util.*;
+
+import edu.uci.python.runtime.*;
 
 public final class IntSequenceStorage extends BasicSequenceStorage {
 
@@ -260,6 +263,11 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public SequenceStorage generalizeFor(Object value) {
+        if (PythonOptions.TraceSequenceStorageGeneralization) {
+            PrintStream ps = System.out;
+            ps.println("[ZipPy]" + this + " generalizing to ObjectSequenceStorage");
+        }
+
         return new ObjectSequenceStorage(getInternalArray());
     }
 

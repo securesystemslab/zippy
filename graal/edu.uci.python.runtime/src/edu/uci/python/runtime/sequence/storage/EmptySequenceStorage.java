@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,7 +24,11 @@
  */
 package edu.uci.python.runtime.sequence.storage;
 
+import java.io.*;
+
 import org.python.core.*;
+
+import edu.uci.python.runtime.*;
 
 public final class EmptySequenceStorage extends SequenceStorage {
 
@@ -35,11 +39,22 @@ public final class EmptySequenceStorage extends SequenceStorage {
 
     @Override
     public SequenceStorage generalizeFor(Object value) {
+        final SequenceStorage generalized;
+
         if (value instanceof Integer) {
-            return new IntSequenceStorage();
+            generalized = new IntSequenceStorage();
+        } else if (value instanceof Double) {
+            generalized = new DoubleSequenceStorage();
         } else {
-            return new ObjectSequenceStorage();
+            generalized = new ObjectSequenceStorage();
         }
+
+        if (PythonOptions.TraceSequenceStorageGeneralization) {
+            PrintStream ps = System.out;
+            ps.println("[ZipPy]" + this + " generalizing to " + generalized);
+        }
+
+        return generalized;
     }
 
     @Override
