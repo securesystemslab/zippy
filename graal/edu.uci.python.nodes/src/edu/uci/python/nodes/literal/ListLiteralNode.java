@@ -83,7 +83,7 @@ public abstract class ListLiteralNode extends LiteralNode {
             SequenceStorage store = list.getStorage();
 
             if (store instanceof EmptySequenceStorage) {
-                replace(new EmptyListLiteralNode(values));
+                replace(new ObjectListLiteralNode(values));
             } else if (store instanceof IntSequenceStorage) {
                 replace(new IntListLiteralNode(values));
             } else if (store instanceof DoubleSequenceStorage) {
@@ -105,7 +105,7 @@ public abstract class ListLiteralNode extends LiteralNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            return new PList(SequenceStorageFactory.createStorage(null));
+            return new PList(EmptySequenceStorage.INSTANCE);
         }
     }
 
