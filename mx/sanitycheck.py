@@ -173,6 +173,7 @@ pythonBenchmarks = {
     #'pads-eratosthenes-timed' : '100000',
     'richards3-timed' : '200',
     'bm-float-timed'  : '1000',
+    'pypy-chaos-timed': '1000',
 }
 
 python2Benchmarks = {
@@ -190,6 +191,7 @@ python2Benchmarks = {
     #'pads-eratosthenes-timed' : '100000',
     'richards3-timed' : '200',
     'bm-float-timed'  : '1000',
+    'pypy-chaos-timed': '1000',
 }
 
 specjvm2008Names = [

@@ -142,7 +142,7 @@ class Chaosgame(object):
         maxlength = thickness * self.width / self.height
         for spl in splines:
             length = 0
-            curr = spl(0)
+            curr = spl(0.0) # 0
             for i in range(1, 1000):
                 last = curr
                 t = 1 / 999 * i
@@ -150,7 +150,7 @@ class Chaosgame(object):
                 length += curr.dist(last)
             self.num_trafos.append(max(1, int(length / maxlength * 1.5)))
         # self.num_total = reduce(operator.add, self.num_trafos, 0)
-        self.num_total = reduceByAdd(self.num_trafos, 0)
+        self.num_total = reduceByAdd(self.num_trafos, 0.0) # 0
 
 
     def get_random_trafo(self):
@@ -201,7 +201,7 @@ class Chaosgame(object):
     def create_image_chaos(self, w, h, n):
         im = [[1] * h for i in range(w)]
         point = GVector((self.maxx + self.minx) / 2,
-                        (self.maxy + self.miny) / 2, 0)
+                        (self.maxy + self.miny) / 2, 0.0) # 0
         colored = 0
         times = []
         for _ in range(n):
@@ -256,5 +256,15 @@ def main(n):
     c = Chaosgame(splines, 0.25)
     return c.create_image_chaos(1000, 1200, n)
 
+def measure(num):
+    print("Start timing...")
+    start = time.time()
+    main(num)
+    duration = "%.3f\n" % (time.time() - start)
+    print("chaos: " + duration)
 
-main(1)
+# warm up
+for i in range(100):
+    main(10)
+
+measure(int(sys.argv[1]))
