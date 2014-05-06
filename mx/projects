@@ -26,9 +26,11 @@ library@CHECKSTYLE@urls=jar:http://sourceforge.net/projects/checkstyle/files/che
 
 library@FINDBUGS@path=lib/findbugs-3.0.0-dev-20131204-e3cbbd5.jar
 library@FINDBUGS@urls=jar:http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0-dev-20131204-e3cbbd5.zip/download!/findbugs-3.0.0-dev-20131204-e3cbbd5/lib/findbugs.jar
+library@FINDBUGS@sha1=539fdc73ef5f65a85c94687f6ec77dcd8493f8c1
 
 library@DACAPO@path=lib/dacapo-9.12-bach.jar
 library@DACAPO@urls=http://softlayer.dl.sourceforge.net/project/dacapobench/9.12-bach/dacapo-9.12-bach.jar
+library@DACAPO@sha1=2626a9546df09009f6da0df854e6dc1113ef7dd4
 
 library@JACOCOAGENT@path=lib/jacocoagent.jar
 library@JACOCOAGENT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoagent.jar
@@ -44,12 +46,16 @@ library@DACAPO_SCALA@sha1=59b64c974662b5cf9dbd3cf9045d293853dd7a51
 
 library@OKRA@path=lib/okra-1.9.jar
 library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.9.jar
+library@OKRA@sha1=df450b04882e6b5a365299e2cbf1622038ae880e
 library@OKRA@sourcePath=lib/okra-1.9-src.jar
 library@OKRA@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.9-src.jar
+library@OKRA@sourceSha1=41dcda5197ca4d87bc94e4d7b5a90e7f22667756
 
 library@OKRA_WITH_SIM@path=lib/okra-1.9-with-sim.jar
 library@OKRA_WITH_SIM@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.9-with-sim.jar
+library@OKRA_WITH_SIM@sha1=816fa24814cf51c02f9c05477447bb55a152b388
 library@OKRA_WITH_SIM@sourcePath=lib/okra-1.9-with-sim-src.jar
+library@OKRA_WITH_SIM@sourceSha1=1628919457999a8479d9f39845865de527dbd523
 library@OKRA_WITH_SIM@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.9-with-sim-src.jar
 
 library@JAVA_ALLOCATION_INSTRUMENTER@path=lib/java-allocation-instrumenter.jar
@@ -58,6 +64,7 @@ library@JAVA_ALLOCATION_INSTRUMENTER@sha1=128eb20a4cd3362a4d8b94614e66647808a2e3
 
 library@VECMATH@path=lib/vecmath-1.3.1.jar
 library@VECMATH@urls=http://mirrors.ibiblio.org/pub/mirrors/maven/java3d/jars/vecmath-1.3.1.jar
+library@VECMATH@sha1=a0ae4f51da409fa0c20fa0ca59e6bbc9413ae71d
 
 distribution@GRAAL@path=graal.jar
 distribution@GRAAL@sourcesPath=graal.src.zip
