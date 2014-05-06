@@ -48,6 +48,9 @@ library@JLINE09@urls=http://mirrors.ibiblio.org/maven2/jline/jline/0.9.94/jline-
 library@JYTHON@path=lib/jython-standalone-2.7-b1.jar
 library@JYTHON@urls=http://mirrors.ibiblio.org/maven2/org/python/jython-standalone/2.7-b1/jython-standalone-2.7-b1.jar
 
+library@ASM@path=lib/asm-5.0.2.jar
+library@ASM@urls=http://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-all/5.0.2/asm-all-5.0.2.jar
+
 library@DISRUPTOR@path=lib/disruptor-3.2.0.jar
 library@DISRUPTOR@urls=http://repo1.maven.org/maven2/com/lmax/disruptor/3.2.0/disruptor-3.2.0.jar
 
@@ -729,7 +732,7 @@ project@com.oracle.graal.truffle.hotspot.amd64@workingSets=Graal,Truffle
 # python.runtime
 project@edu.uci.python.runtime@subDir=graal
 project@edu.uci.python.runtime@sourceDirs=src
-project@edu.uci.python.runtime@dependencies=com.oracle.truffle.api,JYTHON, DISRUPTOR
+project@edu.uci.python.runtime@dependencies=com.oracle.truffle.api,JYTHON, DISRUPTOR, ASM
 project@edu.uci.python.runtime@javaCompliance=1.7
 project@edu.uci.python.runtime@workingSets=Truffle,Python
 
