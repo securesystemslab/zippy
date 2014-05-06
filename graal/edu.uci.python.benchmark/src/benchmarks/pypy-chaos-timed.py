@@ -150,7 +150,7 @@ class Chaosgame(object):
                 length += curr.dist(last)
             self.num_trafos.append(max(1, int(length / maxlength * 1.5)))
         # self.num_total = reduce(operator.add, self.num_trafos, 0)
-        self.num_total = reduceByAdd(self.num_trafos, 0.0) # 0
+        self.num_total = reduceByAdd(self.num_trafos, 0)
 
 
     def get_random_trafo(self):
