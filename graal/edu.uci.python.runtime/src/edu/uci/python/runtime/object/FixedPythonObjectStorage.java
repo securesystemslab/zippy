@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,34 +22,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.standardtype;
+package edu.uci.python.runtime.object;
 
-import com.oracle.truffle.api.frame.*;
+import edu.uci.python.runtime.standardtype.*;
 
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtin.*;
-import edu.uci.python.runtime.function.*;
+public class FixedPythonObjectStorage extends PythonObject {
 
-/**
- * The built-in 'object' class.
- *
- * @author zwei
- *
- */
-public class PythonObjectClass extends PythonBuiltinClass {
+    public static final int PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT = 5;
+    protected int primitiveInt0;
+    protected int primitiveInt1;
+    protected int primitiveInt2;
+    protected int primitiveInt3;
+    protected int primitiveInt4;
 
-    public PythonObjectClass(PythonContext context) {
-        super(context, null, "object");
-    }
+    public static final int PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT = 5;
+    protected double primitiveDouble0;
+    protected double primitiveDouble1;
+    protected double primitiveDouble2;
+    protected double primitiveDouble3;
+    protected double primitiveDouble4;
 
-    @Override
-    public Object call(PackedFrame caller, Object[] args) {
-        return PythonContext.newPythonObjectInstance(this);
-    }
+    public static final int FIELD_OBJECT_STORAGE_LOCATIONS_COUNT = 5;
+    protected Object fieldObject0;
+    protected Object fieldObject1;
+    protected Object fieldObject2;
+    protected Object fieldObject3;
+    protected Object fieldObject4;
 
-    @Override
-    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-        return PythonContext.newPythonObjectInstance(this);
+    public FixedPythonObjectStorage(PythonClass pythonClass) {
+        super(pythonClass);
     }
 
 }

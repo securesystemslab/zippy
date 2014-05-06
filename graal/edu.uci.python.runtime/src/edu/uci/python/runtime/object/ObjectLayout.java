@@ -101,19 +101,19 @@ public class ObjectLayout {
                 Class storageClass;
 
                 if (type == Integer.class) {
-                    if (primitiveIntStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
+                    if (primitiveIntStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
                         storageClass = Integer.class;
                     } else {
                         storageClass = Object.class;
                     }
                 } else if (type == Double.class) {
-                    if (primitiveDoubleStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT) {
+                    if (primitiveDoubleStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT) {
                         storageClass = Double.class;
                     } else {
                         storageClass = Object.class;
                     }
                 } else if (type == Boolean.class) {
-                    if (primitiveIntStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
+                    if (primitiveIntStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
                         storageClass = Boolean.class;
                     } else {
                         storageClass = Object.class;
@@ -135,7 +135,7 @@ public class ObjectLayout {
                     storageLocations.put(entry.getKey(), newStorageLocation);
                     primitiveIntStorageLocationIndex++;
                 } else {
-                    if (fieldObjectStorageLocationIndex + 1 <= PythonObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT) {
+                    if (fieldObjectStorageLocationIndex + 1 <= FixedPythonObjectStorage.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT) {
                         final FieldObjectStorageLocation newStorageLocation = new FieldObjectStorageLocation(this, fieldObjectStorageLocationIndex);
                         storageLocations.put(entry.getKey(), newStorageLocation);
                         fieldObjectStorageLocationIndex++;

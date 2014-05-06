@@ -257,7 +257,7 @@ public abstract class PythonCallNode extends PNode {
         }
 
         private Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
-            PythonObject newInstance = new PythonObject(clazz);
+            PythonObject newInstance = PythonContext.newPythonObjectInstance(clazz);
             Object[] arguments = executeArguments(frame, true, newInstance, argumentNodes);
             PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
