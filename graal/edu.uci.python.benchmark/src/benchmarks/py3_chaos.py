@@ -210,13 +210,13 @@ class Chaosgame(object):
                 point = self.transform_point(point)
                 x = (point.x - self.minx) / self.width * w
                 y = (point.y - self.miny) / self.height * h
-                x = int(x)
-                y = int(y)
-                if x == w:
-                    x -= 1
-                if y == h:
-                    y -= 1
-                im[x][h - y - 1] = 0
+                x_int = int(x)
+                y_int = int(y)
+                if x_int == w:
+                    x_int -= 1
+                if y_int == h:
+                    y_int -= 1
+                im[x_int][h - y_int - 1] = 0
             t2 = time.time()
             times.append(t2 - t1)
         return times
