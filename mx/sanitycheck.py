@@ -131,7 +131,7 @@ python2MicroBenchmarks = {
     #'object-allocate'       : '0',
     'special-add'           : '0',
     'special-add-int'       : '0',
-    'special-len'           : '0',
+    #'special-len'           : '0',
 }
 
 pythonMicroBenchmarks = {
