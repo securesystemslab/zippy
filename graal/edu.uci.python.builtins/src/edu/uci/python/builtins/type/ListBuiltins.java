@@ -30,6 +30,7 @@ import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.function.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -103,8 +104,16 @@ public class ListBuiltins extends PythonBuiltins {
     }
 
     // list.pop([i])
-    @Builtin(name = "pop", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @Builtin(name = "pop", minNumOfArguments = 1, maxNumOfArguments = 2)
     public abstract static class PythonListPopNode extends PythonBuiltinNode {
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public Object pop(PList list, PNone none) {
+            Object ret = list.getItem(list.len() - 1);
+            list.delItem(list.len() - 1);
+            return ret;
+        }
 
         @Specialization
         public Object pop(PList list, int index) {
