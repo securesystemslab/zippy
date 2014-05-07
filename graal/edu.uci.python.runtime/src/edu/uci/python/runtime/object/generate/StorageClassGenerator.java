@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object;
+package edu.uci.python.runtime.object.generate;
 
 import java.util.Map.Entry;
 
@@ -31,9 +31,10 @@ import org.python.modules.jffi.*;
 
 import com.oracle.truffle.api.*;
 
+import edu.uci.python.runtime.object.*;
 import static org.objectweb.asm.Opcodes.*;
 
-public class ClassFileGenerator {
+public final class StorageClassGenerator {
 
     private static final String PYTHON_OBJECT_CLASS = "edu/uci/python/runtime/object/PythonObject";
     private static final String CLASSPATH = "edu/uci/python/runtime/object/";
@@ -46,7 +47,7 @@ public class ClassFileGenerator {
     private FieldVisitor fieldVisitor;
     private MethodVisitor methodVisitor;
 
-    public ClassFileGenerator(ObjectLayout layout, String className) {
+    public StorageClassGenerator(ObjectLayout layout, String className) {
         this.layout = layout;
         this.classWriter = new ClassWriter(0);
         this.className = CLASSPATH + className;

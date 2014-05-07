@@ -37,6 +37,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.object.generate.*;
 import edu.uci.python.runtime.standardtype.*;
 import edu.uci.python.test.*;
 
@@ -46,7 +47,7 @@ public class ClassFileGeneratorTests {
     public void emptyLayout() {
         PythonContext context = PythonTests.getContext();
         PythonObject obj = PythonContext.newPythonObjectInstance(context.getObjectClass());
-        ClassFileGenerator cfg = new ClassFileGenerator(obj.getObjectLayout(), "Foo");
+        StorageClassGenerator cfg = new StorageClassGenerator(obj.getObjectLayout(), "Foo");
         String className = cfg.getValidClassName();
         byte[] data = cfg.generate();
 
@@ -83,7 +84,7 @@ public class ClassFileGeneratorTests {
         assertTrue(pyclazz.getInstanceObjectLayout().findStorageLocation("int5") != null);
 
         // Generate the storage class.
-        ClassFileGenerator cfg = new ClassFileGenerator(pyclazz.getInstanceObjectLayout(), "Foo");
+        StorageClassGenerator cfg = new StorageClassGenerator(pyclazz.getInstanceObjectLayout(), "Foo");
         byte[] data = cfg.generate();
 
         // Load the generated class.
@@ -135,17 +136,16 @@ public class ClassFileGeneratorTests {
     public void methodHandleInvoke() {
         PythonContext context = PythonTests.getContext();
         PythonObject obj = PythonContext.newPythonObjectInstance(context.getObjectClass());
-        ClassFileGenerator cfg = new ClassFileGenerator(obj.getObjectLayout(), "Foo");
-        String className = cfg.getValidClassName();
+        StorageClassGenerator cfg = new StorageClassGenerator(obj.getObjectLayout(), "Foo");
         byte[] data = cfg.generate();
 
-        Class<?> pyclazz = BytecodeLoader.makeClass(className, data, PythonObject.class);
+        Class<?> pyclazz = BytecodeLoader.makeClass(cfg.getValidClassName(), data, PythonObject.class);
         assertTrue(pyclazz != null);
 
         try {
             Lookup lookup = MethodHandles.lookup();
             MethodType mt = MethodType.methodType(PythonObject.class, PythonClass.class);
-            MethodHandle ctor = lookup.findStatic(pyclazz, ClassFileGenerator.CREATE, mt);
+            MethodHandle ctor = lookup.findStatic(pyclazz, StorageClassGenerator.CREATE, mt);
             PythonObject instance = (PythonObject) ctor.invokeExact((PythonClass) context.getObjectClass());
             assertTrue(instance != null);
         } catch (Throwable e) {
