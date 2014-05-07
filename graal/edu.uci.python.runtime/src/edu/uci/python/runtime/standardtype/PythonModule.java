@@ -27,6 +27,7 @@ package edu.uci.python.runtime.standardtype;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.object.storage.*;
 
 public final class PythonModule extends FixedPythonObjectStorage {
 

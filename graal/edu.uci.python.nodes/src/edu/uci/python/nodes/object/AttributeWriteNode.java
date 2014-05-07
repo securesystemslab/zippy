@@ -46,17 +46,17 @@ public abstract class AttributeWriteNode extends Node {
         throw new IllegalStateException();
     }
 
-    public abstract void setValueUnsafe(PythonObject storage, Object value) throws GeneralizeStorageLocationException;
+    public abstract void setValueUnsafe(PythonObject storage, Object value) throws StorageLocationGeneralizeException;
 
-    public void setIntValueUnsafe(PythonObject storage, int value) throws GeneralizeStorageLocationException {
+    public void setIntValueUnsafe(PythonObject storage, int value) throws StorageLocationGeneralizeException {
         setValueUnsafe(storage, value);
     }
 
-    public void setDoubleValueUnsafe(PythonObject storage, double value) throws GeneralizeStorageLocationException {
+    public void setDoubleValueUnsafe(PythonObject storage, double value) throws StorageLocationGeneralizeException {
         setValueUnsafe(storage, value);
     }
 
-    public void setBooleanValueUnsafe(PythonObject storage, boolean value) throws GeneralizeStorageLocationException {
+    public void setBooleanValueUnsafe(PythonObject storage, boolean value) throws StorageLocationGeneralizeException {
         setValueUnsafe(storage, value);
     }
 
@@ -97,12 +97,12 @@ public abstract class AttributeWriteNode extends Node {
         }
 
         @Override
-        public void setValueUnsafe(PythonObject storage, Object value) throws GeneralizeStorageLocationException {
+        public void setValueUnsafe(PythonObject storage, Object value) throws StorageLocationGeneralizeException {
             intLocation.write(storage, value);
         }
 
         @Override
-        public void setIntValueUnsafe(PythonObject storage, int value) throws GeneralizeStorageLocationException {
+        public void setIntValueUnsafe(PythonObject storage, int value) throws StorageLocationGeneralizeException {
             intLocation.writeInt(storage, value);
         }
     }
@@ -116,12 +116,12 @@ public abstract class AttributeWriteNode extends Node {
         }
 
         @Override
-        public void setValueUnsafe(PythonObject storage, Object value) throws GeneralizeStorageLocationException {
+        public void setValueUnsafe(PythonObject storage, Object value) throws StorageLocationGeneralizeException {
             floatLocation.write(storage, value);
         }
 
         @Override
-        public void setDoubleValueUnsafe(PythonObject storage, double value) throws GeneralizeStorageLocationException {
+        public void setDoubleValueUnsafe(PythonObject storage, double value) throws StorageLocationGeneralizeException {
             floatLocation.writeDouble(storage, value);
         }
     }
@@ -135,12 +135,12 @@ public abstract class AttributeWriteNode extends Node {
         }
 
         @Override
-        public void setValueUnsafe(PythonObject storage, Object value) throws GeneralizeStorageLocationException {
+        public void setValueUnsafe(PythonObject storage, Object value) throws StorageLocationGeneralizeException {
             booleanLocation.write(storage, value);
         }
 
         @Override
-        public void setBooleanValueUnsafe(PythonObject storage, boolean value) throws GeneralizeStorageLocationException {
+        public void setBooleanValueUnsafe(PythonObject storage, boolean value) throws StorageLocationGeneralizeException {
             booleanLocation.writeBoolean(storage, value);
         }
     }

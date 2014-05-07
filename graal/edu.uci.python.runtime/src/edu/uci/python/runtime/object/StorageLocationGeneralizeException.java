@@ -29,7 +29,7 @@ import com.oracle.truffle.api.nodes.*;
 /**
  * Indicates that a storage location cannot store the type of value that you asked it to.
  */
-public class GeneralizeStorageLocationException extends SlowPathException {
+public class StorageLocationGeneralizeException extends SlowPathException {
 
     private static final long serialVersionUID = 3607506078153063652L;
 

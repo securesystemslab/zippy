@@ -22,9 +22,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object.generate;
+package edu.uci.python.runtime.object.storage;
 
 import java.lang.invoke.*;
+
+import org.python.core.*;
+
+import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.standardtype.*;
 
 public final class GeneratedPythonObjectStorage {
 
@@ -34,6 +39,21 @@ public final class GeneratedPythonObjectStorage {
     public GeneratedPythonObjectStorage(Class storageClass, MethodHandle ctor) {
         this.storageClass = storageClass;
         this.ctor = ctor;
+    }
+
+    public static GeneratedPythonObjectStorage createFrom(PythonObject prev) {
+        StorageClassGenerator scg = new StorageClassGenerator(prev.getObjectLayout(), prev.getPythonClass().getName());
+        Class storageClass = BytecodeLoader.makeClass(scg.getValidClassName(), scg.generate(), PythonObject.class);
+        MethodHandle ctor;
+
+        try {
+            MethodType mt = MethodType.methodType(PythonObject.class, PythonClass.class);
+            ctor = MethodHandles.lookup().findStatic(storageClass, StorageClassGenerator.CREATE, mt);
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            throw new RuntimeException();
+        }
+
+        return new GeneratedPythonObjectStorage(storageClass, ctor);
     }
 
     public Class getStorageClass() {

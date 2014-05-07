@@ -39,7 +39,7 @@ public abstract class StorageLocation {
 
     public abstract Object read(PythonObject object);
 
-    public abstract void write(PythonObject object, Object value) throws GeneralizeStorageLocationException;
+    public abstract void write(PythonObject object, Object value) throws StorageLocationGeneralizeException;
 
     public abstract Class getStoredClass();
 
