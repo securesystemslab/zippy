@@ -51,8 +51,8 @@ public class ClassFileGenerator {
         this.className = CLASSPATH + className;
     }
 
-    public String getFullClassName() {
-        return className;
+    public String getValidClassName() {
+        return className.replace('/', '.');
     }
 
     public byte[] generate() {
@@ -62,13 +62,25 @@ public class ClassFileGenerator {
 
         for (Entry<String, StorageLocation> entry : layout.getAllStorageLocations().entrySet()) {
             StorageLocation location = entry.getValue();
-            addField(entry.getKey(), location.getStoredClass());
+            addField(entry.getKey(), fixStoredClass(location.getStoredClass()));
         }
 
         addConstructor();
 
         classWriter.visitEnd();
         return classWriter.toByteArray();
+    }
+
+    private static Class fixStoredClass(Class clazz) {
+        if (clazz == Integer.class) {
+            return int.class;
+        } else if (clazz == Boolean.class) {
+            return boolean.class;
+        } else if (clazz == Double.class) {
+            return double.class;
+        } else {
+            return Object.class;
+        }
     }
 
     private void addField(String name, Class clazz) {
