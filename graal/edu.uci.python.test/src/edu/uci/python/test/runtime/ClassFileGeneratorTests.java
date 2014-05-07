@@ -121,7 +121,6 @@ public class ClassFileGeneratorTests {
         /**
          * Inspecting the loaded storage class.
          */
-
         try {
             for (int i = 0; i < 5; i++) {
                 Field field = loadedClass.getDeclaredField("int" + i);

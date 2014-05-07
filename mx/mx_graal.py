@@ -1366,7 +1366,7 @@ def bench(args):
         vm = 'pypy'
 
     if 'pypy3-micro' in args:
-        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
+        benchmarks += sanitycheck.getPython2MicroBenchmarks(vm)
         vm = 'pypy3'
 
     for test in benchmarks:
