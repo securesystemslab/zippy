@@ -31,10 +31,12 @@ import com.oracle.truffle.api.*;
 public final class ArrayObjectStorageLocation extends StorageLocation {
 
     private final int index;
+    private final Class storedClass;
 
-    public ArrayObjectStorageLocation(ObjectLayout objectLayout, int index) {
+    public ArrayObjectStorageLocation(ObjectLayout objectLayout, int index, Class storedClass) {
         super(objectLayout);
         this.index = index;
+        this.storedClass = storedClass;
     }
 
     @Override
@@ -61,7 +63,7 @@ public final class ArrayObjectStorageLocation extends StorageLocation {
 
     @Override
     public Class getStoredClass() {
-        return Object.class;
+        return storedClass;
     }
 
     @Override
