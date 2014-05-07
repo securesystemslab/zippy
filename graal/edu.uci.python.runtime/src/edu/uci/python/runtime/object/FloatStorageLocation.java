@@ -32,7 +32,7 @@ import edu.uci.python.runtime.datatype.*;
 /**
  * A storage location for floats.
  */
-public class FloatStorageLocation extends FieldStorageLocation {
+public final class FloatStorageLocation extends FieldStorageLocation {
 
     private final long offset;
 

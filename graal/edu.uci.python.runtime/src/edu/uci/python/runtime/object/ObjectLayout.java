@@ -30,12 +30,12 @@ import java.util.Map.Entry;
 import com.oracle.truffle.api.*;
 
 /**
- * Maps names of instance variables to storage locations, which are either the offset of a primitive
- * field in <code>PythonObject</code>, or an index into an object array in <code>PythonObject</code>
- * . Object layouts are chained, with each having zero or one parents.
- * <p>
- * Object layouts are immutable, with the methods for adding new instance variables of generalising
- * the type of existing instance variables returning new object layouts.
+ * Maps the names of instance attributes to storage locations, which are either the offset of a
+ * field in {@link PythonObject}, or an index into the object array in {@link PythonObject}. Object
+ * layouts are immutable, with the methods for adding new instance variables of generalising the
+ * type of existing instance variables returning new object layouts.
+ *
+ * @author zwei
  */
 public class ObjectLayout {
 
@@ -71,7 +71,6 @@ public class ObjectLayout {
         this.parent = parent;
 
         // Start our offsets from where the parent ends
-
         int primitiveIntStorageLocationIndex;
         int primitiveDoubleStorageLocationIndex;
         int fieldObjectStorageLocationIndex;
@@ -90,10 +89,7 @@ public class ObjectLayout {
         }
 
         // Go through the variables we've been asked to store
-
         for (Entry<String, Class> entry : storageTypes.entrySet()) {
-            // TODO: what if parent has it, but we need a more general type?
-
             final String name = entry.getKey();
             final Class type = entry.getValue();
 
@@ -101,19 +97,19 @@ public class ObjectLayout {
                 Class storageClass;
 
                 if (type == Integer.class) {
-                    if (primitiveIntStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
+                    if (primitiveIntStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
                         storageClass = Integer.class;
                     } else {
                         storageClass = Object.class;
                     }
                 } else if (type == Double.class) {
-                    if (primitiveDoubleStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT) {
+                    if (primitiveDoubleStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT) {
                         storageClass = Double.class;
                     } else {
                         storageClass = Object.class;
                     }
                 } else if (type == Boolean.class) {
-                    if (primitiveIntStorageLocationIndex + 1 <= PythonObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
+                    if (primitiveIntStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
                         storageClass = Boolean.class;
                     } else {
                         storageClass = Object.class;
@@ -135,12 +131,12 @@ public class ObjectLayout {
                     storageLocations.put(entry.getKey(), newStorageLocation);
                     primitiveIntStorageLocationIndex++;
                 } else {
-                    if (fieldObjectStorageLocationIndex + 1 <= PythonObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT) {
-                        final FieldObjectStorageLocation newStorageLocation = new FieldObjectStorageLocation(this, fieldObjectStorageLocationIndex);
+                    if (fieldObjectStorageLocationIndex + 1 <= FixedPythonObjectStorage.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT) {
+                        final FieldObjectStorageLocation newStorageLocation = new FieldObjectStorageLocation(this, fieldObjectStorageLocationIndex, type);
                         storageLocations.put(entry.getKey(), newStorageLocation);
                         fieldObjectStorageLocationIndex++;
                     } else {
-                        final ArrayObjectStorageLocation newStorageLocation = new ArrayObjectStorageLocation(this, arrayObjectStorageLocationIndex);
+                        final ArrayObjectStorageLocation newStorageLocation = new ArrayObjectStorageLocation(this, arrayObjectStorageLocationIndex, type);
                         storageLocations.put(entry.getKey(), newStorageLocation);
                         arrayObjectStorageLocationIndex++;
                     }

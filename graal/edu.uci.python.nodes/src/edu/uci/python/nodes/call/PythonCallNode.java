@@ -91,21 +91,28 @@ public abstract class PythonCallNode extends PNode {
             return replace(new CallJythonNode(context, pyobj.toString(), primaryNode, calleeNode, argumentNodes, keywordNodes)).executeCall(frame, pyobj);
         }
 
-        PythonCallable callable;
+        PythonCallable callable = null;
+        boolean isSpecialMethodDispatch = false;
+
         try {
             callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(callee);
         } catch (UnexpectedResultException e) {
-            // __call__ dispatch
+            // fall through
+        }
+
+        /**
+         * Try to resolve __call__.
+         */
+        if (callable == null) {
             callable = resolveSpecialMethod(callee, "__call__");
+            isSpecialMethodDispatch = callable != null;
+        }
 
-            if (callable == null) {
-                throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
-            }
-
-            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) callee, "__call__", callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
-            replace(new CallPythonObjectNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch));
-            Object[] arguments = executeArguments(frame, true, callee, argumentNodes);
-            return dispatch.executeCall(frame, (PythonObject) callee, arguments, PKeyword.EMPTY_KEYWORDS);
+        /**
+         * Failed to resolve a valid callable.
+         */
+        if (callable == null) {
+            throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
         }
 
         /**
@@ -113,17 +120,23 @@ public abstract class PythonCallNode extends PNode {
          * Performs the arith check.<br>
          * Evaluates the arguments.
          */
-        boolean passPrimaryAsArgument = PythonCallUtil.haveToPassPrimary(primary, callable, this);
+        boolean passPrimaryAsArgument = PythonCallUtil.haveToPassPrimary(primary, callable, this) || isSpecialMethodDispatch;
         callable.arityCheck(passPrimaryAsArgument ? argumentNodes.length + 1 : argumentNodes.length, keywordNodes.length, PythonCallUtil.getKeywordNames(this));
-        Object[] arguments = executeArguments(frame, passPrimaryAsArgument, primary, argumentNodes);
+        Object[] arguments = executeArguments(frame, passPrimaryAsArgument, isSpecialMethodDispatch ? callee : primary, argumentNodes);
         PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
 
+        if (isSpecialMethodDispatch) {
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) callee, "__call__", callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
+            replace(new CallPythonObjectNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch));
+            return dispatch.executeCall(frame, (PythonObject) callee, arguments, PKeyword.EMPTY_KEYWORDS);
+        }
+
         /**
-         * Non built-in constructors use CallConstructorNode. <br>
+         * zwei: Non built-in constructors use CallConstructorNode. <br>
          * Built-in constructors use regular BoxedCallNode with no special calling convention.
          */
         if (isConstructorCall(primary, callable)) {
-            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), keywords);
             CallConstructorNode specialized = new CallConstructorNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch);
             return replace(specialized).executeCall(frame, (PythonObject) primary, (PythonClass) callable);
         }
@@ -244,7 +257,7 @@ public abstract class PythonCallNode extends PNode {
         }
 
         private Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
-            PythonObject newInstance = new PythonObject(clazz);
+            PythonObject newInstance = PythonContext.newPythonObjectInstance(clazz);
             Object[] arguments = executeArguments(frame, true, newInstance, argumentNodes);
             PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
@@ -275,7 +288,6 @@ public abstract class PythonCallNode extends PNode {
             PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             return dispatchNode.executeCall(frame, primary, arguments, keywords);
         }
-
     }
 
     public static final class CallJythonNode extends PythonCallNode {

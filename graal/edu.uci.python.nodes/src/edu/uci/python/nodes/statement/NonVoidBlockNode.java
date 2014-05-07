@@ -35,12 +35,12 @@ public class NonVoidBlockNode extends StatementNode {
 
     public NonVoidBlockNode(PNode[] statments) {
         this.statements = statments;
+        assert statements.length > 1;
     }
 
     @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
-        assert statements.length > 1;
         for (int i = 0; i < (statements.length - 1); i++) {
             statements[i].executeVoid(frame);
         }

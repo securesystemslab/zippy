@@ -113,7 +113,7 @@ public class GetAttributeNodeTests {
          */
         // replace primary to a full PythonBasicObject
         PythonClass classA = new PythonClass(context, null, "A");
-        PythonObject pbObj = new PythonObject(classA);
+        PythonObject pbObj = PythonContext.newPythonObjectInstance(classA);
         pbObj.setAttribute("append", 42);
         PNode objNode = factory.createObjectLiteral(pbObj);
         NodeUtil.findFirstNodeInstance(getMethod, StringLiteralNode.class).replace(objNode);
@@ -135,7 +135,7 @@ public class GetAttributeNodeTests {
 
         // in object attribute
         PythonClass classA = new PythonClass(context, null, "A");
-        PythonObject pbObj = new PythonObject(classA);
+        PythonObject pbObj = PythonContext.newPythonObjectInstance(classA);
         pbObj.setAttribute("foo", 42);
 
         // assemble AST

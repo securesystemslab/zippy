@@ -35,6 +35,7 @@ import edu.uci.python.runtime.sequence.*;
 
 /**
  * @author zwei
+ * @author myq
  */
 public final class SetBuiltins extends PythonBuiltins {
 
@@ -49,6 +50,16 @@ public final class SetBuiltins extends PythonBuiltins {
         @Specialization
         public Object clear(PSet self) {
             self.clear();
+            return PNone.NONE;
+        }
+    }
+
+    @Builtin(name = "add", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    public abstract static class AddNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object add(PSet self, Object o) {
+            self.add(o);
             return PNone.NONE;
         }
     }

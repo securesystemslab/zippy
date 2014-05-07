@@ -47,28 +47,28 @@ public class ObjectLayoutUtil {
     }
 
     protected static long getExactPrimitiveDoubleOffsetOf(int index) {
-        assert index >= 0 && index <= PythonObject.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT - 1;
+        assert index >= 0 && index <= FixedPythonObjectStorage.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT - 1;
 
         try {
-            return OFFSET_PROVIDER.objectFieldOffset(PythonObject.class.getDeclaredField("primitiveDouble" + index));
+            return OFFSET_PROVIDER.objectFieldOffset(FixedPythonObjectStorage.class.getDeclaredField("primitiveDouble" + index));
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
     }
 
     protected static long getExactPrimitiveIntOffsetOf(int index) {
-        assert index >= 0 && index <= PythonObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT - 1;
+        assert index >= 0 && index <= FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT - 1;
         try {
-            return OFFSET_PROVIDER.objectFieldOffset(PythonObject.class.getDeclaredField("primitiveInt" + index));
+            return OFFSET_PROVIDER.objectFieldOffset(FixedPythonObjectStorage.class.getDeclaredField("primitiveInt" + index));
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
     }
 
     protected static long getExactFieldObjectOffsetOf(int index) {
-        assert index >= 0 && index <= PythonObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT - 1;
+        assert index >= 0 && index <= FixedPythonObjectStorage.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT - 1;
         try {
-            return OFFSET_PROVIDER.objectFieldOffset(PythonObject.class.getDeclaredField("fieldObject" + index));
+            return OFFSET_PROVIDER.objectFieldOffset(FixedPythonObjectStorage.class.getDeclaredField("fieldObject" + index));
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }

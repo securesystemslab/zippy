@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -29,12 +29,11 @@ import java.util.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public class PDict extends PythonBuiltinObject implements PIterable {
+public final class PDict extends PythonBuiltinObject implements PIterable {
 
     private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PDict.class);
 
@@ -72,11 +71,6 @@ public class PDict extends PythonBuiltinObject implements PIterable {
     @Override
     public PythonBuiltinClass __class__() {
         return __class__;
-    }
-
-    @Override
-    public PythonCallable __getattribute__(String name) {
-        return (PythonCallable) __class__.getAttribute(name);
     }
 
     public Object getItem(Object key) {
@@ -153,4 +147,5 @@ public class PDict extends PythonBuiltinObject implements PIterable {
     public Object getMin() {
         throw new UnsupportedOperationException();
     }
+
 }

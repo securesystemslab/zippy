@@ -45,4 +45,12 @@ public class SetTests {
         assertPrints("{1, 2, 3}\nset()\n", source);
     }
 
+    @Test
+    public void setAdd() {
+        String source = "s = set([1,2,3])\n" + //
+                        "print(s)\n" + //
+                        "s.add(4)\n" + //
+                        "print(s)";
+        assertPrints("{1, 2, 3}\n{1, 2, 3, 4}\n", source);
+    }
 }

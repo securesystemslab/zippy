@@ -35,7 +35,6 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
@@ -68,11 +67,6 @@ public class PList extends PSequence {
     @Override
     public final PythonBuiltinClass __class__() {
         return __class__;
-    }
-
-    @Override
-    public final PythonCallable __getattribute__(String name) {
-        return (PythonCallable) __class__.getAttribute(name);
     }
 
     @Override

@@ -382,7 +382,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
             try {
                 while (true) {
                     Object item = iter.__next__();
-                    PythonObject obj = new PythonObject(clazz);
+                    PythonObject obj = PythonContext.newPythonObjectInstance(clazz);
                     Object[] selfWithArgs = new Object[2];
 
                     selfWithArgs[0] = obj;
@@ -416,7 +416,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
         @Specialization
         public PythonObject doObject(@SuppressWarnings("unused") PNone none) {
             PythonContext context = getContext();
-            return new PythonObject(context.getObjectClass());
+            return PythonContext.newPythonObjectInstance(context.getObjectClass());
         }
 
         @Specialization

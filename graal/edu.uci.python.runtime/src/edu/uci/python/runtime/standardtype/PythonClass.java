@@ -38,7 +38,7 @@ import edu.uci.python.runtime.object.*;
 /**
  * Mutable class.
  */
-public class PythonClass extends PythonObject implements PythonCallable {
+public class PythonClass extends FixedPythonObjectStorage implements PythonCallable {
 
     private final String className;
     private final PythonContext context;
@@ -162,7 +162,7 @@ public class PythonClass extends PythonObject implements PythonCallable {
      */
     @Override
     public Object call(PackedFrame caller, Object[] args) {
-        PythonObject newInstance = new PythonObject(this);
+        PythonObject newInstance = PythonContext.newPythonObjectInstance(this);
         PythonCallable ctor = lookUpMethod("__init__");
         ctor.call(caller, packSelfWithArguments(newInstance, args));
         return newInstance;
@@ -170,7 +170,7 @@ public class PythonClass extends PythonObject implements PythonCallable {
 
     @Override
     public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
-        PythonObject newInstance = new PythonObject(this);
+        PythonObject newInstance = PythonContext.newPythonObjectInstance(this);
         PythonCallable ctor = lookUpMethod("__init__");
         ctor.call(caller, packSelfWithArguments(newInstance, args), keywords);
         return newInstance;

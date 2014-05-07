@@ -71,7 +71,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements PIterable 
         return new PBaseSetIterator(set.iterator());
     }
 
-    public boolean contains(Object o) {
+    public final boolean contains(Object o) {
         return this.set.contains(o);
     }
 

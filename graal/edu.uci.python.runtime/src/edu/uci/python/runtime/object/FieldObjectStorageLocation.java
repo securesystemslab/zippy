@@ -26,13 +26,15 @@ package edu.uci.python.runtime.object;
 
 import com.oracle.truffle.api.*;
 
-public class FieldObjectStorageLocation extends FieldStorageLocation {
+public final class FieldObjectStorageLocation extends FieldStorageLocation {
 
     private final long offset;
+    private final Class storedClass;
 
-    protected FieldObjectStorageLocation(ObjectLayout objectLayout, int index) {
+    protected FieldObjectStorageLocation(ObjectLayout objectLayout, int index, Class storedClass) {
         super(objectLayout, index);
-        offset = ObjectLayoutUtil.getExactFieldObjectOffsetOf(index);
+        this.offset = ObjectLayoutUtil.getExactFieldObjectOffsetOf(index);
+        this.storedClass = storedClass;
     }
 
     @Override
@@ -48,7 +50,7 @@ public class FieldObjectStorageLocation extends FieldStorageLocation {
 
     @Override
     public Class getStoredClass() {
-        return Object.class;
+        return storedClass;
     }
 
 }

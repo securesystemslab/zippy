@@ -35,7 +35,7 @@ import edu.uci.python.test.*;
 
 public class ObjectLayoutTests {
 
-    public static class DummyPythonBasicObject extends PythonObject {
+    public static class DummyPythonBasicObject extends FixedPythonObjectStorage {
 
         public DummyPythonBasicObject(PythonClass pythonClass) {
             super(pythonClass);
@@ -72,8 +72,8 @@ public class ObjectLayoutTests {
 
         final ObjectLayout layout = obj.getObjectLayout();
         int objectStorageLocationUsed = layout.getObjectStorageLocationsUsed();
-        assertEquals(100 - PythonObject.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT - //
-                        PythonObject.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT, objectStorageLocationUsed);
+        assertEquals(100 - FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT - //
+                        FixedPythonObjectStorage.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT, objectStorageLocationUsed);
 
         for (int i = 0; i < 100; i++) {
             assertEquals(i, obj.getAttribute("foo" + i));

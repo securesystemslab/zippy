@@ -49,7 +49,6 @@ public class RandomModuleBuiltins extends PythonBuiltins {
     }
 
     protected static java.util.Random javaRandom = new java.util.Random();
-    protected static java.util.Random javaRandomRange = new java.util.Random();
 
     @Builtin(name = "seed", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class SeedNode extends PythonBuiltinNode {
@@ -138,27 +137,34 @@ public class RandomModuleBuiltins extends PythonBuiltins {
     public abstract static class RandRangeNode extends PythonBuiltinNode {
 
         @Specialization
-        public int randrange(int start) {
-            return javaRandomRange.nextInt() % start;
-        }
+        public int randrange(int stop) {
+            double scaled = javaRandom.nextDouble() * stop;
 
-        /**
-         * zwei: returns an int instead of a BigInteger.
-         */
-        @Specialization
-        public int randrange(BigInteger start) {
-            int ret = javaRandomRange.nextInt() >>> 1 % start.longValue();
-            return ret;
+            while (scaled > stop) {
+                scaled = javaRandom.nextDouble() * stop;
+            }
+
+            assert scaled <= stop;
+            return (int) scaled;
         }
 
         @Specialization
-        public int randrange(double start) {
-            return (int) (javaRandomRange.nextInt() % start);
+        public int randrange(BigInteger stop) {
+            long stopLong = stop.longValue();
+            double scaled = javaRandom.nextDouble() * stopLong;
+
+            while (scaled > stopLong) {
+                scaled = javaRandom.nextDouble() * stopLong;
+            }
+
+            assert scaled <= stopLong;
+            return (int) scaled;
         }
     }
 
     @Builtin(name = "getstate", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
     public abstract static class GetStateNode extends PythonBuiltinNode {
+
         @SuppressWarnings("unused")
         @Specialization
         public PTuple getstate(PNone none) {

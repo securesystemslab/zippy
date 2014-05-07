@@ -22,45 +22,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.object.legacy;
+package edu.uci.python.runtime.object;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
+import edu.uci.python.runtime.standardtype.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.object.*;
+public class FixedPythonObjectStorage extends PythonObject {
 
-public class StoreFieldObjectAttributeNode extends StoreSpecializedAttributeNode {
+    public static final int PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT = 5;
+    protected int primitiveInt0;
+    protected int primitiveInt1;
+    protected int primitiveInt2;
+    protected int primitiveInt3;
+    protected int primitiveInt4;
 
-    private final FieldObjectStorageLocation storageLocation;
+    public static final int PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT = 5;
+    protected double primitiveDouble0;
+    protected double primitiveDouble1;
+    protected double primitiveDouble2;
+    protected double primitiveDouble3;
+    protected double primitiveDouble4;
 
-    public StoreFieldObjectAttributeNode(String name, PNode primary, PNode rhs, ObjectLayout objLayout, FieldObjectStorageLocation storageLocation) {
-        super(name, primary, rhs, objLayout);
-        this.storageLocation = storageLocation;
+    public static final int FIELD_OBJECT_STORAGE_LOCATIONS_COUNT = 5;
+    protected Object fieldObject0;
+    protected Object fieldObject1;
+    protected Object fieldObject2;
+    protected Object fieldObject3;
+    protected Object fieldObject4;
+
+    public FixedPythonObjectStorage(PythonClass pythonClass) {
+        super(pythonClass);
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        final PythonObject primaryObject = (PythonObject) primary.execute(frame);
-        final Object value = rhs.execute(frame);
-        return doObject(primaryObject, value);
-    }
-
-    @Override
-    public Object executeWith(VirtualFrame frame, Object value) {
-        final PythonObject primaryObject = (PythonObject) primary.execute(frame);
-        return doObject(primaryObject, value);
-    }
-
-    private Object doObject(PythonObject primaryObject, Object value) {
-        if (primaryObject.getObjectLayout() != objectLayout) {
-            CompilerDirectives.transferToInterpreterAndInvalidate();
-            respecialize(primaryObject, value);
-            return value;
-        }
-
-        storageLocation.write(primaryObject, value);
-        return value;
+    public static PythonObject create(PythonClass clazz) {
+        return new FixedPythonObjectStorage(clazz);
     }
 
 }

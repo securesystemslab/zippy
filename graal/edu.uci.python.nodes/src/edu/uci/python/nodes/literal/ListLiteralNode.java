@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -82,7 +82,9 @@ public abstract class ListLiteralNode extends LiteralNode {
             PList list = new PList(SequenceStorageFactory.createStorage(elements));
             SequenceStorage store = list.getStorage();
 
-            if (store instanceof IntSequenceStorage) {
+            if (store instanceof EmptySequenceStorage) {
+                replace(new ObjectListLiteralNode(values));
+            } else if (store instanceof IntSequenceStorage) {
                 replace(new IntListLiteralNode(values));
             } else if (store instanceof DoubleSequenceStorage) {
                 replace(new DoubleListLiteralNode(values));
@@ -94,7 +96,20 @@ public abstract class ListLiteralNode extends LiteralNode {
         }
     }
 
-    public static class IntListLiteralNode extends ListLiteralNode {
+    public static final class EmptyListLiteralNode extends ListLiteralNode {
+
+        public EmptyListLiteralNode(PNode[] values) {
+            super(values);
+            assert values.length == 0;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return new PList(EmptySequenceStorage.INSTANCE);
+        }
+    }
+
+    public static final class IntListLiteralNode extends ListLiteralNode {
 
         public IntListLiteralNode(PNode[] values) {
             super(values);
@@ -123,7 +138,7 @@ public abstract class ListLiteralNode extends LiteralNode {
         }
     }
 
-    public static class DoubleListLiteralNode extends ListLiteralNode {
+    public static final class DoubleListLiteralNode extends ListLiteralNode {
 
         public DoubleListLiteralNode(PNode[] values) {
             super(values);
@@ -152,7 +167,7 @@ public abstract class ListLiteralNode extends LiteralNode {
         }
     }
 
-    public static class ObjectListLiteralNode extends ListLiteralNode {
+    public static final class ObjectListLiteralNode extends ListLiteralNode {
 
         public ObjectListLiteralNode(PNode[] values) {
             super(values);
@@ -170,4 +185,5 @@ public abstract class ListLiteralNode extends LiteralNode {
             return new PList(new ObjectSequenceStorage(elements));
         }
     }
+
 }

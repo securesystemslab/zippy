@@ -34,6 +34,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
@@ -151,6 +152,10 @@ public class PythonContext extends AbstractExecutionContext {
 
     public ImportManager getImportManager() {
         return importManager;
+    }
+
+    public static PythonObject newPythonObjectInstance(PythonClass clazz) {
+        return new FixedPythonObjectStorage(clazz);
     }
 
     public void setCurrentException(RuntimeException e) {

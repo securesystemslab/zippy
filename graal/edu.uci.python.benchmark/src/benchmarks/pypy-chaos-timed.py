@@ -1,19 +1,18 @@
 #   Copyright (C) 2005 Carl Friedrich Bolz
 
+# 05/05/14 modified by zwei
+# remove the use of functool and operator
+
 """create chaosgame-like fractals
 """
 
 from __future__ import division
 
-import operator
 import random
 random.seed(1234)
 import math
-import os
 import sys
 import time
-
-from functools import reduce
 
 class GVector(object):
     def __init__(self, x = 0, y = 0, z = 0):
@@ -143,14 +142,15 @@ class Chaosgame(object):
         maxlength = thickness * self.width / self.height
         for spl in splines:
             length = 0
-            curr = spl(0)
+            curr = spl(0.0) # 0
             for i in range(1, 1000):
                 last = curr
                 t = 1 / 999 * i
                 curr = spl(t)
                 length += curr.dist(last)
             self.num_trafos.append(max(1, int(length / maxlength * 1.5)))
-        self.num_total = reduce(operator.add, self.num_trafos, 0)
+        # self.num_total = reduce(operator.add, self.num_trafos, 0)
+        self.num_total = reduceByAdd(self.num_trafos, 0)
 
 
     def get_random_trafo(self):
@@ -184,7 +184,7 @@ class Chaosgame(object):
             basepoint.y += -derivative.x / derivative.Mag() * (y - 0.5) * \
                            self.thickness
         else:
-            print("r")
+            print_("r", end='')
         self.truncate(basepoint)
         return basepoint
 
@@ -201,7 +201,7 @@ class Chaosgame(object):
     def create_image_chaos(self, w, h, n):
         im = [[1] * h for i in range(w)]
         point = GVector((self.maxx + self.minx) / 2,
-                        (self.maxy + self.miny) / 2, 0)
+                        (self.maxy + self.miny) / 2, 0.0) # 0
         colored = 0
         times = []
         for _ in range(n):
@@ -210,17 +210,24 @@ class Chaosgame(object):
                 point = self.transform_point(point)
                 x = (point.x - self.minx) / self.width * w
                 y = (point.y - self.miny) / self.height * h
-                x = int(x)
-                y = int(y)
-                if x == w:
-                    x -= 1
-                if y == h:
-                    y -= 1
-                im[x][h - y - 1] = 0
+                x_int = int(x)
+                y_int = int(y)
+                if x_int == w:
+                    x_int -= 1
+                if y_int == h:
+                    y_int -= 1
+                im[x_int][h - y_int - 1] = 0
             t2 = time.time()
             times.append(t2 - t1)
         return times
 
+def reduceByAdd(iterable, initializer):
+    result = initializer
+
+    for elem in iterable:
+        result + elem
+
+    return result
 
 def main(n):
     splines = [
@@ -249,15 +256,15 @@ def main(n):
     c = Chaosgame(splines, 0.25)
     return c.create_image_chaos(1000, 1200, n)
 
-main(100)
-# 
-# if __name__ == "__main__":
-#     import py3_util as util
-#     parser = optparse.OptionParser(
-#         usage="%prog [options]",
-#         description="Test the performance of the Chaos benchmark")
-#     util.add_standard_options_to(parser)
-#     options, args = parser.parse_args()
-# 
-#     util.run_benchmark(options, options.num_runs, main)
+def measure(num):
+    print("Start timing...")
+    start = time.time()
+    main(num)
+    duration = "%.3f\n" % (time.time() - start)
+    print("chaos: " + duration)
 
+# warm up
+for i in range(100):
+    main(10)
+
+measure(int(sys.argv[1]))
