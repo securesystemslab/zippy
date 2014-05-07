@@ -72,9 +72,8 @@ public final class PSet extends PBaseSet {
     }
 
     // add
-    @SuppressWarnings({"unused", "static-method"})
     public boolean add(Object o) {
-        throw new UnsupportedOperationException();
+        return set.add(o);
     }
 
     // remove

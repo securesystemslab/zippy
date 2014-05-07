@@ -121,4 +121,14 @@ public class ListTests {
         assertPrints("[1, 2, 4]\n", source);
     }
 
+    @Test
+    public void popItem() {
+        String source = "llist = [1,2,3,4]\n" + //
+                        "a = llist.pop()\n" + //
+                        "print(llist)\n" + //
+                        "print(a)\n";
+
+        assertPrints("[1, 2, 3]\n4\n", source);
+    }
+
 }
