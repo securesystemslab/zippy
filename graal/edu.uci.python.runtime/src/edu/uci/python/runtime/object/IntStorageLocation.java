@@ -32,7 +32,7 @@ import edu.uci.python.runtime.datatype.*;
 /**
  * A storage location for ints.
  */
-public class IntStorageLocation extends FieldStorageLocation {
+public final class IntStorageLocation extends FieldStorageLocation {
 
     private final long offset;
 

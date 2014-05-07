@@ -24,7 +24,12 @@
  */
 package edu.uci.python.runtime.object;
 
+import java.util.Map.Entry;
+
 import org.objectweb.asm.*;
+import org.python.modules.jffi.*;
+
+import com.oracle.truffle.api.*;
 
 import static org.objectweb.asm.Opcodes.*;
 
@@ -33,15 +38,12 @@ public class ClassFileGenerator {
     private static final String PYTHON_OBJECT_CLASS = "edu/uci/python/runtime/object/PythonObject";
     private static final String CLASSPATH = "edu/uci/python/runtime/object/";
 
-    @SuppressWarnings("unused") private final ObjectLayout layout;
+    private final ObjectLayout layout;
     private final String className;
 
-    private ClassWriter classWriter;
+    private final ClassWriter classWriter;
     private FieldVisitor fieldVisitor;
-
     private MethodVisitor methodVisitor;
-
-    @SuppressWarnings("unused") private AnnotationVisitor annoVisitor;
 
     public ClassFileGenerator(ObjectLayout layout, String className) {
         this.layout = layout;
@@ -54,18 +56,27 @@ public class ClassFileGenerator {
     }
 
     public byte[] generate() {
+        CompilerAsserts.neverPartOfCompilation();
+
         classWriter.visit(V1_7, ACC_PUBLIC + ACC_SUPER, className, null, PYTHON_OBJECT_CLASS, null);
 
-        fieldVisitor = classWriter.visitField(ACC_PROTECTED, "primitiveInt0", "I", null, null);
-        fieldVisitor.visitEnd();
+        for (Entry<String, StorageLocation> entry : layout.getAllStorageLocations().entrySet()) {
+            StorageLocation location = entry.getValue();
+            addField(entry.getKey(), location.getStoredClass());
+        }
 
-        generateConstructor();
+        addConstructor();
 
         classWriter.visitEnd();
         return classWriter.toByteArray();
     }
 
-    private void generateConstructor() {
+    private void addField(String name, Class clazz) {
+        fieldVisitor = classWriter.visitField(ACC_PROTECTED, name, CodegenUtils.ci(clazz), null, null);
+        fieldVisitor.visitEnd();
+    }
+
+    private void addConstructor() {
         methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", "(Ledu/uci/python/runtime/standardtype/PythonClass;)V", null, null);
         methodVisitor.visitCode();
         Label l0 = new Label();

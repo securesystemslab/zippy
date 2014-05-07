@@ -26,7 +26,7 @@ package edu.uci.python.runtime.object;
 
 import com.oracle.truffle.api.*;
 
-public class FieldObjectStorageLocation extends FieldStorageLocation {
+public final class FieldObjectStorageLocation extends FieldStorageLocation {
 
     private final long offset;
 

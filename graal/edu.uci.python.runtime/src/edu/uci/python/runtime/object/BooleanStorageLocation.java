@@ -29,7 +29,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatype.*;
 
-public class BooleanStorageLocation extends FieldStorageLocation {
+public final class BooleanStorageLocation extends FieldStorageLocation {
 
     private final long offset;
 
