@@ -77,9 +77,9 @@ public class PythonOptions {
     }
 
     // Profiling
-    public static final boolean ProfileLists = true;
+    public static final boolean ProfileLists = false;
 
-    public static final boolean AddProfilingInstrumentation = false;
+    public static final boolean AddProfilingInstrumentation = true;
 
     public static final boolean ProfileNodes = false;
 

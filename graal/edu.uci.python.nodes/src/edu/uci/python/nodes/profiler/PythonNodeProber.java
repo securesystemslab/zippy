@@ -1,5 +1,7 @@
 package edu.uci.python.nodes.profiler;
 
+import java.util.*;
+
 import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -10,6 +12,8 @@ public class PythonNodeProber implements ASTNodeProber {
 
     private final PythonContext context;
 
+    public static Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments = new HashMap<>();
+
     public PythonNodeProber(PythonContext context) {
         this.context = context;
     }
@@ -18,7 +22,7 @@ public class PythonNodeProber implements ASTNodeProber {
         return astNode;
     }
 
-    public PNode probeAsStatement(PNode node) {
+    public PythonWrapperNode probeAsStatement(PNode node) {
         PythonWrapperNode wrapper;
         if (node instanceof PythonWrapperNode) {
             wrapper = (PythonWrapperNode) node;
@@ -29,7 +33,10 @@ public class PythonNodeProber implements ASTNodeProber {
             wrapper.assignSourceSection(node.getSourceSection());
         }
 
-        wrapper.getProbe().addInstrument(new ProfilerInstrument());
+        ProfilerInstrument profilerInstrument = new ProfilerInstrument();
+        wrapper.getProbe().addInstrument(profilerInstrument);
+        // wrapper.getProbe().addInstrument(new ProfilerInstrument());
+        wrapperToInstruments.put(wrapper, profilerInstrument);
         return wrapper;
     }
 }

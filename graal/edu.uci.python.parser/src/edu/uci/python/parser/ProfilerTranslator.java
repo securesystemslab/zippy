@@ -1,5 +1,7 @@
 package edu.uci.python.parser;
 
+import java.util.*;
+
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -37,20 +39,17 @@ public class ProfilerTranslator implements NodeVisitor {
         } else if (node instanceof DictLiteralNode) {
             createWrapperNode((PNode) node);
         } else if (node instanceof SubscriptLoadIndexNode) {
-// SubscriptLoadIndexNode subscritLoadIndexNode = (SubscriptLoadIndexNode) node;
-// WrapperNode wrapperNode = new WrapperNode(subscritLoadIndexNode);
-// subscritLoadIndexNode.replace(wrapperNode);
+            createWrapperNode((PNode) node);
         } else if (node instanceof SubscriptStoreIndexNode) {
-// SubscriptStoreIndexNode subscriptStoreIndexNode = (SubscriptStoreIndexNode) node;
-// WrapperNode wrapperNode = new WrapperNode(subscriptStoreIndexNode);
-// subscriptStoreIndexNode.replace(wrapperNode);
+            createWrapperNode((PNode) node);
         }
         return true;
     }
 
-    private void createWrapperNode(PNode node) {
-        PNode wrapperNode = astProber.probeAsStatement(node);
+    private PythonWrapperNode createWrapperNode(PNode node) {
+        PythonWrapperNode wrapperNode = astProber.probeAsStatement(node);
         node.replace(wrapperNode);
         wrapperNode.adoptChildren();
+        return wrapperNode;
     }
 }

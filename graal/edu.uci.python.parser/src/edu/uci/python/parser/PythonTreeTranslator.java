@@ -97,7 +97,7 @@ public class PythonTreeTranslator extends Visitor {
         return result;
     }
 
-    private PNode assignSource(PythonTree node, PNode truffleNode) {
+    public PNode assignSource(PythonTree node, PNode truffleNode) {
         SourceSection sourceSection = new DefaultSourceSection(source, node.getText(), node.getLine(), node.getCharPositionInLine(), node.getTokenStartIndex(), node.getText().length());
         truffleNode.assignSourceSection(sourceSection);
         return truffleNode;
@@ -691,9 +691,11 @@ public class PythonTreeTranslator extends Visitor {
         PNode slice = (PNode) visit(node.getInternalSlice());
 
         if (!(node.getInternalSlice() instanceof Slice)) {
-            return factory.createSubscriptLoadIndex(primary, slice);
+            return assignSource(node, factory.createSubscriptLoadIndex(primary, slice));
+            // return factory.createSubscriptLoadIndex(primary, slice);
         } else {
-            return factory.createSubscriptLoad(primary, slice);
+            return assignSource(node, factory.createSubscriptLoad(primary, slice));
+            // return factory.createSubscriptLoad(primary, slice);
         }
     }
 

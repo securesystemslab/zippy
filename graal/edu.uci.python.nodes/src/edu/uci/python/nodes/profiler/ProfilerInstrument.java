@@ -18,6 +18,14 @@ public class ProfilerInstrument extends Instrument {
     }
 
     @Override
+    public void leave(Node astNode, VirtualFrame frame, Object result) {
+    }
+
+    public long getCounter() {
+        return counter;
+    }
+
+    @Override
     public String toString() {
         return Long.toString(counter);
     }

@@ -73,7 +73,10 @@ public class AssignmentTranslator {
         List<PNode> targets = translator.walkExprList(node.getInternalTargets());
 
         if (targets.size() == 1) {
-            return makeSingleAssignment(targets.get(0), right);
+            PNode writeNode = makeSingleAssignment(targets.get(0), right);
+            translator.assignSource(node.getInternalTargets().get(0), writeNode);
+            return writeNode;
+            // return makeSingleAssignment(targets.get(0), right);
         } else {
             return makeChainedAssignment(right, targets);
         }

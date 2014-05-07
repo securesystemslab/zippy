@@ -25,13 +25,12 @@
 package edu.uci.python.shell;
 
 import java.util.*;
+import java.util.Map.Entry;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.instrument.*;
-import com.oracle.truffle.api.instrument.impl.*;
-import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
@@ -52,18 +51,29 @@ public class ASTInterpreter {
         Arguments arguments = PArguments.EMPTY_ARGUMENT;
         module.call(null, arguments);
 
-        for (Probe probe : result.getContext().getInstrumentation().findProbesTaggedAs(PhylumTag.STATEMENT)) {
-            if (probe instanceof InstrumentationNode) {
-                InstrumentationNode instrumentation = (InstrumentationNode) probe;
-                while (instrumentation.next != null) {
-                    Iterator<Node> iterator = instrumentation.getChildren().iterator();
-                    while (iterator.hasNext()) {
-                        Node child = iterator.next();
-                        System.out.println("CHILD " + child.toString());
-                        instrumentation = instrumentation.next;
-                    }
-                }
+        if (PythonOptions.AddProfilingInstrumentation) {
+            Iterator it = PythonNodeProber.wrapperToInstruments.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry entry = (Entry) it.next();
+                PythonWrapperNode wrapper = (PythonWrapperNode) entry.getKey();
+                ProfilerInstrument instrument = (ProfilerInstrument) entry.getValue();
+                System.out.println("Wrapper " + wrapper.getChild() + " = " + instrument.getCounter());
             }
         }
+
+// for (Probe probe :
+// result.getContext().getInstrumentation().findProbesTaggedAs(PhylumTag.STATEMENT)) {
+// if (probe instanceof InstrumentationNode) {
+// InstrumentationNode instrumentation = (InstrumentationNode) probe;
+// while (instrumentation.next != null) {
+// Iterator<Node> iterator = instrumentation.getChildren().iterator();
+// while (iterator.hasNext()) {
+// Node child = iterator.next();
+// System.out.println("CHILD " + child.toString());
+// instrumentation = instrumentation.next;
+// }
+// }
+// }
+// }
     }
 }
