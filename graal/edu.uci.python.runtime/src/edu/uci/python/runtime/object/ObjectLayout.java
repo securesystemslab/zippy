@@ -30,12 +30,12 @@ import java.util.Map.Entry;
 import com.oracle.truffle.api.*;
 
 /**
- * Maps names of instance variables to storage locations, which are either the offset of a primitive
- * field in <code>PythonObject</code>, or an index into an object array in <code>PythonObject</code>
- * . Object layouts are chained, with each having zero or one parents.
- * <p>
- * Object layouts are immutable, with the methods for adding new instance variables of generalising
- * the type of existing instance variables returning new object layouts.
+ * Maps the names of instance attributes to storage locations, which are either the offset of a
+ * field in {@link PythonObject}, or an index into the object array in {@link PythonObject}. Object
+ * layouts are immutable, with the methods for adding new instance variables of generalising the
+ * type of existing instance variables returning new object layouts.
+ *
+ * @author zwei
  */
 public class ObjectLayout {
 
@@ -71,7 +71,6 @@ public class ObjectLayout {
         this.parent = parent;
 
         // Start our offsets from where the parent ends
-
         int primitiveIntStorageLocationIndex;
         int primitiveDoubleStorageLocationIndex;
         int fieldObjectStorageLocationIndex;
@@ -90,10 +89,7 @@ public class ObjectLayout {
         }
 
         // Go through the variables we've been asked to store
-
         for (Entry<String, Class> entry : storageTypes.entrySet()) {
-            // TODO: what if parent has it, but we need a more general type?
-
             final String name = entry.getKey();
             final Class type = entry.getValue();
 
