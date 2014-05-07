@@ -43,26 +43,14 @@ public class PList extends PSequence {
 
     private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PList.class);
 
-    private long getCounter;
-    private long setCounter;
-    private long appendCounter;
-
     @CompilationFinal private SequenceStorage store;
-
-    public static ArrayList<PList> lists = new ArrayList<>();
 
     public PList() {
         store = SequenceStorageFactory.createStorage(null);
-        if (PythonOptions.ProfileLists) {
-            lists.add(this);
-        }
     }
 
     public PList(SequenceStorage store) {
         this.store = store;
-        if (PythonOptions.ProfileLists) {
-            lists.add(this);
-        }
     }
 
     public PList(PIterator iter) {
@@ -74,10 +62,6 @@ public class PList extends PSequence {
             }
         } catch (StopIterationException e) {
             // fall through
-        }
-
-        if (PythonOptions.ProfileLists) {
-            lists.add(this);
         }
     }
 
@@ -112,18 +96,12 @@ public class PList extends PSequence {
     @Override
     public final Object getItem(int idx) {
         int index = SequenceUtil.normalizeIndex(idx, store.length());
-        if (PythonOptions.ProfileLists) {
-            getCounter++;
-        }
         return store.getItemInBound(index);
     }
 
     @Override
     public final void setItem(int idx, Object value) {
         int index = SequenceUtil.normalizeIndex(idx, store.length());
-        if (PythonOptions.ProfileLists) {
-            setCounter++;
-        }
         try {
             store.setItemInBound(index, value);
         } catch (SequenceStoreException e) {
@@ -250,9 +228,6 @@ public class PList extends PSequence {
     }
 
     public final void append(Object value) {
-        if (PythonOptions.ProfileLists) {
-            appendCounter++;
-        }
         if (store instanceof EmptySequenceStorage) {
             store = store.generalizeFor(value);
         }
@@ -360,16 +335,5 @@ public class PList extends PSequence {
     @Override
     public final int hashCode() {
         return super.hashCode();
-    }
-
-    public static void printProfilerResults() {
-        System.out.println("Number of lists: " + lists.size());
-        for (PList list : lists) {
-            System.out.println("==================================");
-            System.out.println("Number of gets: " + list.getCounter);
-            System.out.println("Number of sets: " + list.setCounter);
-            System.out.println("Number of appends: " + list.appendCounter);
-            System.out.println("==================================");
-        }
     }
 }
