@@ -37,6 +37,7 @@ public class ClassFileGenerator {
 
     private static final String PYTHON_OBJECT_CLASS = "edu/uci/python/runtime/object/PythonObject";
     private static final String CLASSPATH = "edu/uci/python/runtime/object/";
+    public static final String CREATE = "create";
 
     private final ObjectLayout layout;
     private final String className;
@@ -62,16 +63,17 @@ public class ClassFileGenerator {
 
         for (Entry<String, StorageLocation> entry : layout.getAllStorageLocations().entrySet()) {
             StorageLocation location = entry.getValue();
-            addField(entry.getKey(), fixStoredClass(location.getStoredClass()));
+            addField(entry.getKey(), getPrimitiveStoredClass(location.getStoredClass()));
         }
 
         addConstructor();
+        addConstructorAdaptor();
 
         classWriter.visitEnd();
         return classWriter.toByteArray();
     }
 
-    private static Class fixStoredClass(Class clazz) {
+    private static Class getPrimitiveStoredClass(Class clazz) {
         if (clazz == Integer.class) {
             return int.class;
         } else if (clazz == Boolean.class) {
@@ -106,6 +108,24 @@ public class ClassFileGenerator {
         methodVisitor.visitLocalVariable("this", "L" + className + ";", null, l0, l2, 0);
         methodVisitor.visitLocalVariable("pythonClass", "Ledu/uci/python/runtime/standardtype/PythonClass;", null, l0, l2, 1);
         methodVisitor.visitMaxs(2, 2);
+        methodVisitor.visitEnd();
+    }
+
+    private void addConstructorAdaptor() {
+        methodVisitor = classWriter.visitMethod(ACC_PUBLIC + ACC_STATIC, CREATE, "(Ledu/uci/python/runtime/standardtype/PythonClass;)Ledu/uci/python/runtime/object/PythonObject;", null, null);
+        methodVisitor.visitCode();
+        Label l0 = new Label();
+        methodVisitor.visitLabel(l0);
+        methodVisitor.visitLineNumber(57, l0);
+        methodVisitor.visitTypeInsn(NEW, className);
+        methodVisitor.visitInsn(DUP);
+        methodVisitor.visitVarInsn(ALOAD, 0);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, className, "<init>", "(Ledu/uci/python/runtime/standardtype/PythonClass;)V", false);
+        methodVisitor.visitInsn(ARETURN);
+        Label l1 = new Label();
+        methodVisitor.visitLabel(l1);
+        methodVisitor.visitLocalVariable("clazz", "Ledu/uci/python/runtime/standardtype/PythonClass;", null, l0, l1, 0);
+        methodVisitor.visitMaxs(3, 1);
         methodVisitor.visitEnd();
     }
 

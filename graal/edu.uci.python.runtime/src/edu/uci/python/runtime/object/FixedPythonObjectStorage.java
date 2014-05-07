@@ -53,4 +53,8 @@ public class FixedPythonObjectStorage extends PythonObject {
         super(pythonClass);
     }
 
+    public static PythonObject create(PythonClass clazz) {
+        return new FixedPythonObjectStorage(clazz);
+    }
+
 }

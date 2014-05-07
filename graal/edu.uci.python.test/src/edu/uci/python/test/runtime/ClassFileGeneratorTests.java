@@ -26,6 +26,8 @@ package edu.uci.python.test.runtime;
 
 import static org.junit.Assert.*;
 
+import java.lang.invoke.*;
+import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.*;
 
 import org.junit.*;
@@ -126,6 +128,28 @@ public class ClassFileGeneratorTests {
                 assertTrue(field != null);
             }
         } catch (NoSuchFieldException | SecurityException e) {
+            throw new RuntimeException();
+        }
+    }
+
+    @Test
+    public void methodHandleInvoke() {
+        PythonContext context = PythonTests.getContext();
+        PythonObject obj = PythonContext.newPythonObjectInstance(context.getObjectClass());
+        ClassFileGenerator cfg = new ClassFileGenerator(obj.getObjectLayout(), "Foo");
+        String className = cfg.getValidClassName();
+        byte[] data = cfg.generate();
+
+        Class<?> pyclazz = BytecodeLoader.makeClass(className, data, PythonObject.class);
+        assertTrue(pyclazz != null);
+
+        try {
+            Lookup lookup = MethodHandles.lookup();
+            MethodType mt = MethodType.methodType(PythonObject.class, PythonClass.class);
+            MethodHandle ctor = lookup.findStatic(pyclazz, ClassFileGenerator.CREATE, mt);
+            PythonObject instance = (PythonObject) ctor.invokeExact((PythonClass) context.getObjectClass());
+            assertTrue(instance != null);
+        } catch (Throwable e) {
             throw new RuntimeException();
         }
     }
