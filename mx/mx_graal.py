@@ -1623,8 +1623,11 @@ def jmh(args):
 
     benchmarks = [b for b in benchmarksAndJsons if not b.startswith('{')]
     jmhArgJsons = [b for b in benchmarksAndJsons if b.startswith('{')]
-
-    jmhArgs = {'-rff' : join(_graal_home, 'mx', 'jmh', 'jmh.out'), '-v' : 'EXTRA' if mx._opts.verbose else 'NORMAL'}
+    jmhOutDir = join(_graal_home, 'mx', 'jmh')
+    if not exists(jmhOutDir):
+        os.makedirs(jmhOutDir)
+    jmhOut = join(jmhOutDir, 'jmh.out')
+    jmhArgs = {'-rff' : jmhOut, '-v' : 'EXTRA' if mx._opts.verbose else 'NORMAL'}
 
     # e.g. '{"-wi" : 20}'
     for j in jmhArgJsons:
@@ -1652,7 +1655,8 @@ def jmh(args):
 
         microJar = os.path.join(absoluteMicro, "target", "microbenchmarks.jar")
         if not exists(microJar):
-            mx.abort('Missing ' + microJar + ' - please run "mx buildjmh"')
+            mx.log('Missing ' + microJar + ' - please run "mx buildjmh"')
+            continue
         if benchmarks:
             def _addBenchmark(x):
                 if x.startswith("Benchmark:"):
