@@ -25,9 +25,6 @@
 package edu.uci.python.runtime.object;
 
 import java.lang.invoke.*;
-import org.python.core.*;
-
-import edu.uci.python.runtime.standardtype.*;
 
 public final class GeneratedPythonObjectStorage {
 
@@ -45,28 +42,6 @@ public final class GeneratedPythonObjectStorage {
 
     public MethodHandle getConstructor() {
         return ctor;
-    }
-
-    public static GeneratedPythonObjectStorage createFrom(PythonObject prev) {
-        StorageClassGenerator scg = new StorageClassGenerator(prev.getObjectLayout(), prev.getPythonClass().getName());
-        Class storageClass = BytecodeLoader.makeClass(scg.getValidClassName(), scg.generate(), PythonObject.class);
-        MethodHandle ctor;
-
-        try {
-            MethodType mt = MethodType.methodType(PythonObject.class, PythonClass.class);
-            ctor = MethodHandles.lookup().findStatic(storageClass, StorageClassGenerator.CREATE, mt);
-        } catch (NoSuchMethodException | IllegalAccessException e) {
-            throw new RuntimeException();
-        }
-
-        synchronizeObjectLayout(prev.getPythonClass(), storageClass);
-        return new GeneratedPythonObjectStorage(storageClass, ctor);
-    }
-
-    private static void synchronizeObjectLayout(PythonClass pythonClass, Class storageClass) {
-        ObjectLayout oldLayout = pythonClass.getInstanceObjectLayout();
-        ObjectLayout newLayout = oldLayout.switchObjectStorageClass(storageClass);
-        pythonClass.updateInstanceObjectLayout(newLayout);
     }
 
 }

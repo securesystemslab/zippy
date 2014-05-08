@@ -24,13 +24,16 @@
  */
 package edu.uci.python.runtime.object;
 
+import java.lang.invoke.*;
 import java.util.Map.Entry;
 
 import org.objectweb.asm.*;
+import org.python.core.*;
 import org.python.modules.jffi.*;
 
 import com.oracle.truffle.api.*;
 
+import edu.uci.python.runtime.standardtype.*;
 import static org.objectweb.asm.Opcodes.*;
 
 public final class StorageClassGenerator {
@@ -39,29 +42,52 @@ public final class StorageClassGenerator {
     private static final String CLASSPATH = "edu/uci/python/runtime/object/";
     public static final String CREATE = "create";
 
-    private final ObjectLayout layout;
+    private final PythonClass pythonClass;
     private final String className;
 
     private final ClassWriter classWriter;
     private FieldVisitor fieldVisitor;
     private MethodVisitor methodVisitor;
 
-    public StorageClassGenerator(ObjectLayout layout, String className) {
-        this.layout = layout;
+    public StorageClassGenerator(PythonClass pythonClass) {
+        this.pythonClass = pythonClass;
         this.classWriter = new ClassWriter(0);
-        this.className = CLASSPATH + className;
+        this.className = CLASSPATH + pythonClass.getName();
     }
 
     public String getValidClassName() {
         return className.replace('/', '.');
     }
 
-    public byte[] generate() {
+    public GeneratedPythonObjectStorage generate() {
+        final Class storageClass = BytecodeLoader.makeClass(getValidClassName(), generateClassData(), PythonObject.class);
+        final MethodHandle ctor = lookupConstructor(storageClass);
+        synchronizeObjectLayout(storageClass);
+        return new GeneratedPythonObjectStorage(storageClass, ctor);
+    }
+
+    private static MethodHandle lookupConstructor(Class storageClass) {
+        try {
+            MethodType mt = MethodType.methodType(PythonObject.class, PythonClass.class);
+            return MethodHandles.lookup().findStatic(storageClass, StorageClassGenerator.CREATE, mt);
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            throw new RuntimeException();
+        }
+    }
+
+    private void synchronizeObjectLayout(Class storageClass) {
+        ObjectLayout oldLayout = pythonClass.getInstanceObjectLayout();
+        ObjectLayout newLayout = oldLayout.switchObjectStorageClass(storageClass);
+        pythonClass.updateInstanceObjectLayout(newLayout);
+    }
+
+    private byte[] generateClassData() {
         CompilerAsserts.neverPartOfCompilation();
 
         classWriter.visit(V1_7, ACC_PUBLIC + ACC_SUPER, className, null, PYTHON_OBJECT_CLASS, null);
+        ObjectLayout old = pythonClass.getInstanceObjectLayout();
 
-        for (Entry<String, StorageLocation> entry : layout.getAllStorageLocations().entrySet()) {
+        for (Entry<String, StorageLocation> entry : old.getAllStorageLocations().entrySet()) {
             StorageLocation location = entry.getValue();
             addField(entry.getKey(), getPrimitiveStoredClass(location.getStoredClass()));
         }
