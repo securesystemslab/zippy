@@ -25,7 +25,6 @@
 package edu.uci.python.runtime.object.storage;
 
 import java.lang.invoke.*;
-
 import org.python.core.*;
 
 import edu.uci.python.runtime.object.*;
@@ -41,6 +40,14 @@ public final class GeneratedPythonObjectStorage {
         this.ctor = ctor;
     }
 
+    public Class getStorageClass() {
+        return storageClass;
+    }
+
+    public MethodHandle getConstructor() {
+        return ctor;
+    }
+
     public static GeneratedPythonObjectStorage createFrom(PythonObject prev) {
         StorageClassGenerator scg = new StorageClassGenerator(prev.getObjectLayout(), prev.getPythonClass().getName());
         Class storageClass = BytecodeLoader.makeClass(scg.getValidClassName(), scg.generate(), PythonObject.class);
@@ -53,15 +60,13 @@ public final class GeneratedPythonObjectStorage {
             throw new RuntimeException();
         }
 
+        synchronizeObjectLayout(prev.getPythonClass(), storageClass);
         return new GeneratedPythonObjectStorage(storageClass, ctor);
     }
 
-    public Class getStorageClass() {
-        return storageClass;
+    private static void synchronizeObjectLayout(PythonClass pythonClass, Class storageClass) {
+        ObjectLayout oldLayout = pythonClass.getInstanceObjectLayout();
+        ObjectLayout newLayout = oldLayout.switchObjectStorageClass(storageClass);
+        pythonClass.updateInstanceObjectLayout(newLayout);
     }
-
-    public MethodHandle getConstructor() {
-        return ctor;
-    }
-
 }

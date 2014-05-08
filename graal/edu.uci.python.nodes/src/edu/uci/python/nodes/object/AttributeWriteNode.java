@@ -37,8 +37,8 @@ public abstract class AttributeWriteNode extends Node {
             return new WriteBooleanAttributeNode((BooleanStorageLocation) location);
         } else if (location instanceof IntStorageLocation) {
             return new WriteIntAttributeNode((IntStorageLocation) location);
-        } else if (location instanceof FloatStorageLocation) {
-            return new WriteDoubleAttributeNode((FloatStorageLocation) location);
+        } else if (location instanceof DoubleStorageLocation) {
+            return new WriteDoubleAttributeNode((DoubleStorageLocation) location);
         } else if (location instanceof FieldObjectStorageLocation) {
             return new WriteFieldObjectAttributeNode((FieldObjectStorageLocation) location);
         }
@@ -109,9 +109,9 @@ public abstract class AttributeWriteNode extends Node {
 
     public static final class WriteDoubleAttributeNode extends AttributeWriteNode {
 
-        private final FloatStorageLocation floatLocation;
+        private final DoubleStorageLocation floatLocation;
 
-        public WriteDoubleAttributeNode(FloatStorageLocation floatLocation) {
+        public WriteDoubleAttributeNode(DoubleStorageLocation floatLocation) {
             this.floatLocation = floatLocation;
         }
 

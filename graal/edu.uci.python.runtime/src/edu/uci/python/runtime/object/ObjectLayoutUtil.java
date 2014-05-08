@@ -76,6 +76,12 @@ public class ObjectLayoutUtil {
         }
     }
 
+    protected static long getExactFieldOffsetOf(Class storageClass, String fieldName) throws NoSuchFieldException {
+        Field field = storageClass.getDeclaredField(fieldName);
+        assert field != null;
+        return OFFSET_PROVIDER.objectFieldOffset(field);
+    }
+
     public static final Object readObjectArrayUnsafeAt(Object[] array, int index, Object locationIdentity) {
         return CompilerDirectives.unsafeGetObject(array, Unsafe.ARRAY_OBJECT_BASE_OFFSET + Unsafe.ARRAY_OBJECT_INDEX_SCALE * index, true, locationIdentity);
     }

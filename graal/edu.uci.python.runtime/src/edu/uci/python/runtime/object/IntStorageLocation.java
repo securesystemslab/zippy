@@ -34,11 +34,8 @@ import edu.uci.python.runtime.datatype.*;
  */
 public final class IntStorageLocation extends FieldStorageLocation {
 
-    private final long offset;
-
-    public IntStorageLocation(ObjectLayout objectLayout, int index) {
-        super(objectLayout, index);
-        offset = ObjectLayoutUtil.getExactPrimitiveIntOffsetOf(index);
+    public IntStorageLocation(ObjectLayout objectLayout, int index, long offset) {
+        super(objectLayout, index, offset);
     }
 
     @Override

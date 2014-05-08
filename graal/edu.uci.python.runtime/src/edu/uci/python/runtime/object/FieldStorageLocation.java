@@ -28,11 +28,13 @@ public abstract class FieldStorageLocation extends StorageLocation {
 
     private final int mask;
     protected final int index; // logical index not physical
+    protected final long offset;
 
-    protected FieldStorageLocation(ObjectLayout objectLayout, int index) {
+    protected FieldStorageLocation(ObjectLayout objectLayout, int index, long offset) {
         super(objectLayout);
         mask = 1 << index;
         this.index = index;
+        this.offset = offset;
     }
 
     @Override

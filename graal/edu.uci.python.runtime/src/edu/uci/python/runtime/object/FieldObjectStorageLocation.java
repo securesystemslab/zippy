@@ -28,12 +28,10 @@ import com.oracle.truffle.api.*;
 
 public final class FieldObjectStorageLocation extends FieldStorageLocation {
 
-    private final long offset;
     private final Class storedClass;
 
-    protected FieldObjectStorageLocation(ObjectLayout objectLayout, int index, Class storedClass) {
-        super(objectLayout, index);
-        this.offset = ObjectLayoutUtil.getExactFieldObjectOffsetOf(index);
+    protected FieldObjectStorageLocation(ObjectLayout objectLayout, int index, long offset, Class storedClass) {
+        super(objectLayout, index, offset);
         this.storedClass = storedClass;
     }
 
