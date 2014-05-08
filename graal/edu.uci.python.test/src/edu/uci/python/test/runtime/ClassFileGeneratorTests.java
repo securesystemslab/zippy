@@ -125,6 +125,7 @@ public class ClassFileGeneratorTests {
             for (int i = 0; i < 5; i++) {
                 Field field = loadedClass.getDeclaredField("int" + i);
                 assertTrue(field != null);
+                assertTrue(field.getType() == int.class);
             }
         } catch (NoSuchFieldException | SecurityException e) {
             throw new RuntimeException();
@@ -183,6 +184,7 @@ public class ClassFileGeneratorTests {
             for (int i = 0; i < 5; i++) {
                 Field field = generated.getStorageClass().getDeclaredField("int" + i);
                 assertTrue(field != null);
+                assertTrue(field.getType() == int.class);
             }
         } catch (NoSuchFieldException | SecurityException e) {
             throw new RuntimeException();
