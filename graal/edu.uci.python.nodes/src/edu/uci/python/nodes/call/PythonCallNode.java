@@ -265,6 +265,7 @@ public abstract class PythonCallNode extends PNode {
             Object[] arguments = executeArguments(frame, true, newInstance, argumentNodes);
             PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
+            clazz.switchToGeneratedStorageClass();
             return newInstance;
         }
     }
@@ -283,9 +284,12 @@ public abstract class PythonCallNode extends PNode {
             try {
                 instanceLayoutStableAssumption.check();
                 return (PythonObject) instanceCtor.invokeExact(clazz);
-            } catch (Throwable e) {
+            } catch (InvalidAssumptionException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return rewriteAndExecute(clazz);
+            } catch (Throwable e) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                throw new RuntimeException("instance constructor invocation failed in " + this);
             }
         }
 
