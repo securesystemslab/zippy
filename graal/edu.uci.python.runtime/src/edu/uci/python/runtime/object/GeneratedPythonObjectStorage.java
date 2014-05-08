@@ -26,6 +26,9 @@ package edu.uci.python.runtime.object;
 
 import java.lang.invoke.*;
 
+/**
+ * @author zwei
+ */
 public final class GeneratedPythonObjectStorage {
 
     private final Class storageClass;

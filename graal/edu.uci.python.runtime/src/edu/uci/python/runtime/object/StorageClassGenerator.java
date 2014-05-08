@@ -36,6 +36,9 @@ import com.oracle.truffle.api.*;
 import edu.uci.python.runtime.standardtype.*;
 import static org.objectweb.asm.Opcodes.*;
 
+/**
+ * @author zwei
+ */
 public final class StorageClassGenerator {
 
     private static final String PYTHON_OBJECT_CLASS = "edu/uci/python/runtime/object/PythonObject";
@@ -43,7 +46,7 @@ public final class StorageClassGenerator {
     public static final String CREATE = "create";
 
     private final PythonClass pythonClass;
-    private final String className;
+    private final String validClassName;
 
     private final ClassWriter classWriter;
     private FieldVisitor fieldVisitor;
@@ -52,11 +55,7 @@ public final class StorageClassGenerator {
     public StorageClassGenerator(PythonClass pythonClass) {
         this.pythonClass = pythonClass;
         this.classWriter = new ClassWriter(0);
-        this.className = CLASSPATH + pythonClass.getName();
-    }
-
-    public String getValidClassName() {
-        return className.replace('/', '.');
+        this.validClassName = CLASSPATH + pythonClass.getName();
     }
 
     public GeneratedPythonObjectStorage generate() {
@@ -66,10 +65,14 @@ public final class StorageClassGenerator {
         return new GeneratedPythonObjectStorage(storageClass, ctor);
     }
 
+    private String getValidClassName() {
+        return validClassName.replace('/', '.');
+    }
+
     private static MethodHandle lookupConstructor(Class storageClass) {
         try {
             MethodType mt = MethodType.methodType(PythonObject.class, PythonClass.class);
-            return MethodHandles.lookup().findStatic(storageClass, StorageClassGenerator.CREATE, mt);
+            return MethodHandles.lookup().findStatic(storageClass, CREATE, mt);
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException();
         }
@@ -84,7 +87,7 @@ public final class StorageClassGenerator {
     private byte[] generateClassData() {
         CompilerAsserts.neverPartOfCompilation();
 
-        classWriter.visit(V1_7, ACC_PUBLIC + ACC_SUPER, className, null, PYTHON_OBJECT_CLASS, null);
+        classWriter.visit(V1_7, ACC_PUBLIC + ACC_SUPER, validClassName, null, PYTHON_OBJECT_CLASS, null);
         ObjectLayout old = pythonClass.getInstanceObjectLayout();
 
         for (Entry<String, StorageLocation> entry : old.getAllStorageLocations().entrySet()) {
@@ -131,7 +134,7 @@ public final class StorageClassGenerator {
         methodVisitor.visitInsn(RETURN);
         Label l2 = new Label();
         methodVisitor.visitLabel(l2);
-        methodVisitor.visitLocalVariable("this", "L" + className + ";", null, l0, l2, 0);
+        methodVisitor.visitLocalVariable("this", "L" + validClassName + ";", null, l0, l2, 0);
         methodVisitor.visitLocalVariable("pythonClass", "Ledu/uci/python/runtime/standardtype/PythonClass;", null, l0, l2, 1);
         methodVisitor.visitMaxs(2, 2);
         methodVisitor.visitEnd();
@@ -143,10 +146,10 @@ public final class StorageClassGenerator {
         Label l0 = new Label();
         methodVisitor.visitLabel(l0);
         methodVisitor.visitLineNumber(57, l0);
-        methodVisitor.visitTypeInsn(NEW, className);
+        methodVisitor.visitTypeInsn(NEW, validClassName);
         methodVisitor.visitInsn(DUP);
         methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKESPECIAL, className, "<init>", "(Ledu/uci/python/runtime/standardtype/PythonClass;)V", false);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, validClassName, "<init>", "(Ledu/uci/python/runtime/standardtype/PythonClass;)V", false);
         methodVisitor.visitInsn(ARETURN);
         Label l1 = new Label();
         methodVisitor.visitLabel(l1);

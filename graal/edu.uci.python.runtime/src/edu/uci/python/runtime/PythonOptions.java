@@ -59,6 +59,8 @@ public class PythonOptions {
 
     public static final int CallSiteInlineCacheMaxDepth = 5;
 
+    public static final boolean GenerateObjectStorage = false;
+
     // Generators
     public static boolean InlineGeneratorCalls = false;
 

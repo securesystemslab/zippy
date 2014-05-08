@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime.standardtype;
 
+import java.lang.invoke.*;
 import java.util.*;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
@@ -52,6 +53,7 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
      * Object layout of the instances of this class.
      */
     @CompilationFinal private ObjectLayout instanceObjectLayout;
+    @CompilationFinal private MethodHandle instanceConstructor;
 
     public PythonClass(PythonClass superClass, String name) {
         this(superClass.getContext(), superClass, name);
@@ -79,6 +81,9 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
         instanceObjectLayout = superClass == null ? ObjectLayout.empty() : new ObjectLayout(getName(), superClass.getInstanceObjectLayout());
 
         switchToPrivateLayout();
+
+        // The default constructor creates a {@link FixedPythonObjectStorage} object.
+        instanceConstructor = PythonContext.getDefaultPythonObjectConstructor();
     }
 
     public PythonClass getSuperClass() {
@@ -92,6 +97,10 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
 
     public PythonContext getContext() {
         return context;
+    }
+
+    public final MethodHandle getInstanceConstructor() {
+        return instanceConstructor;
     }
 
     @Override
@@ -155,6 +164,17 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
 
     public final void updateInstanceObjectLayout(ObjectLayout newLayout) {
         this.instanceObjectLayout = newLayout;
+    }
+
+    public final void switchToGeneratedStorageClass() {
+        if (!PythonOptions.GenerateObjectStorage) {
+            return;
+        }
+
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        StorageClassGenerator scg = new StorageClassGenerator(this);
+        GeneratedPythonObjectStorage newStorage = scg.generate();
+        instanceConstructor = newStorage.getConstructor();
     }
 
     /**
