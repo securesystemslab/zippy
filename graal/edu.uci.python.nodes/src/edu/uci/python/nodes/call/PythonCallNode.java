@@ -162,11 +162,11 @@ public abstract class PythonCallNode extends PNode {
 
     public static final class BoxedCallNode extends PythonCallNode {
 
-        @Child protected CallDispatchBoxedNode dispatchBoxedNode;
+        @Child protected CallDispatchBoxedNode dispatchNode;
 
         public BoxedCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchBoxedNode dispatch, boolean passPrimary) {
             super(context, calleeName, primary, callee, arguments, keywords, passPrimary);
-            dispatchBoxedNode = dispatch;
+            dispatchNode = dispatch;
         }
 
         @Override
@@ -181,7 +181,7 @@ public abstract class PythonCallNode extends PNode {
 
             Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
             PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
-            return dispatchBoxedNode.executeCall(frame, primary, arguments, keywords);
+            return dispatchNode.executeCall(frame, primary, arguments, keywords);
         }
     }
 
