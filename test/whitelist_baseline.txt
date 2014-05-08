@@ -25,3 +25,4 @@ com.oracle.graal.jtt.bytecode.BC_getstatic_i
 com.oracle.graal.jtt.bytecode.BC_getstatic_l
 com.oracle.graal.jtt.bytecode.BC_getstatic_s
 com.oracle.graal.jtt.bytecode.BC_getstatic_z
+com.oracle.graal.jtt.bytecode.BC_arraylength
