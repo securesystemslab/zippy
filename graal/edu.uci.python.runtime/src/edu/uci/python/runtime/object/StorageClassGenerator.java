@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object.storage;
+package edu.uci.python.runtime.object;
 
 import java.util.Map.Entry;
 
@@ -31,7 +31,6 @@ import org.python.modules.jffi.*;
 
 import com.oracle.truffle.api.*;
 
-import edu.uci.python.runtime.object.*;
 import static org.objectweb.asm.Opcodes.*;
 
 public final class StorageClassGenerator {

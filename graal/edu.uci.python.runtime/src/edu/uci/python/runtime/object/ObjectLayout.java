@@ -29,8 +29,6 @@ import java.util.Map.Entry;
 
 import com.oracle.truffle.api.*;
 
-import edu.uci.python.runtime.object.storage.*;
-
 /**
  * Maps the names of instance attributes to storage locations, which are either the offset of a
  * field in {@link PythonObject}, or an index into the object array in {@link PythonObject}. Object
@@ -251,7 +249,7 @@ public class ObjectLayout {
         return new ObjectLayout(originHint + "-" + name, parent, storageTypes);
     }
 
-    public ObjectLayout switchObjectStorageClass(Class objectStorageClass) {
+    protected ObjectLayout switchObjectStorageClass(Class objectStorageClass) {
         validAssumption.invalidate();
         return new ObjectLayout(originHint + ".switch", parent, getStorageTypes(), objectStorageClass);
     }

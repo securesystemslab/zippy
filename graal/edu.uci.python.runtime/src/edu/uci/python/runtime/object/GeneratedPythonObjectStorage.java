@@ -22,12 +22,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object.storage;
+package edu.uci.python.runtime.object;
 
 import java.lang.invoke.*;
 import org.python.core.*;
 
-import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public final class GeneratedPythonObjectStorage {
@@ -69,4 +68,5 @@ public final class GeneratedPythonObjectStorage {
         ObjectLayout newLayout = oldLayout.switchObjectStorageClass(storageClass);
         pythonClass.updateInstanceObjectLayout(newLayout);
     }
+
 }

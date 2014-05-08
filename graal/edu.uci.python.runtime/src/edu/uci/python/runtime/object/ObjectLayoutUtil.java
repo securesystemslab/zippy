@@ -32,8 +32,6 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.NodeUtil.*;
 
-import edu.uci.python.runtime.object.storage.*;
-
 public class ObjectLayoutUtil {
 
     public static final FieldOffsetProvider OFFSET_PROVIDER = unsafeFieldOffsetProvider();

@@ -34,7 +34,6 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
-import edu.uci.python.runtime.object.storage.*;
 
 /**
  * Mutable class.

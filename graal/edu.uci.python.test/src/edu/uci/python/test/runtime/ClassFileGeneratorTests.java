@@ -37,7 +37,6 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
-import edu.uci.python.runtime.object.storage.*;
 import edu.uci.python.runtime.standardtype.*;
 import edu.uci.python.test.*;
 
@@ -149,6 +148,43 @@ public class ClassFileGeneratorTests {
             PythonObject instance = (PythonObject) ctor.invokeExact((PythonClass) context.getObjectClass());
             assertTrue(instance != null);
         } catch (Throwable e) {
+            throw new RuntimeException();
+        }
+    }
+
+    @Test
+    public void layoutSwitch() {
+        PythonContext context = PythonTests.getContext();
+        PythonClass pyclazz = new PythonClass(context.getObjectClass(), "Foo");
+        PythonObject obj = PythonContext.newPythonObjectInstance(pyclazz);
+
+        // Setup object layout.
+        obj.setAttribute("int0", 0);
+        obj.setAttribute("int1", 1);
+        obj.setAttribute("int2", 2);
+        obj.setAttribute("int3", 3);
+        obj.setAttribute("int4", 4);
+        obj.setAttribute("int5", 5);
+
+        assertTrue(pyclazz.getInstanceObjectLayout().findStorageLocation("int5") != null);
+        GeneratedPythonObjectStorage generated = GeneratedPythonObjectStorage.createFrom(obj);
+
+        PythonObject newInstance;
+        try {
+            newInstance = (PythonObject) generated.getConstructor().invokeExact(pyclazz);
+        } catch (Throwable e) {
+            throw new RuntimeException();
+        }
+
+        assertTrue(newInstance != null);
+        assertTrue(newInstance.getObjectLayout() == pyclazz.getInstanceObjectLayout());
+
+        try {
+            for (int i = 0; i < 5; i++) {
+                Field field = generated.getStorageClass().getDeclaredField("int" + i);
+                assertTrue(field != null);
+            }
+        } catch (NoSuchFieldException | SecurityException e) {
             throw new RuntimeException();
         }
     }
