@@ -904,7 +904,7 @@ def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False, defaultAll
     else:
         return [], args
 
-def _run_tests(args, harness, annotations, testfile, whitelist):
+def _run_tests(args, harness, annotations, testfile, whitelist, regex):
 
 
     vmArgs, tests = _extract_VM_args(args)
@@ -939,6 +939,9 @@ def _run_tests(args, harness, annotations, testfile, whitelist):
     if whitelist:
         classes = [c for c in classes if any((glob.match(c) for glob in whitelist))]
 
+    if regex:
+        classes = [c for c in classes if re.search(regex, c)]
+
     if len(classes) != 0:
         f_testfile = open(testfile, 'w')
         for c in classes:
@@ -946,7 +949,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist):
         f_testfile.close()
         harness(projectscp, vmArgs)
 
-def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, enable_timing=False):
+def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, enable_timing=False, regex=None):
     mxdir = dirname(__file__)
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
@@ -979,7 +982,7 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
             vm(prefixArgs + vmArgs + ['-cp', prefixcp + corecp + ':' + projectscp + os.pathsep + mxdir, name] + [testfile] + coreArgs)
 
     try:
-        _run_tests(args, harness, annotations, testfile, whitelist)
+        _run_tests(args, harness, annotations, testfile, whitelist, regex)
     finally:
         if os.environ.get('MX_TESTFILE') is None:
             os.remove(testfile)
@@ -987,10 +990,11 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
 _unittestHelpSuffix = """
     Unittest options:
 
-      --whitelist            run only testcases which are included
+      --whitelist <file>     run only testcases which are included
                              in the given whitelist
       --verbose              enable verbose JUnit output
       --enable-timing        enable JUnit test timing
+      --regex <regex>        run only testcases matching a regular expression
 
     To avoid conflicts with VM options '--' can be used as delimiter.
 
@@ -1030,6 +1034,7 @@ def unittest(args):
     parser.add_argument('--whitelist', help='run testcases specified in whitelist only', metavar='<path>')
     parser.add_argument('--verbose', help='enable verbose JUnit output', action='store_true')
     parser.add_argument('--enable-timing', help='enable JUnit test timing', action='store_true')
+    parser.add_argument('--regex', help='run only testcases matching a regular expression', metavar='<regex>')
 
     ut_args = []
     delimiter = False
@@ -1056,7 +1061,7 @@ def unittest(args):
         except IOError:
             mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
 
-    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist, verbose=parsed_args.verbose, enable_timing=parsed_args.enable_timing)
+    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist, verbose=parsed_args.verbose, enable_timing=parsed_args.enable_timing, regex=parsed_args.regex)
 
 def shortunittest(args):
     """alias for 'unittest --whitelist test/whitelist_shortunittest.txt'{0}"""
