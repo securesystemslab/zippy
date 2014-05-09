@@ -25,6 +25,7 @@
 package edu.uci.python.shell;
 
 import java.util.*;
+import java.util.Map.*;
 
 import org.python.core.*;
 import org.python.util.*;
@@ -98,12 +99,37 @@ public class CustomConsole extends JLineConsole {
             Profiler.getInstance().printProfilerResults();
         }
 
-// if (PythonOptions.ProfileLists) {
-// printBanner("List Count Results");
-// PList.printProfilerResults();
-// }
+        if (PythonOptions.AddProfilingInstrumentation) {
+            Map<PythonWrapperNode, ProfilerInstrument> sorted = sortByValue(PythonNodeProber.wrapperToInstruments);
+
+            Iterator it = sorted.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry entry = (Entry) it.next();
+                PythonWrapperNode wrapper = (PythonWrapperNode) entry.getKey();
+                ProfilerInstrument instrument = (ProfilerInstrument) entry.getValue();
+                System.out.println(wrapper.getChild() + " line " + wrapper.getChild().getSourceSection().getStartLine() + " column " + wrapper.getChild().getSourceSection().getStartColumn() + " = " +
+                                instrument.getCounter());
+            }
+        }
 
         Py.flushLine();
+        return result;
+    }
+
+    private static Map<PythonWrapperNode, ProfilerInstrument> sortByValue(Map<PythonWrapperNode, ProfilerInstrument> map) {
+        List<Map.Entry<PythonWrapperNode, ProfilerInstrument>> list = new LinkedList<>(map.entrySet());
+
+        Collections.sort(list, new Comparator<Map.Entry<PythonWrapperNode, ProfilerInstrument>>() {
+
+            public int compare(Map.Entry<PythonWrapperNode, ProfilerInstrument> m1, Map.Entry<PythonWrapperNode, ProfilerInstrument> m2) {
+                return (int) (m2.getValue().getCounter() - m1.getValue().getCounter());
+            }
+        });
+
+        Map<PythonWrapperNode, ProfilerInstrument> result = new LinkedHashMap<>();
+        for (Map.Entry<PythonWrapperNode, ProfilerInstrument> entry : list) {
+            result.put(entry.getKey(), entry.getValue());
+        }
         return result;
     }
 

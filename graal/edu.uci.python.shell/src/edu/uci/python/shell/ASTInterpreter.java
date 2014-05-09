@@ -24,13 +24,9 @@
  */
 package edu.uci.python.shell;
 
-import java.util.*;
-import java.util.Map.Entry;
-
 import com.oracle.truffle.api.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
@@ -40,40 +36,22 @@ public class ASTInterpreter {
     public static void interpret(PythonParseResult result) {
         ModuleNode root = (ModuleNode) result.getModuleRoot();
         RootCallTarget module = Truffle.getRuntime().createCallTarget(root);
-        // Added here because createCallTarget adopts all chidlren, i.e. adds all parent
-// relationships.
+        // Added here because createCallTarget adopts all children, i.e. adds all parent
+        // relationships. In order to be able create wrapper nodes, and replace nodes with wrapper
+        // nodes, we need parent relationship
 
         if (PythonOptions.AddProfilingInstrumentation) {
             ProfilerTranslator pt = new ProfilerTranslator(result.getContext());
             pt.translate(result, root);
+
+            if (PythonOptions.PrintAST) {
+                System.out.println("============= " + "After Adding Wrapper Nodes" + " ============= ");
+                result.printAST();
+            }
         }
 
         Arguments arguments = PArguments.EMPTY_ARGUMENT;
         module.call(null, arguments);
-
-        if (PythonOptions.AddProfilingInstrumentation) {
-            Iterator it = PythonNodeProber.wrapperToInstruments.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry entry = (Entry) it.next();
-                PythonWrapperNode wrapper = (PythonWrapperNode) entry.getKey();
-                ProfilerInstrument instrument = (ProfilerInstrument) entry.getValue();
-                System.out.println("Wrapper " + wrapper.getChild() + " = " + instrument.getCounter());
-            }
-        }
-
-// for (Probe probe :
-// result.getContext().getInstrumentation().findProbesTaggedAs(PhylumTag.STATEMENT)) {
-// if (probe instanceof InstrumentationNode) {
-// InstrumentationNode instrumentation = (InstrumentationNode) probe;
-// while (instrumentation.next != null) {
-// Iterator<Node> iterator = instrumentation.getChildren().iterator();
-// while (iterator.hasNext()) {
-// Node child = iterator.next();
-// System.out.println("CHILD " + child.toString());
-// instrumentation = instrumentation.next;
-// }
-// }
-// }
-// }
     }
+
 }

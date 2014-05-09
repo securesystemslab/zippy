@@ -54,7 +54,7 @@ public abstract class InstrumentationNode extends Node implements ExecutionEvent
     /**
      * Next in chain.
      */
-    @Child public InstrumentationNode next;
+    @Child protected InstrumentationNode next;
 
     // @Child protected InstrumentationNode next;
 
@@ -107,9 +107,9 @@ public abstract class InstrumentationNode extends Node implements ExecutionEvent
 
     private void internalEnter(Node astNode, VirtualFrame frame) {
         enter(astNode, frame);
-        if (next != null) {
-            next.internalEnter(astNode, frame);
-        }
+// if (next != null) {
+// next.internalEnter(astNode, frame);
+// }
     }
 
     private void internalLeave(Node astNode, VirtualFrame frame) {
@@ -177,16 +177,16 @@ public abstract class InstrumentationNode extends Node implements ExecutionEvent
 
     private void internalLeave(Node astNode, VirtualFrame frame, Object result) {
         leave(astNode, frame, result);
-        if (next != null) {
-            next.internalLeave(astNode, frame, result);
-        }
+// if (next != null) {
+// next.internalLeave(astNode, frame, result);
+// }
     }
 
     private void internalLeaveExceptional(Node astNode, VirtualFrame frame, Exception e) {
         leaveExceptional(astNode, frame, null);
-        if (next != null) {
-            next.internalLeaveExceptional(astNode, frame, e);
-        }
+// if (next != null) {
+// next.internalLeaveExceptional(astNode, frame, e);
+// }
     }
 
     /**

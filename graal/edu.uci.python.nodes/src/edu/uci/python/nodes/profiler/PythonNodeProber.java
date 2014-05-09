@@ -35,8 +35,8 @@ public class PythonNodeProber implements ASTNodeProber {
 
         ProfilerInstrument profilerInstrument = new ProfilerInstrument();
         wrapper.getProbe().addInstrument(profilerInstrument);
-        // wrapper.getProbe().addInstrument(new ProfilerInstrument());
         wrapperToInstruments.put(wrapper, profilerInstrument);
         return wrapper;
     }
+
 }

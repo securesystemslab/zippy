@@ -53,7 +53,7 @@ public class DefaultSourceSection implements SourceSection {
      * a character index. The (row,column) coordinates of a newline character should never appear in
      * a text section.
      * <p>
-     * 
+     *
      * @param source object representing the complete source program that contains this section
      * @param identifier an identifier used when printing the section
      * @param startLine the 1-based number of the start line of the section

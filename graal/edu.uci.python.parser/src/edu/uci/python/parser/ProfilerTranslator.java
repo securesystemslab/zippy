@@ -1,7 +1,5 @@
 package edu.uci.python.parser;
 
-import java.util.*;
-
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -40,9 +38,9 @@ public class ProfilerTranslator implements NodeVisitor {
             createWrapperNode((PNode) node);
         } else if (node instanceof SubscriptLoadIndexNode) {
             createWrapperNode((PNode) node);
-        } else if (node instanceof SubscriptStoreIndexNode) {
-            createWrapperNode((PNode) node);
-        }
+        } // else if (node instanceof SubscriptStoreIndexNode) {
+          // createWrapperNode((PNode) node);
+          // }
         return true;
     }
 

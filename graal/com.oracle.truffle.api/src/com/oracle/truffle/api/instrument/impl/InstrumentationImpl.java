@@ -74,8 +74,10 @@ public final class InstrumentationImpl implements Instrumentation {
         Probe probe = srcToProbe.get(sourceSection);
 
         if (probe != null) {
+            System.out.println("PROBE IS NOT NULL line " + sourceSection.hashCode() + " line " + sourceSection.getStartLine() + " column " + sourceSection.getStartColumn());
             return probe;
         }
+
         probe = InstrumentationNode.createProbe(this, sourceSection, eventListener);
 
         // Register new probe by unique SourceSection

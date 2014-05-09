@@ -60,9 +60,11 @@ public class AssignmentTranslator {
             List<expr> targets = decompose(exprTarget);
 
             if (isDecomposable(rhs)) {
-                return makeMultiAssignment(targets, decompose(rhs));
+                PNode multiAssignmentNode = makeMultiAssignment(targets, decompose(rhs));
+                return translator.assignSource(node, multiAssignmentNode);
             } else {
-                return makeUnpackingAssignment(targets, rhs);
+                PNode unpackingAssignmentNode = makeUnpackingAssignment(targets, rhs);
+                return translator.assignSource(node, unpackingAssignmentNode);
             }
         }
 
@@ -73,12 +75,9 @@ public class AssignmentTranslator {
         List<PNode> targets = translator.walkExprList(node.getInternalTargets());
 
         if (targets.size() == 1) {
-            PNode writeNode = makeSingleAssignment(targets.get(0), right);
-            translator.assignSource(node.getInternalTargets().get(0), writeNode);
-            return writeNode;
-            // return makeSingleAssignment(targets.get(0), right);
+            return translator.assignSource(node, makeSingleAssignment(targets.get(0), right));
         } else {
-            return makeChainedAssignment(right, targets);
+            return translator.assignSource(node, makeChainedAssignment(right, targets));
         }
     }
 
@@ -132,16 +131,16 @@ public class AssignmentTranslator {
         return factory.createBlock(writes);
     }
 
-    public List<PNode> walkTarget(expr target, PNode rightHandSide) throws Exception {
+    private List<PNode> walkTarget(expr target, PNode rightHandSide) throws Exception {
         List<PNode> writes = new ArrayList<>();
 
         if (isDecomposable(target)) {
             PNode tempVar = (PNode) environment.makeTempLocalVariable();
-            writes.add(makeSingleAssignment(tempVar, rightHandSide));
+            writes.add(translator.assignSource(target, makeSingleAssignment(tempVar, rightHandSide)));
             List<PNode> intermediateTargets = walkTargetList(decompose(target), factory.duplicate(tempVar, PNode.class));
             writes.addAll(intermediateTargets);
         } else {
-            writes.add(makeSingleAssignment((PNode) translator.visit(target), rightHandSide));
+            writes.add(translator.assignSource(target, makeSingleAssignment((PNode) translator.visit(target), rightHandSide)));
         }
 
         return writes;
@@ -158,13 +157,14 @@ public class AssignmentTranslator {
         for (int i = 0; i < lhs.size(); i++) {
             expr target = lhs.get(i);
             PNode splitRhs = factory.createSubscriptLoadIndex(rightHandSide, factory.createIntegerLiteral(i));
+            translator.assignSource(target, splitRhs);
 
             if (isDecomposable(target)) {
                 PNode tempVar = (PNode) environment.makeTempLocalVariable();
-                writes.add(makeSingleAssignment(tempVar, splitRhs));
+                writes.add(translator.assignSource(target, makeSingleAssignment(tempVar, splitRhs)));
                 additionalWrites.addAll(walkTargetList(decompose(target), factory.duplicate(tempVar, PNode.class)));
             } else {
-                writes.add(makeSingleAssignment((PNode) translator.visit(target), splitRhs));
+                writes.add(translator.assignSource(target, makeSingleAssignment((PNode) translator.visit(target), splitRhs)));
             }
         }
 

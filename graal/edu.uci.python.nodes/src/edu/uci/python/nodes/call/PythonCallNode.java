@@ -332,7 +332,13 @@ public abstract class PythonCallNode extends PNode {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
             Object primary = primaryNode.execute(frame);
-            return rewriteAndExecuteCall(frame, primary, calleeNode.execute(frame));
+
+            if (calleeNode instanceof HasPrimaryNode) {
+                HasPrimaryNode hasPrimary = (HasPrimaryNode) calleeNode;
+                return rewriteAndExecuteCall(frame, primary, hasPrimary.executeWithPrimary(frame, primary));
+            } else {
+                return rewriteAndExecuteCall(frame, primary, calleeNode.execute(frame));
+            }
         }
     }
 
