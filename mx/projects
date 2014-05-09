@@ -78,6 +78,10 @@ com.oracle.graal.hotspot,\
 com.oracle.graal.hotspot.hsail
 distribution@GRAAL@excludeLibs=FINDBUGS
 
+distribution@TRUFFLE@path=truffle.jar
+distribution@TRUFFLE@dependencies=\
+com.oracle.truffle.dsl.processor
+
 # graal.api.collections
 project@com.oracle.graal.api.collections@subDir=graal
 project@com.oracle.graal.api.collections@sourceDirs=src

@@ -1799,20 +1799,6 @@ def sl(args):
     vmArgs, slArgs = _extract_VM_args(args)
     vm(vmArgs + ['-cp', mx.classpath("com.oracle.truffle.sl"), "com.oracle.truffle.sl.SLMain"] + slArgs)
 
-def trufflejar(args=None):
-    """make truffle.jar"""
-
-    # Test with the built classes
-    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@Parameters'])
-
-    # We use the DSL processor as the starting point for the classpath - this
-    # therefore includes the DSL processor, the DSL and the API.
-    packagejar(mx.classpath("com.oracle.truffle.dsl.processor").split(os.pathsep), "truffle.jar", None, "com.oracle.truffle.dsl.processor.TruffleProcessor")
-
-    # Test with the JAR
-    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@Parameters'], "truffle.jar:")
-
-
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
 
@@ -2042,8 +2028,7 @@ def mx_init(suite):
         'vmfg': [vmfg, '[-options] class [args...]'],
         'deoptalot' : [deoptalot, '[n]'],
         'longtests' : [longtests, ''],
-        'sl' : [sl, '[SL args|@VM options]'],
-        'trufflejar' : [trufflejar, '']
+        'sl' : [sl, '[SL args|@VM options]']
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])
