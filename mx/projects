@@ -76,7 +76,18 @@ com.oracle.graal.truffle.hotspot.amd64,\
 com.oracle.graal.hotspot.sparc,\
 com.oracle.graal.hotspot,\
 com.oracle.graal.hotspot.hsail
-distribution@GRAAL@excludeLibs=FINDBUGS
+distribution@GRAAL@exclude=FINDBUGS
+
+distribution@TRUFFLE@path=truffle.jar
+distribution@TRUFFLE@sourcesPath=truffle-sources.jar
+distribution@TRUFFLE@dependencies=\
+com.oracle.truffle.api.dsl
+
+distribution@TRUFFLE-DSL-PROCESSOR@path=truffle-dsl-processor.jar
+distribution@TRUFFLE-DSL-PROCESSOR@sourcesPath=truffle-dsl-processor-sources.jar
+distribution@TRUFFLE-DSL-PROCESSOR@dependencies=\
+com.oracle.truffle.dsl.processor
+distribution@TRUFFLE-DSL-PROCESSOR@exclude=com.oracle.truffle.api.dsl,com.oracle.truffle.api
 
 # graal.api.collections
 project@com.oracle.graal.api.collections@subDir=graal

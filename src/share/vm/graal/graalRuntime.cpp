@@ -25,12 +25,155 @@
 #include "asm/codeBuffer.hpp"
 #include "graal/graalRuntime.hpp"
 #include "graal/graalVMToCompiler.hpp"
+#include "graal/graalCompilerToVM.hpp"
+#include "graal/graalJavaAccess.hpp"
+#include "graal/graalEnv.hpp"
 #include "memory/oopFactory.hpp"
 #include "prims/jvm.h"
 #include "runtime/biasedLocking.hpp"
 #include "runtime/interfaceSupport.hpp"
+#include "runtime/arguments.hpp"
 #include "runtime/reflection.hpp"
 #include "utilities/debug.hpp"
+
+address GraalRuntime::_external_deopt_i2c_entry = NULL;
+volatile int GraalRuntime::_state = uninitialized;
+
+void GraalRuntime::initialize() {
+  {
+    MutexLocker locker(GraalInitialization_lock);
+    if (_state == uninitialized) {
+      _state = initializing;
+    } else {
+      while (_state == initializing) {
+        GraalInitialization_lock->wait();
+      }
+      return;
+    }
+  }
+
+  uintptr_t heap_end = (uintptr_t) Universe::heap()->reserved_region().end();
+  uintptr_t allocation_end = heap_end + ((uintptr_t)16) * 1024 * 1024 * 1024;
+  AMD64_ONLY(guarantee(heap_end < allocation_end, "heap end too close to end of address space (might lead to erroneous TLAB allocations)"));
+  NOT_LP64(error("check TLAB allocation code for address space conflicts"));
+
+  ThreadToNativeFromVM trans(JavaThread::current());
+  JavaThread* THREAD = JavaThread::current();
+  TRACE_graal_1("GraalRuntime::initialize");
+
+  JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
+  jclass klass = env->FindClass("com/oracle/graal/hotspot/bridge/CompilerToVMImpl");
+  if (klass == NULL) {
+    tty->print_cr("graal CompilerToVMImpl class not found");
+    vm_abort(false);
+  }
+  env->RegisterNatives(klass, CompilerToVM_methods, CompilerToVM_methods_count());
+
+  ResourceMark rm;
+  HandleMark hm;
+  {
+    GRAAL_VM_ENTRY_MARK;
+    check_pending_exception("Could not register natives");
+  }
+
+  graal_compute_offsets();
+
+  // Ensure _non_oop_bits is initialized
+  Universe::non_oop_word();
+
+  {
+    GRAAL_VM_ENTRY_MARK;
+    HandleMark hm;
+    VMToCompiler::initOptions();
+    for (int i = 0; i < Arguments::num_graal_args(); ++i) {
+      const char* arg = Arguments::graal_args_array()[i];
+      Handle option = java_lang_String::create_from_str(arg, THREAD);
+      jboolean result = VMToCompiler::setOption(option);
+      if (!result) {
+        tty->print_cr("Invalid option for graal: -G:%s", arg);
+        vm_abort(false);
+      }
+    }
+    VMToCompiler::finalizeOptions(CITime || CITimeEach);
+
+    _external_deopt_i2c_entry = create_external_deopt_i2c();
+
+    VMToCompiler::startRuntime();
+
+    {
+      MutexLocker locker(GraalInitialization_lock);
+      _state = initialized;
+    }
+
+#if !defined(PRODUCT) && !defined(COMPILERGRAAL)
+    // In COMPILERGRAAL, we want to allow GraalBootstrap
+    // to happen first so GraalCompiler::initialize()
+    // duplicates the following code.
+    if (CompileTheWorld) {
+      VMToCompiler::compileTheWorld();
+    }
+#endif
+  }
+}
+
+BufferBlob* GraalRuntime::initialize_buffer_blob() {
+  JavaThread* THREAD = JavaThread::current();
+  BufferBlob* buffer_blob = THREAD->get_buffer_blob();
+  if (buffer_blob == NULL) {
+    buffer_blob = BufferBlob::create("Graal thread-local CodeBuffer", GraalNMethodSizeLimit);
+    if (buffer_blob != NULL) {
+      THREAD->set_buffer_blob(buffer_blob);
+    }
+  }
+  return buffer_blob;
+}
+
+address GraalRuntime::create_external_deopt_i2c() {
+  ResourceMark rm;
+  BufferBlob* buffer = BufferBlob::create("externalDeopt", 1*K);
+  CodeBuffer cb(buffer);
+  short buffer_locs[20];
+  cb.insts()->initialize_shared_locs((relocInfo*)buffer_locs, sizeof(buffer_locs)/sizeof(relocInfo));
+  MacroAssembler masm(&cb);
+
+  int total_args_passed = 5;
+
+  BasicType* sig_bt = NEW_RESOURCE_ARRAY(BasicType, total_args_passed);
+  VMRegPair* regs   = NEW_RESOURCE_ARRAY(VMRegPair, total_args_passed);
+  int i = 0;
+  sig_bt[i++] = T_INT;
+  sig_bt[i++] = T_LONG;
+  sig_bt[i++] = T_VOID; // long stakes 2 slots
+  sig_bt[i++] = T_INT;
+  sig_bt[i++] = T_OBJECT;
+
+  int comp_args_on_stack = SharedRuntime::java_calling_convention(sig_bt, regs, total_args_passed, false);
+
+  SharedRuntime::gen_i2c_adapter(&masm, total_args_passed, comp_args_on_stack, sig_bt, regs);
+  masm.flush();
+
+  return AdapterBlob::create(&cb)->content_begin();
+}
+
+BasicType GraalRuntime::kindToBasicType(jchar ch) {
+  switch(ch) {
+    case 'z': return T_BOOLEAN;
+    case 'b': return T_BYTE;
+    case 's': return T_SHORT;
+    case 'c': return T_CHAR;
+    case 'i': return T_INT;
+    case 'f': return T_FLOAT;
+    case 'j': return T_LONG;
+    case 'd': return T_DOUBLE;
+    case 'a': return T_OBJECT;
+    case 'r': return T_ADDRESS;
+    case '-': return T_ILLEGAL;
+    default:
+      fatal(err_msg("unexpected Kind: %c", ch));
+      break;
+  }
+  return T_ILLEGAL;
+}
 
 // Simple helper to see if the caller of a runtime stub which
 // entered the VM has been deoptimized
@@ -548,10 +691,12 @@ JRT_END
 
 // JVM_InitializeGraalRuntime
 JVM_ENTRY(jobject, JVM_InitializeGraalRuntime(JNIEnv *env, jclass graalclass))
-  return VMToCompiler::graalRuntimePermObject();
+  GraalRuntime::initialize();
+  return VMToCompiler::get_HotSpotGraalRuntime_jobject();
 JVM_END
 
 // JVM_InitializeTruffleRuntime
 JVM_ENTRY(jobject, JVM_InitializeTruffleRuntime(JNIEnv *env, jclass graalclass))
-  return JNIHandles::make_local(VMToCompiler::truffleRuntime()());
+  GraalRuntime::initialize();
+  return JNIHandles::make_local(VMToCompiler::create_HotSpotTruffleRuntime()());
 JVM_END

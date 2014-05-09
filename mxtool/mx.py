@@ -62,7 +62,7 @@ _warn = False
 A distribution is a jar or zip file containing the output from one or more Java projects.
 """
 class Distribution:
-    def __init__(self, suite, name, path, sourcesPath, deps, excludedLibs):
+    def __init__(self, suite, name, path, sourcesPath, deps, excludedDependencies):
         self.suite = suite
         self.name = name
         self.path = path.replace('/', os.sep)
@@ -70,13 +70,13 @@ class Distribution:
         self.sourcesPath = _make_absolute(sourcesPath.replace('/', os.sep), suite.dir) if sourcesPath else None
         self.deps = deps
         self.update_listeners = set()
-        self.excludedLibs = excludedLibs
+        self.excludedDependencies = excludedDependencies
 
     def sorted_deps(self, includeLibs=False):
         try:
-            excl = [library(d) for d in self.excludedLibs]
+            excl = [dependency(d) for d in self.excludedDependencies]
         except SystemExit as e:
-            abort('invalid excluded library for {} distribution: {}'.format(self.name, e))
+            abort('invalid excluded dependency for {} distribution: {}'.format(self.name, e))
         return [d for d in sorted_deps(self.deps, includeLibs=includeLibs) if d not in excl]
 
     def __str__(self):
@@ -748,8 +748,8 @@ class Suite:
             path = attrs.pop('path')
             sourcesPath = attrs.pop('sourcesPath', None)
             deps = pop_list(attrs, 'dependencies')
-            exclLibs = pop_list(attrs, 'excludeLibs')
-            d = Distribution(self, name, path, sourcesPath, deps, exclLibs)
+            exclDeps = pop_list(attrs, 'exclude')
+            d = Distribution(self, name, path, sourcesPath, deps, exclDeps)
             d.__dict__.update(attrs)
             self.dists.append(d)
 
@@ -2719,6 +2719,12 @@ def clean(args, parser=None):
 
     args = parser.parse_args(args)
 
+    def _rmtree(dirPath):
+        path = dirPath
+        if get_os() == 'windows':
+            path = unicode("\\\\?\\" + dirPath)
+        shutil.rmtree(path)
+
     for p in projects_opt_limit_to_suites():
         if p.native:
             if args.native:
@@ -2729,13 +2735,13 @@ def clean(args, parser=None):
                 if genDir != '' and exists(genDir):
                     log('Clearing {0}...'.format(genDir))
                     for f in os.listdir(genDir):
-                        shutil.rmtree(join(genDir, f))
+                        _rmtree(join(genDir, f))
 
 
                 outputDir = p.output_dir()
                 if outputDir != '' and exists(outputDir):
                     log('Removing {0}...'.format(outputDir))
-                    shutil.rmtree(outputDir)
+                    _rmtree(outputDir)
 
             for configName in ['netbeans-config.zip', 'eclipse-config.zip']:
                 config = TimeStampFile(join(p.suite.mxDir, configName))

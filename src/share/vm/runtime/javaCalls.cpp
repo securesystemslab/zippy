@@ -41,7 +41,7 @@
 #include "runtime/stubRoutines.hpp"
 #include "runtime/thread.inline.hpp"
 #include "graal/graalJavaAccess.hpp"
-#include "graal/graalCompiler.hpp"
+#include "graal/graalRuntime.hpp"
 
 // -----------------------------------------------------
 // Implementation of JavaCallWrapper
@@ -413,7 +413,7 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, JavaCallArgument
       ((JavaThread*) THREAD)->set_graal_alternate_call_target(nm->verified_entry_point());
       oop graalInstalledCode = nm->graal_installed_code();
       if (graalInstalledCode != NULL && graalInstalledCode->is_a(HotSpotNmethod::klass()) && HotSpotNmethod::isExternal(graalInstalledCode)) {
-        entry_point = GraalCompiler::instance()->get_external_deopt_i2c_entry();
+        entry_point = GraalRuntime::get_external_deopt_i2c_entry();
       } else {
       entry_point = method->adapter()->get_i2c_entry();
       }

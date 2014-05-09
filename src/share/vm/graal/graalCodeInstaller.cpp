@@ -202,7 +202,7 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
     return new LocationValue(Location::new_stk_loc(Location::invalid, 0));
   }
 
-  BasicType type = GraalCompiler::kindToBasicType(Kind::typeChar(Value::kind(value)));
+  BasicType type = GraalRuntime::kindToBasicType(Kind::typeChar(Value::kind(value)));
   Location::Type locationType = Location::normal;
   if (type == T_OBJECT || type == T_ARRAY) locationType = Location::oop;
 
@@ -382,7 +382,7 @@ void CodeInstaller::initialize_assumptions(oop compiled_code) {
 
 // constructor used to create a method
 GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBlob*& cb, Handle installed_code, Handle speculation_log) {
-  BufferBlob* buffer_blob = GraalCompiler::initialize_buffer_blob();
+  BufferBlob* buffer_blob = GraalRuntime::initialize_buffer_blob();
   if (buffer_blob == NULL) {
     return GraalEnv::cache_full;
   }
