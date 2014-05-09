@@ -33,7 +33,7 @@
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/ostream.hpp"
 #include "graal/graalEnv.hpp"
-#include "graal/graalCompiler.hpp"
+#include "graal/graalRuntime.hpp"
 #include "graal/graalJavaAccess.hpp"
 #include "hsailKernelArguments.hpp"
 #include "hsailJavaCallArguments.hpp"

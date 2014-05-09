@@ -5173,9 +5173,9 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
     *vm = (JavaVM *)(&main_vm);
     *(JNIEnv**)penv = thread->jni_environment();
 
-#ifdef GRAAL
-    if (COMPILERGRAAL_PRESENT(UseGraalCompilationQueue) NOT_COMPILERGRAAL(true)) {
-      // GraalCompiler needs to have been created in compileBroker.cpp
+#ifdef COMPILERGRAAL
+    if (UseGraalCompilationQueue) {
+      // GraalCompiler may have been created in compileBroker.cpp
       GraalCompiler* graal_compiler = GraalCompiler::instance();
       if (ForceGraalInitialization && graal_compiler == NULL) {
         graal_compiler = new GraalCompiler();

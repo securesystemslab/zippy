@@ -88,7 +88,7 @@
 #endif
 
 #ifdef GRAAL
-#include "graal/graalCompiler.hpp"
+#include "graal/graalRuntime.hpp"
 #include "graal/graalJavaAccess.hpp"
 #endif
 
