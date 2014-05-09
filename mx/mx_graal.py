@@ -26,7 +26,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, zipfile, tarfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO, socket
+import os, stat, errno, sys, shutil, zipfile, tarfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO, socket
 from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, REMAINDER
 from outputparser import OutputParser, ValuesMatcher
@@ -150,10 +150,19 @@ def chmodRecursive(dirname, chmodFlags):
 def clean(args):
     """clean the GraalVM source tree"""
     opts = mx.clean(args, parser=ArgumentParser(prog='mx clean'))
+
     if opts.native:
+        def handleRemoveReadonly(func, path, exc):
+            excvalue = exc[1]
+            if mx.get_os() == 'windows' and func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
+                os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO) # 0777
+                func(path)
+            else:
+                raise
+
         def rmIfExists(name):
             if os.path.isdir(name):
-                shutil.rmtree(name)
+                shutil.rmtree(name, ignore_errors=False, onerror=handleRemoveReadonly)
             elif os.path.isfile(name):
                 os.unlink(name)
 
