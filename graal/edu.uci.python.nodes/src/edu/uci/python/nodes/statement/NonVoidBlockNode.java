@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,28 +25,27 @@
 package edu.uci.python.nodes.statement;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 
-public class ElseNode extends StatementNode {
+public class NonVoidBlockNode extends StatementNode {
 
-    @Child protected StatementNode then;
-    @Child protected PNode orelse;
+    @Children protected final PNode[] statements;
 
-    public ElseNode(StatementNode then, PNode orelse) {
-        this.then = then;
-        this.orelse = orelse;
+    public NonVoidBlockNode(PNode[] statments) {
+        this.statements = statments;
+        assert statements.length > 1;
     }
 
+    @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
-        then.execute(frame);
-        return orelse.execute(frame);
+        for (int i = 0; i < (statements.length - 1); i++) {
+            statements[i].executeVoid(frame);
+        }
+
+        return statements[statements.length - 1].execute(frame);
     }
 
-    @Override
-    public void executeVoid(VirtualFrame frame) {
-        then.execute(frame);
-        orelse.execute(frame);
-    }
 }

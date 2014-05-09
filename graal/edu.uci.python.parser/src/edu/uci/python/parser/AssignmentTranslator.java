@@ -99,7 +99,7 @@ public class AssignmentTranslator {
      * Transform a, b = c, d. <br>
      * To: temp_c = c; temp_d = d; a = temp_c; b = temp_d
      */
-    private PNode makeMultiAssignment(List<expr> lhs, List<expr> rhs) throws Exception {
+    private BlockNode makeMultiAssignment(List<expr> lhs, List<expr> rhs) throws Exception {
         if (lhs.size() != rhs.size()) {
             throw new IllegalStateException("Unbalanced multi-assignment");
         }
@@ -120,7 +120,7 @@ public class AssignmentTranslator {
      * Transform a, b = c. <br>
      * To: temp_c = c; a = temp_c[0]; b = temp_d[1]
      */
-    private PNode makeUnpackingAssignment(List<expr> lhs, expr right) throws Exception {
+    private BlockNode makeUnpackingAssignment(List<expr> lhs, expr right) throws Exception {
         List<PNode> writes = new ArrayList<>();
         PNode rhs = (PNode) translator.visit(right);
         PNode tempVar = (PNode) environment.makeTempLocalVariable();

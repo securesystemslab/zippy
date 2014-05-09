@@ -26,14 +26,12 @@ package edu.uci.python.nodes.statement;
 
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
-
 public class TryFinallyNode extends StatementNode {
 
-    @Child protected PNode body;
-    @Child protected PNode finalbody;
+    @Child protected BlockNode body;
+    @Child protected BlockNode finalbody;
 
-    public TryFinallyNode(PNode body, PNode finalbody) {
+    public TryFinallyNode(BlockNode body, BlockNode finalbody) {
         this.body = body;
         this.finalbody = finalbody;
     }

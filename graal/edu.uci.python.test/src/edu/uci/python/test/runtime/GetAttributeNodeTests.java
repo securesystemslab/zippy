@@ -63,7 +63,8 @@ public class GetAttributeNodeTests {
         PNode plist = factory.createListLiteral(values);
         PNode getattr = factory.createGetAttribute(plist, "append");
 
-        RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), getattr);
+        BlockNode body = factory.createSingleStatementBlock(getattr);
+        RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), body);
         Truffle.getRuntime().createCallTarget(root);
 
         // 1st execute
@@ -71,7 +72,7 @@ public class GetAttributeNodeTests {
         root.execute(frame);
 
         // check rewrite of UninitializedGetAttributeNode
-        PNode getAttr = ((FunctionRootNode) root).getBody();
+        PNode getAttr = (PNode) NodeUtil.findNodeChildren(body).get(0);
         assertTrue(getAttr instanceof UnboxedGetMethodNode);
 
         // 2nd execute
@@ -122,7 +123,7 @@ public class GetAttributeNodeTests {
         root.execute(frame);
 
         // check rewrite of UnboxedGetAttributeNode to BoxedGetAttributeNode
-        getAttr = ((FunctionRootNode) root).getBody();
+        getAttr = (PNode) NodeUtil.findNodeChildren(body).get(0);
         assertTrue(getAttr instanceof BoxedGetAttributeNode);
     }
 
@@ -141,7 +142,8 @@ public class GetAttributeNodeTests {
         PNode objNode = factory.createObjectLiteral(pbObj);
         PNode getattr = factory.createGetAttribute(objNode, "foo");
 
-        RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), getattr);
+        BlockNode body = factory.createSingleStatementBlock(getattr);
+        RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), body);
         Truffle.getRuntime().createCallTarget(root);
 
         // 1st execute
@@ -149,7 +151,7 @@ public class GetAttributeNodeTests {
         root.execute(frame);
 
         // check rewrite of UninitializedGetAttributeNode
-        PNode getAttr = ((FunctionRootNode) root).getBody();
+        PNode getAttr = (PNode) NodeUtil.findNodeChildren(body).get(0);
         assertTrue(getAttr instanceof BoxedGetAttributeNode);
 
         // 2nd execute

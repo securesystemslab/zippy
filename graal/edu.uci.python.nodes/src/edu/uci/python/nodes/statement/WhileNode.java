@@ -27,7 +27,6 @@ package edu.uci.python.nodes.statement;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.datatype.*;
@@ -36,7 +35,7 @@ public class WhileNode extends LoopNode {
 
     @Child protected CastToBooleanNode condition;
 
-    public WhileNode(CastToBooleanNode condition, PNode body) {
+    public WhileNode(CastToBooleanNode condition, StatementNode body) {
         super(body);
         this.condition = condition;
     }

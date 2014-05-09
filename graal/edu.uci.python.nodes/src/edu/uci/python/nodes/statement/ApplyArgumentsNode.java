@@ -28,7 +28,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
 /**
@@ -54,10 +53,4 @@ public class ApplyArgumentsNode extends BlockNode {
         }
     }
 
-    @ExplodeLoop
-    @Override
-    public Object execute(VirtualFrame frame) {
-        executeVoid(frame);
-        return PNone.NONE;
-    }
 }

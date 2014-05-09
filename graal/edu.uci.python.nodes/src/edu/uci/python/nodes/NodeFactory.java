@@ -75,7 +75,7 @@ public class NodeFactory {
     }
 
     public RootNode createModule(List<PNode> body, FrameDescriptor fd) {
-        PNode block = createBlock(body);
+        BlockNode block = createBlock(body);
         return new ModuleNode(block, fd);
     }
 
@@ -87,20 +87,21 @@ public class NodeFactory {
         return new ClassDefinitionNode(name, superclass, definitnionFunction);
     }
 
-    public PNode createSingleStatementBlock(PNode stmt) {
+    public BlockNode createSingleStatementBlock(PNode stmt) {
         return new BlockNode(new PNode[]{stmt});
     }
 
-    public PNode createBlock(List<PNode> statements) {
-        if (statements.size() == 0) {
-            return EmptyNode.INSTANCE;
-        }
+    public BlockNode createBlock(List<PNode> statements) {
         PNode[] array = statements.toArray(new PNode[statements.size()]);
         return new BlockNode(array);
     }
 
     public BlockNode createBlock(PNode[] statements) {
         return new BlockNode(statements);
+    }
+
+    public PNode createNonVoidBlockNode(PNode[] statements) {
+        return new NonVoidBlockNode(statements);
     }
 
     public PNode createImport(PythonContext context, String importee) {
@@ -115,7 +116,7 @@ public class NodeFactory {
         return new ImportStarNode(context, relativeto, fromModuleName);
     }
 
-    public LoopNode createWhile(CastToBooleanNode condition, PNode body) {
+    public LoopNode createWhile(CastToBooleanNode condition, StatementNode body) {
         return new WhileNode(condition, body);
     }
 
@@ -131,7 +132,7 @@ public class NodeFactory {
         return ForNodeFactory.create(target, body, iterator);
     }
 
-    public StatementNode createElse(StatementNode then, PNode orelse) {
+    public StatementNode createElse(StatementNode then, BlockNode orelse) {
         return new ElseNode(then, orelse);
     }
 
@@ -151,7 +152,7 @@ public class NodeFactory {
         return new ContinueNode();
     }
 
-    public StatementNode createContinueTarget(PNode child) {
+    public StatementNode createContinueTarget(BlockNode child) {
         return new ContinueTargetNode(child);
     }
 
@@ -416,7 +417,7 @@ public class NodeFactory {
         return new IfExpressionNode(condition, then, orelse);
     }
 
-    public StatementNode createTryFinallyNode(PNode body, PNode finalbody) {
+    public StatementNode createTryFinallyNode(BlockNode body, BlockNode finalbody) {
         return new TryFinallyNode(body, finalbody);
     }
 
@@ -424,7 +425,7 @@ public class NodeFactory {
         return new AssertNode(condition, message);
     }
 
-    public StatementNode createWithNode(PythonContext context, PNode withContext, PNode[] asName, PNode body) {
+    public StatementNode createWithNode(PythonContext context, PNode withContext, BlockNode asName, BlockNode body) {
         return WithNode.create(context, withContext, asName, body);
     }
 
