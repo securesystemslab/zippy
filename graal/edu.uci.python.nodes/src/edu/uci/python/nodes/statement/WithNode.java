@@ -36,26 +36,26 @@ import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 
 /**
- * @author Qunaibit
- *
+ * @author myq
+ * 
  */
 
 public class WithNode extends StatementNode {
 
     @Child protected PNode withContext;
-    @Child protected BlockNode asName;
-    @Child protected BlockNode body;
+    @Child protected PNode[] asName;
+    @Child protected PNode body;
 
     @SuppressWarnings("unused") private final PythonContext context;
 
-    protected WithNode(PythonContext context, PNode withContext, BlockNode asName, BlockNode body) {
+    protected WithNode(PythonContext context, PNode withContext, PNode[] asName, PNode body) {
         this.context = context;
         this.withContext = withContext;
         this.asName = asName;
         this.body = body;
     }
 
-    public static WithNode create(PythonContext context, PNode withContext, BlockNode asName, BlockNode body) {
+    public static WithNode create(PythonContext context, PNode withContext, PNode[] asName, PNode body) {
         return new WithNode(context, withContext, asName, body);
     }
 
@@ -69,7 +69,7 @@ public class WithNode extends StatementNode {
         Object asNameValue = enterCall.call(frame.pack(), new Object[]{pythonObj});
 
         if (asName != null) {
-            PNode[] asNames = insert(asName.getStatements());
+            PNode[] asNames = insert(asName);
             if (asNames.length == 1) {
                 ((WriteNode) asNames[0]).executeWrite(frame, asNameValue);
             } else {

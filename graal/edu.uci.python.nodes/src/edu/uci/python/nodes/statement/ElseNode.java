@@ -30,10 +30,10 @@ import edu.uci.python.nodes.*;
 
 public class ElseNode extends StatementNode {
 
-    @Child protected StatementNode then;
+    @Child protected PNode then;
     @Child protected PNode orelse;
 
-    public ElseNode(StatementNode then, PNode orelse) {
+    public ElseNode(PNode then, PNode orelse) {
         this.then = then;
         this.orelse = orelse;
     }

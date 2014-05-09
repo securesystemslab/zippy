@@ -39,6 +39,7 @@ public class BlockNode extends StatementNode {
     @Children protected final PNode[] statements;
 
     public BlockNode(PNode[] statements) {
+        assert statements.length > 0;
         this.statements = statements;
     }
 
@@ -53,11 +54,11 @@ public class BlockNode extends StatementNode {
     @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
-        for (int i = 0; i < statements.length; i++) {
+        int i = 0;
+        while (i < statements.length - 1) {
             statements[i].executeVoid(frame);
+            i++;
         }
-
-        return PNone.NONE;
+        return statements[statements.length - 1].execute(frame);
     }
-
 }

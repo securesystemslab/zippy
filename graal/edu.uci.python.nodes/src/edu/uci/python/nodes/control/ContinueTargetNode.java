@@ -27,17 +27,18 @@ package edu.uci.python.nodes.control;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.utilities.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 
 public class ContinueTargetNode extends StatementNode {
 
-    @Child protected BlockNode child;
+    @Child protected PNode child;
 
     private final BranchProfile continueProfile = new BranchProfile();
 
-    public ContinueTargetNode(BlockNode child) {
+    public ContinueTargetNode(PNode child) {
         this.child = child;
     }
 
