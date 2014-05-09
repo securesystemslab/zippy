@@ -1527,7 +1527,7 @@ def makejmhdeps(args):
                     if not mx.library(name, fatalIfMissing=False):
                         mx.log('Skipping ' + groupId + '.' + artifactId + '.jar as ' + name + ' cannot be resolved')
                         return
-        d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=deps, excludedLibs=[])
+        d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=deps, excludedDependencies=[])
         d.make_archive()
         cmd = ['mvn', 'install:install-file', '-DgroupId=' + groupId, '-DartifactId=' + artifactId,
                '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar', '-Dfile=' + d.path]
