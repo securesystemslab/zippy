@@ -959,15 +959,18 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
         (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
         os.close(_)
     corecp = mx.classpath(['com.oracle.graal.test'])
+
+    if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
+        subprocess.check_call([mx.java().javac, '-cp', corecp, '-d', mxdir, javaSource])
+
     coreArgs = []
     if verbose:
         coreArgs.append('-JUnitVerbose')
     if enable_timing:
         coreArgs.append('-JUnitEnableTiming')
 
+
     def harness(projectscp, vmArgs):
-        if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
-            subprocess.check_call([mx.java().javac, '-cp', projectscp, '-d', mxdir, javaSource])
         if _get_vm() != 'graal':
             prefixArgs = ['-esa', '-ea']
         else:
