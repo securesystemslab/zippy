@@ -182,13 +182,13 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Defaults
          */
-        StatementNode defaults;
+        PNode defaults;
         if (environment.hasDefaultArguments()) {
             List<PNode> defaultParameters = environment.getDefaultArgumentNodes();
             ReadDefaultArgumentNode[] defaultReads = environment.getDefaultArgumentReads();
             defaults = new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
         } else {
-            defaults = BlockNode.getEmptyBlock();
+            defaults = EmptyNode.INSTANCE;
         }
 
         /**
@@ -240,13 +240,13 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Defaults
          */
-        StatementNode defaults;
+        PNode defaults;
         if (environment.hasDefaultArguments()) {
             List<PNode> defaultParameters = environment.getDefaultArgumentNodes();
             ReadDefaultArgumentNode[] defaultReads = environment.getDefaultArgumentReads();
             defaults = new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
         } else {
-            defaults = BlockNode.getEmptyBlock();
+            defaults = EmptyNode.INSTANCE;
         }
 
         /**
@@ -478,7 +478,7 @@ public class PythonTreeTranslator extends Visitor {
         BlockNode body = factory.createBlock(visitStatements(node.getInternalBody()));
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, environment.getCurrentFrame(), body);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
-        FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, context, new Arity(name, 0, 0, new ArrayList<String>()), BlockNode.getEmptyBlock(), ct, environment.getCurrentFrame(),
+        FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, context, new Arity(name, 0, 0, new ArrayList<String>()), EmptyNode.INSTANCE, ct, environment.getCurrentFrame(),
                         environment.needsDeclarationFrame());
         environment.endScope(node);
 
