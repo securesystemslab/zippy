@@ -124,7 +124,7 @@ public class GeneratorTranslator {
         if (returnTarget.getBody() instanceof BlockNode) {
             BlockNode body = (BlockNode) returnTarget.getBody();
             assert body.getStatements().length == 2;
-            BlockNode argumentLoads = (BlockNode) body.getStatements()[0];
+            PNode argumentLoads = body.getStatements()[0];
             body = (BlockNode) body.getStatements()[1];
             returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body, returnTarget.getReturn()));
         } else {

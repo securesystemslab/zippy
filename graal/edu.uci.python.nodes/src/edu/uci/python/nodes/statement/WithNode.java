@@ -30,33 +30,30 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 
 /**
  * @author Qunaibit
+ * @author zwei
  *
  */
-
 public class WithNode extends StatementNode {
 
     @Child protected PNode withContext;
-    @Child protected BlockNode asName;
-    @Child protected BlockNode body;
+    @Child protected PNode asName;
+    @Child protected PNode body;
 
-    @SuppressWarnings("unused") private final PythonContext context;
-
-    protected WithNode(PythonContext context, PNode withContext, BlockNode asName, BlockNode body) {
-        this.context = context;
+    protected WithNode(PNode withContext, PNode asName, PNode body) {
         this.withContext = withContext;
         this.asName = asName;
         this.body = body;
+        assert withContext != null && asName != null && body != null;
     }
 
-    public static WithNode create(PythonContext context, PNode withContext, BlockNode asName, BlockNode body) {
-        return new WithNode(context, withContext, asName, body);
+    public static WithNode create(PNode withContext, PNode asName, PNode body) {
+        return new WithNode(withContext, asName, body);
     }
 
     @Override
@@ -68,8 +65,11 @@ public class WithNode extends StatementNode {
         PythonCallable enterCall = (PythonCallable) pythonObj.getAttribute("__enter__");
         Object asNameValue = enterCall.call(frame.pack(), new Object[]{pythonObj});
 
-        if (asName != null) {
-            PNode[] asNames = insert(asName.getStatements());
+        /**
+         * zwei: This is bad design.
+         */
+        if (asName != EmptyNode.INSTANCE) {
+            PNode[] asNames = insert(((BlockNode) asName).getStatements());
             if (asNames.length == 1) {
                 ((WriteNode) asNames[0]).executeWrite(frame, asNameValue);
             } else {
@@ -121,4 +121,5 @@ public class WithNode extends StatementNode {
         }
         return null;
     }
+
 }

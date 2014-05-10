@@ -36,6 +36,7 @@ public class BlockNode extends StatementNode {
 
     public BlockNode(PNode[] statements) {
         this.statements = statements;
+        // assert statements.length > 0;
     }
 
     public final PNode[] getStatements() {

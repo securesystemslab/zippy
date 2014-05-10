@@ -75,7 +75,7 @@ public class NodeFactory {
     }
 
     public RootNode createModule(List<PNode> body, FrameDescriptor fd) {
-        BlockNode block = createBlock(body);
+        PNode block = createBlock(body);
         return new ModuleNode(block, fd);
     }
 
@@ -91,13 +91,13 @@ public class NodeFactory {
         return new BlockNode(new PNode[]{stmt});
     }
 
-    public BlockNode createBlock(List<PNode> statements) {
+    public PNode createBlock(List<PNode> statements) {
         PNode[] array = statements.toArray(new PNode[statements.size()]);
-        return new BlockNode(array);
+        return createBlock(array);
     }
 
-    public BlockNode createBlock(PNode[] statements) {
-        return new BlockNode(statements);
+    public PNode createBlock(PNode[] statements) {
+        return statements.length > 0 ? new BlockNode(statements) : EmptyNode.INSTANCE;
     }
 
     public PNode createNonVoidBlockNode(PNode[] statements) {
@@ -116,7 +116,7 @@ public class NodeFactory {
         return new ImportStarNode(context, relativeto, fromModuleName);
     }
 
-    public LoopNode createWhile(CastToBooleanNode condition, StatementNode body) {
+    public LoopNode createWhile(CastToBooleanNode condition, PNode body) {
         return new WhileNode(condition, body);
     }
 
@@ -132,7 +132,7 @@ public class NodeFactory {
         return ForNodeFactory.create(target, body, iterator);
     }
 
-    public StatementNode createElse(StatementNode then, BlockNode orelse) {
+    public StatementNode createElse(StatementNode then, PNode orelse) {
         return new ElseNode(then, orelse);
     }
 
@@ -152,7 +152,7 @@ public class NodeFactory {
         return new ContinueNode();
     }
 
-    public StatementNode createContinueTarget(BlockNode child) {
+    public StatementNode createContinueTarget(PNode child) {
         return new ContinueTargetNode(child);
     }
 
@@ -417,7 +417,7 @@ public class NodeFactory {
         return new IfExpressionNode(condition, then, orelse);
     }
 
-    public StatementNode createTryFinallyNode(BlockNode body, BlockNode finalbody) {
+    public StatementNode createTryFinallyNode(PNode body, PNode finalbody) {
         return new TryFinallyNode(body, finalbody);
     }
 
@@ -425,8 +425,8 @@ public class NodeFactory {
         return new AssertNode(condition, message);
     }
 
-    public StatementNode createWithNode(PythonContext context, PNode withContext, BlockNode asName, BlockNode body) {
-        return WithNode.create(context, withContext, asName, body);
+    public StatementNode createWithNode(PNode withContext, PNode asName, PNode body) {
+        return WithNode.create(withContext, asName, body);
     }
 
     public PNode createRuntimeValueNode() {
