@@ -44,7 +44,7 @@ public class BlockNode extends StatementNode {
     }
 
     public boolean isEmpty() {
-        return statements.length == 0 || (statements.length == 1 && statements[0].equals(EmptyNode.INSTANCE));
+        return statements.length == 0;
     }
 
     @ExplodeLoop
