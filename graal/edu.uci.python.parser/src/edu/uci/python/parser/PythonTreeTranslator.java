@@ -182,14 +182,7 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Defaults
          */
-        PNode defaults;
-        if (environment.hasDefaultArguments()) {
-            List<PNode> defaultParameters = environment.getDefaultArgumentNodes();
-            ReadDefaultArgumentNode[] defaultReads = environment.getDefaultArgumentReads();
-            defaults = new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
-        } else {
-            defaults = EmptyNode.INSTANCE;
-        }
+        PNode defaults = createDefaultArgumentsNode();
 
         /**
          * Function root
@@ -237,17 +230,11 @@ public class PythonTreeTranslator extends Visitor {
         expr body = node.getInternalBody();
         PNode bodyNode = (PNode) visit(body);
         bodyNode = new ElseNode(argumentLoads, bodyNode);
+
         /**
          * Defaults
          */
-        PNode defaults;
-        if (environment.hasDefaultArguments()) {
-            List<PNode> defaultParameters = environment.getDefaultArgumentNodes();
-            ReadDefaultArgumentNode[] defaultReads = environment.getDefaultArgumentReads();
-            defaults = new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
-        } else {
-            defaults = EmptyNode.INSTANCE;
-        }
+        PNode defaults = createDefaultArgumentsNode();
 
         /**
          * Lambda function root
@@ -271,6 +258,16 @@ public class PythonTreeTranslator extends Visitor {
 
         environment.endScope(node);
         return funcDef;
+    }
+
+    private PNode createDefaultArgumentsNode() {
+        if (environment.hasDefaultArguments()) {
+            List<PNode> defaultParameters = environment.getDefaultArgumentNodes();
+            ReadDefaultArgumentNode[] defaultReads = environment.getDefaultArgumentReads();
+            return new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
+        } else {
+            return EmptyNode.INSTANCE;
+        }
     }
 
     private GeneratorExpressionNode createGeneratorExpressionDefinition(StatementNode body, int lineNum) {
