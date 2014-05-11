@@ -425,8 +425,8 @@ public class NodeFactory {
         return new AssertNode(condition, message);
     }
 
-    public StatementNode createWithNode(PNode withContext, PNode asName, PNode body) {
-        return WithNode.create(withContext, asName, body);
+    public StatementNode createWithNode(PNode withContext, PNode[] targetNodes, PNode body) {
+        return WithNode.create(withContext, targetNodes, body);
     }
 
     public PNode createRuntimeValueNode() {

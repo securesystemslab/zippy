@@ -42,7 +42,6 @@ import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.object.DispatchBoxedNode.*;
 import edu.uci.python.nodes.object.DispatchUnboxedNode.*;
 import edu.uci.python.nodes.object.GetAttributeNode.*;
-import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;

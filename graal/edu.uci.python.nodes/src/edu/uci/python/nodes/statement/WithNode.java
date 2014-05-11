@@ -42,49 +42,53 @@ import edu.uci.python.runtime.sequence.*;
 public class WithNode extends StatementNode {
 
     @Child protected PNode withContext;
-    @Child protected PNode asName;
     @Child protected PNode body;
+    @Children private final PNode[] targetNodes;
 
-    protected WithNode(PNode withContext, PNode asName, PNode body) {
+    protected WithNode(PNode withContext, PNode[] targetNodes, PNode body) {
         this.withContext = withContext;
-        this.asName = asName;
+        this.targetNodes = targetNodes;
         this.body = body;
-        assert withContext != null && asName != null && body != null;
+        assert withContext != null && body != null;
     }
 
-    public static WithNode create(PNode withContext, PNode asName, PNode body) {
-        return new WithNode(withContext, asName, body);
+    public static WithNode create(PNode withContext, PNode[] targetNodes, PNode body) {
+        return new WithNode(withContext, targetNodes, body);
+    }
+
+    /**
+     * zwei: This is bad design. Should make to looks more like {@link ApplyArgumentsNode}.
+     */
+    private void applyValues(VirtualFrame frame, Object asNameValue) {
+        if (targetNodes.length == 0) {
+            return;
+        }
+
+        if (targetNodes.length == 1) {
+            ((WriteNode) targetNodes[0]).executeWrite(frame, asNameValue);
+            return;
+        }
+
+        Object[] asNameValues = ((PTuple) asNameValue).getArray();
+        for (int i = 0; i < targetNodes.length; i++) {
+            WriteNode targetNode = (WriteNode) targetNodes[i];
+            targetNode.executeWrite(frame, asNameValues[i]);
+        }
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-
         RuntimeException exception = null;
-
         PythonObject pythonObj = (PythonObject) this.withContext.execute(frame);
         PythonCallable enterCall = (PythonCallable) pythonObj.getAttribute("__enter__");
         Object asNameValue = enterCall.call(frame.pack(), new Object[]{pythonObj});
+        applyValues(frame, asNameValue);
 
-        /**
-         * zwei: This is bad design.
-         */
-        if (asName != EmptyNode.INSTANCE) {
-            PNode[] asNames = insert(((BlockNode) asName).getStatements());
-            if (asNames.length == 1) {
-                ((WriteNode) asNames[0]).executeWrite(frame, asNameValue);
-            } else {
-                Object[] asNameValues = ((PTuple) asNameValue).getArray();
-                for (int i = 0; i < asNames.length; i++) {
-                    ((WriteNode) asNames[i]).executeWrite(frame, asNameValues[i]);
-                }
-            }
-        }
         try {
             body.execute(frame);
         } catch (RuntimeException e) {
             exception = e;
         } finally {
-
             PythonCallable exitCall = (PythonCallable) pythonObj.getAttribute("__exit__");
 
             if (exception instanceof ArithmeticException && exception.getMessage().endsWith("divide by zero")) {

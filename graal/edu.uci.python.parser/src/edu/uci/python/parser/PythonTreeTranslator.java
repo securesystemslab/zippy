@@ -992,10 +992,13 @@ public class PythonTreeTranslator extends Visitor {
         }
     }
 
+    /**
+     * TODO: This needs clean up.
+     */
     @Override
     public Object visitWith(With node) throws Exception {
         PNode withContext = (PNode) visit(node.getInternalContext_expr());
-        PNode asName = EmptyNode.INSTANCE;
+        PNode body = factory.createBlock(visitStatements(node.getInternalBody()));
 
         if (node.getInternalOptional_vars() != null) {
             if (node.getInternalOptional_vars() instanceof Tuple) {
@@ -1004,15 +1007,16 @@ public class PythonTreeTranslator extends Visitor {
                 for (PNode read : readNames) {
                     asNames.add(((ReadNode) read).makeWriteNode(null));
                 }
-                asName = factory.createBlock(asNames);
+
+                return factory.createWithNode(withContext, asNames.toArray(new PNode[asNames.size()]), body);
             } else {
                 PNode asNameNode = (PNode) visit(node.getInternalOptional_vars());
-                asName = factory.createSingleStatementBlock(((ReadNode) asNameNode).makeWriteNode(null));
+                PNode asName = ((ReadNode) asNameNode).makeWriteNode(null);
+                return factory.createWithNode(withContext, new PNode[]{asName}, body);
             }
         }
-        PNode body = factory.createBlock(visitStatements(node.getInternalBody()));
-        StatementNode retVal = factory.createWithNode(withContext, asName, body);
-        return retVal;
+
+        return factory.createWithNode(withContext, new PNode[]{}, body);
     }
 
     @Override
