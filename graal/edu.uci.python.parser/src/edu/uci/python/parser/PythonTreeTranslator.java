@@ -728,7 +728,7 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitGeneratorExp(GeneratorExp node) throws Exception {
         environment.beginScope(node, ScopeInfo.ScopeKind.Generator);
         PNode body = factory.createYield((PNode) visit(node.getInternalElt()), environment.getReturnSlot());
-        body = visitComprehensions(node.getInternalGenerators(), factory.createSingleStatementBlock(body));
+        body = visitComprehensions(node.getInternalGenerators(), factory.createBlock(new PNode[]{body}));
         body = new ReturnTargetNode(body, factory.createReadLocal(environment.getReturnSlot()));
         int lineNum = node.getLine() - 1;
         GeneratorExpressionNode genExprDef = createGeneratorExpressionDefinition((StatementNode) body, lineNum);

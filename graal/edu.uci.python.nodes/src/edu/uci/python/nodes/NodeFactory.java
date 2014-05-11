@@ -87,10 +87,6 @@ public class NodeFactory {
         return new ClassDefinitionNode(name, superclass, definitnionFunction);
     }
 
-    public BlockNode createSingleStatementBlock(PNode stmt) {
-        return new BlockNode(new PNode[]{stmt});
-    }
-
     public PNode createBlock(List<PNode> statements) {
         PNode[] array = statements.toArray(new PNode[statements.size()]);
         return createBlock(array);
