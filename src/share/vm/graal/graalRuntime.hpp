@@ -33,8 +33,10 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
 
   static address   _external_deopt_i2c_entry;
 
-  enum { uninitialized, initializing, initialized };
-  static volatile int _state;
+  enum State { uninitialized, initializing, initialized };
+  static volatile State _state;
+  static Thread* _initializingThread;
+  static bool should_perform_init();
 
  public:
 

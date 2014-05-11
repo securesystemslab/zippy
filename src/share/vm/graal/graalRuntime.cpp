@@ -37,19 +37,32 @@
 #include "utilities/debug.hpp"
 
 address GraalRuntime::_external_deopt_i2c_entry = NULL;
-volatile int GraalRuntime::_state = uninitialized;
+volatile GraalRuntime::State GraalRuntime::_state = uninitialized;
+Thread* GraalRuntime::_initializingThread = NULL;
 
-void GraalRuntime::initialize() {
-  {
+bool GraalRuntime::should_perform_init() {
+  JavaThread* THREAD = JavaThread::current();
+  if (_state != initialized) {
+    if (THREAD == _initializingThread) {
+      return false;
+    }
     MutexLocker locker(GraalInitialization_lock);
     if (_state == uninitialized) {
       _state = initializing;
+      _initializingThread = THREAD;
+      return true;
     } else {
       while (_state == initializing) {
         GraalInitialization_lock->wait();
       }
-      return;
     }
+  }
+  return false;
+}
+
+void GraalRuntime::initialize() {
+  if (!should_perform_init()) {
+    return;
   }
 
   uintptr_t heap_end = (uintptr_t) Universe::heap()->reserved_region().end();
@@ -57,8 +70,8 @@ void GraalRuntime::initialize() {
   AMD64_ONLY(guarantee(heap_end < allocation_end, "heap end too close to end of address space (might lead to erroneous TLAB allocations)"));
   NOT_LP64(error("check TLAB allocation code for address space conflicts"));
 
-  ThreadToNativeFromVM trans(JavaThread::current());
   JavaThread* THREAD = JavaThread::current();
+  ThreadToNativeFromVM trans(THREAD);
   TRACE_graal_1("GraalRuntime::initialize");
 
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
@@ -103,6 +116,7 @@ void GraalRuntime::initialize() {
     {
       MutexLocker locker(GraalInitialization_lock);
       _state = initialized;
+      _initializingThread = NULL;
     }
 
 #if !defined(PRODUCT) && !defined(COMPILERGRAAL)
