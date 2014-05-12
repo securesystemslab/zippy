@@ -28,6 +28,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
 /**
@@ -41,7 +42,7 @@ public final class ApplyArgumentsNode extends BlockNode {
 
     @ExplodeLoop
     @Override
-    public void executeVoid(VirtualFrame frame) {
+    public Object execute(VirtualFrame frame) {
         final int argumentsLength = frame.getArguments(PArguments.class).getArgumentsLength();
 
         for (int i = 0; i < getStatements().length; i++) {
@@ -51,6 +52,8 @@ public final class ApplyArgumentsNode extends BlockNode {
 
             getStatements()[i].executeVoid(frame);
         }
+
+        return PNone.NONE;
     }
 
 }

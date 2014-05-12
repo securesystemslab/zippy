@@ -29,7 +29,6 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.generator.*;
-import edu.uci.python.runtime.datatype.*;
 
 public class BlockNode extends StatementNode {
 
@@ -63,11 +62,13 @@ public class BlockNode extends StatementNode {
     @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
-        for (int i = 0; i < statements.length; i++) {
+        assert statements.length > 1;
+
+        for (int i = 0; i < statements.length - 1; i++) {
             statements[i].executeVoid(frame);
         }
 
-        return PNone.NONE;
+        return statements[statements.length - 1].execute(frame);
     }
 
 }
