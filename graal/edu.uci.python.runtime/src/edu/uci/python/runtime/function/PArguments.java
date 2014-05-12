@@ -108,13 +108,14 @@ public class PArguments extends Arguments {
     public static final class GeneratorArguments extends PArguments {
 
         private final MaterializedFrame generatorFrame;
-        private boolean firstEntry = true;                   // See {@link GeneratorReturnTargetNode}
+        private final boolean[] activeFlags;                 // See {@link GeneratorReturnTargetNode}
         private final int[] generatorBlockNodeIndices;       // See {@link GeneratorBlockNode}
         private final PIterator[] generatorForNodeIterators; // See {@link GeneratorForNode}
 
-        public GeneratorArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+        public GeneratorArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments, int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
             super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
             this.generatorFrame = generatorFrame;
+            this.activeFlags = new boolean[numOfActiveFlags];
             this.generatorBlockNodeIndices = new int[numOfGeneratorBlockNode];
             this.generatorForNodeIterators = new PIterator[numOfGeneratorForNode];
         }
@@ -123,12 +124,12 @@ public class PArguments extends Arguments {
             return CompilerDirectives.unsafeFrameCast(generatorFrame);
         }
 
-        public boolean isFirstEntry() {
-            return firstEntry;
+        public boolean getActive(int slot) {
+            return activeFlags[slot];
         }
 
-        public void setFirstEntry(boolean value) {
-            firstEntry = value;
+        public void setActive(int slot, boolean flag) {
+            activeFlags[slot] = flag;
         }
 
         public int getBlockIndexAt(int slot) {

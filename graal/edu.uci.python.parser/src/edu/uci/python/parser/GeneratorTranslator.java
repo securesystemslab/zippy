@@ -43,6 +43,7 @@ public class GeneratorTranslator {
 
     private final FunctionRootNode root;
     private final PythonContext context;
+    private int numOfActiveFlags;
     private int numOfGeneratorBlockNode;
     private int numOfGeneratorForNode;
 
@@ -125,9 +126,9 @@ public class GeneratorTranslator {
             BlockNode body = (BlockNode) returnTarget.getBody();
             assert body.getStatements().length == 2;
             PNode argumentLoads = body.getStatements()[0];
-            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body.getStatements()[1], returnTarget.getReturn()));
+            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body.getStatements()[1], returnTarget.getReturn(), nextActiveFlagSlot()));
         } else {
-            returnTarget.replace(new GeneratorReturnTargetNode(EmptyNode.INSTANCE, returnTarget.getBody(), returnTarget.getReturn()));
+            returnTarget.replace(new GeneratorReturnTargetNode(EmptyNode.INSTANCE, returnTarget.getBody(), returnTarget.getReturn(), nextActiveFlagSlot()));
         }
     }
 
@@ -165,6 +166,14 @@ public class GeneratorTranslator {
         } else {
             TranslationUtil.notCovered();
         }
+    }
+
+    private int nextActiveFlagSlot() {
+        return numOfActiveFlags++;
+    }
+
+    public int getNumOfActiveFlags() {
+        return numOfActiveFlags;
     }
 
     private int nextGeneratorBlockIndexSlot() {

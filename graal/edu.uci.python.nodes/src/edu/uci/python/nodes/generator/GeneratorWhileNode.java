@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -34,28 +34,25 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 
 /**
- * It only catches BreakException without rethrowing it. <br>Therefore, we have to remove the parent
- * BreakTargetNode if there is one.
+ * It only catches BreakException without rethrowing it. <br>
+ * Therefore, we have to remove the parent BreakTargetNode if there is one.
  */
 public class GeneratorWhileNode extends WhileNode {
 
     private int count;
-    @SuppressWarnings("unused") private final int flagSlot;
+    private final int flagSlot;
 
     public GeneratorWhileNode(CastToBooleanNode condition, StatementNode body, int flagSlot) {
         super(condition, body);
         this.flagSlot = flagSlot;
     }
 
-    /**
-     * Dummish for now.
-     */
-    private static boolean isActive(VirtualFrame frame) {
-        return PArguments.getGeneratorArguments(frame).isFirstEntry();
+    private boolean isActive(VirtualFrame frame) {
+        return PArguments.getGeneratorArguments(frame).getActive(flagSlot);
     }
 
-    private static void setActive(VirtualFrame frame, boolean active) {
-        PArguments.getGeneratorArguments(frame).setFirstEntry(active);
+    private void setActive(VirtualFrame frame, boolean flag) {
+        PArguments.getGeneratorArguments(frame).setActive(flagSlot, flag);
     }
 
     @Override
@@ -82,4 +79,5 @@ public class GeneratorWhileNode extends WhileNode {
         assert !isActive(frame);
         return PNone.NONE;
     }
+
 }

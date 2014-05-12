@@ -199,7 +199,7 @@ public class PythonTreeTranslator extends Visitor {
         if (environment.isInGeneratorScope()) {
             GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
             funcDef = new GeneratorFunctionDefinitionNode(name, context, arity, defaults, gtran.translate(), fd, gtran.createParallelGeneratorCallTarget(), environment.needsDeclarationFrame(),
-                            gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
+                            gtran.getNumOfActiveFlags(), gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
         } else {
             funcDef = new FunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
@@ -251,7 +251,7 @@ public class PythonTreeTranslator extends Visitor {
         if (environment.isInGeneratorScope()) {
             GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
             funcDef = new GeneratorFunctionDefinitionNode(name, context, arity, defaults, gtran.translate(), fd, gtran.createParallelGeneratorCallTarget(), environment.needsDeclarationFrame(),
-                            gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
+                            gtran.getNumOfActiveFlags(), gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
         } else {
             funcDef = new FunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
@@ -276,7 +276,7 @@ public class PythonTreeTranslator extends Visitor {
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, generatorName, fd, body);
         result.addParsedFunction(generatorName, funcRoot);
         GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
-        return new GeneratorExpressionNode(generatorName, context, gtran.translate(), gtran.createParallelGeneratorCallTarget(), fd, environment.needsDeclarationFrame(),
+        return new GeneratorExpressionNode(generatorName, context, gtran.translate(), gtran.createParallelGeneratorCallTarget(), fd, environment.needsDeclarationFrame(), gtran.getNumOfActiveFlags(),
                         gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
     }
 
