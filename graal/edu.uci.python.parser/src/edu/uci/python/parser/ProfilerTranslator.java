@@ -38,9 +38,9 @@ public class ProfilerTranslator implements NodeVisitor {
             createWrapperNode((PNode) node);
         } else if (node instanceof SubscriptLoadIndexNode) {
             createWrapperNode((PNode) node);
-        } // else if (node instanceof SubscriptStoreIndexNode) {
-          // createWrapperNode((PNode) node);
-          // }
+        } else if (node instanceof SubscriptStoreIndexNode) {
+            createWrapperNode((PNode) node);
+        }
         return true;
     }
 

@@ -49,7 +49,7 @@ public abstract class PythonCallNode extends PNode {
     @Children protected final PNode[] argumentNodes;
     @Children protected final PNode[] keywordNodes;
 
-    protected final String calleeName;
+    protected String calleeName;
     protected final boolean passPrimaryAsTheFirstArgument;
     protected final PythonContext context;
 
@@ -64,19 +64,7 @@ public abstract class PythonCallNode extends PNode {
     }
 
     public static PythonCallNode create(PythonContext context, PNode calleeNode, PNode[] argumentNodes, PNode[] keywords) {
-        PNode primaryNode;
-        String calleeName;
-
-        if (calleeNode instanceof HasPrimaryNode) {
-            HasPrimaryNode hasPrimary = (HasPrimaryNode) calleeNode;
-            primaryNode = NodeUtil.cloneNode(hasPrimary.extractPrimary());
-            calleeName = ((HasPrimaryNode) calleeNode).getAttributeId();
-        } else {
-            primaryNode = EmptyNode.INSTANCE;
-            calleeName = "~unknown";
-        }
-
-        return new UninitializedCallNode(context, primaryNode, calleeName, calleeNode, argumentNodes, keywords);
+        return new UninitializedCallNode(context, null, null, calleeNode, argumentNodes, keywords);
     }
 
     protected Object rewriteAndExecuteCall(VirtualFrame frame, Object primary, Object callee) {
@@ -330,6 +318,21 @@ public abstract class PythonCallNode extends PNode {
         @Override
         public Object execute(VirtualFrame frame) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
+
+            /**
+             * primaryNode is assigned during the execution of UninitializedNode. For profiling,
+             * another translation step happens. If primaryNode is extracted before execution, it
+             * causes problem for creating wrapper nodes for subscriptIndexNode.
+             */
+            if (calleeNode instanceof HasPrimaryNode) {
+                HasPrimaryNode hasPrimary = (HasPrimaryNode) calleeNode;
+                // primaryNode = NodeUtil.cloneNode(hasPrimary.extractPrimary());
+                primaryNode = hasPrimary.extractPrimary();
+                calleeName = ((HasPrimaryNode) calleeNode).getAttributeId();
+            } else {
+                primaryNode = EmptyNode.INSTANCE;
+                calleeName = "~unknown";
+            }
 
             Object primary = primaryNode.execute(frame);
 

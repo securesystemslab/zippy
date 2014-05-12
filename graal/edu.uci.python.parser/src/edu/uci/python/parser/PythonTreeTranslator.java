@@ -101,6 +101,7 @@ public class PythonTreeTranslator extends Visitor {
         int startColumn = node.getCharPositionInLine() + 1;
         int charIndex = node.getTokenStartIndex();
         int charLength = node.getText().length();
+
         SourceSection sourceSection = new DefaultSourceSection(source, identifier, startLine, startColumn, charIndex, charLength);
         truffleNode.assignSourceSection(sourceSection);
         return truffleNode;
@@ -702,10 +703,16 @@ public class PythonTreeTranslator extends Visitor {
         slice slice = node.getInternalSlice();
         PNode sliceNode = (PNode) visit(slice);
 
+        /**
+         * Used assignSource with slice instead of the Subscript node because of multidimensional
+         * lists x = [[10, [20], 30]]; y = x[0][2] SubscriptLoadIndex (primary = SubscriptLoadIndex
+         * (primary = SubscriptLoadIndex, index = 0), index = 2). Using Subscript node the line and
+         * column will be the same, so the sourceSections are going to be equal.
+         */
         if (!(node.getInternalSlice() instanceof Slice)) {
-            return assignSource(node, factory.createSubscriptLoadIndex(primaryNode, sliceNode));
+            return assignSource(slice, factory.createSubscriptLoadIndex(primaryNode, sliceNode));
         } else {
-            return assignSource(node, factory.createSubscriptLoad(primaryNode, sliceNode));
+            return assignSource(slice, factory.createSubscriptLoad(primaryNode, sliceNode));
         }
     }
 
