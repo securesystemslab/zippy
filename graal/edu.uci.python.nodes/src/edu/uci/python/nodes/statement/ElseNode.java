@@ -28,7 +28,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 
-public class ElseNode extends StatementNode {
+public final class ElseNode extends StatementNode {
 
     @Child protected PNode then;
     @Child protected PNode orelse;
@@ -42,12 +42,6 @@ public class ElseNode extends StatementNode {
     public Object execute(VirtualFrame frame) {
         then.execute(frame);
         return orelse.execute(frame);
-    }
-
-    @Override
-    public void executeVoid(VirtualFrame frame) {
-        then.execute(frame);
-        orelse.execute(frame);
     }
 
 }
