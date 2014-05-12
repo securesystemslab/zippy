@@ -48,8 +48,6 @@ void GraalCompiler::initialize() {
     return;
   }
 
-  GraalRuntime::initialize();
-
   BufferBlob* buffer_blob = GraalRuntime::initialize_buffer_blob();
   if (!UseGraalCompilationQueue) {
     // This path is used for initialization both by the native queue and the graal queue
@@ -68,7 +66,11 @@ void GraalCompiler::initialize() {
     bool bootstrap = UseGraalCompilationQueue && (FLAG_IS_DEFAULT(BootstrapGraal) ? !TieredCompilation : BootstrapGraal);
     VMToCompiler::startCompiler(bootstrap);
     _started = true;
+
+    // Graal is considered as application code so we need to
+    // stop the VM deferring compilation now.
     CompilationPolicy::completed_vm_startup();
+
     if (bootstrap) {
       // Avoid -Xcomp and -Xbatch problems by turning on interpreter and background compilation for bootstrapping.
       FlagSetting a(UseInterpreter, true);
