@@ -55,10 +55,6 @@ public class BlockNode extends StatementNode {
         return statements;
     }
 
-    public boolean isEmpty() {
-        return statements.length == 0;
-    }
-
     @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
