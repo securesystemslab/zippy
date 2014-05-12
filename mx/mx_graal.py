@@ -80,8 +80,7 @@ _vm_prefix = None
 
 _make_eclipse_launch = False
 
-# @CallerSensitive introduced in 7u25
-_minVersion = mx.VersionSpec('1.7.0_25')
+_minVersion = mx.VersionSpec('1.8')
 
 JDK_UNIX_PERMISSIONS = 0755
 
