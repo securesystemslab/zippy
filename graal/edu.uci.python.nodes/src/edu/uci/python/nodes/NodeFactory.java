@@ -421,8 +421,4 @@ public class NodeFactory {
         return WithNode.create(withContext, targetNodes, body);
     }
 
-    public PNode createRuntimeValueNode() {
-        return new RuntimeValueNode(null);
-    }
-
 }

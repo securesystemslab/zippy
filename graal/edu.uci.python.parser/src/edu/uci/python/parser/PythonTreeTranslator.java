@@ -704,7 +704,7 @@ public class PythonTreeTranslator extends Visitor {
                 current = factory.createIf(factory.toBooleanCastNode((PNode) visit(conditions.get(0))), current, EmptyNode.INSTANCE);
             }
 
-            PNode target = ((ReadNode) visit(comp.getInternalTarget())).makeWriteNode(factory.createRuntimeValueNode());
+            PNode target = ((ReadNode) visit(comp.getInternalTarget())).makeWriteNode(EmptyNode.INSTANCE);
             PNode iterator = (PNode) visit(comp.getInternalIter());
             current = createForInScope(target, iterator, current);
         }
@@ -814,8 +814,7 @@ public class PythonTreeTranslator extends Visitor {
         List<expr> lhs = new ArrayList<>();
         lhs.add(node.getInternalTarget());
 
-        PNode runtimeValue = factory.createRuntimeValueNode();
-        List<PNode> targets = assigns.walkTargetList(lhs, runtimeValue);
+        List<PNode> targets = assigns.walkTargetList(lhs, EmptyNode.INSTANCE);
         PNode iteratorWrite = targets.remove(0);
 
         PNode iter = (PNode) visit(node.getInternalIter());
