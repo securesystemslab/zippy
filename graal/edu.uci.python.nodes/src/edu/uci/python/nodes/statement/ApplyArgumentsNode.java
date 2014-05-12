@@ -49,7 +49,7 @@ public final class ApplyArgumentsNode extends BlockNode {
                 break;
             }
 
-            getStatements()[i].executeVoid(frame);
+            statements[i].executeVoid(frame);
         }
     }
 
