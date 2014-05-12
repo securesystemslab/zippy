@@ -48,16 +48,14 @@ public abstract class ForNode extends LoopNode {
         this(previous.target, previous.body);
     }
 
-    @Specialization(order = 0)
+    @Specialization
     public Object doPIterator(VirtualFrame frame, PRangeIterator iterator) {
-        final RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
         final int start = iterator.getStart();
         final int stop = iterator.getStop();
         final int step = iterator.getStep();
 
         for (int i = start; i < stop; i += step) {
-            rvn.setValue(i);
-            target.execute(frame);
+            ((WriteNode) target).executeWrite(frame, i);
             body.executeVoid(frame);
         }
 
@@ -66,11 +64,9 @@ public abstract class ForNode extends LoopNode {
 
     @Specialization
     public Object doPIterator(VirtualFrame frame, PIterator iterator) {
-        WriteNode targetWrite = (WriteNode) target;
-
         try {
             while (true) {
-                targetWrite.executeWrite(frame, iterator.__next__());
+                ((WriteNode) target).executeWrite(frame, iterator.__next__());
                 body.executeVoid(frame);
             }
         } catch (StopIterationException e) {
