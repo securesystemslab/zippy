@@ -389,11 +389,6 @@ public class NodeFactory {
     }
 
     public CastToBooleanNode toBooleanCastNode(PNode node) {
-        // TODO: should fix the thing that this fixes
-        if (node == null) {
-            return null;
-        }
-
         if (node instanceof CastToBooleanNode) {
             return (CastToBooleanNode) node;
         } else {
