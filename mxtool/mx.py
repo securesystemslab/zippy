@@ -62,7 +62,7 @@ _warn = False
 A distribution is a jar or zip file containing the output from one or more Java projects.
 """
 class Distribution:
-    def __init__(self, suite, name, path, sourcesPath, deps, excludedDependencies):
+    def __init__(self, suite, name, path, sourcesPath, deps, excludedDependencies, distDependency):
         self.suite = suite
         self.name = name
         self.path = path.replace('/', os.sep)
@@ -71,6 +71,7 @@ class Distribution:
         self.deps = deps
         self.update_listeners = set()
         self.excludedDependencies = excludedDependencies
+        self.distDependency = distDependency
 
     def sorted_deps(self, includeLibs=False):
         try:
@@ -124,6 +125,11 @@ class Distribution:
                                 srcArc.zf.writestr(arcname, lp.read(arcname))
                 else:
                     p = dep
+
+                    if self.distDependency and p in _dists[self.distDependency].sorted_deps():
+                        logv("Excluding {0} from {1} because it's provided by the dependency {2}".format(p.name, self.path, self.distDependency))
+                        continue
+
                     # skip a  Java project if its Java compliance level is "higher" than the configured JDK
                     jdk = java(p.javaCompliance)
                     if not jdk:
@@ -749,7 +755,8 @@ class Suite:
             sourcesPath = attrs.pop('sourcesPath', None)
             deps = pop_list(attrs, 'dependencies')
             exclDeps = pop_list(attrs, 'exclude')
-            d = Distribution(self, name, path, sourcesPath, deps, exclDeps)
+            distDep = attrs.pop('distDependency', None)
+            d = Distribution(self, name, path, sourcesPath, deps, exclDeps, distDep)
             d.__dict__.update(attrs)
             self.dists.append(d)
 
