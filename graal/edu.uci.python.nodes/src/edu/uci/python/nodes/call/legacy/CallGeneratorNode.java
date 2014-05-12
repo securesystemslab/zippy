@@ -116,7 +116,7 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
         for (YieldNode yield : NodeUtil.findAllNodeInstances(inlinedNode.getGeneratorRoot(), YieldNode.class)) {
             PNode frameTransfer = FrameTransferNodeFactory.create(yieldToSlotInCallerFrame, yield.getRhs());
             PNode frameSwapper = new FrameSwappingNode(NodeUtil.cloneNode(body));
-            PNode block = BlockNode.create(new PNode[]{frameTransfer, frameSwapper});
+            PNode block = BlockNode.create(frameTransfer, frameSwapper);
             yield.replace(block);
         }
 

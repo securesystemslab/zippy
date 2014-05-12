@@ -39,7 +39,7 @@ public class BlockNode extends StatementNode {
         assert statements.length > 0;
     }
 
-    public static PNode create(PNode[] statements) {
+    public static PNode create(PNode... statements) {
         final int length = statements.length;
 
         if (length == 0) {

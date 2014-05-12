@@ -218,7 +218,7 @@ public class GeneratorExpressionOptimizer {
         // Uninitialized body.
         ReturnTargetNode unitializedbody = (ReturnTargetNode) root.getUninitializedBody();
         PNode innerBody = unitializedbody.getBody();
-        innerBody.replace(BlockNode.create(new PNode[]{assembleParameterWrites(slots, true), (PNode) innerBody.copy()}));
+        innerBody.replace(BlockNode.create(assembleParameterWrites(slots, true), (PNode) innerBody.copy()));
     }
 
     private static PNode assembleParameterWrites(List<FrameSlot> argumentSlots, boolean writeToLocalFrame) {

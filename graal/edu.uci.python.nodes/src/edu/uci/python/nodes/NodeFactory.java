@@ -92,12 +92,8 @@ public class NodeFactory {
         return createBlock(array);
     }
 
-    public PNode createBlock(PNode[] statements) {
+    public PNode createBlock(PNode... statements) {
         return BlockNode.create(statements);
-    }
-
-    public PNode createNonVoidBlockNode(PNode[] statements) {
-        return new NonVoidBlockNode(statements);
     }
 
     public PNode createImport(PythonContext context, String importee) {

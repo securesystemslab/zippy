@@ -176,7 +176,7 @@ public class PythonTreeTranslator extends Visitor {
          */
         List<PNode> statements = visitStatements(node.getInternalBody());
         PNode body = factory.createBlock(statements);
-        body = factory.createBlock(new PNode[]{argumentLoads, body});
+        body = factory.createBlock(argumentLoads, body);
         body = new ReturnTargetNode(body, factory.createReadLocal(environment.getReturnSlot()));
 
         /**
@@ -616,7 +616,7 @@ public class PythonTreeTranslator extends Visitor {
                     assignment = tempVar.makeWriteNode(rights.get(i));
                     rightOp = (PNode) tempVar;
                     newComparison = factory.createComparisonOperation(ops.get(i), leftOp, rightOp);
-                    newComparison = factory.createNonVoidBlockNode(new PNode[]{assignment, newComparison});
+                    newComparison = factory.createBlock(assignment, newComparison);
                 } else {
                     // Atomic comparison
                     newComparison = factory.createComparisonOperation(ops.get(i), leftOp, rightOp);
@@ -728,7 +728,7 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitGeneratorExp(GeneratorExp node) throws Exception {
         environment.beginScope(node, ScopeInfo.ScopeKind.Generator);
         PNode body = factory.createYield((PNode) visit(node.getInternalElt()), environment.getReturnSlot());
-        body = visitComprehensions(node.getInternalGenerators(), factory.createBlock(new PNode[]{body}));
+        body = visitComprehensions(node.getInternalGenerators(), factory.createBlock(body));
         body = new ReturnTargetNode(body, factory.createReadLocal(environment.getReturnSlot()));
         int lineNum = node.getLine() - 1;
         GeneratorExpressionNode genExprDef = createGeneratorExpressionDefinition((StatementNode) body, lineNum);
