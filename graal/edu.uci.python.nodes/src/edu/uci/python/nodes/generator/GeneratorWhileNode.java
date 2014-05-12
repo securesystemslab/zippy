@@ -27,6 +27,7 @@ package edu.uci.python.nodes.generator;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
@@ -42,7 +43,7 @@ public class GeneratorWhileNode extends WhileNode {
     private int count;
     private final int flagSlot;
 
-    public GeneratorWhileNode(CastToBooleanNode condition, StatementNode body, int flagSlot) {
+    public GeneratorWhileNode(CastToBooleanNode condition, PNode body, int flagSlot) {
         super(condition, body);
         this.flagSlot = flagSlot;
     }

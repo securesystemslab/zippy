@@ -30,6 +30,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.object.*;
 
 /*-
@@ -188,6 +189,19 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
                 throw new UnexpectedResultException(specialize(value).executeWithValue(frame, primary, value));
             }
         }
+
+        @Override
+        public Object executeWrite(VirtualFrame frame, Object value) {
+            PythonObject primary = executePrimary(frame);
+            try {
+                int ivalue = PythonTypesGen.PYTHONTYPES.expectInteger(value);
+                dispatch.setIntValue(frame, primary, ivalue);
+                return ivalue;
+            } catch (UnexpectedResultException e) {
+                Object result = e.getResult();
+                return specialize(value).executeWithValue(frame, primary, result);
+            }
+        }
     }
 
     public static final class SetDoubleAttributeNode extends SetAttributeNode {
@@ -221,6 +235,19 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
                 throw new UnexpectedResultException(specialize(value).executeWithValue(frame, primary, value));
             }
         }
+
+        @Override
+        public Object executeWrite(VirtualFrame frame, Object value) {
+            PythonObject primary = executePrimary(frame);
+            try {
+                double dvalue = PythonTypesGen.PYTHONTYPES.expectDouble(value);
+                dispatch.setDoubleValue(frame, primary, dvalue);
+                return dvalue;
+            } catch (UnexpectedResultException e) {
+                Object result = e.getResult();
+                return specialize(value).executeWithValue(frame, primary, result);
+            }
+        }
     }
 
     public static final class SetBooleanAttributeNode extends SetAttributeNode {
@@ -252,6 +279,19 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
             } catch (UnexpectedResultException e) {
                 Object value = e.getResult();
                 throw new UnexpectedResultException(specialize(value).executeWithValue(frame, primary, value));
+            }
+        }
+
+        @Override
+        public Object executeWrite(VirtualFrame frame, Object value) {
+            PythonObject primary = executePrimary(frame);
+            try {
+                boolean bvalue = PythonTypesGen.PYTHONTYPES.expectBoolean(value);
+                dispatch.setBooleanValue(frame, primary, bvalue);
+                return bvalue;
+            } catch (UnexpectedResultException e) {
+                Object result = e.getResult();
+                return specialize(value).executeWithValue(frame, primary, result);
             }
         }
     }

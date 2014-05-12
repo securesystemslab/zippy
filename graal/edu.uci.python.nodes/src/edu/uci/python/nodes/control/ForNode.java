@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -41,6 +41,7 @@ public abstract class ForNode extends LoopNode {
     public ForNode(PNode target, PNode body) {
         super(body);
         this.target = target;
+        assert target instanceof WriteNode;
     }
 
     protected ForNode(ForNode previous) {
@@ -65,12 +66,11 @@ public abstract class ForNode extends LoopNode {
 
     @Specialization
     public Object doPIterator(VirtualFrame frame, PIterator iterator) {
-        final RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
+        WriteNode targetWrite = (WriteNode) target;
 
         try {
             while (true) {
-                rvn.setValue(iterator.__next__());
-                target.execute(frame);
+                targetWrite.executeWrite(frame, iterator.__next__());
                 body.executeVoid(frame);
             }
         } catch (StopIterationException e) {
