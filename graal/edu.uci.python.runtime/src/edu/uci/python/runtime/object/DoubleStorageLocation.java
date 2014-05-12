@@ -32,13 +32,10 @@ import edu.uci.python.runtime.datatype.*;
 /**
  * A storage location for floats.
  */
-public final class FloatStorageLocation extends FieldStorageLocation {
+public final class DoubleStorageLocation extends FieldStorageLocation {
 
-    private final long offset;
-
-    public FloatStorageLocation(ObjectLayout objectLayout, int index) {
-        super(objectLayout, index);
-        offset = ObjectLayoutUtil.getExactPrimitiveDoubleOffsetOf(index);
+    public DoubleStorageLocation(ObjectLayout objectLayout, int index, long offset) {
+        super(objectLayout, index, offset);
     }
 
     @Override
@@ -59,13 +56,13 @@ public final class FloatStorageLocation extends FieldStorageLocation {
     }
 
     @Override
-    public void write(PythonObject object, Object value) throws GeneralizeStorageLocationException {
+    public void write(PythonObject object, Object value) throws StorageLocationGeneralizeException {
         if (value instanceof Double) {
             writeDouble(object, (double) value);
         } else if (value instanceof PNone) {
             markAsUnset(object);
         } else {
-            throw new GeneralizeStorageLocationException();
+            throw new StorageLocationGeneralizeException();
         }
     }
 

@@ -40,8 +40,8 @@ public abstract class AttributeReadNode extends Node {
             return new ReadBooleanAttributeNode((BooleanStorageLocation) location);
         } else if (location instanceof IntStorageLocation) {
             return new ReadIntAttributeNode((IntStorageLocation) location);
-        } else if (location instanceof FloatStorageLocation) {
-            return new ReadDoubleAttributeNode((FloatStorageLocation) location);
+        } else if (location instanceof DoubleStorageLocation) {
+            return new ReadDoubleAttributeNode((DoubleStorageLocation) location);
         } else if (location instanceof FieldObjectStorageLocation) {
             return new ReadFieldObjectAttributeNode((FieldObjectStorageLocation) location);
         }
@@ -112,9 +112,9 @@ public abstract class AttributeReadNode extends Node {
 
     public static final class ReadDoubleAttributeNode extends AttributeReadNode {
 
-        private final FloatStorageLocation floatLocation;
+        private final DoubleStorageLocation floatLocation;
 
-        public ReadDoubleAttributeNode(FloatStorageLocation floatLocation) {
+        public ReadDoubleAttributeNode(DoubleStorageLocation floatLocation) {
             this.floatLocation = floatLocation;
         }
 

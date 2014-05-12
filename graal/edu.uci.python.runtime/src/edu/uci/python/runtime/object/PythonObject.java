@@ -153,7 +153,7 @@ public abstract class PythonObject {
         // Try to write to that storage location
         try {
             storageLocation.write(this, value);
-        } catch (GeneralizeStorageLocationException e) {
+        } catch (StorageLocationGeneralizeException e) {
             /*
              * It might not be able to store the type that we passed, if not generalize the class's
              * layout and update the layout of this object.
@@ -164,7 +164,7 @@ public abstract class PythonObject {
             // Try to write to the generalized storage location
             try {
                 storageLocation.write(this, value);
-            } catch (GeneralizeStorageLocationException e1) {
+            } catch (StorageLocationGeneralizeException e1) {
                 // We know that we just generalized it, so this should not happen
                 throw new RuntimeException("Generalised an instance variable, but it still rejected the value");
             }
@@ -249,7 +249,7 @@ public abstract class PythonObject {
 
             try {
                 storageLocation.write(this, entry.getValue());
-            } catch (GeneralizeStorageLocationException e) {
+            } catch (StorageLocationGeneralizeException e) {
                 throw new RuntimeException("Should not have to be generalising when setting instance variables - " + entry.getValue().getClass().getName() + ", " +
                                 storageLocation.getStoredClass().getName());
             }

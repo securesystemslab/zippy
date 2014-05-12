@@ -121,7 +121,7 @@ public abstract class SetDispatchNode extends Node {
                 } else {
                     next.setValue(frame, primary, value);
                 }
-            } catch (InvalidAssumptionException | GeneralizeStorageLocationException e) {
+            } catch (InvalidAssumptionException | StorageLocationGeneralizeException e) {
                 rewrite(next).setValue(frame, primary, value);
             }
         }
@@ -134,7 +134,7 @@ public abstract class SetDispatchNode extends Node {
                 } else {
                     next.setIntValue(frame, primary, value);
                 }
-            } catch (InvalidAssumptionException | GeneralizeStorageLocationException e) {
+            } catch (InvalidAssumptionException | StorageLocationGeneralizeException e) {
                 rewrite(next).setValue(frame, primary, value);
             }
         }
@@ -147,7 +147,7 @@ public abstract class SetDispatchNode extends Node {
                 } else {
                     next.setDoubleValue(frame, primary, value);
                 }
-            } catch (InvalidAssumptionException | GeneralizeStorageLocationException e) {
+            } catch (InvalidAssumptionException | StorageLocationGeneralizeException e) {
                 rewrite(next).setValue(frame, primary, value);
             }
         }
@@ -160,7 +160,7 @@ public abstract class SetDispatchNode extends Node {
                 } else {
                     next.setBooleanValue(frame, primary, value);
                 }
-            } catch (InvalidAssumptionException | GeneralizeStorageLocationException e) {
+            } catch (InvalidAssumptionException | StorageLocationGeneralizeException e) {
                 rewrite(next).setValue(frame, primary, value);
             }
         }

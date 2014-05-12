@@ -143,10 +143,11 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
         }
 
         @Override
-        public void executeVoid(VirtualFrame frame) {
+        public Object execute(VirtualFrame frame) {
             PythonObject primary = executePrimary(frame);
             Object value = rhs.execute(frame);
             dispatch.setValue(frame, primary, value);
+            return value;
         }
 
         @Override
@@ -163,14 +164,15 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
         }
 
         @Override
-        public void executeVoid(VirtualFrame frame) {
+        public Object execute(VirtualFrame frame) {
             PythonObject primary = executePrimary(frame);
             try {
                 int value = rhs.executeInt(frame);
                 dispatch.setIntValue(frame, primary, value);
+                return value;
             } catch (UnexpectedResultException e) {
                 Object value = e.getResult();
-                specialize(value).executeWithValue(frame, primary, value);
+                return specialize(value).executeWithValue(frame, primary, value);
             }
         }
 
@@ -195,14 +197,15 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
         }
 
         @Override
-        public void executeVoid(VirtualFrame frame) {
+        public Object execute(VirtualFrame frame) {
             PythonObject primary = executePrimary(frame);
             try {
                 double value = rhs.executeDouble(frame);
                 dispatch.setDoubleValue(frame, primary, value);
+                return value;
             } catch (UnexpectedResultException e) {
                 Object value = e.getResult();
-                specialize(value).executeWithValue(frame, primary, value);
+                return specialize(value).executeWithValue(frame, primary, value);
             }
         }
 
@@ -227,14 +230,15 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
         }
 
         @Override
-        public void executeVoid(VirtualFrame frame) {
+        public Object execute(VirtualFrame frame) {
             PythonObject primary = executePrimary(frame);
             try {
                 boolean value = rhs.executeBoolean(frame);
                 dispatch.setBooleanValue(frame, primary, value);
+                return value;
             } catch (UnexpectedResultException e) {
                 Object value = e.getResult();
-                specialize(value).executeWithValue(frame, primary, value);
+                return specialize(value).executeWithValue(frame, primary, value);
             }
         }
 

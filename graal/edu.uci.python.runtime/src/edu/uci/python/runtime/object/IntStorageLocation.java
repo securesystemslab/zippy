@@ -34,11 +34,8 @@ import edu.uci.python.runtime.datatype.*;
  */
 public final class IntStorageLocation extends FieldStorageLocation {
 
-    private final long offset;
-
-    public IntStorageLocation(ObjectLayout objectLayout, int index) {
-        super(objectLayout, index);
-        offset = ObjectLayoutUtil.getExactPrimitiveIntOffsetOf(index);
+    public IntStorageLocation(ObjectLayout objectLayout, int index, long offset) {
+        super(objectLayout, index, offset);
     }
 
     @Override
@@ -59,13 +56,13 @@ public final class IntStorageLocation extends FieldStorageLocation {
     }
 
     @Override
-    public void write(PythonObject object, Object value) throws GeneralizeStorageLocationException {
+    public void write(PythonObject object, Object value) throws StorageLocationGeneralizeException {
         if (value instanceof Integer) {
             writeInt(object, (int) value);
         } else if (value instanceof PNone) {
             markAsUnset(object);
         } else {
-            throw new GeneralizeStorageLocationException();
+            throw new StorageLocationGeneralizeException();
         }
     }
 

@@ -42,7 +42,6 @@ import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.object.DispatchBoxedNode.*;
 import edu.uci.python.nodes.object.DispatchUnboxedNode.*;
 import edu.uci.python.nodes.object.GetAttributeNode.*;
-import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -63,8 +62,7 @@ public class GetAttributeNodeTests {
         PNode plist = factory.createListLiteral(values);
         PNode getattr = factory.createGetAttribute(plist, "append");
 
-        BlockNode body = factory.createSingleStatementBlock(getattr);
-        RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), body);
+        FunctionRootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), getattr);
         Truffle.getRuntime().createCallTarget(root);
 
         // 1st execute
@@ -72,7 +70,7 @@ public class GetAttributeNodeTests {
         root.execute(frame);
 
         // check rewrite of UninitializedGetAttributeNode
-        PNode getAttr = (PNode) NodeUtil.findNodeChildren(body).get(0);
+        PNode getAttr = root.getBody();
         assertTrue(getAttr instanceof UnboxedGetMethodNode);
 
         // 2nd execute
@@ -123,7 +121,7 @@ public class GetAttributeNodeTests {
         root.execute(frame);
 
         // check rewrite of UnboxedGetAttributeNode to BoxedGetAttributeNode
-        getAttr = (PNode) NodeUtil.findNodeChildren(body).get(0);
+        getAttr = root.getBody();
         assertTrue(getAttr instanceof BoxedGetAttributeNode);
     }
 
@@ -142,8 +140,7 @@ public class GetAttributeNodeTests {
         PNode objNode = factory.createObjectLiteral(pbObj);
         PNode getattr = factory.createGetAttribute(objNode, "foo");
 
-        BlockNode body = factory.createSingleStatementBlock(getattr);
-        RootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), body);
+        FunctionRootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), getattr);
         Truffle.getRuntime().createCallTarget(root);
 
         // 1st execute
@@ -151,7 +148,7 @@ public class GetAttributeNodeTests {
         root.execute(frame);
 
         // check rewrite of UninitializedGetAttributeNode
-        PNode getAttr = (PNode) NodeUtil.findNodeChildren(body).get(0);
+        PNode getAttr = root.getBody();
         assertTrue(getAttr instanceof BoxedGetAttributeNode);
 
         // 2nd execute

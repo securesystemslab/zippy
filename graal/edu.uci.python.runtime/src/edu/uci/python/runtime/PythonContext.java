@@ -25,6 +25,7 @@
 package edu.uci.python.runtime;
 
 import java.io.*;
+import java.lang.invoke.*;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -156,6 +157,15 @@ public class PythonContext extends AbstractExecutionContext {
 
     public static PythonObject newPythonObjectInstance(PythonClass clazz) {
         return new FixedPythonObjectStorage(clazz);
+    }
+
+    public static MethodHandle getDefaultPythonObjectConstructor() {
+        try {
+            MethodType mt = MethodType.methodType(PythonObject.class, PythonClass.class);
+            return MethodHandles.lookup().findStatic(PythonContext.class, "newPythonObjectInstance", mt);
+        } catch (NoSuchMethodException | IllegalAccessException e) {
+            throw new RuntimeException();
+        }
     }
 
     public void setCurrentException(RuntimeException e) {

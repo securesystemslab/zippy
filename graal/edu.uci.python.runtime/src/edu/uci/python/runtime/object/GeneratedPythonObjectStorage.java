@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,13 +24,27 @@
  */
 package edu.uci.python.runtime.object;
 
-import com.oracle.truffle.api.nodes.*;
+import java.lang.invoke.*;
 
 /**
- * Indicates that a storage location cannot store the type of value that you asked it to.
+ * @author zwei
  */
-public class GeneralizeStorageLocationException extends SlowPathException {
+public final class GeneratedPythonObjectStorage {
 
-    private static final long serialVersionUID = 3607506078153063652L;
+    private final Class storageClass;
+    private final MethodHandle ctor;
+
+    public GeneratedPythonObjectStorage(Class storageClass, MethodHandle ctor) {
+        this.storageClass = storageClass;
+        this.ctor = ctor;
+    }
+
+    public Class getStorageClass() {
+        return storageClass;
+    }
+
+    public MethodHandle getConstructor() {
+        return ctor;
+    }
 
 }

@@ -33,7 +33,7 @@ public class PythonNodeProber implements ASTNodeProber {
         } else {
             wrapper = new PythonWrapperNode(context, node);
             wrapper.getProbe().tagAs(PhylumTag.STATEMENT);
-            wrapper.clearSourceSection();
+            // wrapper.clearSourceSection();
             wrapper.assignSourceSection(node.getSourceSection());
         }
 

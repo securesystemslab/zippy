@@ -34,7 +34,6 @@ import org.python.antlr.base.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
-import edu.uci.python.nodes.statement.*;
 
 public class AssignmentTranslator {
 
@@ -101,7 +100,7 @@ public class AssignmentTranslator {
      * Transform a, b = c, d. <br>
      * To: temp_c = c; temp_d = d; a = temp_c; b = temp_d
      */
-    private BlockNode makeMultiAssignment(List<expr> lhs, List<expr> rhs) throws Exception {
+    private PNode makeMultiAssignment(List<expr> lhs, List<expr> rhs) throws Exception {
         if (lhs.size() != rhs.size()) {
             throw new IllegalStateException("Unbalanced multi-assignment");
         }
@@ -122,7 +121,7 @@ public class AssignmentTranslator {
      * Transform a, b = c. <br>
      * To: temp_c = c; a = temp_c[0]; b = temp_d[1]
      */
-    private BlockNode makeUnpackingAssignment(List<expr> lhs, expr right) throws Exception {
+    private PNode makeUnpackingAssignment(List<expr> lhs, expr right) throws Exception {
         List<PNode> writes = new ArrayList<>();
         PNode rhs = (PNode) translator.visit(right);
         PNode tempVar = (PNode) environment.makeTempLocalVariable();

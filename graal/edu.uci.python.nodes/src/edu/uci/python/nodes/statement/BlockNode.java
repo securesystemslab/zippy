@@ -28,18 +28,27 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.nodes.generator.*;
 
 public class BlockNode extends StatementNode {
 
-    public static BlockNode getEmptyBlock() {
-        return new BlockNode(new PNode[]{EmptyNode.INSTANCE});
-    }
-
     @Children protected final PNode[] statements;
 
-    public BlockNode(PNode[] statements) {
+    protected BlockNode(PNode[] statements) {
         this.statements = statements;
+        assert statements.length > 0;
+    }
+
+    public static PNode create(PNode[] statements) {
+        final int length = statements.length;
+
+        if (length == 0) {
+            return EmptyNode.INSTANCE;
+        } else if (length == 1) {
+            return statements[0] instanceof YieldNode ? new BlockNode(statements) : statements[0];
+        } else {
+            return new BlockNode(statements);
+        }
     }
 
     public final PNode[] getStatements() {
@@ -47,17 +56,19 @@ public class BlockNode extends StatementNode {
     }
 
     public boolean isEmpty() {
-        return statements.length == 0 || (statements.length == 1 && statements[0].equals(EmptyNode.INSTANCE));
+        return statements.length == 0;
     }
 
     @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
+        Object result = null;
+
         for (int i = 0; i < statements.length; i++) {
-            statements[i].executeVoid(frame);
+            result = statements[i].execute(frame);
         }
 
-        return PNone.NONE;
+        return result;
     }
 
 }

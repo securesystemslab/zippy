@@ -27,6 +27,8 @@ package edu.uci.python.nodes.call;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 import static edu.uci.python.nodes.call.PythonCallUtil.*;
 
+import java.lang.invoke.*;
+
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
@@ -125,7 +127,7 @@ public abstract class PythonCallNode extends PNode {
          */
         if (isConstructorCall(primary, callable)) {
             CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), keywords);
-            CallConstructorNode specialized = new CallConstructorNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch);
+            CallConstructorNode specialized = new CallConstructorNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch);
             return replace(specialized).executeCall(frame, (PythonObject) primary, (PythonClass) callable);
         }
 
@@ -148,11 +150,11 @@ public abstract class PythonCallNode extends PNode {
 
     public static final class BoxedCallNode extends PythonCallNode {
 
-        @Child protected CallDispatchBoxedNode dispatchBoxedNode;
+        @Child protected CallDispatchBoxedNode dispatchNode;
 
         public BoxedCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchBoxedNode dispatch, boolean passPrimary) {
             super(context, calleeName, primary, callee, arguments, keywords, passPrimary);
-            dispatchBoxedNode = dispatch;
+            dispatchNode = dispatch;
         }
 
         @Override
@@ -167,7 +169,7 @@ public abstract class PythonCallNode extends PNode {
 
             Object[] arguments = executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentNodes);
             PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
-            return dispatchBoxedNode.executeCall(frame, primary, arguments, keywords);
+            return dispatchNode.executeCall(frame, primary, arguments, keywords);
         }
     }
 
@@ -216,11 +218,13 @@ public abstract class PythonCallNode extends PNode {
 
     public static final class CallConstructorNode extends PythonCallNode {
 
+        @Child protected NewInstanceNode instanceNode;
         @Child protected CallDispatchBoxedNode dispatchNode;
 
-        public CallConstructorNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchBoxedNode dispatch) {
-            super(context, calleeName, primary, callee, arguments, keywords, true);
+        public CallConstructorNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchBoxedNode dispatch) {
+            super(context, pythonClass.getName(), primary, callee, arguments, keywords, true);
             dispatchNode = dispatch;
+            instanceNode = new NewInstanceNode(pythonClass);
         }
 
         @Override
@@ -245,11 +249,40 @@ public abstract class PythonCallNode extends PNode {
         }
 
         private Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
-            PythonObject newInstance = PythonContext.newPythonObjectInstance(clazz);
+            PythonObject newInstance = instanceNode.createNewInstance(clazz);
             Object[] arguments = executeArguments(frame, true, newInstance, argumentNodes);
             PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
+            clazz.switchToGeneratedStorageClass();
             return newInstance;
+        }
+    }
+
+    public static final class NewInstanceNode extends Node {
+
+        private final Assumption instanceLayoutStableAssumption;
+        private final MethodHandle instanceCtor;
+
+        public NewInstanceNode(PythonClass pythonClass) {
+            this.instanceLayoutStableAssumption = pythonClass.getInstanceObjectLayout().getValidAssumption();
+            this.instanceCtor = pythonClass.getInstanceConstructor();
+        }
+
+        public PythonObject createNewInstance(PythonClass clazz) {
+            try {
+                instanceLayoutStableAssumption.check();
+                return (PythonObject) instanceCtor.invokeExact(clazz);
+            } catch (InvalidAssumptionException e) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                return rewriteAndExecute(clazz);
+            } catch (Throwable e) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                throw new RuntimeException("instance constructor invocation failed in " + this);
+            }
+        }
+
+        private PythonObject rewriteAndExecute(PythonClass clazz) {
+            return replace(new NewInstanceNode(clazz)).createNewInstance(clazz);
         }
     }
 

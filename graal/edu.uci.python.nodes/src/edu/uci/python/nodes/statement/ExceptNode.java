@@ -39,13 +39,13 @@ import edu.uci.python.runtime.*;
 
 public class ExceptNode extends StatementNode {
 
-    @Child protected BlockNode body;
+    @Child protected PNode body;
     @Children final PNode[] exceptType;
     @Child protected PNode exceptName;
 
     private final PythonContext context;
 
-    public ExceptNode(PythonContext context, BlockNode body, PNode[] exceptType, PNode exceptName) {
+    public ExceptNode(PythonContext context, PNode body, PNode[] exceptType, PNode exceptName) {
         this.body = body;
         this.exceptName = exceptName;
         this.exceptType = exceptType;
@@ -67,7 +67,7 @@ public class ExceptNode extends StatementNode {
         /**
          * TODO: need to support exceptType instance of type e.g. 'divide by zero' instance of
          * 'Exception'
-         * 
+         *
          * TODO: need to make exception messages consistent with Python 3.3 e.g. 'division by zero'
          */
         if (exceptType != null) {
@@ -97,4 +97,5 @@ public class ExceptNode extends StatementNode {
         // TODO Auto-generated method stub
         return null;
     }
+
 }

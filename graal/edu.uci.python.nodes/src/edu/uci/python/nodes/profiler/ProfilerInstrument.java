@@ -8,7 +8,7 @@ import com.oracle.truffle.api.nodes.*;
  * @author Gulfem
  */
 
-public class ProfilerInstrument extends Instrument {
+public final class ProfilerInstrument extends Instrument {
 
     private long counter;
 

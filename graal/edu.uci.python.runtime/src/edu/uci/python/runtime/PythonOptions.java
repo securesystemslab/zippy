@@ -59,6 +59,8 @@ public class PythonOptions {
 
     public static final int CallSiteInlineCacheMaxDepth = 5;
 
+    public static final boolean GenerateObjectStorage = false;
+
     // Generators
     public static boolean InlineGeneratorCalls = false;
 
@@ -79,7 +81,7 @@ public class PythonOptions {
     // Profiling
     public static final boolean AddProfilingInstrumentation = true;
 
-    public static final boolean ProfileFunctionInvocations = true;
+    public static final boolean ProfileFunctionInvocations = false;
 
     public static final boolean SortProfilerResults = true;
 

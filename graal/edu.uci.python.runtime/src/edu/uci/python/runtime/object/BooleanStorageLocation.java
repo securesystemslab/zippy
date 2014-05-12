@@ -31,11 +31,8 @@ import edu.uci.python.runtime.datatype.*;
 
 public final class BooleanStorageLocation extends FieldStorageLocation {
 
-    private final long offset;
-
-    protected BooleanStorageLocation(ObjectLayout objectLayout, int index) {
-        super(objectLayout, index);
-        offset = ObjectLayoutUtil.getExactPrimitiveIntOffsetOf(index);
+    protected BooleanStorageLocation(ObjectLayout objectLayout, int index, long offset) {
+        super(objectLayout, index, offset);
     }
 
     @Override
@@ -56,13 +53,13 @@ public final class BooleanStorageLocation extends FieldStorageLocation {
     }
 
     @Override
-    public void write(PythonObject object, Object value) throws GeneralizeStorageLocationException {
+    public void write(PythonObject object, Object value) throws StorageLocationGeneralizeException {
         if (value instanceof Boolean) {
             writeBoolean(object, (boolean) value);
         } else if (value instanceof PNone) {
             markAsUnset(object);
         } else {
-            throw new GeneralizeStorageLocationException();
+            throw new StorageLocationGeneralizeException();
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Regents of the University of California
+ * Copyright (c) 2013, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,31 +24,13 @@
  */
 package edu.uci.python.runtime.object;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.nodes.*;
 
-public final class FieldObjectStorageLocation extends FieldStorageLocation {
+/**
+ * Indicates that a storage location cannot store the type of value that you asked it to.
+ */
+public class StorageLocationGeneralizeException extends SlowPathException {
 
-    private final Class storedClass;
-
-    protected FieldObjectStorageLocation(ObjectLayout objectLayout, int index, long offset, Class storedClass) {
-        super(objectLayout, index, offset);
-        this.storedClass = storedClass;
-    }
-
-    @Override
-    public Object read(PythonObject object) {
-        return CompilerDirectives.unsafeGetObject(object, offset, true, this);
-    }
-
-    @Override
-    public void write(PythonObject object, Object value) {
-        CompilerDirectives.unsafePutObject(object, offset, value, this);
-        markAsSet(object);
-    }
-
-    @Override
-    public Class getStoredClass() {
-        return storedClass;
-    }
+    private static final long serialVersionUID = 3607506078153063652L;
 
 }

@@ -94,45 +94,49 @@ public class ObjectLayout {
             final Class type = entry.getValue();
 
             if (parent == null || parent.findStorageLocation(name) == null) {
-                Class storageClass;
+                Class storedClass;
 
                 if (type == Integer.class) {
                     if (primitiveIntStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
-                        storageClass = Integer.class;
+                        storedClass = Integer.class;
                     } else {
-                        storageClass = Object.class;
+                        storedClass = Object.class;
                     }
                 } else if (type == Double.class) {
                     if (primitiveDoubleStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT) {
-                        storageClass = Double.class;
+                        storedClass = Double.class;
                     } else {
-                        storageClass = Object.class;
+                        storedClass = Object.class;
                     }
                 } else if (type == Boolean.class) {
                     if (primitiveIntStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
-                        storageClass = Boolean.class;
+                        storedClass = Boolean.class;
                     } else {
-                        storageClass = Object.class;
+                        storedClass = Object.class;
                     }
                 } else {
-                    storageClass = Object.class;
+                    storedClass = Object.class;
                 }
 
-                if (storageClass == Integer.class) {
-                    final IntStorageLocation newStorageLocation = new IntStorageLocation(this, primitiveIntStorageLocationIndex);
+                if (storedClass == Integer.class) {
+                    final long offset = ObjectLayoutUtil.getExactPrimitiveIntOffsetOf(primitiveIntStorageLocationIndex);
+                    final IntStorageLocation newStorageLocation = new IntStorageLocation(this, primitiveIntStorageLocationIndex, offset);
                     storageLocations.put(entry.getKey(), newStorageLocation);
                     primitiveIntStorageLocationIndex++;
-                } else if (storageClass == Double.class) {
-                    final FloatStorageLocation newStorageLocation = new FloatStorageLocation(this, primitiveDoubleStorageLocationIndex);
+                } else if (storedClass == Double.class) {
+                    final long offset = ObjectLayoutUtil.getExactPrimitiveDoubleOffsetOf(primitiveDoubleStorageLocationIndex);
+                    final DoubleStorageLocation newStorageLocation = new DoubleStorageLocation(this, primitiveDoubleStorageLocationIndex, offset);
                     storageLocations.put(entry.getKey(), newStorageLocation);
                     primitiveDoubleStorageLocationIndex++;
-                } else if (storageClass == Boolean.class) {
-                    final BooleanStorageLocation newStorageLocation = new BooleanStorageLocation(this, primitiveIntStorageLocationIndex);
+                } else if (storedClass == Boolean.class) {
+                    final long offset = ObjectLayoutUtil.getExactPrimitiveIntOffsetOf(primitiveIntStorageLocationIndex);
+                    final BooleanStorageLocation newStorageLocation = new BooleanStorageLocation(this, primitiveIntStorageLocationIndex, offset);
                     storageLocations.put(entry.getKey(), newStorageLocation);
                     primitiveIntStorageLocationIndex++;
                 } else {
                     if (fieldObjectStorageLocationIndex + 1 <= FixedPythonObjectStorage.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT) {
-                        final FieldObjectStorageLocation newStorageLocation = new FieldObjectStorageLocation(this, fieldObjectStorageLocationIndex, type);
+                        final long offset = ObjectLayoutUtil.getExactFieldObjectOffsetOf(fieldObjectStorageLocationIndex);
+                        final FieldObjectStorageLocation newStorageLocation = new FieldObjectStorageLocation(this, fieldObjectStorageLocationIndex, offset, type);
                         storageLocations.put(entry.getKey(), newStorageLocation);
                         fieldObjectStorageLocationIndex++;
                     } else {
@@ -141,6 +145,65 @@ public class ObjectLayout {
                         arrayObjectStorageLocationIndex++;
                     }
                 }
+            }
+        }
+
+        primitiveIntStorageLocationsUsed = primitiveIntStorageLocationIndex;
+        primitiveDoubleStorageLocationsUsed = primitiveDoubleStorageLocationIndex;
+        fieldObjectStorageLocationsUsed = fieldObjectStorageLocationIndex;
+        arrayObjectStorageLocationsUsed = arrayObjectStorageLocationIndex;
+        validAssumption = Truffle.getRuntime().createAssumption(originHint + " ObjectLayout valid");
+    }
+
+    private ObjectLayout(String originHint, ObjectLayout parent, Map<String, Class> storageTypes, Class objectStorageClass) {
+        this.originHint = originHint;
+        this.parent = parent;
+
+        // Start our offsets from where the parent ends
+        int primitiveIntStorageLocationIndex;
+        int primitiveDoubleStorageLocationIndex;
+        int fieldObjectStorageLocationIndex;
+        int arrayObjectStorageLocationIndex;
+
+        if (parent == null) {
+            primitiveIntStorageLocationIndex = 0;
+            primitiveDoubleStorageLocationIndex = 0;
+            fieldObjectStorageLocationIndex = 0;
+            arrayObjectStorageLocationIndex = 0;
+        } else {
+            primitiveIntStorageLocationIndex = parent.primitiveIntStorageLocationsUsed;
+            primitiveDoubleStorageLocationIndex = parent.primitiveDoubleStorageLocationsUsed;
+            fieldObjectStorageLocationIndex = parent.fieldObjectStorageLocationsUsed;
+            arrayObjectStorageLocationIndex = parent.arrayObjectStorageLocationsUsed;
+        }
+
+        // Go through the variables we've been asked to store
+        for (Entry<String, Class> entry : storageTypes.entrySet()) {
+            final String name = entry.getKey();
+            final Class type = entry.getValue();
+
+            if (parent == null || parent.findStorageLocation(name) == null) {
+                StorageLocation newStorageLocation;
+
+                try {
+                    long offset = ObjectLayoutUtil.getExactFieldOffsetOf(objectStorageClass, name);
+
+                    // Field storage location
+                    if (type == Integer.class) {
+                        newStorageLocation = new IntStorageLocation(this, primitiveIntStorageLocationIndex++, offset);
+                    } else if (type == Boolean.class) {
+                        newStorageLocation = new BooleanStorageLocation(this, primitiveIntStorageLocationIndex++, offset);
+                    } else if (type == Double.class) {
+                        newStorageLocation = new DoubleStorageLocation(this, primitiveDoubleStorageLocationIndex++, offset);
+                    } else {
+                        newStorageLocation = new FieldObjectStorageLocation(this, fieldObjectStorageLocationIndex++, offset, type);
+                    }
+                } catch (NoSuchFieldException e) {
+                    // Spill to object array
+                    newStorageLocation = new ArrayObjectStorageLocation(this, arrayObjectStorageLocationIndex++, type);
+                }
+
+                storageLocations.put(entry.getKey(), newStorageLocation);
             }
         }
 
@@ -184,6 +247,11 @@ public class ObjectLayout {
         storageTypes.remove(name);
         validAssumption.invalidate();
         return new ObjectLayout(originHint + "-" + name, parent, storageTypes);
+    }
+
+    protected ObjectLayout switchObjectStorageClass(Class objectStorageClass) {
+        validAssumption.invalidate();
+        return new ObjectLayout(originHint + ".switch", parent, getStorageTypes(), objectStorageClass);
     }
 
     /**

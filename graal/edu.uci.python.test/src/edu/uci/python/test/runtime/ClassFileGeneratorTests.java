@@ -31,7 +31,6 @@ import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.*;
 
 import org.junit.*;
-import org.python.core.*;
 
 import com.oracle.truffle.api.nodes.*;
 
@@ -45,18 +44,15 @@ public class ClassFileGeneratorTests {
     @Test
     public void emptyLayout() {
         PythonContext context = PythonTests.getContext();
-        PythonObject obj = PythonContext.newPythonObjectInstance(context.getObjectClass());
-        ClassFileGenerator cfg = new ClassFileGenerator(obj.getObjectLayout(), "Foo");
-        String className = cfg.getValidClassName();
-        byte[] data = cfg.generate();
+        PythonClass pyclazz = new PythonClass(context.getObjectClass(), "Foo");
+        StorageClassGenerator cfg = new StorageClassGenerator(pyclazz);
+        GeneratedPythonObjectStorage storage = cfg.generate();
 
-        Class<?> loadedClass = BytecodeLoader.makeClass(className, data, PythonObject.class);
-        assertTrue(loadedClass != null);
-
+        Class<?> storageClass = storage.getStorageClass();
         PythonObject instance = null;
 
         try {
-            instance = (PythonObject) loadedClass.getConstructor(new Class[]{PythonClass.class}).newInstance(context.getObjectClass());
+            instance = (PythonObject) storageClass.getConstructor(new Class[]{PythonClass.class}).newInstance(context.getObjectClass());
         } catch (Exception e) {
             throw new RuntimeException();
         }
@@ -83,11 +79,10 @@ public class ClassFileGeneratorTests {
         assertTrue(pyclazz.getInstanceObjectLayout().findStorageLocation("int5") != null);
 
         // Generate the storage class.
-        ClassFileGenerator cfg = new ClassFileGenerator(pyclazz.getInstanceObjectLayout(), "Foo");
-        byte[] data = cfg.generate();
+        StorageClassGenerator cfg = new StorageClassGenerator(pyclazz);
 
         // Load the generated class.
-        Class<?> loadedClass = BytecodeLoader.makeClass(cfg.getValidClassName(), data, PythonObject.class);
+        Class<?> loadedClass = cfg.generate().getStorageClass();
         assertTrue(loadedClass != null);
 
         // Instantiate
@@ -121,11 +116,11 @@ public class ClassFileGeneratorTests {
         /**
          * Inspecting the loaded storage class.
          */
-
         try {
             for (int i = 0; i < 5; i++) {
                 Field field = loadedClass.getDeclaredField("int" + i);
                 assertTrue(field != null);
+                assertTrue(field.getType() == int.class);
             }
         } catch (NoSuchFieldException | SecurityException e) {
             throw new RuntimeException();
@@ -135,21 +130,57 @@ public class ClassFileGeneratorTests {
     @Test
     public void methodHandleInvoke() {
         PythonContext context = PythonTests.getContext();
-        PythonObject obj = PythonContext.newPythonObjectInstance(context.getObjectClass());
-        ClassFileGenerator cfg = new ClassFileGenerator(obj.getObjectLayout(), "Foo");
-        String className = cfg.getValidClassName();
-        byte[] data = cfg.generate();
+        PythonClass pyclazz = new PythonClass(context.getObjectClass(), "Foo");
+        StorageClassGenerator cfg = new StorageClassGenerator(pyclazz);
+        GeneratedPythonObjectStorage storage = cfg.generate();
 
-        Class<?> pyclazz = BytecodeLoader.makeClass(className, data, PythonObject.class);
-        assertTrue(pyclazz != null);
+        assertTrue(storage.getStorageClass() != null);
 
         try {
             Lookup lookup = MethodHandles.lookup();
             MethodType mt = MethodType.methodType(PythonObject.class, PythonClass.class);
-            MethodHandle ctor = lookup.findStatic(pyclazz, ClassFileGenerator.CREATE, mt);
+            MethodHandle ctor = lookup.findStatic(storage.getStorageClass(), StorageClassGenerator.CREATE, mt);
             PythonObject instance = (PythonObject) ctor.invokeExact((PythonClass) context.getObjectClass());
             assertTrue(instance != null);
         } catch (Throwable e) {
+            throw new RuntimeException();
+        }
+    }
+
+    @Test
+    public void layoutSwitch() {
+        PythonContext context = PythonTests.getContext();
+        PythonClass pyclazz = new PythonClass(context.getObjectClass(), "Foo");
+        PythonObject obj = PythonContext.newPythonObjectInstance(pyclazz);
+
+        // Setup object layout.
+        obj.setAttribute("int0", 0);
+        obj.setAttribute("int1", 1);
+        obj.setAttribute("int2", 2);
+        obj.setAttribute("int3", 3);
+        obj.setAttribute("int4", 4);
+        obj.setAttribute("int5", 5);
+
+        assertTrue(pyclazz.getInstanceObjectLayout().findStorageLocation("int5") != null);
+        GeneratedPythonObjectStorage generated = new StorageClassGenerator(pyclazz).generate();
+
+        PythonObject newInstance;
+        try {
+            newInstance = (PythonObject) generated.getConstructor().invokeExact(pyclazz);
+        } catch (Throwable e) {
+            throw new RuntimeException();
+        }
+
+        assertTrue(newInstance != null);
+        assertTrue(newInstance.getObjectLayout() == pyclazz.getInstanceObjectLayout());
+
+        try {
+            for (int i = 0; i < 5; i++) {
+                Field field = generated.getStorageClass().getDeclaredField("int" + i);
+                assertTrue(field != null);
+                assertTrue(field.getType() == int.class);
+            }
+        } catch (NoSuchFieldException | SecurityException e) {
             throw new RuntimeException();
         }
     }
