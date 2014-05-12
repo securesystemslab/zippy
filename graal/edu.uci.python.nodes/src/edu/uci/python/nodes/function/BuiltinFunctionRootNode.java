@@ -47,7 +47,7 @@ public class BuiltinFunctionRootNode extends RootNode {
         this.functionName = functionName;
         this.builtinNode = builtinNode;
         this.uninitialized = NodeUtil.cloneNode(builtinNode);
-        if (PythonOptions.ProfileNodes) {
+        if (PythonOptions.ProfileFunctionInvocations) {
             this.profiler = new ProfilerNode(this);
         }
     }
@@ -59,7 +59,7 @@ public class BuiltinFunctionRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        if (PythonOptions.ProfileNodes) {
+        if (PythonOptions.ProfileFunctionInvocations) {
             profiler.execute(frame);
             return builtinNode.execute(frame);
         } else {

@@ -28,7 +28,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
-import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.runtime.datatype.*;
 
 public class IfNode extends StatementNode {
@@ -44,7 +43,6 @@ public class IfNode extends StatementNode {
         this.condition = condition;
         this.then = then;
         this.orelse = orelse;
-        NodeProfiler.getInstance().addIfNode(this);
     }
 
     @Override

@@ -7,12 +7,16 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 
+/**
+ * @author Gulfem
+ */
+
 public class ProfilerNode extends PNode {
 
-    protected long counter;
-    protected Node profiledNode;
+    private long counter;
+    private Node profiledNode;
 
-    protected static List<ProfilerNode> profiledNodes = new ArrayList<>();
+    private static List<ProfilerNode> profiledNodes = new ArrayList<>();
 
     public ProfilerNode(Node profiledNode) {
         this.profiledNode = profiledNode;

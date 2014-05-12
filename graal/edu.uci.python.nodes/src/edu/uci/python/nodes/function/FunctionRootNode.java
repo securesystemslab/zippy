@@ -52,7 +52,7 @@ public final class FunctionRootNode extends RootNode {
         this.functionName = functionName;
         this.body = body;
         this.uninitializedBody = NodeUtil.cloneNode(body);
-        if (PythonOptions.ProfileNodes) {
+        if (PythonOptions.ProfileFunctionInvocations) {
             this.profiler = new ProfilerNode(this);
         }
     }
@@ -88,7 +88,7 @@ public final class FunctionRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        if (PythonOptions.ProfileNodes) {
+        if (PythonOptions.ProfileFunctionInvocations) {
             profiler.execute(frame);
             return body.execute(frame);
         } else {

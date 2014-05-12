@@ -10,6 +10,10 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
 
+/**
+ * @author Gulfem
+ */
+
 public class PythonWrapperNode extends PNode implements Wrapper {
 
     @Child private PNode child;

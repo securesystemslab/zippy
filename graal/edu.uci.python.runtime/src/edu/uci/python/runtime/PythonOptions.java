@@ -79,13 +79,9 @@ public class PythonOptions {
     // Profiling
     public static final boolean AddProfilingInstrumentation = true;
 
-    public static final boolean ProfileNodes = false;
+    public static final boolean ProfileFunctionInvocations = true;
 
-    public static final boolean ProfileCallSites = false;
-
-    public static final boolean SortProfilerCounts = false;
-
-    public static final boolean ProfileFunctionCalls = false;
+    public static final boolean SortProfilerResults = true;
 
     public static final boolean CatchZippyExceptionForUnitTesting = false;
 

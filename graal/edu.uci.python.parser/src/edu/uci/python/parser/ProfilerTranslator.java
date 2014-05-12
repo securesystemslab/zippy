@@ -11,10 +11,8 @@ import edu.uci.python.runtime.*;
 public class ProfilerTranslator implements NodeVisitor {
 
     private final PythonNodeProber astProber;
-    private final PythonContext context;
 
     public ProfilerTranslator(PythonContext context) {
-        this.context = context;
         this.astProber = new PythonNodeProber(context);
     }
 

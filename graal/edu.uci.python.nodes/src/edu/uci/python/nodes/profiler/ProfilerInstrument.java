@@ -4,6 +4,10 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
 
+/**
+ * @author Gulfem
+ */
+
 public class ProfilerInstrument extends Instrument {
 
     private long counter;
@@ -16,10 +20,6 @@ public class ProfilerInstrument extends Instrument {
     public void enter(Node astNode, VirtualFrame frame) {
         counter++;
     }
-
-// @Override
-// public void leave(Node astNode, VirtualFrame frame, Object result) {
-// }
 
     public long getCounter() {
         return counter;

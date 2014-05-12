@@ -8,11 +8,15 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
 
+/**
+ * @author Gulfem
+ */
+
 public class PythonNodeProber implements ASTNodeProber {
 
     private final PythonContext context;
 
-    public static Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments = new HashMap<>();
+    private static Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments = new HashMap<>();
 
     public PythonNodeProber(PythonContext context) {
         this.context = context;
@@ -39,4 +43,7 @@ public class PythonNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
+    public static Map<PythonWrapperNode, ProfilerInstrument> getWrapperToInstruments() {
+        return wrapperToInstruments;
+    }
 }
