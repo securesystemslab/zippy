@@ -93,7 +93,7 @@ public class NodeFactory {
     }
 
     public PNode createBlock(PNode[] statements) {
-        return statements.length > 0 ? new BlockNode(statements) : EmptyNode.INSTANCE;
+        return BlockNode.create(statements);
     }
 
     public PNode createNonVoidBlockNode(PNode[] statements) {

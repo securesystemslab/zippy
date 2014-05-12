@@ -28,15 +28,28 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.generator.*;
 import edu.uci.python.runtime.datatype.*;
 
 public class BlockNode extends StatementNode {
 
     @Children protected final PNode[] statements;
 
-    public BlockNode(PNode[] statements) {
+    protected BlockNode(PNode[] statements) {
         this.statements = statements;
         assert statements.length > 0;
+    }
+
+    public static PNode create(PNode[] statements) {
+        final int length = statements.length;
+
+        if (length == 0) {
+            return EmptyNode.INSTANCE;
+        } else if (length == 1) {
+            return statements[0] instanceof YieldNode ? new BlockNode(statements) : statements[0];
+        } else {
+            return new BlockNode(statements);
+        }
     }
 
     public final PNode[] getStatements() {

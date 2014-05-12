@@ -218,10 +218,10 @@ public class GeneratorExpressionOptimizer {
         // Uninitialized body.
         ReturnTargetNode unitializedbody = (ReturnTargetNode) root.getUninitializedBody();
         PNode innerBody = unitializedbody.getBody();
-        innerBody.replace(new BlockNode(new PNode[]{assembleParameterWrites(slots, true), (PNode) innerBody.copy()}));
+        innerBody.replace(BlockNode.create(new PNode[]{assembleParameterWrites(slots, true), (PNode) innerBody.copy()}));
     }
 
-    private static BlockNode assembleParameterWrites(List<FrameSlot> argumentSlots, boolean writeToLocalFrame) {
+    private static PNode assembleParameterWrites(List<FrameSlot> argumentSlots, boolean writeToLocalFrame) {
         PNode[] writes = new PNode[argumentSlots.size()];
 
         for (int i = 0; i < argumentSlots.size(); i++) {
@@ -230,7 +230,7 @@ public class GeneratorExpressionOptimizer {
             writes[i] = writeToLocalFrame ? WriteLocalVariableNodeFactory.create(slot, read) : WriteGeneratorFrameVariableNodeFactory.create(slot, read);
         }
 
-        return new BlockNode(writes);
+        return BlockNode.create(writes);
     }
 
     /**
