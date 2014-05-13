@@ -209,14 +209,6 @@ public class NodeFactory {
         return ListAppendNodeFactory.create(frameSlot, right);
     }
 
-    public LoopNode createGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body, int iteratorSlot) {
-        return new GeneratorForNode(WriteGeneratorFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body, iteratorSlot);
-    }
-
-    public LoopNode createInnerGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body, int iteratorSlot) {
-        return new GeneratorForNode.InnerGeneratorForNode(WriteGeneratorFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body, iteratorSlot);
-    }
-
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {
         PNode typedNodeOperand = operand;
 

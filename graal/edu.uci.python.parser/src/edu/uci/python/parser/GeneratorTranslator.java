@@ -141,17 +141,12 @@ public class GeneratorTranslator {
         }
 
         if (node instanceof ForWithLocalTargetNode) {
+            assert depth > 0;
             ForWithLocalTargetNode forNode = (ForWithLocalTargetNode) node;
             AdvanceIteratorNode next = (AdvanceIteratorNode) forNode.getTarget();
             WriteGeneratorFrameVariableNode target = (WriteGeneratorFrameVariableNode) next.getTarget();
             GetIteratorNode getIter = (GetIteratorNode) forNode.getIterator();
-            int iteratorSlot = nextGeneratorForNodeSlot();
-
-            if (depth == 0) {
-                node.replace(new GeneratorForNode.InnerGeneratorForNode(target, getIter, forNode.getBody(), iteratorSlot));
-            } else {
-                node.replace(new GeneratorForNode(target, getIter, forNode.getBody(), iteratorSlot));
-            }
+            node.replace(new GeneratorForNode(target, getIter, forNode.getBody(), nextGeneratorForNodeSlot()));
         } else if (node instanceof BlockNode) {
             BlockNode block = (BlockNode) node;
             int slotOfBlockIndex = nextGeneratorBlockIndexSlot();
