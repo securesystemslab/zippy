@@ -28,6 +28,7 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.hotspot.amd64.AMD64HotSpotLIRGenerator.SaveRbp;
+import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.lir.StandardOp.NoOp;
 import com.oracle.graal.lir.gen.*;
 
@@ -77,6 +78,21 @@ public class AMD64HotSpotBytecodeLIRBuilder extends BytecodeLIRBuilder {
             assert paramValue.getKind() == sig.getParameterKind(i).getStackKind();
             parser.storeLocal(i, gen.emitMove(paramValue));
         }
+    }
+
+    @Override
+    public int getArrayLengthOffset() {
+        return getGen().config.arrayLengthOffset;
+    }
+
+    @Override
+    public Constant getClassConstant(ResolvedJavaType declaringClass) {
+        return HotSpotObjectConstant.forObject(((HotSpotResolvedJavaType) declaringClass).mirror());
+    }
+
+    @Override
+    public int getFieldOffset(ResolvedJavaField field) {
+        return ((HotSpotResolvedJavaField) field).offset();
     }
 
 }

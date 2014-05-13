@@ -20,18 +20,31 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.hotspot.nodes;
+package com.oracle.graal.graph;
 
-import com.oracle.graal.compiler.match.*;
-import com.oracle.graal.nodes.*;
+import java.util.*;
 
-@MatchableNode(nodeClass = CompressionNode.class, inputs = 1, adapter = HotSpotMatchableNodes.CompressionNodeAdapter.class)
-public class HotSpotMatchableNodes {
-    public static class CompressionNodeAdapter extends MatchNodeAdapter {
-        @Override
-        protected ValueNode getFirstInput(ValueNode node) {
-            return ((CompressionNode) node).getInput();
-        }
+import com.oracle.graal.api.collections.*;
+
+/**
+ * A default implementation of {@link NodeCollectionsProvider} that creates standard JDK collection
+ * class objects.
+ */
+public class DefaultNodeCollectionsProvider extends DefaultCollectionsProvider implements NodeCollectionsProvider {
+
+    public <E extends Node> Set<E> newNodeIdentitySet() {
+        return Collections.newSetFromMap(newNodeIdentityMap());
     }
 
+    public <K extends Node, V> Map<K, V> newNodeIdentityMap() {
+        return new IdentityHashMap<>();
+    }
+
+    public <K extends Node, V> Map<K, V> newNodeIdentityMap(int expectedMaxSize) {
+        return new IdentityHashMap<>(expectedMaxSize);
+    }
+
+    public <K extends Node, V> Map<K, V> newNodeIdentityMap(Map<K, V> initFrom) {
+        return new IdentityHashMap<>(initFrom);
+    }
 }

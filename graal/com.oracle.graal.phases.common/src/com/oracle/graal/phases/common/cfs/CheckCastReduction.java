@@ -50,7 +50,7 @@ import static com.oracle.graal.nodes.extended.BranchProbabilityNode.NOT_FREQUENT
  */
 public abstract class CheckCastReduction extends GuardingPiReduction {
 
-    public CheckCastReduction(FixedNode start, State initialState, PhaseContext context) {
+    public CheckCastReduction(StartNode start, State initialState, PhaseContext context) {
         super(start, initialState, context);
     }
 
@@ -122,7 +122,7 @@ public abstract class CheckCastReduction extends GuardingPiReduction {
         assert !StampTool.isObjectAlwaysNull(subject) : "Null as per stamp subjects should have been handled above";
 
         // --------- checkCast deemed unsatisfiable by subject-stamp alone ---------
-        if (state.knownNotToConform(subject, toType)) {
+        if (state.knownNotToPassCheckCast(subject, toType)) {
             postponedDeopts.addDeoptBefore(checkCast, checkCast.isForStoreCheck() ? ArrayStoreException : ClassCastException);
             state.impossiblePath();
             // let FixedGuardNode(false).simplify() prune the dead-code control-path

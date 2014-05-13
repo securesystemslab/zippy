@@ -20,17 +20,29 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.match;
+package com.oracle.graal.api.collections;
 
-import java.lang.annotation.*;
+import java.util.*;
 
 /**
- * A list of classes which contain one or more {@link MatchableNode} annotations describing nodes
- * that may be used in match expressions. Those {@link MatchableNode} declarations are parsed before
- * processing any {@link MatchRule}s.
+ * A default implementation of {@link CollectionsProvider} that creates standard JDK collection
+ * class objects.
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-public @interface MatchableNodeImport {
-    String[] value() default {};
+public class DefaultCollectionsProvider implements CollectionsProvider {
+
+    public <E> Set<E> newIdentitySet() {
+        return Collections.newSetFromMap(newIdentityMap());
+    }
+
+    public <K, V> Map<K, V> newIdentityMap() {
+        return new IdentityHashMap<>();
+    }
+
+    public <K, V> Map<K, V> newIdentityMap(int expectedMaxSize) {
+        return new IdentityHashMap<>(expectedMaxSize);
+    }
+
+    public <K, V> Map<K, V> newIdentityMap(Map<K, V> initFrom) {
+        return new IdentityHashMap<>(initFrom);
+    }
 }

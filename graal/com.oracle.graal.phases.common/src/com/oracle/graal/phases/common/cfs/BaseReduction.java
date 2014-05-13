@@ -30,7 +30,7 @@ import com.oracle.graal.graph.Node;
 import com.oracle.graal.graph.spi.CanonicalizerTool;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.compiler.common.type.ObjectStamp;
-import com.oracle.graal.phases.graph.PostOrderNodeIterator;
+import com.oracle.graal.phases.graph.SinglePassNodeIterator;
 import com.oracle.graal.phases.tiers.PhaseContext;
 
 import java.util.ArrayList;
@@ -55,12 +55,13 @@ import java.util.ArrayList;
  * </p>
  *
  */
-public abstract class BaseReduction extends PostOrderNodeIterator<State> {
+public abstract class BaseReduction extends SinglePassNodeIterator<State> {
 
-    protected static final DebugMetric metricCheckCastRemoved = Debug.metric("CheckCastRemoved");
-    protected static final DebugMetric metricGuardingPiNodeRemoved = Debug.metric("GuardingPiNodeRemoved");
-    protected static final DebugMetric metricFixedGuardNodeRemoved = Debug.metric("FixedGuardNodeRemoved");
-    protected static final DebugMetric metricMethodResolved = Debug.metric("MethodResolved");
+    protected static final DebugMetric metricCheckCastRemoved = Debug.metric("FSR-CheckCastRemoved");
+    protected static final DebugMetric metricGuardingPiNodeRemoved = Debug.metric("FSR-GuardingPiNodeRemoved");
+    protected static final DebugMetric metricFixedGuardNodeRemoved = Debug.metric("FSR-FixedGuardNodeRemoved");
+    protected static final DebugMetric metricMethodResolved = Debug.metric("FSR-MethodResolved");
+    protected static final DebugMetric metricUnconditionalDeoptInserted = Debug.metric("FSR-UnconditionalDeoptInserted");
 
     /**
      * <p>
@@ -95,6 +96,7 @@ public abstract class BaseReduction extends PostOrderNodeIterator<State> {
          * a bug in FlowSensitiveReduction (the code was reachable, after all).
          */
         public void doRewrite(LogicNode falseConstant) {
+            metricUnconditionalDeoptInserted.increment();
             StructuredGraph graph = fixed.graph();
             // have to insert a FixedNode other than a ControlSinkNode
             FixedGuardNode buckStopsHere = graph.add(new FixedGuardNode(falseConstant, deoptReason, DeoptimizationAction.None));
@@ -193,7 +195,7 @@ public abstract class BaseReduction extends PostOrderNodeIterator<State> {
 
     protected final PostponedDeopts postponedDeopts = new PostponedDeopts();
 
-    protected BaseReduction(FixedNode start, State initialState, PhaseContext context) {
+    protected BaseReduction(StartNode start, State initialState, PhaseContext context) {
         super(start, initialState);
         graph = start.graph();
         trueConstant = LogicConstantNode.tautology(graph);

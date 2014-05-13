@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,20 +20,37 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.hotspot.nodes;
+package com.oracle.graal.debug;
 
-import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.spi.*;
+import com.sun.management.*;
 
-public class LoadExceptionObjectNode extends AbstractStateSplit implements Lowerable {
+/**
+ * Tracks memory usage within a scope using {@link ThreadMXBean}. This facility should be employed
+ * using the try-with-resources pattern:
+ *
+ * <pre>
+ * try (DebugMemUseTracker.Closeable a = memUseTracker.start()) {
+ *     // the code to measure
+ * }
+ * </pre>
+ */
+public interface DebugMemUseTracker {
 
-    public LoadExceptionObjectNode(Stamp stamp) {
-        super(stamp);
+    public interface Closeable extends AutoCloseable {
+        void close();
     }
 
-    @Override
-    public void lower(LoweringTool tool) {
-        tool.getLowerer().lower(this, tool);
-    }
+    /**
+     * Creates a point from which memory usage will be recorded if memory use tracking is
+     * {@linkplain Debug#isMemUseTrackingEnabled() enabled}.
+     *
+     * @return an object that must be closed once the activity has completed to add the memory used
+     *         since this call to the total for this tracker
+     */
+    Closeable start();
+
+    /**
+     * Gets the current value of this tracker.
+     */
+    long getCurrentValue();
 }

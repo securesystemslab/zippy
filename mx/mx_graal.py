@@ -26,7 +26,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, zipfile, tarfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO, socket
+import os, stat, errno, sys, shutil, zipfile, tarfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO, socket
 from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, REMAINDER
 from outputparser import OutputParser, ValuesMatcher
@@ -80,8 +80,7 @@ _vm_prefix = None
 
 _make_eclipse_launch = False
 
-# @CallerSensitive introduced in 7u25
-_minVersion = mx.VersionSpec('1.7.0_25')
+_minVersion = mx.VersionSpec('1.8')
 
 JDK_UNIX_PERMISSIONS = 0755
 
@@ -150,10 +149,19 @@ def chmodRecursive(dirname, chmodFlags):
 def clean(args):
     """clean the GraalVM source tree"""
     opts = mx.clean(args, parser=ArgumentParser(prog='mx clean'))
+
     if opts.native:
+        def handleRemoveReadonly(func, path, exc):
+            excvalue = exc[1]
+            if mx.get_os() == 'windows' and func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
+                os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO) # 0777
+                func(path)
+            else:
+                raise
+
         def rmIfExists(name):
             if os.path.isdir(name):
-                shutil.rmtree(name)
+                shutil.rmtree(name, ignore_errors=False, onerror=handleRemoveReadonly)
             elif os.path.isfile(name):
                 os.unlink(name)
 
@@ -904,7 +912,7 @@ def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False, defaultAll
     else:
         return [], args
 
-def _run_tests(args, harness, annotations, testfile, whitelist):
+def _run_tests(args, harness, annotations, testfile, whitelist, regex):
 
 
     vmArgs, tests = _extract_VM_args(args)
@@ -939,6 +947,9 @@ def _run_tests(args, harness, annotations, testfile, whitelist):
     if whitelist:
         classes = [c for c in classes if any((glob.match(c) for glob in whitelist))]
 
+    if regex:
+        classes = [c for c in classes if re.search(regex, c)]
+
     if len(classes) != 0:
         f_testfile = open(testfile, 'w')
         for c in classes:
@@ -946,7 +957,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist):
         f_testfile.close()
         harness(projectscp, vmArgs)
 
-def _unittest(args, annotations, prefixcp="", whitelist=None):
+def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, enable_timing=False, regex=None):
     mxdir = dirname(__file__)
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
@@ -955,10 +966,19 @@ def _unittest(args, annotations, prefixcp="", whitelist=None):
     if testfile is None:
         (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
         os.close(_)
+    corecp = mx.classpath(['com.oracle.graal.test'])
+
+    if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
+        subprocess.check_call([mx.java().javac, '-cp', corecp, '-d', mxdir, javaSource])
+
+    coreArgs = []
+    if verbose:
+        coreArgs.append('-JUnitVerbose')
+    if enable_timing:
+        coreArgs.append('-JUnitEnableTiming')
+
 
     def harness(projectscp, vmArgs):
-        if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
-            subprocess.check_call([mx.java().javac, '-cp', projectscp, '-d', mxdir, javaSource])
         if _get_vm() != 'graal':
             prefixArgs = ['-esa', '-ea']
         else:
@@ -968,12 +988,12 @@ def _unittest(args, annotations, prefixcp="", whitelist=None):
         if len(testclasses) == 1:
             # Execute Junit directly when one test is being run. This simplifies
             # replaying the VM execution in a native debugger (e.g., gdb).
-            vm(prefixArgs + vmArgs + ['-cp', prefixcp + projectscp, 'org.junit.runner.JUnitCore'] + testclasses)
+            vm(prefixArgs + vmArgs + ['-cp', prefixcp + corecp + ':' + projectscp, 'com.oracle.graal.test.GraalJUnitCore'] + coreArgs + testclasses)
         else:
-            vm(prefixArgs + vmArgs + ['-cp', prefixcp + projectscp + os.pathsep + mxdir, name] + [testfile])
+            vm(prefixArgs + vmArgs + ['-cp', prefixcp + corecp + ':' + projectscp + os.pathsep + mxdir, name] + [testfile] + coreArgs)
 
     try:
-        _run_tests(args, harness, annotations, testfile, whitelist)
+        _run_tests(args, harness, annotations, testfile, whitelist, regex)
     finally:
         if os.environ.get('MX_TESTFILE') is None:
             os.remove(testfile)
@@ -981,8 +1001,11 @@ def _unittest(args, annotations, prefixcp="", whitelist=None):
 _unittestHelpSuffix = """
     Unittest options:
 
-      --whitelist            run only testcases which are included
+      --whitelist <file>     run only testcases which are included
                              in the given whitelist
+      --verbose              enable verbose JUnit output
+      --enable-timing        enable JUnit test timing
+      --regex <regex>        run only testcases matching a regular expression
 
     To avoid conflicts with VM options '--' can be used as delimiter.
 
@@ -1020,6 +1043,9 @@ def unittest(args):
           epilog=_unittestHelpSuffix,
         )
     parser.add_argument('--whitelist', help='run testcases specified in whitelist only', metavar='<path>')
+    parser.add_argument('--verbose', help='enable verbose JUnit output', action='store_true')
+    parser.add_argument('--enable-timing', help='enable JUnit test timing', action='store_true')
+    parser.add_argument('--regex', help='run only testcases matching a regular expression', metavar='<regex>')
 
     ut_args = []
     delimiter = False
@@ -1046,7 +1072,7 @@ def unittest(args):
         except IOError:
             mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
 
-    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist)
+    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist, verbose=parsed_args.verbose, enable_timing=parsed_args.enable_timing, regex=parsed_args.regex)
 
 def shortunittest(args):
     """alias for 'unittest --whitelist test/whitelist_shortunittest.txt'{0}"""
@@ -1158,12 +1184,12 @@ def _basic_gate_body(args, tasks):
 
     with VM('server', 'product'):  # hosted mode
         t = Task('UnitTests:hosted-product')
-        unittest([])
+        unittest(['--enable-timing', '--verbose'])
         tasks.append(t.stop())
 
     with VM('server', 'product'):  # hosted mode
         t = Task('UnitTests-BaselineCompiler:hosted-product')
-        unittest(['--whitelist', 'test/whitelist_baseline.txt', '-G:+UseBaselineCompiler'])
+        unittest(['--enable-timing', '--verbose', '--whitelist', 'test/whitelist_baseline.txt', '-G:+UseBaselineCompiler'])
         tasks.append(t.stop())
 
     for vmbuild in ['fastdebug', 'product']:
@@ -1509,7 +1535,7 @@ def makejmhdeps(args):
                     if not mx.library(name, fatalIfMissing=False):
                         mx.log('Skipping ' + groupId + '.' + artifactId + '.jar as ' + name + ' cannot be resolved')
                         return
-        d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=deps, excludedLibs=[])
+        d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=deps, excludedDependencies=[])
         d.make_archive()
         cmd = ['mvn', 'install:install-file', '-DgroupId=' + groupId, '-DartifactId=' + artifactId,
                '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar', '-Dfile=' + d.path]
@@ -1596,8 +1622,11 @@ def jmh(args):
 
     benchmarks = [b for b in benchmarksAndJsons if not b.startswith('{')]
     jmhArgJsons = [b for b in benchmarksAndJsons if b.startswith('{')]
-
-    jmhArgs = {'-rff' : join(_graal_home, 'mx', 'jmh', 'jmh.out'), '-v' : 'EXTRA' if mx._opts.verbose else 'NORMAL'}
+    jmhOutDir = join(_graal_home, 'mx', 'jmh')
+    if not exists(jmhOutDir):
+        os.makedirs(jmhOutDir)
+    jmhOut = join(jmhOutDir, 'jmh.out')
+    jmhArgs = {'-rff' : jmhOut, '-v' : 'EXTRA' if mx._opts.verbose else 'NORMAL'}
 
     # e.g. '{"-wi" : 20}'
     for j in jmhArgJsons:
@@ -1625,7 +1654,8 @@ def jmh(args):
 
         microJar = os.path.join(absoluteMicro, "target", "microbenchmarks.jar")
         if not exists(microJar):
-            mx.abort('Missing ' + microJar + ' - please run "mx buildjmh"')
+            mx.log('Missing ' + microJar + ' - please run "mx buildjmh"')
+            continue
         if benchmarks:
             def _addBenchmark(x):
                 if x.startswith("Benchmark:"):
@@ -1780,20 +1810,6 @@ def sl(args):
     """run an SL program"""
     vmArgs, slArgs = _extract_VM_args(args)
     vm(vmArgs + ['-cp', mx.classpath("com.oracle.truffle.sl"), "com.oracle.truffle.sl.SLMain"] + slArgs)
-
-def trufflejar(args=None):
-    """make truffle.jar"""
-
-    # Test with the built classes
-    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@Parameters'])
-
-    # We use the DSL processor as the starting point for the classpath - this
-    # therefore includes the DSL processor, the DSL and the API.
-    packagejar(mx.classpath("com.oracle.truffle.dsl.processor").split(os.pathsep), "truffle.jar", None, "com.oracle.truffle.dsl.processor.TruffleProcessor")
-
-    # Test with the JAR
-    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@Parameters'], "truffle.jar:")
-
 
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
@@ -2024,8 +2040,7 @@ def mx_init(suite):
         'vmfg': [vmfg, '[-options] class [args...]'],
         'deoptalot' : [deoptalot, '[n]'],
         'longtests' : [longtests, ''],
-        'sl' : [sl, '[SL args|@VM options]'],
-        'trufflejar' : [trufflejar, '']
+        'sl' : [sl, '[SL args|@VM options]']
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])

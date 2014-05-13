@@ -26,7 +26,7 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.lir.gen.*;
 
-public class BytecodeLIRBuilder {
+public abstract class BytecodeLIRBuilder {
     protected final LIRGeneratorTool gen;
     protected final BytecodeParserTool parser;
 
@@ -60,5 +60,11 @@ public class BytecodeLIRBuilder {
         }
 
     }
+
+    public abstract int getArrayLengthOffset();
+
+    public abstract Constant getClassConstant(ResolvedJavaType declaringClass);
+
+    public abstract int getFieldOffset(ResolvedJavaField field);
 
 }

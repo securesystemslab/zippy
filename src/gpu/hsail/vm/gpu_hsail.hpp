@@ -32,7 +32,7 @@
 class Hsail : public Gpu {
 
   public:
-  class HSAILKernelDeoptimization {
+  class HSAILKernelDeoptimization VALUE_OBJ_CLASS_SPEC {
     friend class VMStructs;
    private:
     // TODO: separate workitemid and actionAndReason out
@@ -40,14 +40,16 @@ class Hsail : public Gpu {
     // for now, though we only ever have one hsail fram
     jint  _workitemid;
     jint  _actionAndReason;
-    // the first (innermost) "hsail frame" starts here
-    HSAILFrame _first_frame;
+    // the first (innermost) "hsail frame" starts after the above fields
 
    public:
     inline jint workitem() { return _workitemid; }
     inline jint reason() { return _actionAndReason; }
-    inline jint pc_offset() { return _first_frame.pc_offset(); }
-    inline HSAILFrame *first_frame() { return &_first_frame; }
+    inline jint pc_offset() { return first_frame()->pc_offset(); }
+    inline HSAILFrame *first_frame() {
+      // starts after the "header" fields
+      return (HSAILFrame *) (((jbyte *) this) + sizeof(*this));
+    }
   };
 
 // 8 compute units * 40 waves per cu * wavesize 64
@@ -75,7 +77,7 @@ class Hsail : public Gpu {
       _deopt_next_index = 0;
       _num_slots = numSlots;
       _bytesPerSaveArea = bytesPerSaveArea;
-      _deopt_span = sizeof(HSAILKernelDeoptimization) + bytesPerSaveArea;
+      _deopt_span = sizeof(HSAILKernelDeoptimization) + sizeof(HSAILFrame) + bytesPerSaveArea;
       if (TraceGPUInteraction) {
         tty->print_cr("HSAILDeoptimizationInfo allocated, %d slots of size %d, total size = 0x%lx bytes", _num_slots, _deopt_span, (_num_slots * _deopt_span + sizeof(HSAILDeoptimizationInfo)));
       }

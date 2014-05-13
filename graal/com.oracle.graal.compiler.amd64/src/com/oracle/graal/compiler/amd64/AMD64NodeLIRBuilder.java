@@ -56,12 +56,6 @@ public abstract class AMD64NodeLIRBuilder extends NodeLIRBuilder {
     }
 
     @Override
-    public void emitNullCheck(ValueNode v, DeoptimizingNode deopt) {
-        assert v.getKind() == Kind.Object : v + " - " + v.stamp() + " @ " + deopt;
-        append(new AMD64Move.NullCheckOp(gen.load(operand(v)), state(deopt)));
-    }
-
-    @Override
     protected boolean peephole(ValueNode valueNode) {
         if ((valueNode instanceof IntegerDivNode) || (valueNode instanceof IntegerRemNode)) {
             FixedBinaryNode divRem = (FixedBinaryNode) valueNode;
@@ -316,7 +310,7 @@ public abstract class AMD64NodeLIRBuilder extends NodeLIRBuilder {
         throw GraalInternalError.shouldNotReachHere();
     }
 
-    private AMD64Arithmetic getOp(ValueNode operation, Access access) {
+    protected AMD64Arithmetic getOp(ValueNode operation, Access access) {
         Kind memoryKind = getMemoryKind(access);
         if (operation.getClass() == IntegerAddNode.class) {
             switch (memoryKind) {
@@ -455,7 +449,7 @@ public abstract class AMD64NodeLIRBuilder extends NodeLIRBuilder {
         return null;
     }
 
-    @MatchRule("(Write Narrow=narrow value)")
+    @MatchRule("(Write Narrow=narrow location value)")
     public ComplexMatchResult writeNarrow(WriteNode root, NarrowNode narrow) {
         return builder -> {
             PlatformKind writeKind = getLIRGeneratorTool().getPlatformKind(root.value().stamp());

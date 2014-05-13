@@ -20,23 +20,37 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.match;
+package com.oracle.graal.api.collections;
 
-import com.oracle.graal.nodes.*;
+import java.util.*;
 
 /**
- * Helper class to visit the matchable inputs of a node in a specified order. This may not be needed
- * in the end since this could probably be done using the inputs iterator but it simplifies things
- * for the moment.
+ * A factory for creating collections.
  */
-public class MatchNodeAdapter {
-    @SuppressWarnings("unused")
-    protected ValueNode getFirstInput(ValueNode node) {
-        throw new InternalError();
-    }
+public interface CollectionsProvider {
 
-    @SuppressWarnings("unused")
-    protected ValueNode getSecondInput(ValueNode node) {
-        throw new InternalError();
-    }
+    /**
+     * Creates a set that uses reference-equality in place of object-equality when comparing
+     * entries.
+     */
+    <E> Set<E> newIdentitySet();
+
+    /**
+     * Creates a map that uses reference-equality in place of object-equality when comparing keys.
+     */
+    <K, V> Map<K, V> newIdentityMap();
+
+    /**
+     * Creates a map that uses reference-equality in place of object-equality when comparing keys.
+     *
+     * @param expectedMaxSize the expected maximum size of the map
+     */
+    <K, V> Map<K, V> newIdentityMap(int expectedMaxSize);
+
+    /**
+     * Creates a map that uses reference-equality in place of object-equality when comparing keys.
+     *
+     * @param initFrom the returned map is populated with the entries in this map
+     */
+    <K, V> Map<K, V> newIdentityMap(Map<K, V> initFrom);
 }

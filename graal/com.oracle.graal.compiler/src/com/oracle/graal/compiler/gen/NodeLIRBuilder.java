@@ -23,6 +23,7 @@
 package com.oracle.graal.compiler.gen;
 
 import static com.oracle.graal.api.code.ValueUtil.*;
+import static com.oracle.graal.compiler.GraalDebugConfig.*;
 import static com.oracle.graal.compiler.common.GraalOptions.*;
 import static com.oracle.graal.lir.LIR.*;
 import static com.oracle.graal.nodes.ConstantNode.*;
@@ -55,6 +56,36 @@ import com.oracle.graal.nodes.virtual.*;
 /**
  * This class traverses the HIR instructions and generates LIR instructions from them.
  */
+@MatchableNode(nodeClass = ConstantNode.class, shareable = true)
+@MatchableNode(nodeClass = FloatConvertNode.class, inputs = {"input"})
+@MatchableNode(nodeClass = FloatSubNode.class, inputs = {"x", "y"})
+@MatchableNode(nodeClass = FloatingReadNode.class, inputs = {"object", "location"})
+@MatchableNode(nodeClass = IfNode.class, inputs = {"condition"})
+@MatchableNode(nodeClass = IntegerSubNode.class, inputs = {"x", "y"})
+@MatchableNode(nodeClass = LeftShiftNode.class, inputs = {"x", "y"})
+@MatchableNode(nodeClass = NarrowNode.class, inputs = {"input"})
+@MatchableNode(nodeClass = ReadNode.class, inputs = {"object", "location"})
+@MatchableNode(nodeClass = ReinterpretNode.class, inputs = {"value"})
+@MatchableNode(nodeClass = SignExtendNode.class, inputs = {"input"})
+@MatchableNode(nodeClass = UnsignedRightShiftNode.class, inputs = {"x", "y"})
+@MatchableNode(nodeClass = WriteNode.class, inputs = {"object", "location", "value"})
+@MatchableNode(nodeClass = ZeroExtendNode.class, inputs = {"input"})
+@MatchableNode(nodeClass = AndNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = FloatAddNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = FloatEqualsNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = FloatLessThanNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = FloatMulNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = IntegerAddNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = IntegerBelowThanNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = IntegerEqualsNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = IntegerLessThanNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = IntegerMulNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = IntegerTestNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = ObjectEqualsNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = OrNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = XorNode.class, inputs = {"x", "y"}, commutative = true)
+@MatchableNode(nodeClass = PiNode.class, inputs = {"object"})
+@MatchableNode(nodeClass = ConstantLocationNode.class, shareable = true)
 public abstract class NodeLIRBuilder implements NodeLIRBuilderTool {
 
     private final NodeMap<Value> nodeOperands;
@@ -71,7 +102,9 @@ public abstract class NodeLIRBuilder implements NodeLIRBuilderTool {
         this.gen = gen;
         this.nodeOperands = graph.createNodeMap();
         this.debugInfoBuilder = createDebugInfoBuilder(nodeOperands);
-        matchRules = MatchRuleRegistry.lookup(getClass());
+        if (MatchExpressions.getValue()) {
+            matchRules = MatchRuleRegistry.lookup(getClass());
+        }
     }
 
     @SuppressWarnings("hiding")
@@ -210,11 +243,9 @@ public abstract class NodeLIRBuilder implements NodeLIRBuilderTool {
 
         List<ScheduledNode> nodes = blockMap.get(block);
 
-        if (MatchExpressions.getValue()) {
-            // Allow NodeLIRBuilder subclass to specialize code generation of any interesting groups
-            // of instructions
-            matchComplexExpressions(nodes);
-        }
+        // Allow NodeLIRBuilder subclass to specialize code generation of any interesting groups
+        // of instructions
+        matchComplexExpressions(nodes);
 
         for (int i = 0; i < nodes.size(); i++) {
             Node instr = nodes.get(i);
@@ -274,6 +305,13 @@ public abstract class NodeLIRBuilder implements NodeLIRBuilderTool {
     protected void matchComplexExpressions(List<ScheduledNode> nodes) {
         if (matchRules != null) {
             try (Scope s = Debug.scope("MatchComplexExpressions")) {
+                if (LogVerbose.getValue()) {
+                    int i = 0;
+                    for (ScheduledNode node : nodes) {
+                        Debug.log("%d: (%s) %1S", i++, node.usages().count(), node);
+                    }
+                }
+
                 // Match the nodes in backwards order to encourage longer matches.
                 for (int index = nodes.size() - 1; index >= 0; index--) {
                     ScheduledNode snode = nodes.get(index);
@@ -281,6 +319,9 @@ public abstract class NodeLIRBuilder implements NodeLIRBuilderTool {
                         continue;
                     }
                     ValueNode node = (ValueNode) snode;
+                    if (getOperand(node) != null) {
+                        continue;
+                    }
                     // See if this node is the root of any MatchStatements
                     List<MatchStatement> statements = matchRules.get(node.getClass());
                     if (statements != null) {
