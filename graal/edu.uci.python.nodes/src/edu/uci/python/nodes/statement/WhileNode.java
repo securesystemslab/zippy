@@ -41,6 +41,10 @@ public class WhileNode extends LoopNode {
         this.condition = condition;
     }
 
+    public CastToBooleanNode getCondition() {
+        return condition;
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         int count = 0;

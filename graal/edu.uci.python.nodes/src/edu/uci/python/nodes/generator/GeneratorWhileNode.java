@@ -35,10 +35,9 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 
 /**
- * It only catches BreakException without rethrowing it. <br>
- * Therefore, we have to remove the parent BreakTargetNode if there is one.
+ * @author zwei
  */
-public class GeneratorWhileNode extends WhileNode {
+public final class GeneratorWhileNode extends WhileNode {
 
     private int count;
     private final int flagSlot;
@@ -56,22 +55,13 @@ public class GeneratorWhileNode extends WhileNode {
         PArguments.getGeneratorArguments(frame).setActive(flagSlot, flag);
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        try {
-            while (isActive(frame) || condition.executeBoolean(frame)) {
-                setActive(frame, true);
-                body.executeVoid(frame);
-                setActive(frame, false);
-
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } catch (BreakException ex) {
-            setActive(frame, false);
+    private void incrementCounter() {
+        if (CompilerDirectives.inInterpreter()) {
+            count++;
         }
+    }
 
+    private Object doReturn(VirtualFrame frame) {
         if (CompilerDirectives.inInterpreter()) {
             reportLoopCount(count);
             count = 0;
@@ -79,6 +69,22 @@ public class GeneratorWhileNode extends WhileNode {
 
         assert !isActive(frame);
         return PNone.NONE;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        try {
+            while (isActive(frame) || condition.executeBoolean(frame)) {
+                setActive(frame, true);
+                body.executeVoid(frame);
+                setActive(frame, false);
+                incrementCounter();
+            }
+        } catch (BreakException ex) {
+            setActive(frame, false);
+        }
+
+        return doReturn(frame);
     }
 
 }

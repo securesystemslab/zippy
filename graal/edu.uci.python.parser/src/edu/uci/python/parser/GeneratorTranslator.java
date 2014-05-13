@@ -140,7 +140,15 @@ public class GeneratorTranslator {
             return;
         }
 
-        if (node instanceof ForWithLocalTargetNode) {
+        if (node instanceof WhileNode) {
+            WhileNode whileNode = (WhileNode) node;
+
+            if (node.getParent() instanceof BreakTargetNode) {
+                node.getParent().replace(new GeneratorWhileNode(whileNode.getCondition(), whileNode.getBody(), nextActiveFlagSlot()));
+            } else {
+                node.replace(new GeneratorWhileNode(whileNode.getCondition(), whileNode.getBody(), nextActiveFlagSlot()));
+            }
+        } else if (node instanceof ForWithLocalTargetNode) {
             assert depth > 0;
             ForWithLocalTargetNode forNode = (ForWithLocalTargetNode) node;
             AdvanceIteratorNode next = (AdvanceIteratorNode) forNode.getTarget();
@@ -156,7 +164,7 @@ public class GeneratorTranslator {
             }
 
             node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
-        } else if (node instanceof IfNode || node instanceof ElseNode || node instanceof BreakTargetNode || node instanceof WhileNode) {
+        } else if (node instanceof IfNode || node instanceof ElseNode || node instanceof BreakTargetNode) {
             // do nothing for now
         } else {
             TranslationUtil.notCovered();

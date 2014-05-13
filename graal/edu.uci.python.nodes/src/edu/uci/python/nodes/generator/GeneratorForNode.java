@@ -63,20 +63,18 @@ public final class GeneratorForNode extends LoopNode {
     }
 
     private Object doReturn(VirtualFrame frame) {
+        if (CompilerDirectives.inInterpreter()) {
+            reportLoopCount(count);
+            count = 0;
+        }
+
         setIterator(frame, null);
-        count = 0;
         return PNone.NONE;
     }
 
     private void incrementCounter() {
         if (CompilerDirectives.inInterpreter()) {
             count++;
-        }
-    }
-
-    private void reportCounter() {
-        if (CompilerDirectives.inInterpreter()) {
-            reportLoopCount(count);
         }
     }
 
@@ -95,7 +93,7 @@ public final class GeneratorForNode extends LoopNode {
                 incrementCounter();
             }
         } catch (StopIterationException e) {
-            reportCounter();
+
         }
 
         return doReturn(frame);
