@@ -45,8 +45,8 @@ library@JAVA_ALLOCATION_INSTRUMENTER@sha1=1cd4073f57d7d461a53b0ddc1ea4ee2aa0c60e
 library@JLINE09@path=lib/jline-0.9.95-SNAPSHOT.jar
 library@JLINE09@urls=http://mirrors.ibiblio.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar
 
-library@JYTHON@path=lib/jython-standalone-2.7-b1.jar
-library@JYTHON@urls=http://mirrors.ibiblio.org/maven2/org/python/jython-standalone/2.7-b1/jython-standalone-2.7-b1.jar
+library@JYTHON@path=lib/jython-standalone-2.7-b2.jar
+library@JYTHON@urls=http://search.maven.org/remotecontent?filepath=org/python/jython-standalone/2.7-b2/jython-standalone-2.7-b2.jar
 
 library@ASM@path=lib/asm-5.0.2.jar
 library@ASM@urls=http://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-all/5.0.2/asm-all-5.0.2.jar

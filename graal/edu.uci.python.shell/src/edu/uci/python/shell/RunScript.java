@@ -112,7 +112,7 @@ public class RunScript {
         PySystemState systemState = Py.getSystemState();
 
         // Now create an interpreter
-        CustomConsole interp = new CustomConsole();
+        ZipPyConsole interp = new ZipPyConsole();
         systemState.__setattr__("_jy_interpreter", Py.java2py(interp));
 
         if (source != null) {
@@ -127,7 +127,7 @@ public class RunScript {
         PySystemState systemState = Py.getSystemState();
 
         // Now create an interpreter
-        CustomConsole interp = new CustomConsole();
+        ZipPyConsole interp = new ZipPyConsole();
         systemState.__setattr__("_jy_interpreter", Py.java2py(interp));
         PythonParseResult result = null;
 
@@ -178,7 +178,7 @@ public class RunScript {
                 // fall through
             }
         }
-        return new CustomConsole();
+        return new ZipPyConsole();
     }
 
     /**

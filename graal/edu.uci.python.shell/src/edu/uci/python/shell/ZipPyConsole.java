@@ -34,7 +34,7 @@ import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public class CustomConsole extends JLineConsole {
+public class ZipPyConsole extends InteractiveConsole {
 
     @Override
     public void execfile(java.io.InputStream s, String name) {
