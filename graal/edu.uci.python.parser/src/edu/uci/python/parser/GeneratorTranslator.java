@@ -120,7 +120,7 @@ public class GeneratorTranslator {
                 int iteratorSlot = ((GeneratorForNode) current).getIteratorSlot();
                 int[] indexSlotsArray = Ints.toArray(indexSlots);
                 int[] flagSlotsArray = Ints.toArray(flagSlots);
-                bnode.replace(new BreakNode.GeneratorBreakNode(iteratorSlot, indexSlotsArray, flagSlotsArray));
+                bnode.replace(new GeneratorBreakNode(iteratorSlot, indexSlotsArray, flagSlotsArray));
             }
         }
 
