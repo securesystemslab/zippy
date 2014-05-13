@@ -8,6 +8,10 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.*;
 
+/**
+ * @author Gulfem
+ */
+
 public class ProfilerResultPrinter {
 
     public static void printProfilerInstrumenterResults() {
@@ -49,9 +53,9 @@ public class ProfilerResultPrinter {
 
         // CheckStyle: stop system..print check
         System.out.format("%-23s", "Function Name");
-        System.out.format("%-27s", "Invocation Counts");
+        System.out.format("%-27s", "Number of Calls");
         System.out.println();
-        System.out.println("=============          =================");
+        System.out.println("=============          ===============");
         // CheckStyle: resume system..print check
 
         for (int i = 0; i < profiledNodes.size(); i++) {
@@ -93,7 +97,7 @@ public class ProfilerResultPrinter {
     private static void printInvocationCount(String functionName, long invocationCount) {
         // CheckStyle: stop system..print check
         System.out.format("%-23s", functionName);
-        System.out.format("%17s", invocationCount);
+        System.out.format("%15s", invocationCount);
         // CheckStyle: resume system..print check
     }
 

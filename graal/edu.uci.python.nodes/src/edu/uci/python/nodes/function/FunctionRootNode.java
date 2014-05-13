@@ -44,7 +44,7 @@ public final class FunctionRootNode extends RootNode {
     @Child protected PNode body;
     private PNode uninitializedBody;
 
-    @Child private ProfilerNode profiler;
+    @Child private PNode profiler;
 
     public FunctionRootNode(PythonContext context, String functionName, FrameDescriptor frameDescriptor, PNode body) {
         super(null, frameDescriptor); // SourceSection is not supported yet.
@@ -52,8 +52,10 @@ public final class FunctionRootNode extends RootNode {
         this.functionName = functionName;
         this.body = body;
         this.uninitializedBody = NodeUtil.cloneNode(body);
-        if (PythonOptions.ProfileFunctionInvocations) {
+        if (PythonOptions.ProfileCalls) {
             this.profiler = new ProfilerNode(this);
+        } else {
+            this.profiler = EmptyNode.INSTANCE;
         }
     }
 
@@ -88,7 +90,7 @@ public final class FunctionRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        if (PythonOptions.ProfileFunctionInvocations) {
+        if (PythonOptions.ProfileCalls) {
             profiler.execute(frame);
             return body.execute(frame);
         } else {

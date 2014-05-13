@@ -58,7 +58,23 @@ public class CommandLineParser {
                 continue;
             }
 
+            if (arg.equals("-profile-calls")) {
+                PythonOptions.ProfileCalls = true;
+                continue;
+            }
+
+            if (arg.equals("-profile-nodes")) {
+                PythonOptions.AddProfilingInstrumentation = true;
+                continue;
+            }
+
+            if (arg.equals("-sort")) {
+                PythonOptions.SortProfilerResults = true;
+                continue;
+            }
+
             throw new IllegalStateException("Unknown options " + arg);
         }
+
     }
 }

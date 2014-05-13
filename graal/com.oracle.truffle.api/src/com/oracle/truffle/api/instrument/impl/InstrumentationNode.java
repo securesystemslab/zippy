@@ -107,9 +107,9 @@ public abstract class InstrumentationNode extends Node implements ExecutionEvent
 
     private void internalEnter(Node astNode, VirtualFrame frame) {
         enter(astNode, frame);
-        if (next != null) {
-            next.internalEnter(astNode, frame);
-        }
+// if (next != null) {
+// next.internalEnter(astNode, frame);
+// }
     }
 
     private void internalLeave(Node astNode, VirtualFrame frame) {

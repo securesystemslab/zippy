@@ -83,12 +83,13 @@ public class CustomConsole extends JLineConsole {
             context.printGeneratorProfilingInfo();
         }
 
-        if (PythonOptions.ProfileFunctionInvocations) {
-            printBanner("Function Invocation Count Results");
+        if (PythonOptions.ProfileCalls) {
+            printBanner("Call Profiling Results");
             ProfilerResultPrinter.printFunctionInvocationProfilerResults();
         }
 
         if (PythonOptions.AddProfilingInstrumentation) {
+            printBanner("Node Profiling Results");
             ProfilerResultPrinter.printProfilerInstrumenterResults();
         }
 
