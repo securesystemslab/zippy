@@ -229,7 +229,7 @@ public class PythonTreeTranslator extends Visitor {
          */
         expr body = node.getInternalBody();
         PNode bodyNode = (PNode) visit(body);
-        bodyNode = new ElseNode(argumentLoads, bodyNode);
+        bodyNode = factory.createBlock(argumentLoads, bodyNode);
 
         /**
          * Defaults

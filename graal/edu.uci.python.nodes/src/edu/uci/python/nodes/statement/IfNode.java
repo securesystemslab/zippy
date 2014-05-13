@@ -28,7 +28,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatype.*;
 
 public class IfNode extends StatementNode {
 
@@ -45,12 +44,10 @@ public class IfNode extends StatementNode {
     @Override
     public Object execute(VirtualFrame frame) {
         if (condition.executeBoolean(frame)) {
-            then.executeVoid(frame);
+            return then.execute(frame);
         } else {
-            orelse.executeVoid(frame);
+            return orelse.execute(frame);
         }
-
-        return PNone.NONE;
     }
 
     @Override

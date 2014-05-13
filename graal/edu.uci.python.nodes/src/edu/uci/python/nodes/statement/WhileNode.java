@@ -51,7 +51,7 @@ public class WhileNode extends LoopNode {
 
         try {
             while (condition.executeBoolean(frame)) {
-                body.executeVoid(frame);
+                body.execute(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
                     count++;
