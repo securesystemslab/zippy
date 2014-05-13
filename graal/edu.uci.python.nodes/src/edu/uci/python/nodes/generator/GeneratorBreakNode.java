@@ -31,7 +31,7 @@ import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 
-public class GeneratorBreakNode extends StatementNode {
+public final class GeneratorBreakNode extends StatementNode {
 
     private final int targetLoopIteratorSlot;
     private final int[] enclosingBlockIndexSlots;
@@ -49,7 +49,7 @@ public class GeneratorBreakNode extends StatementNode {
         PArguments.getGeneratorArguments(frame).setIteratorAt(targetLoopIteratorSlot, null);
 
         for (int indexSlot : enclosingBlockIndexSlots) {
-            GeneratorBlockNode.setIndex(frame, indexSlot, 0);
+            PArguments.getGeneratorArguments(frame).setBlockIndexAt(indexSlot, 0);
         }
 
         for (int flagSlot : enclosingIfFlagSlots) {
