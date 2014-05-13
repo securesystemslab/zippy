@@ -34,8 +34,8 @@ import edu.uci.python.runtime.function.*;
 
 public class GeneratorIfNode extends IfNode {
 
-    private final int thenFlagSlot;
-    private final int elseFlagSlot;
+    protected final int thenFlagSlot;
+    protected final int elseFlagSlot;
 
     public GeneratorIfNode(CastToBooleanNode condition, PNode then, PNode orelse, int thenFlagSlot, int elseFlagSlot) {
         super(condition, then, orelse);
@@ -59,47 +59,43 @@ public class GeneratorIfNode extends IfNode {
         return elseFlagSlot;
     }
 
-    protected boolean isThenActive(VirtualFrame frame) {
-        return PArguments.getGeneratorArguments(frame).getActive(thenFlagSlot);
+    protected boolean isActive(VirtualFrame frame, int flagSlot) {
+        return PArguments.getGeneratorArguments(frame).getActive(flagSlot);
     }
 
-    protected void setThenActive(VirtualFrame frame, boolean flag) {
-        PArguments.getGeneratorArguments(frame).setActive(thenFlagSlot, flag);
+    protected void setActive(VirtualFrame frame, int flagSlot, boolean value) {
+        PArguments.getGeneratorArguments(frame).setActive(flagSlot, value);
     }
 
-    protected boolean isElseActive(VirtualFrame frame) {
-        return PArguments.getGeneratorArguments(frame).getActive(elseFlagSlot);
+    protected final Object executeThen(VirtualFrame frame) {
+        setActive(frame, thenFlagSlot, true);
+        then.execute(frame);
+        setActive(frame, thenFlagSlot, false);
+        return PNone.NONE;
     }
 
-    protected void setElseActive(VirtualFrame frame, boolean flag) {
-        PArguments.getGeneratorArguments(frame).setActive(elseFlagSlot, flag);
+    protected final Object executeElse(VirtualFrame frame) {
+        setActive(frame, elseFlagSlot, true);
+        orelse.execute(frame);
+        setActive(frame, elseFlagSlot, false);
+        return PNone.NONE;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        if (isThenActive(frame)) {
-            then.execute(frame);
-            setThenActive(frame, false);
-            return PNone.NONE;
+        if (isActive(frame, thenFlagSlot)) {
+            return executeThen(frame);
         }
 
-        if (isElseActive(frame)) {
-            orelse.execute(frame);
-            setElseActive(frame, false);
-            return PNone.NONE;
+        if (isActive(frame, elseFlagSlot)) {
+            return executeElse(frame);
         }
 
         if (condition.executeBoolean(frame)) {
-            setThenActive(frame, true);
-            then.execute(frame);
-            setThenActive(frame, false);
+            return executeThen(frame);
         } else {
-            setElseActive(frame, true);
-            orelse.execute(frame);
-            setElseActive(frame, false);
+            return executeElse(frame);
         }
-
-        return PNone.NONE;
     }
 
     public static final class GeneratorIfWithoutElseNode extends GeneratorIfNode {
@@ -113,10 +109,8 @@ public class GeneratorIfNode extends IfNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            if (isThenActive(frame) || condition.executeBoolean(frame)) {
-                setThenActive(frame, true);
-                then.execute(frame);
-                setThenActive(frame, false);
+            if (isActive(frame, thenFlagSlot) || condition.executeBoolean(frame)) {
+                return executeThen(frame);
             }
 
             return PNone.NONE;
