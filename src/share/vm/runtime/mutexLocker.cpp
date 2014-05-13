@@ -133,10 +133,6 @@ Mutex*   JfrStream_lock               = NULL;
 Mutex*   JfrThreadGroups_lock         = NULL;
 #endif
 
-#ifdef GRAAL
-Monitor* GraalInitialization_lock     = NULL;
-#endif
-
 #define MAX_NUM_MUTEX 128
 static Monitor * _mutex_array[MAX_NUM_MUTEX];
 static int _num_mutex;
@@ -283,10 +279,6 @@ void mutex_init() {
   def(JfrThreadGroups_lock         , Mutex,   nonleaf+1,   true);
   def(JfrStream_lock               , Mutex,   nonleaf+2,   true);
   def(JfrStacktrace_lock           , Mutex,   special,     true );
-#endif
-
-#ifdef GRAAL
-  def(GraalInitialization_lock     , Monitor, nonleaf+5,   false);
 #endif
 }
 
