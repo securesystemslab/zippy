@@ -41,13 +41,18 @@ public class WhileNode extends LoopNode {
         this.condition = condition;
     }
 
+    public CastToBooleanNode getCondition() {
+        return condition;
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         int count = 0;
 
         try {
             while (condition.executeBoolean(frame)) {
-                body.executeVoid(frame);
+                loopBodyBranch.enter();
+                body.execute(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
                     count++;
@@ -60,11 +65,6 @@ public class WhileNode extends LoopNode {
         }
 
         return PNone.NONE;
-    }
-
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
     }
 
 }

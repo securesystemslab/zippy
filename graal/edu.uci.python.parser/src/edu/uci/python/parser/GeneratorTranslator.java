@@ -36,6 +36,7 @@ import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
+import edu.uci.python.nodes.generator.GeneratorIfNode.GeneratorIfWithoutElseNode;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 
@@ -43,6 +44,7 @@ public class GeneratorTranslator {
 
     private final FunctionRootNode root;
     private final PythonContext context;
+    private int numOfActiveFlags;
     private int numOfGeneratorBlockNode;
     private int numOfGeneratorForNode;
 
@@ -100,18 +102,29 @@ public class GeneratorTranslator {
             // look for it's breaking loop node
             Node current = bnode.getParent();
             List<Integer> indexSlots = new ArrayList<>();
+            List<Integer> flagSlots = new ArrayList<>();
+
             while (current instanceof GeneratorBlockNode || current instanceof ContinueTargetNode || current instanceof IfNode) {
                 if (current instanceof GeneratorBlockNode) {
                     int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
                     indexSlots.add(indexSlot);
+                } else if (current instanceof GeneratorIfWithoutElseNode) {
+                    GeneratorIfWithoutElseNode ifNode = (GeneratorIfWithoutElseNode) current;
+                    flagSlots.add(ifNode.getThenFlagSlot());
+                } else if (current instanceof GeneratorIfNode) {
+                    GeneratorIfNode ifNode = (GeneratorIfNode) current;
+                    flagSlots.add(ifNode.getThenFlagSlot());
+                    flagSlots.add(ifNode.getElseFlagSlot());
                 }
+
                 current = current.getParent();
             }
 
             if (current instanceof GeneratorForNode) {
                 int iteratorSlot = ((GeneratorForNode) current).getIteratorSlot();
                 int[] indexSlotsArray = Ints.toArray(indexSlots);
-                bnode.replace(new BreakNode.GeneratorBreakNode(iteratorSlot, indexSlotsArray));
+                int[] flagSlotsArray = Ints.toArray(flagSlots);
+                bnode.replace(new GeneratorBreakNode(iteratorSlot, indexSlotsArray, flagSlotsArray));
             }
         }
 
@@ -125,9 +138,9 @@ public class GeneratorTranslator {
             BlockNode body = (BlockNode) returnTarget.getBody();
             assert body.getStatements().length == 2;
             PNode argumentLoads = body.getStatements()[0];
-            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body.getStatements()[1], returnTarget.getReturn()));
+            returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body.getStatements()[1], returnTarget.getReturn(), nextActiveFlagSlot()));
         } else {
-            returnTarget.replace(new GeneratorReturnTargetNode(EmptyNode.INSTANCE, returnTarget.getBody(), returnTarget.getReturn()));
+            returnTarget.replace(new GeneratorReturnTargetNode(EmptyNode.INSTANCE, returnTarget.getBody(), returnTarget.getReturn(), nextActiveFlagSlot()));
         }
     }
 
@@ -139,32 +152,47 @@ public class GeneratorTranslator {
             return;
         }
 
-        if (node instanceof ForWithLocalTargetNode) {
-            ForWithLocalTargetNode forNode = (ForWithLocalTargetNode) node;
-            AdvanceIteratorNode next = (AdvanceIteratorNode) forNode.getTarget();
-            WriteGeneratorFrameVariableNode target = (WriteGeneratorFrameVariableNode) next.getTarget();
-            GetIteratorNode getIter = (GetIteratorNode) forNode.getIterator();
-            int iteratorSlot = nextGeneratorForNodeSlot();
+        if (node instanceof WhileNode) {
+            WhileNode whileNode = (WhileNode) node;
 
-            if (depth == 0) {
-                node.replace(new GeneratorForNode.InnerGeneratorForNode(target, getIter, forNode.getBody(), iteratorSlot));
+            if (node.getParent() instanceof BreakTargetNode) {
+                node.getParent().replace(new GeneratorWhileNode(whileNode.getCondition(), whileNode.getBody(), nextActiveFlagSlot()));
             } else {
-                node.replace(new GeneratorForNode(target, getIter, forNode.getBody(), iteratorSlot));
+                node.replace(new GeneratorWhileNode(whileNode.getCondition(), whileNode.getBody(), nextActiveFlagSlot()));
             }
+        } else if (node instanceof IfNode) {
+            IfNode ifNode = (IfNode) node;
+            int ifFlag = nextActiveFlagSlot();
+            int elseFlag = nextActiveFlagSlot();
+            node.replace(GeneratorIfNode.create(ifNode.getCondition(), ifNode.getThen(), ifNode.getElse(), ifFlag, elseFlag));
+        } else if (node instanceof ForNode) {
+            assert depth > 0;
+            ForNode forNode = (ForNode) node;
+            WriteGeneratorFrameVariableNode target = (WriteGeneratorFrameVariableNode) forNode.getTarget();
+            GetIteratorNode getIter = (GetIteratorNode) forNode.getIterator();
+            node.replace(new GeneratorForNode(target, getIter, forNode.getBody(), nextGeneratorForNodeSlot()));
         } else if (node instanceof BlockNode) {
             BlockNode block = (BlockNode) node;
             int slotOfBlockIndex = nextGeneratorBlockIndexSlot();
 
             if (yield.getParent().equals(block)) {
-                yield.replace(new YieldNode.GeneratorYieldNode(yield.getRhs(), slotOfBlockIndex));
+                yield.replace(new YieldNode(yield, slotOfBlockIndex));
             }
 
             node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
-        } else if (node instanceof IfNode || node instanceof ElseNode || node instanceof BreakTargetNode || node instanceof WhileNode) {
+        } else if (node instanceof ElseNode || node instanceof BreakTargetNode) {
             // do nothing for now
         } else {
             TranslationUtil.notCovered();
         }
+    }
+
+    private int nextActiveFlagSlot() {
+        return numOfActiveFlags++;
+    }
+
+    public int getNumOfActiveFlags() {
+        return numOfActiveFlags;
     }
 
     private int nextGeneratorBlockIndexSlot() {

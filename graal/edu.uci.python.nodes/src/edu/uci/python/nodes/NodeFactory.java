@@ -92,12 +92,8 @@ public class NodeFactory {
         return createBlock(array);
     }
 
-    public PNode createBlock(PNode[] statements) {
+    public PNode createBlock(PNode... statements) {
         return BlockNode.create(statements);
-    }
-
-    public PNode createNonVoidBlockNode(PNode[] statements) {
-        return new NonVoidBlockNode(statements);
     }
 
     public PNode createImport(PythonContext context, String importee) {
@@ -122,10 +118,6 @@ public class NodeFactory {
 
     public GetIteratorNode createGetIterator(PNode collection) {
         return GetIteratorNodeFactory.create(collection);
-    }
-
-    public LoopNode createFor(PNode target, GetIteratorNode iterator, PNode body) {
-        return ForNodeFactory.create(target, body, iterator);
     }
 
     public StatementNode createElse(StatementNode then, PNode orelse) {
@@ -211,14 +203,6 @@ public class NodeFactory {
 
     public PNode createListAppend(FrameSlot frameSlot, PNode right) {
         return ListAppendNodeFactory.create(frameSlot, right);
-    }
-
-    public LoopNode createGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body, int iteratorSlot) {
-        return new GeneratorForNode(WriteGeneratorFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body, iteratorSlot);
-    }
-
-    public LoopNode createInnerGeneratorForNode(WriteLocalVariableNode target, PNode getIterator, PNode body, int iteratorSlot) {
-        return new GeneratorForNode.InnerGeneratorForNode(WriteGeneratorFrameVariableNodeFactory.create(target.getSlot(), target.getRhs()), (GetIteratorNode) getIterator, body, iteratorSlot);
     }
 
     public PNode createUnaryOperation(unaryopType operator, PNode operand) {
@@ -393,11 +377,6 @@ public class NodeFactory {
     }
 
     public CastToBooleanNode toBooleanCastNode(PNode node) {
-        // TODO: should fix the thing that this fixes
-        if (node == null) {
-            return null;
-        }
-
         if (node instanceof CastToBooleanNode) {
             return (CastToBooleanNode) node;
         } else {
@@ -423,10 +402,6 @@ public class NodeFactory {
 
     public StatementNode createWithNode(PNode withContext, PNode[] targetNodes, PNode body) {
         return WithNode.create(withContext, targetNodes, body);
-    }
-
-    public PNode createRuntimeValueNode() {
-        return new RuntimeValueNode(null);
     }
 
 }

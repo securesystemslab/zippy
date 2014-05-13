@@ -33,6 +33,7 @@ import edu.uci.python.runtime.datatype.*;
 
 public final class PGeneratorFunction extends PFunction {
 
+    private final int numOfActiveFlags;
     private final int numOfGeneratorBlockNode;
     private final int numOfGeneratorForNode;
     private final CallTarget parallelCallTarget;
@@ -40,8 +41,9 @@ public final class PGeneratorFunction extends PFunction {
     @CompilationFinal private boolean isWorthParallelizing = true;
 
     public PGeneratorFunction(String name, PythonContext context, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame,
-                    CallTarget parallelCallTarget, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+                    CallTarget parallelCallTarget, int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         super(name, context, arity, callTarget, frameDescriptor, declarationFrame);
+        this.numOfActiveFlags = numOfActiveFlags;
         this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
         this.numOfGeneratorForNode = numOfGeneratorForNode;
         this.parallelCallTarget = parallelCallTarget;
@@ -61,7 +63,7 @@ public final class PGeneratorFunction extends PFunction {
             assert parallelCallTarget != null;
             return makeParallelGeneratorHelper(args);
         } else {
-            return PGenerator.create(getName(), context, getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            return PGenerator.create(getName(), context, getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
     }
 
@@ -75,7 +77,7 @@ public final class PGeneratorFunction extends PFunction {
 
             return generator;
         } else {
-            return PGenerator.create(getName(), context, getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            return PGenerator.create(getName(), context, getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,29 +22,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.nodes.generator;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
-public class RuntimeValueNode extends PNode {
+import edu.uci.python.nodes.statement.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.function.*;
 
-    private Object value;
+public final class GeneratorBreakNode extends StatementNode {
 
-    public RuntimeValueNode(Object value) {
-        this.value = value;
+    private final int targetLoopIteratorSlot;
+    private final int[] enclosingBlockIndexSlots;
+    private final int[] enclosingIfFlagSlots;
+
+    public GeneratorBreakNode(int targetLoopIteratorSlot, int[] enclosingBlockIndexSlots, int[] enclosingIfFlagSlots) {
+        this.targetLoopIteratorSlot = targetLoopIteratorSlot;
+        this.enclosingBlockIndexSlots = enclosingBlockIndexSlots;
+        this.enclosingIfFlagSlots = enclosingIfFlagSlots;
     }
 
+    @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
-        return value;
-    }
+        PArguments.getGeneratorArguments(frame).setIteratorAt(targetLoopIteratorSlot, null);
 
-    public Object getValue() {
-        return value;
-    }
+        for (int indexSlot : enclosingBlockIndexSlots) {
+            PArguments.getGeneratorArguments(frame).setBlockIndexAt(indexSlot, 0);
+        }
 
-    public void setValue(Object value) {
-        this.value = value;
+        for (int flagSlot : enclosingIfFlagSlots) {
+            PArguments.getGeneratorArguments(frame).setActive(flagSlot, false);
+        }
+
+        throw BreakException.INSTANCE;
     }
 
 }

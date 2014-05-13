@@ -33,13 +33,15 @@ import edu.uci.python.runtime.function.*;
 
 public final class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
 
+    private final int numOfActiveFlags;
     private final int numOfGeneratorBlockNode;
     private final int numOfGeneratorForNode;
     private final RootCallTarget parallelCallTarget;
 
     public GeneratorFunctionDefinitionNode(String name, PythonContext context, Arity arity, PNode defaults, RootCallTarget callTarget, FrameDescriptor frameDescriptor,
-                    RootCallTarget parallelCallTarget, boolean needsDeclarationFrame, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+                    RootCallTarget parallelCallTarget, boolean needsDeclarationFrame, int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         super(name, context, arity, defaults, callTarget, frameDescriptor, needsDeclarationFrame);
+        this.numOfActiveFlags = numOfActiveFlags;
         this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
         this.numOfGeneratorForNode = numOfGeneratorForNode;
         this.parallelCallTarget = parallelCallTarget;
@@ -49,7 +51,7 @@ public final class GeneratorFunctionDefinitionNode extends FunctionDefinitionNod
     public Object execute(VirtualFrame frame) {
         defaults.executeVoid(frame);
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-        return new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame, parallelCallTarget, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        return new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame, parallelCallTarget, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
 }

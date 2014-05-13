@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -25,39 +25,14 @@
 package edu.uci.python.nodes.control;
 
 import com.oracle.truffle.api.frame.*;
-
-import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.function.*;
 
 public final class BreakNode extends StatementNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
         throw BreakException.INSTANCE;
-    }
-
-    public static final class GeneratorBreakNode extends StatementNode {
-
-        private final int iteratorSlot;
-        private final int[] indexSlots;
-
-        public GeneratorBreakNode(int iteratorSlot, int[] indexSlots) {
-            this.iteratorSlot = iteratorSlot;
-            this.indexSlots = indexSlots;
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            PArguments.getGeneratorArguments(frame).setIteratorAt(iteratorSlot, null);
-
-            for (int indexSlot : indexSlots) {
-                GeneratorBlockNode.setIndex(frame, indexSlot, 0);
-            }
-
-            throw BreakException.INSTANCE;
-        }
     }
 
 }

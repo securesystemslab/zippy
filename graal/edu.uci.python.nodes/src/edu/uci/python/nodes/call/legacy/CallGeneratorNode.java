@@ -94,8 +94,8 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
         assert parent.getParent() != null;
         PNode grandpa = (PNode) parent.getParent();
 
-        if (parent instanceof GetIteratorNode && grandpa instanceof ForWithLocalTargetNode) {
-            transformLoopGeneratorCall((ForWithLocalTargetNode) grandpa, factory);
+        if (parent instanceof GetIteratorNode && grandpa instanceof ForNode) {
+            transformLoopGeneratorCall((ForNode) grandpa, factory);
             invokeGeneratorExpressionOptimizer();
             return true;
         }
@@ -103,20 +103,19 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
         return false;
     }
 
-    private void transformLoopGeneratorCall(ForWithLocalTargetNode loop, FrameFactory factory) {
+    private void transformLoopGeneratorCall(ForNode loop, FrameFactory factory) {
         CallGeneratorInlinedNode inlinedNode = new CallGeneratorInlinedNode(callee, arguments, cached, generatorRoot, globalScopeUnchanged, factory);
         loop.replace(inlinedNode);
 
         PNode body = loop.getBody();
         FrameSlot yieldToSlotInCallerFrame;
-        AdvanceIteratorNode next = (AdvanceIteratorNode) loop.getTarget();
-        PNode target = next.getTarget();
+        PNode target = loop.getTarget();
         yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(inlinedNode.getGeneratorRoot(), YieldNode.class)) {
             PNode frameTransfer = FrameTransferNodeFactory.create(yieldToSlotInCallerFrame, yield.getRhs());
             PNode frameSwapper = new FrameSwappingNode(NodeUtil.cloneNode(body));
-            PNode block = BlockNode.create(new PNode[]{frameTransfer, frameSwapper});
+            PNode block = BlockNode.create(frameTransfer, frameSwapper);
             yield.replace(block);
         }
 

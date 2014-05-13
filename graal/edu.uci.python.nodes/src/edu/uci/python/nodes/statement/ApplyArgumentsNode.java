@@ -45,7 +45,7 @@ public final class ApplyArgumentsNode extends BlockNode {
     public Object execute(VirtualFrame frame) {
         final int argumentsLength = frame.getArguments(PArguments.class).getArgumentsLength();
 
-        for (int i = 0; i < getStatements().length; i++) {
+        for (int i = 0; i < statements.length; i++) {
             if (i >= argumentsLength) {
                 break;
             }

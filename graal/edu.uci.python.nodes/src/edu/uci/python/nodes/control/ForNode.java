@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.control;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -38,43 +39,67 @@ public abstract class ForNode extends LoopNode {
 
     @Child protected PNode target;
 
-    public ForNode(PNode target, PNode body) {
+    public ForNode(PNode body, PNode target) {
         super(body);
         this.target = target;
+        assert target instanceof WriteNode;
     }
 
-    protected ForNode(ForNode previous) {
-        this(previous.target, previous.body);
+    protected ForNode(ForNode prev) {
+        this(prev.body, prev.target);
     }
 
-    @Specialization(order = 0)
-    public Object doPIterator(VirtualFrame frame, PRangeIterator iterator) {
-        final RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
-        final int start = iterator.getStart();
-        final int stop = iterator.getStop();
-        final int step = iterator.getStep();
+    public PNode getTarget() {
+        return target;
+    }
 
-        for (int i = start; i < stop; i += step) {
-            rvn.setValue(i);
-            target.execute(frame);
-            body.executeVoid(frame);
+    public abstract PNode getIterator();
+
+    @Specialization
+    public Object doPRange(VirtualFrame frame, PRangeIterator range) {
+        final int start = range.getStart();
+        final int stop = range.getStop();
+        final int step = range.getStep();
+        int count = 0;
+
+        try {
+            for (int i = start; i < stop; i += step) {
+                ((WriteNode) target).executeWrite(frame, i);
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
         }
 
         return PNone.NONE;
     }
 
     @Specialization
-    public Object doPIterator(VirtualFrame frame, PIterator iterator) {
-        final RuntimeValueNode rvn = (RuntimeValueNode) ((WriteNode) target).getRhs();
+    public Object doIterator(VirtualFrame frame, PIterator iterator) {
+        int count = 0;
 
         try {
             while (true) {
-                rvn.setValue(iterator.__next__());
-                target.execute(frame);
+                loopBodyBranch.enter();
+                ((WriteNode) target).executeWrite(frame, iterator.__next__());
                 body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
             }
         } catch (StopIterationException e) {
-            // fall through
+
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
         }
 
         return PNone.NONE;

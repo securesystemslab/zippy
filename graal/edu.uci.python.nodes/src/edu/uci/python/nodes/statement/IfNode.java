@@ -36,31 +36,33 @@ public class IfNode extends StatementNode {
     @Child protected PNode then;
     @Child protected PNode orelse;
 
-    public long thenCounter = 0;
-    public long elseCounter = 0;
-
     public IfNode(CastToBooleanNode condition, PNode then, PNode orelse) {
         this.condition = condition;
         this.then = then;
         this.orelse = orelse;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        if (condition.executeBoolean(frame)) {
-            then.executeVoid(frame);
-            thenCounter++;
-        } else {
-            orelse.executeVoid(frame);
-            elseCounter++;
-        }
+    public CastToBooleanNode getCondition() {
+        return condition;
+    }
 
-        return PNone.NONE;
+    public PNode getThen() {
+        return then;
+    }
+
+    public PNode getElse() {
+        return orelse;
     }
 
     @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
+    public Object execute(VirtualFrame frame) {
+        if (condition.executeBoolean(frame)) {
+            then.execute(frame);
+        } else {
+            orelse.execute(frame);
+        }
+
+        return PNone.NONE;
     }
 
 }

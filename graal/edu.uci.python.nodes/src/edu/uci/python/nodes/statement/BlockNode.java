@@ -39,7 +39,7 @@ public class BlockNode extends StatementNode {
         assert statements.length > 0;
     }
 
-    public static PNode create(PNode[] statements) {
+    public static PNode create(PNode... statements) {
         final int length = statements.length;
 
         if (length == 0) {
@@ -53,10 +53,6 @@ public class BlockNode extends StatementNode {
 
     public final PNode[] getStatements() {
         return statements;
-    }
-
-    public boolean isEmpty() {
-        return statements.length == 0;
     }
 
     @ExplodeLoop

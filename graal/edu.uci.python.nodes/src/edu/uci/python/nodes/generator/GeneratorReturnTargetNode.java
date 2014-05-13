@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -34,38 +34,39 @@ import edu.uci.python.runtime.function.*;
 public final class GeneratorReturnTargetNode extends ReturnTargetNode {
 
     @Child protected PNode parameters;
+    private final int flagSlot;
 
-    public GeneratorReturnTargetNode(PNode parameters, PNode body, PNode returnValue) {
+    public GeneratorReturnTargetNode(PNode parameters, PNode body, PNode returnValue, int activeFlagIndex) {
         super(body, returnValue);
         this.parameters = parameters;
+        this.flagSlot = activeFlagIndex;
     }
 
     public PNode getParameters() {
         return parameters;
     }
 
-    private static boolean getFirstEntry(VirtualFrame frame) {
-        return PArguments.getGeneratorArguments(frame).isFirstEntry();
+    private boolean isActive(VirtualFrame frame) {
+        return PArguments.getGeneratorArguments(frame).getActive(flagSlot);
     }
 
-    private static void setFirstEntry(VirtualFrame frame, boolean value) {
-        PArguments.getGeneratorArguments(frame).setFirstEntry(value);
+    private void setActive(VirtualFrame frame, boolean flag) {
+        PArguments.getGeneratorArguments(frame).setActive(flagSlot, flag);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        if (getFirstEntry(frame)) {
+        if (!isActive(frame)) {
             parameters.executeVoid(frame);
-            setFirstEntry(frame, false);
+            setActive(frame, true);
         }
 
         try {
             body.execute(frame);
-            setFirstEntry(frame, true);
         } catch (YieldException eye) {
             return returnValue.execute(frame);
         } catch (ReturnException ire) {
-            // return statement in generators throws StopIteration immediately.
+            // return statement in generators throws StopIteration.
         }
 
         throw StopIterationException.INSTANCE;

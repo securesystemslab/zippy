@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -35,13 +35,13 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 
-public class GeneratorForNode extends LoopNode {
+public final class GeneratorForNode extends LoopNode {
 
     @Child protected WriteGeneratorFrameVariableNode target;
     @Child protected GetIteratorNode getIterator;
 
-    protected final int iteratorSlot;
-    protected int count;
+    private final int iteratorSlot;
+    private int count;
 
     public GeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body, int iteratorSlot) {
         super(body);
@@ -50,28 +50,29 @@ public class GeneratorForNode extends LoopNode {
         this.iteratorSlot = iteratorSlot;
     }
 
-    public PNode getTarget() {
-        return target;
-    }
-
     public int getIteratorSlot() {
         return iteratorSlot;
     }
 
-    protected PIterator getIterator(VirtualFrame frame) {
+    private PIterator getIterator(VirtualFrame frame) {
         return PArguments.getGeneratorArguments(frame).getIteratorAt(iteratorSlot);
     }
 
-    protected void setIterator(VirtualFrame frame, PIterator value) {
+    private void setIterator(VirtualFrame frame, PIterator value) {
         PArguments.getGeneratorArguments(frame).setIteratorAt(iteratorSlot, value);
     }
 
-    protected void reset(VirtualFrame frame) {
+    private Object doReturn(VirtualFrame frame) {
+        if (CompilerDirectives.inInterpreter()) {
+            reportLoopCount(count);
+            count = 0;
+        }
+
         setIterator(frame, null);
-        count = 0;
+        return PNone.NONE;
     }
 
-    protected void incrementCounter() {
+    private void incrementCounter() {
         if (CompilerDirectives.inInterpreter()) {
             count++;
         }
@@ -82,8 +83,7 @@ public class GeneratorForNode extends LoopNode {
         try {
             executeIterator(frame);
         } catch (StopIterationException e) {
-            reset(frame);
-            return PNone.NONE;
+            return doReturn(frame);
         }
 
         try {
@@ -93,16 +93,13 @@ public class GeneratorForNode extends LoopNode {
                 incrementCounter();
             }
         } catch (StopIterationException e) {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+
         }
 
-        reset(frame);
-        return PNone.NONE;
+        return doReturn(frame);
     }
 
-    protected void executeIterator(VirtualFrame frame) throws StopIterationException {
+    private void executeIterator(VirtualFrame frame) throws StopIterationException {
         if (getIterator(frame) != null) {
             return;
         }
@@ -115,45 +112,6 @@ public class GeneratorForNode extends LoopNode {
 
         target.executeWith(frame, getIterator(frame).__next__());
         incrementCounter();
-    }
-
-    public static final class InnerGeneratorForNode extends GeneratorForNode {
-
-        public InnerGeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body, int iteratorSlot) {
-            super(target, getIterator, body, iteratorSlot);
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            executeIterator(frame);
-
-            try {
-                while (true) {
-                    target.executeWith(frame, getIterator(frame).__next__());
-                    body.executeVoid(frame);
-                    incrementCounter();
-                }
-            } catch (StopIterationException e) {
-                if (CompilerDirectives.inInterpreter()) {
-                    reportLoopCount(count);
-                }
-            }
-
-            reset(frame);
-            return PNone.NONE;
-        }
-
-        @Override
-        protected void executeIterator(VirtualFrame frame) {
-            if (getIterator(frame) != null) {
-                return;
-            }
-            try {
-                setIterator(frame, getIterator.executePIterator(frame));
-            } catch (UnexpectedResultException e) {
-                throw new RuntimeException();
-            }
-        }
     }
 
 }
