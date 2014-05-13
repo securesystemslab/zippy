@@ -37,26 +37,20 @@ import edu.uci.python.runtime.iterator.*;
 @NodeChild(value = "iterator", type = GetIteratorNode.class)
 public abstract class ForWithLocalTargetNode extends LoopNode {
 
-    @Child protected AdvanceIteratorNode target;
-    @Child protected PNode targetWrite;
+    @Child protected PNode target;
 
-    public ForWithLocalTargetNode(AdvanceIteratorNode target, PNode body, PNode targetWrite) {
+    public ForWithLocalTargetNode(PNode body, PNode target) {
         super(body);
         this.target = target;
-        this.targetWrite = targetWrite;
-        assert targetWrite instanceof WriteNode;
+        assert target instanceof WriteNode;
     }
 
-    protected ForWithLocalTargetNode(ForWithLocalTargetNode previous) {
-        this(previous.target, previous.body, previous.targetWrite);
+    protected ForWithLocalTargetNode(ForWithLocalTargetNode prev) {
+        this(prev.body, prev.target);
     }
 
     public PNode getTarget() {
         return target;
-    }
-
-    public PNode getTargetWrite() {
-        return targetWrite;
     }
 
     public abstract PNode getIterator();
@@ -70,7 +64,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
         try {
             for (int i = start; i < stop; i += step) {
-                ((WriteNode) targetWrite).executeWrite(frame, i);
+                ((WriteNode) target).executeWrite(frame, i);
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
@@ -93,7 +87,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
         try {
             while (true) {
                 loopBodyBranch.enter();
-                ((WriteNode) targetWrite).executeWrite(frame, iterator.__next__());
+                ((WriteNode) target).executeWrite(frame, iterator.__next__());
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {

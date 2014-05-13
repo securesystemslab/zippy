@@ -109,8 +109,7 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
 
         PNode body = loop.getBody();
         FrameSlot yieldToSlotInCallerFrame;
-        AdvanceIteratorNode next = (AdvanceIteratorNode) loop.getTarget();
-        PNode target = next.getTarget();
+        PNode target = loop.getTarget();
         yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(inlinedNode.getGeneratorRoot(), YieldNode.class)) {
