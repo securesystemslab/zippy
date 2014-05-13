@@ -32,7 +32,7 @@ import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
-public final class GeneratorIfNode extends IfNode {
+public class GeneratorIfNode extends IfNode {
 
     private final int thenFlagSlot;
     private final int elseFlagSlot;
@@ -43,6 +43,14 @@ public final class GeneratorIfNode extends IfNode {
         this.elseFlagSlot = elseFlagSlot;
     }
 
+    public static GeneratorIfNode create(CastToBooleanNode condition, PNode then, PNode orelse, int thenFlagSlot, int elseFlagSlot) {
+        if (orelse != EmptyNode.INSTANCE) {
+            return new GeneratorIfNode(condition, then, orelse, thenFlagSlot, elseFlagSlot);
+        } else {
+            return new GeneratorIfWithoutElseNode(condition, then, thenFlagSlot);
+        }
+    }
+
     public int getThenFlagSlot() {
         return thenFlagSlot;
     }
@@ -51,19 +59,19 @@ public final class GeneratorIfNode extends IfNode {
         return elseFlagSlot;
     }
 
-    private boolean isThenActive(VirtualFrame frame) {
+    protected boolean isThenActive(VirtualFrame frame) {
         return PArguments.getGeneratorArguments(frame).getActive(thenFlagSlot);
     }
 
-    private void setThenActive(VirtualFrame frame, boolean flag) {
+    protected void setThenActive(VirtualFrame frame, boolean flag) {
         PArguments.getGeneratorArguments(frame).setActive(thenFlagSlot, flag);
     }
 
-    private boolean isElseActive(VirtualFrame frame) {
+    protected boolean isElseActive(VirtualFrame frame) {
         return PArguments.getGeneratorArguments(frame).getActive(elseFlagSlot);
     }
 
-    private void setElseActive(VirtualFrame frame, boolean flag) {
+    protected void setElseActive(VirtualFrame frame, boolean flag) {
         PArguments.getGeneratorArguments(frame).setActive(elseFlagSlot, flag);
     }
 
@@ -92,6 +100,27 @@ public final class GeneratorIfNode extends IfNode {
         }
 
         return PNone.NONE;
+    }
+
+    public static final class GeneratorIfWithoutElseNode extends GeneratorIfNode {
+
+        /**
+         * Both flagSlot getter return the same slot.
+         */
+        public GeneratorIfWithoutElseNode(CastToBooleanNode condition, PNode then, int thenFlagSlot) {
+            super(condition, then, EmptyNode.INSTANCE, thenFlagSlot, thenFlagSlot);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            if (isThenActive(frame) || condition.executeBoolean(frame)) {
+                setThenActive(frame, true);
+                then.execute(frame);
+                setThenActive(frame, false);
+            }
+
+            return PNone.NONE;
+        }
     }
 
 }

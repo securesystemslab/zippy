@@ -36,6 +36,7 @@ import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
+import edu.uci.python.nodes.generator.GeneratorIfNode.GeneratorIfWithoutElseNode;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 
@@ -107,6 +108,9 @@ public class GeneratorTranslator {
                 if (current instanceof GeneratorBlockNode) {
                     int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
                     indexSlots.add(indexSlot);
+                } else if (current instanceof GeneratorIfWithoutElseNode) {
+                    GeneratorIfWithoutElseNode ifNode = (GeneratorIfWithoutElseNode) current;
+                    flagSlots.add(ifNode.getThenFlagSlot());
                 } else if (current instanceof GeneratorIfNode) {
                     GeneratorIfNode ifNode = (GeneratorIfNode) current;
                     flagSlots.add(ifNode.getThenFlagSlot());
@@ -160,7 +164,7 @@ public class GeneratorTranslator {
             IfNode ifNode = (IfNode) node;
             int ifFlag = nextActiveFlagSlot();
             int elseFlag = nextActiveFlagSlot();
-            node.replace(new GeneratorIfNode(ifNode.getCondition(), ifNode.getThen(), ifNode.getElse(), ifFlag, elseFlag));
+            node.replace(GeneratorIfNode.create(ifNode.getCondition(), ifNode.getThen(), ifNode.getElse(), ifFlag, elseFlag));
         } else if (node instanceof ForWithLocalTargetNode) {
             assert depth > 0;
             ForWithLocalTargetNode forNode = (ForWithLocalTargetNode) node;
@@ -177,7 +181,7 @@ public class GeneratorTranslator {
             }
 
             node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
-        } else if (node instanceof IfNode || node instanceof ElseNode || node instanceof BreakTargetNode) {
+        } else if (node instanceof ElseNode || node instanceof BreakTargetNode) {
             // do nothing for now
         } else {
             TranslationUtil.notCovered();
