@@ -106,6 +106,7 @@ public class GeneratorTranslator {
                     int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
                     indexSlots.add(indexSlot);
                 }
+
                 current = current.getParent();
             }
 

@@ -39,8 +39,8 @@ import edu.uci.python.runtime.function.*;
  */
 public final class GeneratorWhileNode extends WhileNode {
 
-    private int count;
     private final int flagSlot;
+    private int count;
 
     public GeneratorWhileNode(CastToBooleanNode condition, PNode body, int flagSlot) {
         super(condition, body);
