@@ -56,9 +56,6 @@ void graal_compute_offsets();
     oop_field(HotSpotResolvedJavaMethod, holder, "Lcom/oracle/graal/hotspot/meta/HotSpotResolvedObjectType;")                                                  \
     long_field(HotSpotResolvedJavaMethod, metaspaceMethod)                                                                                                     \
   end_class                                                                                                                                                    \
-  start_class(HotSpotJavaType)                                                                                                                                 \
-    oop_field(HotSpotJavaType, name, "Ljava/lang/String;")                                                                                                     \
-  end_class                                                                                                                                                    \
   start_class(InstalledCode)                                                                                                                                   \
     long_field(InstalledCode, address)                                                                                                                         \
     long_field(InstalledCode, version)                                                                                                                         \
