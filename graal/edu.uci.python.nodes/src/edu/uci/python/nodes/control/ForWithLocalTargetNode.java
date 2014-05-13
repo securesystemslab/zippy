@@ -29,6 +29,7 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
@@ -37,18 +38,25 @@ import edu.uci.python.runtime.iterator.*;
 public abstract class ForWithLocalTargetNode extends LoopNode {
 
     @Child protected AdvanceIteratorNode target;
+    @Child protected PNode targetWrite;
 
-    public ForWithLocalTargetNode(AdvanceIteratorNode target, PNode body) {
+    public ForWithLocalTargetNode(AdvanceIteratorNode target, PNode body, PNode targetWrite) {
         super(body);
         this.target = target;
+        this.targetWrite = targetWrite;
+        assert targetWrite instanceof WriteNode;
     }
 
     protected ForWithLocalTargetNode(ForWithLocalTargetNode previous) {
-        this(previous.target, previous.body);
+        this(previous.target, previous.body, previous.targetWrite);
     }
 
     public PNode getTarget() {
         return target;
+    }
+
+    public PNode getTargetWrite() {
+        return targetWrite;
     }
 
     public abstract PNode getIterator();
@@ -62,7 +70,7 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
 
         try {
             for (int i = start; i < stop; i += step) {
-                target.executeWithIterator(frame, i);
+                ((WriteNode) targetWrite).executeWrite(frame, i);
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
@@ -79,13 +87,13 @@ public abstract class ForWithLocalTargetNode extends LoopNode {
     }
 
     @Specialization(order = 1)
-    public Object doIterator(VirtualFrame frame, Object iterator) {
+    public Object doIterator(VirtualFrame frame, PIterator iterator) {
         int count = 0;
 
         try {
             while (true) {
                 loopBodyBranch.enter();
-                target.executeWithIterator(frame, iterator);
+                ((WriteNode) targetWrite).executeWrite(frame, iterator.__next__());
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
