@@ -35,7 +35,7 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 
-public class GeneratorForNode extends LoopNode {
+public final class GeneratorForNode extends LoopNode {
 
     @Child protected WriteGeneratorFrameVariableNode target;
     @Child protected GetIteratorNode getIterator;
@@ -54,22 +54,29 @@ public class GeneratorForNode extends LoopNode {
         return iteratorSlot;
     }
 
-    protected PIterator getIterator(VirtualFrame frame) {
+    private PIterator getIterator(VirtualFrame frame) {
         return PArguments.getGeneratorArguments(frame).getIteratorAt(iteratorSlot);
     }
 
-    protected void setIterator(VirtualFrame frame, PIterator value) {
+    private void setIterator(VirtualFrame frame, PIterator value) {
         PArguments.getGeneratorArguments(frame).setIteratorAt(iteratorSlot, value);
     }
 
-    protected void reset(VirtualFrame frame) {
+    private Object doReturn(VirtualFrame frame) {
         setIterator(frame, null);
         count = 0;
+        return PNone.NONE;
     }
 
-    protected void incrementCounter() {
+    private void incrementCounter() {
         if (CompilerDirectives.inInterpreter()) {
             count++;
+        }
+    }
+
+    private void reportCounter() {
+        if (CompilerDirectives.inInterpreter()) {
+            reportLoopCount(count);
         }
     }
 
@@ -78,8 +85,7 @@ public class GeneratorForNode extends LoopNode {
         try {
             executeIterator(frame);
         } catch (StopIterationException e) {
-            reset(frame);
-            return PNone.NONE;
+            return doReturn(frame);
         }
 
         try {
@@ -89,16 +95,13 @@ public class GeneratorForNode extends LoopNode {
                 incrementCounter();
             }
         } catch (StopIterationException e) {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+            reportCounter();
         }
 
-        reset(frame);
-        return PNone.NONE;
+        return doReturn(frame);
     }
 
-    protected void executeIterator(VirtualFrame frame) throws StopIterationException {
+    private void executeIterator(VirtualFrame frame) throws StopIterationException {
         if (getIterator(frame) != null) {
             return;
         }
