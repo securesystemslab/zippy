@@ -37,97 +37,30 @@
 #include "utilities/debug.hpp"
 
 address GraalRuntime::_external_deopt_i2c_entry = NULL;
-volatile GraalRuntime::State GraalRuntime::_state = uninitialized;
-Thread* GraalRuntime::_initializingThread = NULL;
 
-bool GraalRuntime::should_perform_init() {
-  JavaThread* THREAD = JavaThread::current();
-  if (_state != initialized) {
-    if (THREAD == _initializingThread) {
-      return false;
-    }
-    MutexLocker locker(GraalInitialization_lock);
-    if (_state == uninitialized) {
-      _state = initializing;
-      _initializingThread = THREAD;
-      return true;
-    } else {
-      while (_state == initializing) {
-        GraalInitialization_lock->wait();
-      }
-    }
-  }
-  return false;
-}
-
-void GraalRuntime::initialize() {
-  if (!should_perform_init()) {
-    return;
-  }
-
+void GraalRuntime::initialize_natives(JNIEnv *env, jclass c2vmClass) {
   uintptr_t heap_end = (uintptr_t) Universe::heap()->reserved_region().end();
   uintptr_t allocation_end = heap_end + ((uintptr_t)16) * 1024 * 1024 * 1024;
   AMD64_ONLY(guarantee(heap_end < allocation_end, "heap end too close to end of address space (might lead to erroneous TLAB allocations)"));
   NOT_LP64(error("check TLAB allocation code for address space conflicts"));
 
   JavaThread* THREAD = JavaThread::current();
-  ThreadToNativeFromVM trans(THREAD);
-  TRACE_graal_1("GraalRuntime::initialize");
-
-  JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
-  jclass klass = env->FindClass("com/oracle/graal/hotspot/bridge/CompilerToVMImpl");
-  if (klass == NULL) {
-    tty->print_cr("graal CompilerToVMImpl class not found");
-    vm_abort(false);
-  }
-  env->RegisterNatives(klass, CompilerToVM_methods, CompilerToVM_methods_count());
-
-  ResourceMark rm;
-  HandleMark hm;
   {
-    GRAAL_VM_ENTRY_MARK;
-    check_pending_exception("Could not register natives");
-  }
+    ThreadToNativeFromVM trans(THREAD);
 
-  graal_compute_offsets();
-
-  // Ensure _non_oop_bits is initialized
-  Universe::non_oop_word();
-
-  {
-    GRAAL_VM_ENTRY_MARK;
+    ResourceMark rm;
     HandleMark hm;
-    VMToCompiler::initOptions();
-    for (int i = 0; i < Arguments::num_graal_args(); ++i) {
-      const char* arg = Arguments::graal_args_array()[i];
-      Handle option = java_lang_String::create_from_str(arg, THREAD);
-      jboolean result = VMToCompiler::setOption(option);
-      if (!result) {
-        tty->print_cr("Invalid option for graal: -G:%s", arg);
-        vm_abort(false);
-      }
-    }
-    VMToCompiler::finalizeOptions(CITime || CITimeEach);
+
+    graal_compute_offsets();
 
     _external_deopt_i2c_entry = create_external_deopt_i2c();
 
-    VMToCompiler::startRuntime();
+    // Ensure _non_oop_bits is initialized
+    Universe::non_oop_word();
 
-    {
-      MutexLocker locker(GraalInitialization_lock);
-      _state = initialized;
-      _initializingThread = NULL;
-    }
-
-#if !defined(PRODUCT) && !defined(COMPILERGRAAL)
-    // In COMPILERGRAAL, we want to allow GraalBootstrap
-    // to happen first so GraalCompiler::initialize()
-    // duplicates the following code.
-    if (CompileTheWorld) {
-      VMToCompiler::compileTheWorld();
-    }
-#endif
+    env->RegisterNatives(c2vmClass, CompilerToVM_methods, CompilerToVM_methods_count());
   }
+  check_pending_exception("Could not register natives");
 }
 
 BufferBlob* GraalRuntime::initialize_buffer_blob() {
@@ -703,14 +636,32 @@ JRT_ENTRY(jboolean, GraalRuntime::thread_is_interrupted(JavaThread* thread, oopD
   }
 JRT_END
 
-// JVM_InitializeGraalRuntime
-JVM_ENTRY(jobject, JVM_InitializeGraalRuntime(JNIEnv *env, jclass graalclass))
-  GraalRuntime::initialize();
+// private static GraalRuntime Graal.initializeRuntime()
+JVM_ENTRY(jobject, JVM_GetGraalRuntime(JNIEnv *env, jclass c))
   return VMToCompiler::get_HotSpotGraalRuntime_jobject();
 JVM_END
 
-// JVM_InitializeTruffleRuntime
-JVM_ENTRY(jobject, JVM_InitializeTruffleRuntime(JNIEnv *env, jclass graalclass))
-  GraalRuntime::initialize();
+// private static TruffleRuntime Truffle.createRuntime()
+JVM_ENTRY(jobject, JVM_CreateTruffleRuntime(JNIEnv *env, jclass c))
   return JNIHandles::make_local(VMToCompiler::create_HotSpotTruffleRuntime()());
+JVM_END
+
+// private static void HotSpotGraalRuntime.init(Class compilerToVMClass)
+JVM_ENTRY(void, JVM_InitializeGraalNatives(JNIEnv *env, jclass c, jclass c2vmClass))
+  GraalRuntime::initialize_natives(env, c2vmClass);
+JVM_END
+
+// private static String[] HotSpotOptions.getVMOptions(boolean[] timeCompilations)
+JVM_ENTRY(jobject, JVM_GetGraalOptions(JNIEnv *env, jclass c, jobject timeCompilations))
+  HandleMark hm;
+  int numOptions = Arguments::num_graal_args();
+  objArrayOop options = oopFactory::new_objArray(SystemDictionary::String_klass(),
+      numOptions, CHECK_NULL);
+  objArrayHandle optionsHandle(THREAD, options);
+  for (int i = 0; i < numOptions; i++) {
+    Handle option = java_lang_String::create_from_str(Arguments::graal_args_array()[i], CHECK_NULL);
+    optionsHandle->obj_at_put(i, option());
+  }
+  ((typeArrayOop) JNIHandles::resolve(timeCompilations))->bool_at_put(0, CITime || CITimeEach);
+  return JNIHandles::make_local(THREAD, optionsHandle());
 JVM_END

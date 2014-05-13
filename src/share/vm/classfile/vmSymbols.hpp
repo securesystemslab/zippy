@@ -297,8 +297,6 @@
   template(com_oracle_graal_graph_NodeClass,                         "com/oracle/graal/graph/NodeClass")                              \
   /* graal.hotspot */                                                                                                                 \
   template(com_oracle_graal_hotspot_HotSpotGraalRuntime,             "com/oracle/graal/hotspot/HotSpotGraalRuntime")                  \
-  template(com_oracle_graal_hotspot_HotSpotKlassOop,                 "com/oracle/graal/hotspot/HotSpotKlassOop")                      \
-  template(com_oracle_graal_hotspot_HotSpotOptions,                  "com/oracle/graal/hotspot/HotSpotOptions")                       \
   template(com_oracle_graal_hotspot_HotSpotCompiledCode,             "com/oracle/graal/hotspot/HotSpotCompiledCode")                  \
   template(com_oracle_graal_hotspot_HotSpotCompiledCode_Comment,     "com/oracle/graal/hotspot/HotSpotCompiledCode$Comment")          \
   template(com_oracle_graal_hotspot_HotSpotCompiledNmethod,          "com/oracle/graal/hotspot/HotSpotCompiledNmethod")               \
