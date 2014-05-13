@@ -38,6 +38,7 @@ public class IfNode extends StatementNode {
     @Child protected PNode orelse;
 
     protected final BranchProfile thenProfile = new BranchProfile();
+    private final BranchProfile elseProfile = new BranchProfile();
 
     public IfNode(CastToBooleanNode condition, PNode then, PNode orelse) {
         this.condition = condition;
@@ -71,6 +72,7 @@ public class IfNode extends StatementNode {
             thenProfile.enter();
             return then.execute(frame);
         } else {
+            elseProfile.enter();
             return orelse.execute(frame);
         }
     }

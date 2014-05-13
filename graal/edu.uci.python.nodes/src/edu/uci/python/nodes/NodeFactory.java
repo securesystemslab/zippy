@@ -113,7 +113,7 @@ public class NodeFactory {
     }
 
     public StatementNode createIf(CastToBooleanNode condition, PNode thenPart, PNode elsePart) {
-        return new IfNode(condition, thenPart, elsePart);
+        return IfNode.create(condition, thenPart, elsePart);
     }
 
     public GetIteratorNode createGetIterator(PNode collection) {
