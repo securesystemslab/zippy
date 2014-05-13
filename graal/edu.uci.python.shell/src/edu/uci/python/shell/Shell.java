@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -29,11 +29,11 @@ import static java.lang.System.*;
 public class Shell {
 
     static void usage() {
-        out.println("usage: zippy [option] file [arg] ...");
+        out.println("usage: ZipPy [option] file [arg] ...");
         out.println("Options and arguments");
         out.println("-h     : print this help message and exit (also --help)");
         out.println("arg ...: arguments passed to program in sys.argv[1:]");
-        out.println("Truffle specific options:");
+        out.println("ZipPy specific options:");
         out.println("-print-ast:    print ast before and after interpretation");
     }
 

@@ -61,4 +61,5 @@ public class CommandLineParser {
             throw new IllegalStateException("Unknown options " + arg);
         }
     }
+
 }
