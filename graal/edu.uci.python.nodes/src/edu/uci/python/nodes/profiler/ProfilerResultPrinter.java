@@ -17,13 +17,37 @@ public class ProfilerResultPrinter {
     public static void printProfilerInstrumenterResults() {
         Map<PythonWrapperNode, ProfilerInstrument> sorted = sortByValue(PythonNodeProber.getWrapperToInstruments());
 
+        // 30 is the length of the text
+        // by default padding left padding is added, so space is added to the beginning of the
+// string, minus sign adds padding to the right
+
+        System.out.format("%-30s", "Node");
+        System.out.format("%-20s", "Counter");
+        System.out.format("%-15s", "Line");
+        System.out.format("%-15s", "Column");
+        System.out.println();
+        System.out.println("=============                 ===============     ==========     ==========");
+
         Iterator it = sorted.entrySet().iterator();
         while (it.hasNext()) {
             Entry entry = (Entry) it.next();
             PythonWrapperNode wrapper = (PythonWrapperNode) entry.getKey();
             ProfilerInstrument instrument = (ProfilerInstrument) entry.getValue();
-            System.out.println(wrapper.getChild() + " line " + wrapper.getChild().getSourceSection().getStartLine() + " column " + wrapper.getChild().getSourceSection().getStartColumn() + " = " +
-                            instrument.getCounter());
+
+            Node child = wrapper.getChild();
+            NodeInfo nodeInfo = child.getClass().getAnnotation(NodeInfo.class);
+
+            if (nodeInfo != null) {
+                System.out.format("%-30s", nodeInfo.shortName());
+            } else {
+                System.out.format("%-30s", child);
+            }
+
+            System.out.format("%15s", instrument.getCounter());
+            System.out.format("%15s", child.getSourceSection().getStartLine());
+            System.out.format("%15s", child.getSourceSection().getStartColumn());
+            System.out.println();
+
         }
     }
 
