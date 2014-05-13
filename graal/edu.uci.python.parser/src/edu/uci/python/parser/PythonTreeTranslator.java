@@ -373,7 +373,7 @@ public class PythonTreeTranslator extends Visitor {
 
         PNode loadDefaults = factory.createBlock(defaultWrites);
         BlockNode loadArguments = new ApplyArgumentsNode(argumentReads.toArray(new PNode[argumentReads.size()]));
-        return factory.createBlock(new PNode[]{loadDefaults, loadArguments});
+        return factory.createBlock(loadDefaults, loadArguments);
     }
 
     List<PNode> walkExprList(List<expr> exprs) throws Exception {

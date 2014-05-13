@@ -42,6 +42,18 @@ public class IfNode extends StatementNode {
         this.orelse = orelse;
     }
 
+    public CastToBooleanNode getCondition() {
+        return condition;
+    }
+
+    public PNode getThen() {
+        return then;
+    }
+
+    public PNode getElse() {
+        return orelse;
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         if (condition.executeBoolean(frame)) {

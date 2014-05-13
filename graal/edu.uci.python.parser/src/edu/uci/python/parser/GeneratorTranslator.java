@@ -101,10 +101,16 @@ public class GeneratorTranslator {
             // look for it's breaking loop node
             Node current = bnode.getParent();
             List<Integer> indexSlots = new ArrayList<>();
+            List<Integer> flagSlots = new ArrayList<>();
+
             while (current instanceof GeneratorBlockNode || current instanceof ContinueTargetNode || current instanceof IfNode) {
                 if (current instanceof GeneratorBlockNode) {
                     int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
                     indexSlots.add(indexSlot);
+                } else if (current instanceof GeneratorIfNode) {
+                    GeneratorIfNode ifNode = (GeneratorIfNode) current;
+                    flagSlots.add(ifNode.getThenFlagSlot());
+                    flagSlots.add(ifNode.getElseFlagSlot());
                 }
 
                 current = current.getParent();
@@ -113,7 +119,8 @@ public class GeneratorTranslator {
             if (current instanceof GeneratorForNode) {
                 int iteratorSlot = ((GeneratorForNode) current).getIteratorSlot();
                 int[] indexSlotsArray = Ints.toArray(indexSlots);
-                bnode.replace(new BreakNode.GeneratorBreakNode(iteratorSlot, indexSlotsArray));
+                int[] flagSlotsArray = Ints.toArray(flagSlots);
+                bnode.replace(new BreakNode.GeneratorBreakNode(iteratorSlot, indexSlotsArray, flagSlotsArray));
             }
         }
 
@@ -149,6 +156,11 @@ public class GeneratorTranslator {
             } else {
                 node.replace(new GeneratorWhileNode(whileNode.getCondition(), whileNode.getBody(), nextActiveFlagSlot()));
             }
+        } else if (node instanceof IfNode) {
+            IfNode ifNode = (IfNode) node;
+            int ifFlag = nextActiveFlagSlot();
+            int elseFlag = nextActiveFlagSlot();
+            node.replace(new GeneratorIfNode(ifNode.getCondition(), ifNode.getThen(), ifNode.getElse(), ifFlag, elseFlag));
         } else if (node instanceof ForWithLocalTargetNode) {
             assert depth > 0;
             ForWithLocalTargetNode forNode = (ForWithLocalTargetNode) node;
