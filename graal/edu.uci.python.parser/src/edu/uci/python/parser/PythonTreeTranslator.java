@@ -902,7 +902,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode test = (PNode) visit(node.getInternalTest());
         PNode then = (PNode) visit(node.getInternalBody());
         PNode orelse = (PNode) visit(node.getInternalOrelse());
-        return factory.createIfExpNode(factory.toBooleanCastNode(test), then, orelse);
+        return factory.createIf(factory.toBooleanCastNode(test), then, orelse);
     }
 
     @Override

@@ -388,10 +388,6 @@ public class NodeFactory {
         return YesNodeFactory.create(operand);
     }
 
-    public PNode createIfExpNode(CastToBooleanNode condition, PNode then, PNode orelse) {
-        return new IfExpressionNode(condition, then, orelse);
-    }
-
     public StatementNode createTryFinallyNode(PNode body, PNode finalbody) {
         return new TryFinallyNode(body, finalbody);
     }
