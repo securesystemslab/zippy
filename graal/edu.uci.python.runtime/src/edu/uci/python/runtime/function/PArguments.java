@@ -108,7 +108,8 @@ public class PArguments extends Arguments {
     public static final class GeneratorArguments extends PArguments {
 
         private final MaterializedFrame generatorFrame;
-        private final boolean[] activeFlags;                 // See {@link GeneratorReturnTargetNode}
+        // See GeneratorReturnTargetNode, GeneratorIfNode, GeneratorWhileNode.
+        private final boolean[] activeFlags;
         private final int[] generatorBlockNodeIndices;       // See {@link GeneratorBlockNode}
         private final PIterator[] generatorForNodeIterators; // See {@link GeneratorForNode}
 

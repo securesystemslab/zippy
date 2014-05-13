@@ -51,6 +51,7 @@ public class WhileNode extends LoopNode {
 
         try {
             while (condition.executeBoolean(frame)) {
+                loopBodyBranch.enter();
                 body.execute(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
@@ -64,11 +65,6 @@ public class WhileNode extends LoopNode {
         }
 
         return PNone.NONE;
-    }
-
-    @Override
-    public String toString() {
-        return super.toString() + "(" + condition + ")";
     }
 
 }
