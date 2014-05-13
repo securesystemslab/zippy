@@ -53,9 +53,4 @@
   declare_toplevel_type(Hsail::HSAILKernelDeoptimization)            \
   declare_toplevel_type(Hsail::HSAILDeoptimizationInfo)
 
-#define VM_INT_CONSTANTS_GPU_HSAIL(declare_constant)                                                                                  \
-  declare_constant(sizeof(HSAILFrame))                                                                                                \
-  declare_constant(sizeof(Hsail::HSAILKernelDeoptimization))                                                                          \
-  declare_constant(sizeof(Hsail::HSAILDeoptimizationInfo))                                                                           \
-
 #endif // GPU_HSAIL_VM_VMSTRUCTS_HSAIL_HPP
