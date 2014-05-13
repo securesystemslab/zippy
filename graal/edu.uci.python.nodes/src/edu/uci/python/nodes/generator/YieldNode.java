@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -29,13 +29,21 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
+import static edu.uci.python.nodes.generator.GeneratorBlockNode.*;
 
 public class YieldNode extends StatementNode {
 
     @Child protected PNode right;
+    private final int parentBlockIndexSlot;
 
     public YieldNode(PNode right) {
         this.right = right;
+        parentBlockIndexSlot = 0;
+    }
+
+    public YieldNode(YieldNode prev, int parentBlockIndexSlot) {
+        this.right = prev.right;
+        this.parentBlockIndexSlot = parentBlockIndexSlot;
     }
 
     public PNode getRhs() {
@@ -45,29 +53,9 @@ public class YieldNode extends StatementNode {
     @Override
     public Object execute(VirtualFrame frame) {
         right.execute(frame);
+        final int index = getIndex(frame, parentBlockIndexSlot);
+        setIndex(frame, parentBlockIndexSlot, index + 1);
         throw YieldException.INSTANCE;
-    }
-
-    /**
-     * Of course yield is for generators. The point of this node is to properly advance the index
-     * flag of the parent block node (if the yield's parent is one).
-     */
-    public static final class GeneratorYieldNode extends YieldNode {
-
-        private final int parentBlockNodeIndexSlot;
-
-        public GeneratorYieldNode(PNode right, int indexSlot) {
-            super(right);
-            parentBlockNodeIndexSlot = indexSlot;
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            right.execute(frame);
-            final int index = GeneratorBlockNode.getIndex(frame, parentBlockNodeIndexSlot);
-            GeneratorBlockNode.setIndex(frame, parentBlockNodeIndexSlot, index + 1);
-            throw YieldException.INSTANCE;
-        }
     }
 
 }

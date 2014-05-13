@@ -157,7 +157,7 @@ public class GeneratorTranslator {
             int slotOfBlockIndex = nextGeneratorBlockIndexSlot();
 
             if (yield.getParent().equals(block)) {
-                yield.replace(new YieldNode.GeneratorYieldNode(yield.getRhs(), slotOfBlockIndex));
+                yield.replace(new YieldNode(yield, slotOfBlockIndex));
             }
 
             node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
