@@ -46,7 +46,6 @@
   nonstatic_field(Hsail::HSAILDeoptimizationInfo, _deopt_next_index,                       jint)                                      \
   nonstatic_field(Hsail::HSAILDeoptimizationInfo, _donor_threads,                          JavaThread**)                              \
   nonstatic_field(Hsail::HSAILDeoptimizationInfo, _never_ran_array,                        jboolean *)                                \
-  nonstatic_field(Hsail::HSAILDeoptimizationInfo, _deopt_save_states[0],                   Hsail::HSAILKernelDeoptimization)          \
 
 #define VM_TYPES_GPU_HSAIL(declare_type, declare_toplevel_type)                 \
   declare_toplevel_type(HSAILFrame)                                  \
@@ -57,5 +56,6 @@
 #define VM_INT_CONSTANTS_GPU_HSAIL(declare_constant)                                                                                  \
   declare_constant(sizeof(HSAILFrame))                                                                                                \
   declare_constant(sizeof(Hsail::HSAILKernelDeoptimization))                                                                          \
+  declare_constant(sizeof(Hsail::HSAILDeoptimizationInfo))                                                                           \
 
 #endif // GPU_HSAIL_VM_VMSTRUCTS_HSAIL_HPP

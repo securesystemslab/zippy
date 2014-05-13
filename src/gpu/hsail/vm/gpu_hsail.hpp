@@ -37,7 +37,7 @@ class Hsail : public Gpu {
    private:
     // TODO: separate workitemid and actionAndReason out
     // since they are there only once even if there are multiple frames
-    // for now, though we only ever have one hsail fram
+    // for now, though we only ever have one hsail frame
     jint  _workitemid;
     jint  _actionAndReason;
     // the first (innermost) "hsail frame" starts after the above fields
@@ -56,31 +56,46 @@ class Hsail : public Gpu {
 // TODO: query the device to get this number
 #define MAX_DEOPT_SLOTS    (8 * 40 * 64)
 
-  class HSAILDeoptimizationInfo : public ResourceObj {
+  class HSAILDeoptimizationInfo : public CHeapObj<mtInternal> {
     friend class VMStructs;
    private:
     jint* _notice_safepoints;
     jint _deopt_occurred;
     jint _deopt_next_index;
     JavaThread** _donor_threads;
-    jboolean * _never_ran_array;
     jint _num_slots;
-    jint _bytesPerSaveArea;
     jint _deopt_span;
+    char _ignore;
+    // keep a pointer last so save area following it is word aligned
+    jboolean * _never_ran_array; 
 
    public:
     HSAILKernelDeoptimization _deopt_save_states[1];  // number and size of these can vary per kernel
 
-    inline HSAILDeoptimizationInfo(int numSlots, int bytesPerSaveArea) {
+    static inline size_t hdr_size() {
+      return sizeof(HSAILDeoptimizationInfo);
+    }
+
+    inline jbyte * save_area_start() {
+      return (jbyte*) (this) + hdr_size();
+    }
+
+    inline HSAILDeoptimizationInfo(int numSlots, int bytesPerSaveArea, int dimX, JavaThread** donorThreads) {
       _notice_safepoints = &Hsail::_notice_safepoints;
       _deopt_occurred = 0;
       _deopt_next_index = 0;
       _num_slots = numSlots;
-      _bytesPerSaveArea = bytesPerSaveArea;
+      _never_ran_array = NEW_C_HEAP_ARRAY(jboolean, dimX, mtInternal);
+      memset(_never_ran_array, 0, dimX * sizeof(jboolean));
+      _donor_threads = donorThreads;
       _deopt_span = sizeof(HSAILKernelDeoptimization) + sizeof(HSAILFrame) + bytesPerSaveArea;
       if (TraceGPUInteraction) {
         tty->print_cr("HSAILDeoptimizationInfo allocated, %d slots of size %d, total size = 0x%lx bytes", _num_slots, _deopt_span, (_num_slots * _deopt_span + sizeof(HSAILDeoptimizationInfo)));
       }
+    }
+
+    inline ~HSAILDeoptimizationInfo() {
+      FREE_C_HEAP_ARRAY(jboolean, _never_ran_array, mtInternal);
     }
 
     inline jint deopt_occurred() {
@@ -88,19 +103,16 @@ class Hsail : public Gpu {
     }
     inline jint num_deopts() { return _deopt_next_index; }
     inline jboolean *never_ran_array() { return _never_ran_array; }
-    inline void  set_never_ran_array(jboolean *p) { _never_ran_array = p; }
-    inline void  set_donor_threads(JavaThread **threads) { _donor_threads = threads; }
     inline jint num_slots() {return _num_slots;}
 
     inline HSAILKernelDeoptimization * get_deopt_save_state(int slot) {
       // use _deopt_span to index into _deopt_states
-      char *p = (char *) _deopt_save_states;
-      p += _deopt_span * slot;
-      return (HSAILKernelDeoptimization *) p;
+      return (HSAILKernelDeoptimization *) (save_area_start() + _deopt_span * slot);
     }
 
     void * operator new (size_t hdrSize, int numSlots, int bytesPerSaveArea) {
-      size_t totalSizeBytes = hdrSize + numSlots * (sizeof(HSAILKernelDeoptimization) + bytesPerSaveArea);
+      assert(hdrSize <= hdr_size(), "");
+      size_t totalSizeBytes = hdr_size()  + numSlots * (sizeof(HSAILKernelDeoptimization) + sizeof(HSAILFrame) + bytesPerSaveArea);
       return NEW_C_HEAP_ARRAY(char, totalSizeBytes, mtInternal);
     }
 
@@ -108,7 +120,6 @@ class Hsail : public Gpu {
       FREE_C_HEAP_ARRAY(char, ptr, mtInternal);
     }
   };
-
 
 private:
 
