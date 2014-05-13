@@ -326,7 +326,6 @@
   template(com_oracle_graal_api_meta_JavaMethod,                     "com/oracle/graal/api/meta/JavaMethod")                          \
   template(com_oracle_graal_api_meta_JavaType,                       "com/oracle/graal/api/meta/JavaType")                            \
   template(com_oracle_graal_api_meta_Kind,                           "com/oracle/graal/api/meta/Kind")                                \
-  template(com_oracle_graal_api_meta_ResolvedJavaField,              "com/oracle/graal/api/meta/ResolvedJavaField")                   \
   template(com_oracle_graal_api_meta_Value,                          "com/oracle/graal/api/meta/Value")                               \
   /* graal.api.code */                                                                                                                \
   template(com_oracle_graal_api_code_Assumptions,                    "com/oracle/graal/api/code/Assumptions")                         \
