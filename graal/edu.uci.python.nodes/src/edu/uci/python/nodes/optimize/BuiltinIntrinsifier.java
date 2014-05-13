@@ -97,7 +97,7 @@ public class BuiltinIntrinsifier {
         FrameDescriptor genexpFrame = genexp.getFrameDescriptor();
         FrameDescriptor enclosingFrame = genexp.getEnclosingFrameDescriptor();
         PNode uninitializedGenexpBody = ((FunctionRootNode) genexp.getFunctionRootNode()).getClonedUninitializedBody();
-        uninitializedGenexpBody = NodeUtil.findFirstNodeInstance(uninitializedGenexpBody, ForWithLocalTargetNode.class);
+        uninitializedGenexpBody = NodeUtil.findFirstNodeInstance(uninitializedGenexpBody, ForNode.class);
 
         for (FrameSlot genexpSlot : genexpFrame.getSlots()) {
             if (genexpSlot.getIdentifier().equals("<return_val>")) {

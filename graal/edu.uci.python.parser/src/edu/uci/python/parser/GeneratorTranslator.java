@@ -165,9 +165,9 @@ public class GeneratorTranslator {
             int ifFlag = nextActiveFlagSlot();
             int elseFlag = nextActiveFlagSlot();
             node.replace(GeneratorIfNode.create(ifNode.getCondition(), ifNode.getThen(), ifNode.getElse(), ifFlag, elseFlag));
-        } else if (node instanceof ForWithLocalTargetNode) {
+        } else if (node instanceof ForNode) {
             assert depth > 0;
-            ForWithLocalTargetNode forNode = (ForWithLocalTargetNode) node;
+            ForNode forNode = (ForNode) node;
             WriteGeneratorFrameVariableNode target = (WriteGeneratorFrameVariableNode) forNode.getTarget();
             GetIteratorNode getIter = (GetIteratorNode) forNode.getIterator();
             node.replace(new GeneratorForNode(target, getIter, forNode.getBody(), nextGeneratorForNodeSlot()));

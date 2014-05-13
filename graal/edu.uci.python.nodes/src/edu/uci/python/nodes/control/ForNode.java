@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.control;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -38,39 +39,67 @@ public abstract class ForNode extends LoopNode {
 
     @Child protected PNode target;
 
-    public ForNode(PNode target, PNode body) {
+    public ForNode(PNode body, PNode target) {
         super(body);
         this.target = target;
         assert target instanceof WriteNode;
     }
 
-    protected ForNode(ForNode previous) {
-        this(previous.target, previous.body);
+    protected ForNode(ForNode prev) {
+        this(prev.body, prev.target);
     }
 
-    @Specialization
-    public Object doPIterator(VirtualFrame frame, PRangeIterator iterator) {
-        final int start = iterator.getStart();
-        final int stop = iterator.getStop();
-        final int step = iterator.getStep();
+    public PNode getTarget() {
+        return target;
+    }
 
-        for (int i = start; i < stop; i += step) {
-            ((WriteNode) target).executeWrite(frame, i);
-            body.executeVoid(frame);
+    public abstract PNode getIterator();
+
+    @Specialization
+    public Object doPRange(VirtualFrame frame, PRangeIterator range) {
+        final int start = range.getStart();
+        final int stop = range.getStop();
+        final int step = range.getStep();
+        int count = 0;
+
+        try {
+            for (int i = start; i < stop; i += step) {
+                ((WriteNode) target).executeWrite(frame, i);
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
         }
 
         return PNone.NONE;
     }
 
     @Specialization
-    public Object doPIterator(VirtualFrame frame, PIterator iterator) {
+    public Object doIterator(VirtualFrame frame, PIterator iterator) {
+        int count = 0;
+
         try {
             while (true) {
+                loopBodyBranch.enter();
                 ((WriteNode) target).executeWrite(frame, iterator.__next__());
                 body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
             }
         } catch (StopIterationException e) {
-            // fall through
+
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
         }
 
         return PNone.NONE;

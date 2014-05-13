@@ -120,10 +120,6 @@ public class NodeFactory {
         return GetIteratorNodeFactory.create(collection);
     }
 
-    public LoopNode createFor(PNode target, GetIteratorNode iterator, PNode body) {
-        return ForNodeFactory.create(target, body, iterator);
-    }
-
     public StatementNode createElse(StatementNode then, PNode orelse) {
         return new ElseNode(then, orelse);
     }

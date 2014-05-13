@@ -94,8 +94,8 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
         assert parent.getParent() != null;
         PNode grandpa = (PNode) parent.getParent();
 
-        if (parent instanceof GetIteratorNode && grandpa instanceof ForWithLocalTargetNode) {
-            transformLoopGeneratorCall((ForWithLocalTargetNode) grandpa, factory);
+        if (parent instanceof GetIteratorNode && grandpa instanceof ForNode) {
+            transformLoopGeneratorCall((ForNode) grandpa, factory);
             invokeGeneratorExpressionOptimizer();
             return true;
         }
@@ -103,7 +103,7 @@ public class CallGeneratorNode extends CallFunctionCachedNode implements Inlinab
         return false;
     }
 
-    private void transformLoopGeneratorCall(ForWithLocalTargetNode loop, FrameFactory factory) {
+    private void transformLoopGeneratorCall(ForNode loop, FrameFactory factory) {
         CallGeneratorInlinedNode inlinedNode = new CallGeneratorInlinedNode(callee, arguments, cached, generatorRoot, globalScopeUnchanged, factory);
         loop.replace(inlinedNode);
 
