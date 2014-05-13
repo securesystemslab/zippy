@@ -322,7 +322,6 @@
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
   template(com_oracle_graal_api_meta_PrimitiveConstant,              "com/oracle/graal/api/meta/PrimitiveConstant")                   \
   template(com_oracle_graal_api_meta_NullConstant,                   "com/oracle/graal/api/meta/NullConstant")                        \
-  template(com_oracle_graal_api_meta_ConstantPool,                   "com/oracle/graal/api/meta/ConstantPool")                        \
   template(com_oracle_graal_api_meta_ExceptionHandler,               "com/oracle/graal/api/meta/ExceptionHandler")                    \
   template(com_oracle_graal_api_meta_JavaMethod,                     "com/oracle/graal/api/meta/JavaMethod")                          \
   template(com_oracle_graal_api_meta_JavaType,                       "com/oracle/graal/api/meta/JavaType")                            \
