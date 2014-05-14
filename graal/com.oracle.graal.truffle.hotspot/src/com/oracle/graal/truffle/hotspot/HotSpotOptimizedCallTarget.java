@@ -147,6 +147,13 @@ public final class HotSpotOptimizedCallTarget extends OptimizedCallTarget {
     public void compile() {
         if (!isCompiling()) {
             performInlining();
+
+            // zwei
+            if (TrufflePrintCompilingAST.getValue()) {
+                OUT.println(" ------------- " + getRootNode() + " ------------- ");
+                NodeUtil.printCompactTree(OUT, getRootNode());
+            }
+
             logOptimizingQueued(this);
             this.installedCodeTask = compiler.compile(this);
             if (!TruffleBackgroundCompilation.getValue()) {
