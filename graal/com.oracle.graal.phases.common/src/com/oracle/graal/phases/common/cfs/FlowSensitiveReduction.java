@@ -26,6 +26,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.Node;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.FloatingNode;
+import com.oracle.graal.nodes.calc.IsNullNode;
 import com.oracle.graal.nodes.extended.LoadHubNode;
 import com.oracle.graal.nodes.extended.NullCheckNode;
 import com.oracle.graal.nodes.java.*;
@@ -37,31 +38,64 @@ import com.oracle.graal.phases.tiers.PhaseContext;
 
 import java.lang.reflect.Modifier;
 
+import static com.oracle.graal.api.meta.DeoptimizationAction.InvalidateReprofile;
 import static com.oracle.graal.api.meta.DeoptimizationReason.*;
 
 /**
  * <p>
- * All control-flow-sensitive reductions follow the common pattern of
+ * In a nutshell, {@link com.oracle.graal.phases.common.cfs.FlowSensitiveReductionPhase} makes a
+ * single pass in dominator-based order over the graph:
+ * <ol>
+ * <li>collecting properties of interest at control-splits; as well as for check-casts,
+ * guarding-pis, null-checks, and fixed-guards. Such flow-sensitive information is tracked via a
+ * dedicated {@link com.oracle.graal.phases.common.cfs.State state instance} for each control-flow
+ * path.</li>
+ * <li>performing rewritings that are safe at specific program-points. This comprises:
  * <ul>
- * <li>Recognizing properties of interest (ie, LogicNode-s) at control-flow splits, as well as upon
- * check-casts and fixed-guards.</li>
- * <li>Using the information thus tracked to simplify
- * <ul>
- * <li>side-effects free expressions, via
+ * <li>simplification of side-effects free expressions, via
  * {@link com.oracle.graal.phases.common.cfs.EquationalReasoner#deverbosify(com.oracle.graal.graph.Node)}
+ * <ul>
+ * <li>
+ * at certain {@link com.oracle.graal.nodes.FixedNode}, see
+ * {@link #deverbosifyInputsInPlace(com.oracle.graal.nodes.ValueNode)}</li>
+ * <li>
+ * including for devirtualization, see
+ * {@link #deverbosifyInputsCopyOnWrite(com.oracle.graal.nodes.java.MethodCallTargetNode)}</li>
+ * </ul>
  * </li>
- * <li>control-flow, eg. by eliminating redundant fixed-guards and check-casts, ie which are known
- * always to hold.</li>
+ * <li>simplification of control-flow:
+ * <ul>
+ * <li>
+ * by simplifying the input-condition to an {@link com.oracle.graal.nodes.IfNode}</li>
+ * <li>
+ * by eliminating redundant check-casts, guarding-pis, null-checks, and fixed-guards; where
+ * "redundancy" is determined using flow-sensitive information. In these cases, redundancy can be
+ * due to:
+ * <ul>
+ * <li>an equivalent, existing, guarding node is already in scope (thus, use it as replacement and
+ * remove the redundant one)</li>
+ * <li>"always fails" (thus, replace the node in question with <code>FixedGuardNode(false)</code>)</li>
  * </ul>
  * </li>
  * </ul>
+ * </li>
+ * </ul>
+ * </li>
+ * </ol>
+ * </p>
+ *
+ * <p>
+ * Metrics for this phase are displayed starting with <code>FSR-</code>prefix, their counters are
+ * hosted in {@link com.oracle.graal.phases.common.cfs.BaseReduction},
+ * {@link com.oracle.graal.phases.common.cfs.EquationalReasoner} and
+ * {@link com.oracle.graal.phases.common.cfs.State}.
  * </p>
  *
  * @see com.oracle.graal.phases.common.cfs.CheckCastReduction
  * @see com.oracle.graal.phases.common.cfs.GuardingPiReduction
  * @see com.oracle.graal.phases.common.cfs.FixedGuardReduction
  *
- * */
+ */
 public class FlowSensitiveReduction extends FixedGuardReduction {
 
     public FlowSensitiveReduction(FixedNode start, State initialState, PhaseContext context) {
@@ -111,7 +145,7 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
      * Checking if they aren't in use, proceeding to remove them in that case.
      * </p>
      *
-     * */
+     */
     @Override
     public void finished() {
         if (!postponedDeopts.isEmpty()) {
@@ -134,7 +168,7 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
     }
 
     private static boolean isAliveWithoutUsages(FloatingNode node) {
-        return node.isAlive() && node.usages().isEmpty();
+        return node.isAlive() && FlowUtil.lacksUsages(node);
     }
 
     private void registerControlSplit(Node pred, BeginNode begin) {
@@ -143,6 +177,9 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
 
         if (begin instanceof LoopExitNode) {
             state.clear();
+            /*
+             * TODO return or not? (by not returning we agree it's ok to update the state as below)
+             */
         }
 
         if (pred instanceof IfNode) {
@@ -177,7 +214,7 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
      * TODO When tracking integer-stamps, the state at each successor of a TypeSwitchNode should
      * track an integer-stamp for the LoadHubNode (meet over the constants leading to that
      * successor). However, are LoadHubNode-s shared frequently enough?
-     * */
+     */
     private void registerTypeSwitchNode(TypeSwitchNode typeSwitch, BeginNode begin) {
         if (typeSwitch.value() instanceof LoadHubNode) {
             LoadHubNode loadHub = (LoadHubNode) typeSwitch.value();
@@ -195,18 +232,8 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
                 // `begin` denotes the default case of the TypeSwitchNode
                 return;
             }
-            // preferable would be trackExact, but not there yet
-            state.addNullness(false, loadHub.object(), begin);
-            if (state.knownNotToConform(loadHub.object(), type)) {
-                postponedDeopts.addDeoptAfter(begin, UnreachedCode);
-                state.impossiblePath();
-                return;
-            }
-            if (type.isInterface()) {
-                state.trackNN(loadHub.object(), begin);
-            } else {
-                state.trackIO(loadHub.object(), type, begin);
-            }
+            // it's unwarranted to assume loadHub.object() to be non-null
+            state.trackCC(loadHub.object(), type, begin);
         }
     }
 
@@ -252,11 +279,11 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
      * </p>
      *
      * @return whether any reduction was performed on the inputs of the arguments.
-     * */
+     */
     public boolean deverbosifyInputsInPlace(ValueNode parent) {
         boolean changed = false;
         for (ValueNode i : FlowUtil.distinctValueAndConditionInputs(parent)) {
-            assert !(i instanceof GuardNode) : "ConditionalElim shouldn't run in MidTier";
+            assert !(i instanceof GuardNode) : "This phase not intended to run during MidTier";
             ValueNode j = (ValueNode) reasoner.deverbosify(i);
             if (i != j) {
                 changed = true;
@@ -276,11 +303,18 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
      * @return the original parent if no updated took place, a copy-on-write version of it
      *         otherwise.
      *
-     * */
+     */
     private MethodCallTargetNode deverbosifyInputsCopyOnWrite(MethodCallTargetNode parent) {
+        final MethodCallTargetNode.InvokeKind ik = parent.invokeKind();
+        final boolean shouldTryDevirt = (ik == MethodCallTargetNode.InvokeKind.Interface || ik == MethodCallTargetNode.InvokeKind.Virtual);
+        boolean shouldDowncastReceiver = shouldTryDevirt;
         MethodCallTargetNode changed = null;
         for (ValueNode i : FlowUtil.distinctValueAndConditionInputs(parent)) {
-            Node j = reasoner.deverbosify(i);
+            ValueNode j = (ValueNode) reasoner.deverbosify(i);
+            if (shouldDowncastReceiver) {
+                shouldDowncastReceiver = false;
+                j = reasoner.downcast(j);
+            }
             if (i != j) {
                 assert j != parent;
                 if (changed == null) {
@@ -393,7 +427,7 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
          * Step 5: After special-case handling, we do our best for those FixedNode-s
          * where the effort to reduce their inputs might pay off.
          *
-         * Why is this useful? For example, by the time the AbstractBeginNode for an If-branch
+         * Why is this useful? For example, by the time the BeginNode for an If-branch
          * is visited (in general a ControlSplitNode), the If-condition will have gone already
          * through simplification (and thus potentially have been reduced to a
          * LogicConstantNode).
@@ -410,8 +444,7 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
             paysOffToReduce = true;
         }
 
-        // TODO comb the remaining FixedWithNextNode subclasses, pick those with good changes of
-        // paying-off
+        // TODO comb remaining FixedWithNextNode subclasses, pick those with chances of paying-off
 
         // TODO UnsafeLoadNode takes a condition
 
@@ -426,8 +459,7 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
          */
 
         // TODO some nodes are GuardingNodes (eg, FixedAccessNode) we could use them to track state
-        // TODO others are additionally guarded (eg JavaReadNode), thus *their* guards could be
-        // simplified.
+        // TODO other nodes are guarded (eg JavaReadNode), thus *their* guards could be replaced.
 
     }
 
@@ -437,12 +469,14 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
      * <ul>
      * <li>is known to be null, an unconditional deopt is added.</li>
      * <li>is known to be non-null, the NullCheckNode is removed.</li>
+     * <li>otherwise, the NullCheckNode is lowered to a FixedGuardNode which then allows using it as
+     * anchor for state-tracking.</li>
      * </ul>
      *
      * <p>
      * Precondition: the input (ie, object) hasn't been deverbosified yet.
      * </p>
-     * */
+     */
     private void visitNullCheckNode(NullCheckNode ncn) {
         ValueNode object = ncn.getObject();
         if (state.isNull(object)) {
@@ -459,7 +493,17 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
             graph.removeFixed(ncn);
             return;
         }
-        // TODO ANCHOR NEEDED: state.trackNN(object, ncn);
+        /*
+         * Lower the NullCheckNode to a FixedGuardNode which then allows using it as anchor for
+         * state-tracking. TODO the assumption here is that the code emitted for the resulting
+         * FixedGuardNode is as efficient as for NullCheckNode.
+         */
+        IsNullNode isNN = graph.unique(new IsNullNode(object));
+        reasoner.added.add(isNN);
+        FixedGuardNode nullCheck = graph.add(new FixedGuardNode(isNN, UnreachedCode, InvalidateReprofile, true));
+        graph.replaceFixedWithFixed(ncn, nullCheck);
+
+        state.trackNN(object, nullCheck);
     }
 
     /**
@@ -471,7 +515,7 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
      * <p>
      * Precondition: inputs haven't been deverbosified yet.
      * </p>
-     * */
+     */
     private void visitAbstractEndNode(AbstractEndNode endNode) {
         MergeNode merge = endNode.merge();
         for (PhiNode phi : merge.phis()) {
@@ -489,16 +533,34 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
     }
 
     /**
-     * One or more arguments at `invoke` may have control-flow sensitive simplifications. In such
-     * case, a new {@link com.oracle.graal.nodes.java.MethodCallTargetNode MethodCallTargetNode} is
-     * prepared just for this callsite, consuming reduced arguments. This proves useful in
-     * connection with inlining, in order to specialize callees on the types of arguments other than
-     * the receiver (examples: multi-methods, the inlining problem, lambdas as arguments).
+     * <p>
+     * For one or more `invoke` arguments, flow-sensitive information may suggest their narrowing or
+     * simplification. In those cases, a new
+     * {@link com.oracle.graal.nodes.java.MethodCallTargetNode MethodCallTargetNode} is prepared
+     * just for this callsite, consuming reduced arguments.
+     * </p>
+     *
+     * <p>
+     * Specializing the {@link com.oracle.graal.nodes.java.MethodCallTargetNode
+     * MethodCallTargetNode} as described above may enable two optimizations:
+     * <ul>
+     * <li>
+     * devirtualization of an
+     * {@link com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind#Interface} or
+     * {@link com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind#Virtual} callsite
+     * (devirtualization made possible after narrowing the type of the receiver)</li>
+     * <li>
+     * (future work) actual-argument-aware inlining, ie, to specialize callees on the types of
+     * arguments other than the receiver (examples: multi-methods, the inlining problem, lambdas as
+     * arguments).</li>
+     *
+     * </ul>
+     * </p>
      *
      * <p>
      * Precondition: inputs haven't been deverbosified yet.
      * </p>
-     * */
+     */
     private void visitInvoke(Invoke invoke) {
         if (invoke.asNode().stamp() instanceof IllegalStamp) {
             return; // just to be safe

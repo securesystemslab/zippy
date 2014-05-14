@@ -2253,7 +2253,7 @@ void JavaThread::send_thread_stop(oop java_throwable)  {
 
   // Do not throw asynchronous exceptions against the compiler thread
   // (the compiler thread should not be a Java thread -- fix in 1.4.2)
-  if (is_Compiler_thread()) return;
+  if (!can_call_java()) return;
 
   {
     // Actually throw the Throwable against the target Thread - however
@@ -3311,6 +3311,12 @@ CompilerThread::CompilerThread(CompileQueue* queue, CompilerCounters* counters)
 #endif
 }
 
+#ifdef COMPILERGRAAL
+bool CompilerThread::can_call_java() const {
+  return _compiler != NULL && _compiler->is_graal();
+}
+#endif
+
 void CompilerThread::oops_do(OopClosure* f, CLDToOopClosure* cld_f, CodeBlobClosure* cf) {
   JavaThread::oops_do(f, cld_f, cf);
   if (_scanned_nmethod != NULL && cf != NULL) {
@@ -4334,7 +4340,7 @@ GrowableArray<JavaThread*>* Threads::get_pending_threads(int count,
   {
     MutexLockerEx ml(doLock ? Threads_lock : NULL);
     ALL_JAVA_THREADS(p) {
-      if (p->is_Compiler_thread()) continue;
+      if (!p->can_call_java()) continue;
 
       address pending = (address)p->current_pending_monitor();
       if (pending == monitor) {             // found a match

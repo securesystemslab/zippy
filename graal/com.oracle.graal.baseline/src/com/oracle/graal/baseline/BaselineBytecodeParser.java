@@ -35,6 +35,7 @@ import com.oracle.graal.compiler.alloc.*;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.compiler.common.cfg.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
@@ -45,7 +46,6 @@ import com.oracle.graal.java.BciBlockMapping.LocalLiveness;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.BlockEndOp;
 import com.oracle.graal.lir.gen.*;
-import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.phases.*;
 
 public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, BaselineFrameStateBuilder> implements BytecodeParserTool {
@@ -93,8 +93,14 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, Baseli
 
         try (Indent indent = Debug.logAndIndent("build graph for %s", method)) {
 
-            // compute the block map, setup exception handlers and get the entrypoint(s)
-            BciBlockMapping blockMap = BciBlockMapping.create(method);
+            BciBlockMapping blockMap;
+            try (Scope ds = Debug.scope("BciBlockMapping")) {
+                // compute the block map, setup exception handlers and get the entrypoint(s)
+                blockMap = BciBlockMapping.create(method);
+            } catch (Throwable e) {
+                throw Debug.handle(e);
+            }
+
             loopHeaders = blockMap.loopHeaders;
             liveness = blockMap.liveness;
             blockVisited = new BciBlockBitMap(blockMap);
@@ -121,16 +127,11 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, Baseli
             // add loops ? how do we add looks when we haven't parsed the bytecode?
 
             // create the control flow graph
-            BaselineControlFlowGraph cfg = new BaselineControlFlowGraph(blockMap);
-
-            BlocksToDoubles blockProbabilities = new BlocksToDoubles(blockMap.blocks.size());
-            for (BciBlock b : blockMap.blocks) {
-                blockProbabilities.put(b, 1);
-            }
+            BaselineControlFlowGraph cfg = BaselineControlFlowGraph.compute(blockMap);
 
             // create the LIR
-            List<? extends AbstractBlock<?>> linearScanOrder = ComputeBlockOrder.computeLinearScanOrder(blockMap.blocks.size(), blockMap.startBlock, blockProbabilities);
-            List<? extends AbstractBlock<?>> codeEmittingOrder = ComputeBlockOrder.computeCodeEmittingOrder(blockMap.blocks.size(), blockMap.startBlock, blockProbabilities);
+            List<? extends AbstractBlock<?>> linearScanOrder = ComputeBlockOrder.computeLinearScanOrder(blockMap.blocks.size(), blockMap.startBlock);
+            List<? extends AbstractBlock<?>> codeEmittingOrder = ComputeBlockOrder.computeCodeEmittingOrder(blockMap.blocks.size(), blockMap.startBlock);
             LIR lir = new LIR(cfg, linearScanOrder, codeEmittingOrder);
 
             FrameMap frameMap = backend.newFrameMap(null);
@@ -477,14 +478,21 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, Baseli
 
     @Override
     protected Value genLoadField(Value receiver, ResolvedJavaField field) {
+        if (field.isStatic()) {
+            Value classRef = lirBuilder.getClassConstant(field.getDeclaringClass());
+            long displacement = lirBuilder.getFieldOffset(field);
+            Value address = gen.emitAddress(classRef, displacement, Value.ILLEGAL, 0);
+            PlatformKind readKind = gen.getPlatformKind(StampFactory.forKind(field.getKind()));
+            LIRFrameState state = createFrameState(frameState);
+            return gen.emitLoad(readKind, address, state);
+        }
         // TODO Auto-generated method stub
         throw GraalInternalError.unimplemented("Auto-generated method stub");
     }
 
     @Override
     protected void emitNullCheck(Value receiver) {
-        // TODO Auto-generated method stub
-        throw GraalInternalError.unimplemented("Auto-generated method stub");
+        gen.emitNullCheck(receiver, createFrameState(frameState));
     }
 
     @Override
@@ -494,9 +502,38 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, Baseli
     }
 
     @Override
-    protected Value genArrayLength(Value x) {
-        // TODO Auto-generated method stub
-        throw GraalInternalError.unimplemented("Auto-generated method stub");
+    protected Value genArrayLength(Value array) {
+        emitNullCheck(array);
+        long displacement = lirBuilder.getArrayLengthOffset();
+        Value address = gen.emitAddress(array, displacement, Value.ILLEGAL, 0);
+        PlatformKind readKind = gen.getPlatformKind(StampFactory.forKind(Kind.Int));
+        LIRFrameState state = createFrameState(frameState);
+        return gen.emitLoad(readKind, address, state);
+    }
+
+    private LIRFrameState createFrameState(BaselineFrameStateBuilder state) {
+        LabelRef exceptionEdge = null;
+        BytecodeFrame caller = null;
+        boolean duringCall = false;
+        int numLocals = state.localsSize();
+        int numStack = state.stackSize();
+        int numLocks = state.lockDepth();
+        Value[] values = new Value[numLocals + numStack + numLocks];
+
+        for (int i = 0; i < numLocals; i++) {
+            values[i] = state.localAt(i);
+        }
+
+        for (int i = 0; i < numStack; i++) {
+            values[numLocals + i] = state.stackAt(i);
+        }
+
+        for (int i = 0; i < numStack; i++) {
+            values[numLocals + numStack + i] = state.lockAt(i);
+        }
+
+        BytecodeFrame frame = new BytecodeFrame(caller, method, bci(), state.rethrowException(), duringCall, values, numLocals, numStack, numLocks);
+        return new LIRFrameState(frame, null, exceptionEdge);
     }
 
     @Override

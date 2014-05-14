@@ -111,7 +111,7 @@ void VMToCompiler::finalizeOptions(jboolean ciTime) {
   check_pending_exception("Error while calling finalizeOptions");
 }
 
-void VMToCompiler::compileMethod(Method* method, int entry_bci, jboolean blocking) {
+void VMToCompiler::compileMethod(Method* method, int entry_bci, jlong ctask, jboolean blocking) {
   assert(method != NULL, "just checking");
   Thread* THREAD = Thread::current();
   JavaValue result(T_VOID);
@@ -119,6 +119,7 @@ void VMToCompiler::compileMethod(Method* method, int entry_bci, jboolean blockin
   args.push_oop(instance());
   args.push_long((jlong) (address) method);
   args.push_int(entry_bci);
+  args.push_long(ctask);
   args.push_int(blocking);
   JavaCalls::call_interface(&result, vmToCompilerKlass(), vmSymbols::compileMethod_name(), vmSymbols::compileMethod_signature(), &args, THREAD);
   check_pending_exception("Error while calling compileMethod");

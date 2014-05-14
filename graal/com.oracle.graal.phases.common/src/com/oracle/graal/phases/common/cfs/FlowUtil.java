@@ -23,10 +23,6 @@
 package com.oracle.graal.phases.common.cfs;
 
 import com.oracle.graal.api.meta.ResolvedJavaType;
-import com.oracle.graal.debug.Debug;
-import com.oracle.graal.debug.DebugConfig;
-import com.oracle.graal.debug.DebugConfigScope;
-import com.oracle.graal.debug.internal.DebugScope;
 import com.oracle.graal.graph.InputType;
 import com.oracle.graal.graph.Node;
 import com.oracle.graal.graph.NodeClass;
@@ -61,7 +57,7 @@ public class FlowUtil {
 
     /**
      * @return whether the first argument is strictly more precise than the second.
-     * */
+     */
     public static boolean isMorePrecise(ResolvedJavaType a, ResolvedJavaType b) {
         if (a == null) {
             return false;
@@ -132,7 +128,7 @@ public class FlowUtil {
      * An IllegalStamp should never happen. In contrast, !isLegal() values could happen due to dead
      * code not yet removed, or upon some non-sideeffecting instructions floating out of a dead
      * branch.
-     * */
+     */
     public static boolean isLegalObjectStamp(Stamp s) {
         return isObjectStamp(s) && s.isLegal();
     }
@@ -162,7 +158,7 @@ public class FlowUtil {
      * a score of 1. In all other cases (non-comparable, or supertype) the score is -1.
      *
      * @return whether the first argument is strictly more precise than the second.
-     * */
+     */
     public static boolean isMorePrecise(ObjectStamp a, ObjectStamp b) {
         int d0 = MINUS(a.alwaysNull(), b.alwaysNull());
         if (d0 == -1) {
@@ -234,7 +230,7 @@ public class FlowUtil {
     /**
      * Returns (preserving order) the ValueNodes without duplicates found among the argument's
      * direct inputs.
-     * */
+     */
     @SuppressWarnings("unchecked")
     public static List<ValueNode> distinctValueAndConditionInputs(Node n) {
         ArrayList<ValueNode> result = null;
@@ -275,7 +271,7 @@ public class FlowUtil {
      * Start situation: the parent node has <code>oldInput</code> among its (direct) inputs. After
      * this method has run, all such occurrences have been replaced with <code>newInput</code>. In
      * case that makes <code>oldInput</code> disconnected, it is removed from the graph.
-     * */
+     */
     public static void replaceInPlace(Node parent, Node oldInput, Node newInput) {
         assert parent != null;
         assert parent.inputs().contains(oldInput);
@@ -288,30 +284,6 @@ public class FlowUtil {
             parent.replaceFirstInput(oldInput, newInput);
         } while (parent.inputs().contains(oldInput));
         // `oldInput` if unused wil be removed in finished()
-    }
-
-    public static StructuredGraph visualize(StructuredGraph graph, String title) {
-        DebugConfig debugConfig = DebugScope.getConfig();
-        DebugConfig fixedConfig = Debug.fixedConfig(false, true, false, false, debugConfig.dumpHandlers(), debugConfig.output());
-        try (DebugConfigScope s = Debug.setConfig(fixedConfig)) {
-            Debug.dump(graph, title);
-
-            return graph;
-        }
-    }
-
-    public static final String ANSI_RESET = "\u001B[0m";
-    public static final String ANSI_BLACK = "\u001B[30m";
-    public static final String ANSI_RED = "\u001B[31m";
-    public static final String ANSI_GREEN = "\u001B[32m";
-    public static final String ANSI_YELLOW = "\u001B[33m";
-    public static final String ANSI_BLUE = "\u001B[34m";
-    public static final String ANSI_PURPLE = "\u001B[35m";
-    public static final String ANSI_CYAN = "\u001B[36m";
-    public static final String ANSI_WHITE = "\u001B[37m";
-
-    public static void highlightInRed(String msg) {
-        System.out.println(ANSI_RED + msg + ANSI_RESET);
     }
 
 }

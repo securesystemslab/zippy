@@ -44,10 +44,9 @@ GraalCompiler::GraalCompiler() : AbstractCompiler(graal) {
 
 // Initialization
 void GraalCompiler::initialize() {
-  
-  ThreadToNativeFromVM trans(JavaThread::current());
-  JavaThread* THREAD = JavaThread::current();
-  TRACE_graal_1("GraalCompiler::initialize");
+  if (!should_perform_init()) {
+    return;
+  }
 
   uintptr_t heap_end = (uintptr_t) Universe::heap()->reserved_region().end();
   uintptr_t allocation_end = heap_end + ((uintptr_t)16) * 1024 * 1024 * 1024;
@@ -55,12 +54,22 @@ void GraalCompiler::initialize() {
   NOT_LP64(error("check TLAB allocation code for address space conflicts"));
 
   BufferBlob* buffer_blob = initialize_buffer_blob();
-  if (buffer_blob == NULL) {
-    // If we are called from JNI_CreateJavaVM we cannot use set_state yet because it takes a lock.
-    // set_state(failed);
-  } else {
-    // set_state(initialized);
+#ifdef COMPILERGRAAL
+  if (!UseGraalCompilationQueue) {
+    // This path is used for initialization both by the native queue and the graal queue
+    // but set_state acquired a lock which might not be safe during JVM_CreateJavaVM, so
+    // only update the state flag for the native queue.
+    if (buffer_blob == NULL) {
+      set_state(failed);
+    } else {
+      set_state(initialized);
+    }
   }
+#endif
+
+  ThreadToNativeFromVM trans(JavaThread::current());
+  JavaThread* THREAD = JavaThread::current();
+  TRACE_graal_1("GraalCompiler::initialize");
 
   JNIEnv *env = ((JavaThread *) Thread::current())->jni_environment();
   jclass klass = env->FindClass("com/oracle/graal/hotspot/bridge/CompilerToVMImpl");
@@ -100,7 +109,7 @@ void GraalCompiler::initialize() {
     if (UseCompiler) {
       _external_deopt_i2c_entry = create_external_deopt_i2c();
 #ifdef COMPILERGRAAL
-      bool bootstrap = FLAG_IS_DEFAULT(BootstrapGraal) ? !TieredCompilation : BootstrapGraal;
+      bool bootstrap = UseGraalCompilationQueue && (FLAG_IS_DEFAULT(BootstrapGraal) ? !TieredCompilation : BootstrapGraal);
 #else
       bool bootstrap = false;
 #endif
@@ -172,7 +181,7 @@ BufferBlob* GraalCompiler::initialize_buffer_blob() {
   return buffer_blob;
 }
 
-void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean blocking) {
+void GraalCompiler::compile_method(methodHandle method, int entry_bci, CompileTask* task, jboolean blocking) {
   GRAAL_EXCEPTION_CONTEXT
   if (!_initialized) {
     CompilationPolicy::policy()->delay_compilation(method());
@@ -182,7 +191,7 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, jboolean 
   assert(_initialized, "must already be initialized");
   ResourceMark rm;
   thread->set_is_graal_compiling(true);
-  VMToCompiler::compileMethod(method(), entry_bci, blocking);
+  VMToCompiler::compileMethod(method(), entry_bci, (jlong) (address) task, blocking);
   thread->set_is_graal_compiling(false);
 }
 

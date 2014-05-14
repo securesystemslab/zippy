@@ -23,7 +23,7 @@
 package com.oracle.graal.nodes.calc;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.api.meta.ProfilingInfo.*;
+import com.oracle.graal.api.meta.ProfilingInfo.TriState;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.graph.*;
@@ -92,8 +92,8 @@ public abstract class CompareNode extends BinaryOpLogicNode {
 
     @Override
     public TriState evaluate(ConstantReflectionProvider constantReflection, ValueNode forX, ValueNode forY) {
-        if (x().isConstant() && y().isConstant()) {
-            return TriState.get(condition().foldCondition(x().asConstant(), y().asConstant(), constantReflection, unorderedIsTrue()));
+        if (forX.isConstant() && forY.isConstant()) {
+            return TriState.get(condition().foldCondition(forX.asConstant(), forY.asConstant(), constantReflection, unorderedIsTrue()));
         }
         return TriState.UNKNOWN;
     }
@@ -120,7 +120,7 @@ public abstract class CompareNode extends BinaryOpLogicNode {
         if (x() instanceof ConvertNode && y() instanceof ConvertNode) {
             ConvertNode convertX = (ConvertNode) x();
             ConvertNode convertY = (ConvertNode) y();
-            if (convertX.isLossless() && convertY.isLossless() && convertX.getInput().stamp().isCompatible(convertY.getInput().stamp())) {
+            if (convertX.preservesOrder(condition()) && convertY.preservesOrder(condition()) && convertX.getInput().stamp().isCompatible(convertY.getInput().stamp())) {
                 setX(convertX.getInput());
                 setY(convertY.getInput());
             }
@@ -142,8 +142,8 @@ public abstract class CompareNode extends BinaryOpLogicNode {
         return this;
     }
 
-    private static ConstantNode canonicalConvertConstant(ConvertNode convert, Constant constant) {
-        if (convert.isLossless()) {
+    private ConstantNode canonicalConvertConstant(ConvertNode convert, Constant constant) {
+        if (convert.preservesOrder(condition())) {
             Constant reverseConverted = convert.reverse(constant);
             if (convert.convert(reverseConverted).equals(constant)) {
                 return ConstantNode.forPrimitive(convert.getInput().stamp(), reverseConverted, convert.graph());

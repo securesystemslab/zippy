@@ -1,7 +1,7 @@
-# com.oracle.graal.jtt.loop.Loop03
-# com.oracle.graal.jtt.loop.Loop04
-# com.oracle.graal.jtt.loop.Loop08
-# com.oracle.graal.jtt.loop.Loop11
+com.oracle.graal.jtt.loop.Loop03
+com.oracle.graal.jtt.loop.Loop04
+com.oracle.graal.jtt.loop.Loop08
+com.oracle.graal.jtt.loop.Loop11
 com.oracle.graal.jtt.bytecode.BC_iadd
 com.oracle.graal.jtt.bytecode.BC_iadd2
 com.oracle.graal.jtt.bytecode.BC_iadd3
@@ -17,3 +17,12 @@ com.oracle.graal.jtt.bytecode.BC_freturn
 com.oracle.graal.jtt.bytecode.BC_iconst
 com.oracle.graal.jtt.bytecode.BC_ireturn
 com.oracle.graal.jtt.bytecode.BC_lreturn
+com.oracle.graal.jtt.bytecode.BC_getstatic_b
+com.oracle.graal.jtt.bytecode.BC_getstatic_c
+com.oracle.graal.jtt.bytecode.BC_getstatic_d
+com.oracle.graal.jtt.bytecode.BC_getstatic_f
+com.oracle.graal.jtt.bytecode.BC_getstatic_i
+com.oracle.graal.jtt.bytecode.BC_getstatic_l
+com.oracle.graal.jtt.bytecode.BC_getstatic_s
+com.oracle.graal.jtt.bytecode.BC_getstatic_z
+com.oracle.graal.jtt.bytecode.BC_arraylength

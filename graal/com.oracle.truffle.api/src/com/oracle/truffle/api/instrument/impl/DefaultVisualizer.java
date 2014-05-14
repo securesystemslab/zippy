@@ -24,8 +24,10 @@
  */
 package com.oracle.truffle.api.instrument.impl;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.instrument.*;
+import com.oracle.truffle.api.nodes.*;
 
 public class DefaultVisualizer implements Visualizer {
 
@@ -37,6 +39,34 @@ public class DefaultVisualizer implements Visualizer {
 
     public ASTPrinter getASTPrinter() {
         return astPrinter;
+    }
+
+    public String displaySourceLocation(Node node) {
+        if (node == null) {
+            return "<unknown>";
+        }
+        SourceSection section = node.getSourceSection();
+        boolean estimated = false;
+        if (section == null) {
+            section = node.getEncapsulatingSourceSection();
+            estimated = true;
+        }
+        return section.getShortDescription() + (estimated ? "~" : "");
+    }
+
+    public String displayMethodName(Node node) {
+        if (node == null) {
+            return null;
+        }
+        RootNode root = node.getRootNode();
+        if (root == null) {
+            return "unknown";
+        }
+        return root.getCallTarget().toString();
+    }
+
+    public String displayCallTargetName(CallTarget callTarget) {
+        return callTarget.toString();
     }
 
     public String displayValue(Object value) {

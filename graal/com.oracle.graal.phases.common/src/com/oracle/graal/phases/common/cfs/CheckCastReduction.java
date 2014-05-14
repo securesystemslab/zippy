@@ -41,8 +41,13 @@ import static com.oracle.graal.nodes.extended.BranchProbabilityNode.NOT_FREQUENT
  * {@link com.oracle.graal.nodes.java.CheckCastNode}.
  * </p>
  *
+ * <p>
+ * The laundry-list of all flow-sensitive reductions is summarized in
+ * {@link com.oracle.graal.phases.common.cfs.FlowSensitiveReduction}
+ * </p>
+ *
  * @see #visitCheckCastNode(com.oracle.graal.nodes.java.CheckCastNode)
- * */
+ */
 public abstract class CheckCastReduction extends GuardingPiReduction {
 
     public CheckCastReduction(FixedNode start, State initialState, PhaseContext context) {
@@ -51,23 +56,43 @@ public abstract class CheckCastReduction extends GuardingPiReduction {
 
     /**
      * <p>
-     * This phase is able to refine the types of reference-values at use sites provided a
-     * {@link com.oracle.graal.nodes.extended.GuardingNode GuardingNode} is available witnessing
-     * that fact.
+     * Upon visiting a {@link com.oracle.graal.nodes.java.CheckCastNode}, based on flow-sensitive
+     * conditions, we need to determine whether:
+     * <ul>
+     * <li>it is redundant (in which case it should be simplified), or</li>
+     * <li>flow-sensitive information can be gained from it. "Gain information from it" requires
+     * lowering the {@link com.oracle.graal.nodes.java.CheckCastNode} such that a
+     * {@link com.oracle.graal.nodes.extended.GuardingNode GuardingNode} becomes available.</li>
+     * </ul>
      * </p>
      *
      * <p>
-     * This method turns non-redundant {@link com.oracle.graal.nodes.java.CheckCastNode}s into
-     * {@link com.oracle.graal.nodes.GuardingPiNode}s. Once such lowering has been performed (during
-     * run N of this phase) follow-up runs attempt to further simplify the resulting node, see
-     * {@link EquationalReasoner#downcastedGuardingPiNode(com.oracle.graal.nodes.GuardingPiNode, Witness)}
-     * and {@link #visitGuardingPiNode(com.oracle.graal.nodes.GuardingPiNode)}
+     * This method realizes the above by testing first for situations that require less work:
+     * <ol>
+     * <li>the stamp of the subject deems the check-cast redundant or unsatisfiable (ie,
+     * always-succeeds or always-fails). A previous round of canonicalization takes care of this
+     * situation, however it can also arise due to consecutive runs of
+     * {@link com.oracle.graal.phases.common.cfs.FlowSensitiveReductionPhase} without intervening
+     * {@link com.oracle.graal.phases.common.CanonicalizerPhase canonicalization}.</li>
+     * <li>
+     * flow-sensitive information reveals the subject to be null, trivially fulfilling the
+     * check-cast.</li>
+     * <li>
+     * flow-sensitive information reveals the subject to be narrower than it stamp says. If the
+     * narrower ("downcasted") value fulfills the check-cast, the check-cast is removed.</li>
+     * <li>
+     * otherwise the check-cast provides additional flow-sensitive information. For that, a
+     * {@link com.oracle.graal.nodes.FixedGuardNode} is needed, as described in
+     * {@link #lowerCheckCastAnchorFriendlyWay(com.oracle.graal.nodes.java.CheckCastNode, com.oracle.graal.nodes.ValueNode)}
+     * . Please notice this lowering is currently performed unconditionally: it might occur no
+     * flow-sensitive reduction is enabled down the road.</li>
+     * </ol>
      * </p>
      *
      * <p>
      * Precondition: the inputs (ie, object) hasn't been deverbosified yet.
      * </p>
-     * */
+     */
     protected final void visitCheckCastNode(CheckCastNode checkCast) {
 
         /*
@@ -97,7 +122,7 @@ public abstract class CheckCastReduction extends GuardingPiReduction {
         assert !StampTool.isObjectAlwaysNull(subject) : "Null as per stamp subjects should have been handled above";
 
         // --------- checkCast deemed unsatisfiable by subject-stamp alone ---------
-        if (state.knownNotToConform(subject, toType)) {
+        if (state.knownNotToPassCheckCast(subject, toType)) {
             postponedDeopts.addDeoptBefore(checkCast, checkCast.isForStoreCheck() ? ArrayStoreException : ClassCastException);
             state.impossiblePath();
             // let FixedGuardNode(false).simplify() prune the dead-code control-path
@@ -109,7 +134,7 @@ public abstract class CheckCastReduction extends GuardingPiReduction {
          * others.
          */
 
-        PiNode untrivialNull = reasoner.untrivialNull(subject);
+        PiNode untrivialNull = reasoner.nonTrivialNull(subject);
         if (untrivialNull != null) {
             metricCheckCastRemoved.increment();
             checkCast.replaceAtUsages(untrivialNull);
@@ -121,7 +146,7 @@ public abstract class CheckCastReduction extends GuardingPiReduction {
 
         if (w == null) {
             /*
-             * If there's no witness, attempting `downcasted(subject)` is futile.
+             * If there's no witness, attempting `downcast(subject)` is futile.
              */
             visitCheckCastNodeLackingWitness(checkCast);
             return;
@@ -139,14 +164,14 @@ public abstract class CheckCastReduction extends GuardingPiReduction {
      * @see #lowerCheckCastAnchorFriendlyWay(com.oracle.graal.nodes.java.CheckCastNode,
      *      com.oracle.graal.nodes.ValueNode)
      *
-     * */
+     */
     private void visitCheckCastNodeLackingWitness(CheckCastNode checkCast) {
         final ValueNode subject = checkCast.object();
         final ResolvedJavaType toType = checkCast.type();
         if (toType.isInterface()) {
             return;
         }
-        assert reasoner.downcasted(subject) == subject;
+        assert reasoner.downcast(subject) == subject;
         lowerCheckCastAnchorFriendlyWay(checkCast, subject);
     }
 
@@ -155,22 +180,27 @@ public abstract class CheckCastReduction extends GuardingPiReduction {
      *
      * <p>
      * Rather than tracking the CheckCastNode via {@link com.oracle.graal.phases.common.cfs.State
-     * State} (doing so woud add a special case because a
+     * State} (doing so would add a special case because a
      * {@link com.oracle.graal.nodes.java.CheckCastNode} isn't a
-     * {@link com.oracle.graal.nodes.extended.GuardingNode}) this method creates an anchor by
-     * lowering the CheckCastNode into a FixedGuardNode. Not the same way as done by
-     * {@link com.oracle.graal.nodes.java.CheckCastNode#lower(com.oracle.graal.nodes.spi.LoweringTool)}
-     * which lowers into a {@link com.oracle.graal.nodes.GuardingPiNode} (which is not a
-     * {@link com.oracle.graal.nodes.extended.GuardingNode}).
+     * {@link com.oracle.graal.nodes.extended.GuardingNode guarding node}) this method creates an
+     * anchor by lowering the CheckCastNode into a FixedGuardNode. Not the same as the
+     * {@link com.oracle.graal.nodes.java.CheckCastNode#lower(com.oracle.graal.nodes.spi.LoweringTool)
+     * lowering of a CheckCastNode} which results in a {@link com.oracle.graal.nodes.GuardingPiNode}
+     * (which is not a {@link com.oracle.graal.nodes.extended.GuardingNode guarding node}).
      * </p>
      *
      * <p>
      * With that, state tracking can proceed as usual.
      * </p>
      *
+     * <p>
+     * TODO This lowering is currently performed unconditionally: it might occur no flow-sensitive
+     * reduction is enabled down the road
+     * </p>
+     *
      * @see #visitCheckCastNode(com.oracle.graal.nodes.java.CheckCastNode)
      *
-     * */
+     */
     public void lowerCheckCastAnchorFriendlyWay(CheckCastNode checkCast, ValueNode subject) {
         ValueNode originalCheckCastObject = checkCast.object();
 
@@ -268,7 +298,7 @@ public abstract class CheckCastReduction extends GuardingPiReduction {
 
     /**
      * Porcelain method.
-     * */
+     */
     public static boolean isTypeOfWitnessBetter(Witness w, ObjectStamp stamp) {
         if (w == null) {
             return false;
@@ -281,26 +311,23 @@ public abstract class CheckCastReduction extends GuardingPiReduction {
      * Please note in this method "subject" refers to the downcasted input to the checkCast.
      *
      * @see #visitCheckCastNode(com.oracle.graal.nodes.java.CheckCastNode)
-     * */
+     */
     private void visitCheckCastNodeWithWitness(CheckCastNode checkCast) {
 
         final ResolvedJavaType toType = checkCast.type();
 
         ValueNode subject;
         if (checkCast.object() instanceof CheckCastNode) {
-            subject = reasoner.downcasted(checkCast);
+            subject = reasoner.downcast(checkCast);
             if (subject == checkCast) {
-                subject = reasoner.downcasted(checkCast.object());
+                subject = reasoner.downcast(checkCast.object());
             }
         } else {
-            subject = reasoner.downcasted(checkCast.object());
+            subject = reasoner.downcast(checkCast.object());
         }
 
         ObjectStamp subjectStamp = (ObjectStamp) subject.stamp();
         ResolvedJavaType subjectType = subjectStamp.type();
-
-        // TODO move this check to downcasted()
-        assert !precisionLoss(checkCast.object(), subject);
 
         /*
          * At this point, two sources of (partial) information: the witness and the stamp of
@@ -316,7 +343,7 @@ public abstract class CheckCastReduction extends GuardingPiReduction {
         }
 
         /*
-         * At this point, `downcasted()` might or might not have delivered a more precise value. If
+         * At this point, `downcast()` might or might not have delivered a more precise value. If
          * more precise, it wasn't precise enough to conform to `toType`. Even so, for the
          * `toType.isInterface()` case (dealt with below) we'll replace the checkCast's input with
          * that value (its class-stamp being more precise than the original).

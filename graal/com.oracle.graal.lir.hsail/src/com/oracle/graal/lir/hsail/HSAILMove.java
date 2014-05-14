@@ -63,29 +63,6 @@ public class HSAILMove {
     }
 
     @Opcode("MOVE")
-    public static class SpillMoveOp extends AbstractMoveOp {
-
-        @Def({REG, STACK}) protected AllocatableValue result;
-        @Use({REG, STACK, CONST}) protected Value input;
-
-        public SpillMoveOp(Kind moveKind, AllocatableValue result, Value input) {
-            super(moveKind);
-            this.result = result;
-            this.input = input;
-        }
-
-        @Override
-        public Value getInput() {
-            return input;
-        }
-
-        @Override
-        public AllocatableValue getResult() {
-            return result;
-        }
-    }
-
-    @Opcode("MOVE")
     public static class MoveToRegOp extends AbstractMoveOp {
 
         @Def({REG, HINT}) protected AllocatableValue result;
@@ -402,7 +379,8 @@ public class HSAILMove {
 
         @Override
         public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
-            throw new InternalError("NYI");
+            HSAILAddress addr = address.toAddress();
+            masm.emitLea(result, addr);
         }
     }
 

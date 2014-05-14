@@ -33,6 +33,8 @@ public final class Block extends AbstractBlockBase<Block> {
     protected final BeginNode beginNode;
 
     protected FixedNode endNode;
+
+    protected double probability;
     protected Loop<Block> loop;
 
     protected List<Block> dominated;
@@ -54,8 +56,12 @@ public final class Block extends AbstractBlockBase<Block> {
         return loop;
     }
 
+    public void setLoop(Loop<Block> loop) {
+        this.loop = loop;
+    }
+
     public int getLoopDepth() {
-        return loop == null ? 0 : loop.depth;
+        return loop == null ? 0 : loop.getDepth();
     }
 
     public boolean isLoopHeader() {
@@ -175,4 +181,11 @@ public final class Block extends AbstractBlockBase<Block> {
         return getDominator().isDominatedBy(block);
     }
 
+    public double probability() {
+        return probability;
+    }
+
+    public void setProbability(double probability) {
+        this.probability = probability;
+    }
 }

@@ -27,7 +27,9 @@ import java.lang.annotation.*;
 import com.oracle.graal.nodes.*;
 
 /**
- * Describes the properties of a node for use when building a {@link MatchPattern}s.
+ * Describes the properties of a node for use when building a {@link MatchPattern}. These
+ * declarations are required when parsing a {@link MatchRule}. They are expected to be found on a
+ * super type of the holder of the method declaring the {@link MatchRule}.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
@@ -39,28 +41,21 @@ public @interface MatchableNode {
      * if they were directly on the node being described but that may complicate the annotation
      * processing.
      */
-    Class<? extends ValueNode> value();
+    Class<? extends ValueNode> nodeClass();
 
     /**
-     * The name used in match patterns. Defaults to class.getSimpleName() with the word Node removed
-     * from the end.
+     * The names of the inputs in the order they should appear in the match.
      */
-    String shortName() default "";
-
-    /**
-     * The number of matchable inputs, which may be less than the real number of inputs.
-     */
-    int inputs() default 0;
-
-    /**
-     * A helper class to visit the inputs in a specified order. Should be a subclass of
-     * {@link MatchNodeAdapter}.
-     */
-    Class<?> adapter() default MatchableNode.class;
+    String[] inputs() default {};
 
     /**
      * Can a pattern be matched with the operands swapped. This will cause swapped versions of
      * patterns to be automatically generated.
      */
     boolean commutative() default false;
+
+    /**
+     * Can a node with multiple users be safely match by a rule.
+     */
+    boolean shareable() default false;
 }
