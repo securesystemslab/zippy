@@ -33,6 +33,7 @@ import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class CustomConsole extends JLineConsole {
@@ -92,6 +93,13 @@ public class CustomConsole extends JLineConsole {
             printBanner("Node Profiling Results");
             ProfilerResultPrinter.printProfilerInstrumenterResults();
         }
+
+        System.out.println("APPEND COUNTER " + PList.appendCounter);
+
+// for (int i = 0; i < PList.lists.size(); i++) {
+// System.out.println("APPEND COUNTER " + PList.lists.get(i).appendCounter + " for " +
+// PList.lists.get(i));
+// }
 
         Py.flushLine();
         return result;

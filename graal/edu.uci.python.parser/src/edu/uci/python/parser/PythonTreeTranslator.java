@@ -102,6 +102,8 @@ public class PythonTreeTranslator extends Visitor {
         int charIndex = node.getTokenStartIndex();
         int charLength = node.getText().length();
 
+        // System.out.println("ASSIGN SOURCE SECTION line " + startLine + " startColumn " +
+// startColumn + " for " + truffleNode);
         SourceSection sourceSection = new DefaultSourceSection(source, identifier, startLine, startColumn, charIndex, charLength);
         truffleNode.assignSourceSection(sourceSection);
         return truffleNode;
@@ -578,7 +580,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode value = (PNode) visit(node.getInternalValue());
         PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), target, value);
         ReadNode read = factory.duplicate(target, ReadNode.class);
-        return read.makeWriteNode(binaryOp);
+        return assignSource(node, read.makeWriteNode(binaryOp));
     }
 
     @Override

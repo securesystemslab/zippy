@@ -44,12 +44,17 @@ public class PList extends PSequence {
 
     @CompilationFinal private SequenceStorage store;
 
+// public static List<PList> lists = new ArrayList<PList>();
+    public static long appendCounter = 0;
+
     public PList() {
         store = SequenceStorageFactory.createStorage(null);
+// lists.add(this);
     }
 
     public PList(SequenceStorage store) {
         this.store = store;
+// lists.add(this);
     }
 
     public PList(PIterator iter) {
@@ -62,6 +67,8 @@ public class PList extends PSequence {
         } catch (StopIterationException e) {
             // fall through
         }
+
+// lists.add(this);
     }
 
     @Override
@@ -237,6 +244,8 @@ public class PList extends PSequence {
                 throw new IllegalStateException();
             }
         }
+
+        appendCounter++;
     }
 
     public final void extend(PList appendee) {
