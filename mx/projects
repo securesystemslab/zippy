@@ -652,7 +652,7 @@ project@com.oracle.graal.compiler.hsail@javaCompliance=1.8
 # graal.compiler.hsail.test.infra - HSAIL compiler test infrastructure
 project@com.oracle.graal.compiler.hsail.test.infra@subDir=graal
 project@com.oracle.graal.compiler.hsail.test.infra@sourceDirs=src
-project@com.oracle.graal.compiler.hsail.test.infra@dependencies=com.oracle.graal.hotspot.hsail,JUNIT,OKRA_WITH_SIM
+project@com.oracle.graal.compiler.hsail.test.infra@dependencies=com.oracle.graal.test,com.oracle.graal.hotspot.hsail,OKRA_WITH_SIM
 project@com.oracle.graal.compiler.hsail.test.infra@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.hsail.test.infra@javaCompliance=1.8
 

@@ -31,7 +31,6 @@ import java.util.function.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.*;
-import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.graph.Graph.Mark;
@@ -93,14 +92,75 @@ public class InliningPhase extends AbstractInliningPhase {
         return inliningCount;
     }
 
+    /**
+     * <p>
+     * The space of inlining decisions is explored depth-first with the help of a stack realized by
+     * {@link InliningData}. At any point in time, its topmost element consist of:
+     * <ul>
+     * <li>
+     * one or more {@link GraphInfo}s of inlining candidates, all of them corresponding to a single
+     * callsite (details below). For example, "exact inline" leads to a single candidate.</li>
+     * <li>
+     * the callsite (for the targets above) is tracked as a {@link MethodInvocation}. The difference
+     * between {@link MethodInvocation#totalGraphs()} and {@link MethodInvocation#processedGraphs()}
+     * indicates the topmost {@link GraphInfo}s that might be delved-into to explore inlining
+     * opportunities.</li>
+     * </ul>
+     * </p>
+     *
+     * <p>
+     * The bottom-most element in the stack consists of:
+     * <ul>
+     * <li>
+     * a single {@link GraphInfo} (the root one, for the method on which inlining was called)</li>
+     * <li>
+     * a single {@link MethodInvocation} (the {@link MethodInvocation#isRoot} one, ie the unknown
+     * caller of the root graph)</li>
+     * </ul>
+     *
+     * </p>
+     *
+     * <p>
+     * The stack grows and shrinks as choices are made among the alternatives below:
+     * <ol>
+     * <li>
+     * not worth inlining: pop any remaining graphs not yet delved into, pop the current invocation.
+     * </li>
+     * <li>
+     * process next invoke: delve into one of the callsites hosted in the current candidate graph,
+     * determine whether any inlining should be performed in it</li>
+     * <li>
+     * try to inline: move past the current inlining candidate (remove it from the topmost element).
+     * If that was the last one then try to inline the callsite that is (still) in the topmost
+     * element of {@link InliningData}, and then remove such callsite.</li>
+     * </ol>
+     * </p>
+     *
+     * <p>
+     * Some facts about the alternatives above:
+     * <ul>
+     * <li>
+     * the first step amounts to backtracking, the 2nd one to delving, and the 3rd one also involves
+     * bakctraking (however after may-be inlining).</li>
+     * <li>
+     * the choice of abandon-and-backtrack or delve-into is depends on
+     * {@link InliningPolicy#isWorthInlining} and {@link InliningPolicy#continueInlining}.</li>
+     * <li>
+     * the 3rd choice is picked when both of the previous one aren't picked</li>
+     * <li>
+     * as part of trying-to-inline, {@link InliningPolicy#isWorthInlining} again sees use, but
+     * that's another story.</li>
+     * </ul>
+     * </p>
+     *
+     */
     @Override
     protected void run(final StructuredGraph graph, final HighTierContext context) {
-        final InliningData data = new InliningData(graph, context.getAssumptions());
+        final InliningData data = new InliningData(graph, context.getAssumptions(), maxMethodPerInlining, canonicalizer);
         ToDoubleFunction<FixedNode> probabilities = new FixedNodeProbabilityCache();
 
         while (data.hasUnprocessedGraphs()) {
             final MethodInvocation currentInvocation = data.currentInvocation();
-            GraphInfo graphInfo = data.currentGraph();
             if (!currentInvocation.isRoot() &&
                             !inliningPolicy.isWorthInlining(probabilities, context.getReplacements(), currentInvocation.callee(), data.inliningDepth(), currentInvocation.probability(),
                                             currentInvocation.relevance(), false)) {
@@ -108,8 +168,8 @@ public class InliningPhase extends AbstractInliningPhase {
                 assert remainingGraphs > 0;
                 data.popGraphs(remainingGraphs);
                 data.popInvocation();
-            } else if (graphInfo.hasRemainingInvokes() && inliningPolicy.continueInlining(graphInfo.graph())) {
-                processNextInvoke(data, graphInfo, context);
+            } else if (data.currentGraph().hasRemainingInvokes() && inliningPolicy.continueInlining(data.currentGraph().graph())) {
+                data.processNextInvoke(context);
             } else {
                 data.popGraph();
                 if (!currentInvocation.isRoot()) {
@@ -130,33 +190,6 @@ public class InliningPhase extends AbstractInliningPhase {
 
         assert data.inliningDepth() == 0;
         assert data.graphCount() == 0;
-    }
-
-    /**
-     * Process the next invoke and enqueue all its graphs for processing.
-     */
-    private void processNextInvoke(InliningData data, GraphInfo graphInfo, HighTierContext context) {
-        Invoke invoke = graphInfo.popInvoke();
-        MethodInvocation callerInvocation = data.currentInvocation();
-        Assumptions parentAssumptions = callerInvocation.assumptions();
-        InlineInfo info = InliningUtil.getInlineInfo(data, invoke, maxMethodPerInlining, context.getReplacements(), parentAssumptions, context.getOptimisticOptimizations());
-
-        if (info != null) {
-            double invokeProbability = graphInfo.invokeProbability(invoke);
-            double invokeRelevance = graphInfo.invokeRelevance(invoke);
-            MethodInvocation calleeInvocation = data.pushInvocation(info, parentAssumptions, invokeProbability, invokeRelevance);
-
-            for (int i = 0; i < info.numberOfMethods(); i++) {
-                Inlineable elem = getInlineableElement(info.methodAt(i), info.invoke(), context.replaceAssumptions(calleeInvocation.assumptions()));
-                info.setInlinableElement(i, elem);
-                if (elem instanceof InlineableGraph) {
-                    data.pushGraph(((InlineableGraph) elem).getGraph(), invokeProbability * info.probabilityAt(i), invokeRelevance * info.relevanceAt(i));
-                } else {
-                    assert elem instanceof InlineableMacroNode;
-                    data.pushDummyGraph();
-                }
-            }
-        }
     }
 
     private void tryToInline(ToDoubleFunction<FixedNode> probabilities, GraphInfo callerGraphInfo, MethodInvocation calleeInfo, MethodInvocation parentInvocation, int inliningDepth,
@@ -208,104 +241,6 @@ public class InliningPhase extends AbstractInliningPhase {
         } catch (GraalInternalError e) {
             throw e.addContext(callee.toString());
         }
-    }
-
-    private Inlineable getInlineableElement(final ResolvedJavaMethod method, Invoke invoke, HighTierContext context) {
-        Class<? extends FixedWithNextNode> macroNodeClass = InliningUtil.getMacroNodeClass(context.getReplacements(), method);
-        if (macroNodeClass != null) {
-            return new InlineableMacroNode(macroNodeClass);
-        } else {
-            return new InlineableGraph(buildGraph(method, invoke, context));
-        }
-    }
-
-    private StructuredGraph buildGraph(final ResolvedJavaMethod method, final Invoke invoke, final HighTierContext context) {
-        final StructuredGraph newGraph;
-        final boolean parseBytecodes;
-
-        // TODO (chaeubl): copying the graph is only necessary if it is modified or if it contains
-        // any invokes
-        StructuredGraph intrinsicGraph = InliningUtil.getIntrinsicGraph(context.getReplacements(), method);
-        if (intrinsicGraph != null) {
-            newGraph = intrinsicGraph.copy();
-            parseBytecodes = false;
-        } else {
-            StructuredGraph cachedGraph = getCachedGraph(method, context);
-            if (cachedGraph != null) {
-                newGraph = cachedGraph.copy();
-                parseBytecodes = false;
-            } else {
-                newGraph = new StructuredGraph(method);
-                parseBytecodes = true;
-            }
-        }
-
-        try (Scope s = Debug.scope("InlineGraph", newGraph)) {
-            if (parseBytecodes) {
-                parseBytecodes(newGraph, context);
-            }
-
-            boolean callerHasMoreInformationAboutArguments = false;
-            NodeInputList<ValueNode> args = invoke.callTarget().arguments();
-            for (ParameterNode param : newGraph.getNodes(ParameterNode.class).snapshot()) {
-                ValueNode arg = args.get(param.index());
-                if (arg.isConstant()) {
-                    Constant constant = arg.asConstant();
-                    newGraph.replaceFloating(param, ConstantNode.forConstant(constant, context.getMetaAccess(), newGraph));
-                    callerHasMoreInformationAboutArguments = true;
-                } else {
-                    Stamp joinedStamp = param.stamp().join(arg.stamp());
-                    if (joinedStamp != null && !joinedStamp.equals(param.stamp())) {
-                        param.setStamp(joinedStamp);
-                        callerHasMoreInformationAboutArguments = true;
-                    }
-                }
-            }
-
-            if (!callerHasMoreInformationAboutArguments) {
-                // TODO (chaeubl): if args are not more concrete, inlining should be avoided
-                // in most cases or we could at least use the previous graph size + invoke
-                // probability to check the inlining
-            }
-
-            if (OptCanonicalizer.getValue()) {
-                canonicalizer.apply(newGraph, context);
-            }
-
-            return newGraph;
-        } catch (Throwable e) {
-            throw Debug.handle(e);
-        }
-    }
-
-    private static StructuredGraph getCachedGraph(ResolvedJavaMethod method, HighTierContext context) {
-        if (context.getGraphCache() != null) {
-            StructuredGraph cachedGraph = context.getGraphCache().get(method);
-            if (cachedGraph != null) {
-                return cachedGraph;
-            }
-        }
-        return null;
-    }
-
-    private StructuredGraph parseBytecodes(StructuredGraph newGraph, HighTierContext context) {
-        boolean hasMatureProfilingInfo = newGraph.method().getProfilingInfo().isMature();
-
-        if (context.getGraphBuilderSuite() != null) {
-            context.getGraphBuilderSuite().apply(newGraph, context);
-        }
-        assert newGraph.start().next() != null : "graph needs to be populated during PhasePosition.AFTER_PARSING";
-
-        new DeadCodeEliminationPhase().apply(newGraph);
-
-        if (OptCanonicalizer.getValue()) {
-            canonicalizer.apply(newGraph, context);
-        }
-
-        if (hasMatureProfilingInfo && context.getGraphCache() != null) {
-            context.getGraphCache().put(newGraph.method(), newGraph.copy());
-        }
-        return newGraph;
     }
 
     private abstract static class AbstractInliningPolicy implements InliningPolicy {
@@ -490,16 +425,48 @@ public class InliningPhase extends AbstractInliningPhase {
          */
         private final ArrayDeque<GraphInfo> graphQueue;
         private final ArrayDeque<MethodInvocation> invocationQueue;
+        private final int maxMethodPerInlining;
+        private final CanonicalizerPhase canonicalizer;
 
         private int maxGraphs;
 
-        public InliningData(StructuredGraph rootGraph, Assumptions rootAssumptions) {
+        public InliningData(StructuredGraph rootGraph, Assumptions rootAssumptions, int maxMethodPerInlining, CanonicalizerPhase canonicalizer) {
             this.graphQueue = new ArrayDeque<>();
             this.invocationQueue = new ArrayDeque<>();
+            this.maxMethodPerInlining = maxMethodPerInlining;
+            this.canonicalizer = canonicalizer;
             this.maxGraphs = 1;
 
             invocationQueue.push(new MethodInvocation(null, rootAssumptions, 1.0, 1.0));
             pushGraph(rootGraph, 1.0, 1.0);
+        }
+
+        /**
+         * Process the next invoke and enqueue all its graphs for processing.
+         */
+        void processNextInvoke(HighTierContext context) {
+            GraphInfo graphInfo = currentGraph();
+            Invoke invoke = graphInfo.popInvoke();
+            MethodInvocation callerInvocation = currentInvocation();
+            Assumptions parentAssumptions = callerInvocation.assumptions();
+            InlineInfo info = InliningUtil.getInlineInfo(this, invoke, maxMethodPerInlining, context.getReplacements(), parentAssumptions, context.getOptimisticOptimizations());
+
+            if (info != null) {
+                double invokeProbability = graphInfo.invokeProbability(invoke);
+                double invokeRelevance = graphInfo.invokeRelevance(invoke);
+                MethodInvocation calleeInvocation = pushInvocation(info, parentAssumptions, invokeProbability, invokeRelevance);
+
+                for (int i = 0; i < info.numberOfMethods(); i++) {
+                    Inlineable elem = DepthSearchUtil.getInlineableElement(info.methodAt(i), info.invoke(), context.replaceAssumptions(calleeInvocation.assumptions()), canonicalizer);
+                    info.setInlinableElement(i, elem);
+                    if (elem instanceof InlineableGraph) {
+                        pushGraph(((InlineableGraph) elem).getGraph(), invokeProbability * info.probabilityAt(i), invokeRelevance * info.relevanceAt(i));
+                    } else {
+                        assert elem instanceof InlineableMacroNode;
+                        pushDummyGraph();
+                    }
+                }
+            }
         }
 
         public int graphCount() {
