@@ -35,8 +35,8 @@ import com.oracle.graal.api.code.CompilationResult.Infopoint;
 import com.oracle.graal.api.code.CompilationResult.Mark;
 import com.oracle.graal.api.code.CompilationResult.PrimitiveData;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.bridge.*;
 import com.oracle.graal.hotspot.bridge.CompilerToVM.CodeInstallResult;
@@ -228,7 +228,7 @@ public abstract class HotSpotCodeCacheProvider implements CodeCacheProvider {
         }
         CodeInstallResult result = runtime.getCompilerToVM().installCode(new HotSpotCompiledNmethod(target, hotspotMethod, compResult), installedCode, log);
         if (result != CodeInstallResult.OK) {
-            return null;
+            throw new BailoutException("Code installation failed: " + result);
         }
         return logOrDump(installedCode, compResult);
     }
@@ -285,5 +285,9 @@ public abstract class HotSpotCodeCacheProvider implements CodeCacheProvider {
 
     public String disassemble(ResolvedJavaMethod method) {
         return new BytecodeDisassembler().disassemble(method);
+    }
+
+    public SpeculationLog createSpeculationLog() {
+        return new HotSpotSpeculationLog();
     }
 }

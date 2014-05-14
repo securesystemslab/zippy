@@ -25,7 +25,7 @@ package com.oracle.graal.truffle.hotspot;
 import java.lang.reflect.*;
 
 import com.oracle.graal.api.code.stack.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.truffle.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
@@ -88,25 +88,24 @@ public abstract class HotSpotFrameInstance implements FrameInstance {
 
     public abstract CallTarget getTargetCallTarget();
 
-    public DirectCallNode getCallNode() {
+    public Node getCallNode() {
         Object receiver = stackFrame.getLocal(getNotifyIndex());
-        if (receiver instanceof DirectCallNode) {
-            return (DirectCallNode) receiver;
-        } else {
-            return null;
+        if (receiver instanceof DirectCallNode || receiver instanceof IndirectCallNode) {
+            return (Node) receiver;
         }
+        return null;
     }
 
     /**
      * This class represents a frame that is taken from the
-     * {@link OptimizedDirectCallNode#callProxy(MaterializedFrameNotify, CallTarget, VirtualFrame, Object[], boolean)}
+     * {@link OptimizedDirectCallNode#callProxy(MaterializedFrameNotify, CallTarget, VirtualFrame, Object[], boolean, boolean)}
      * method.
      */
     public static final class CallNodeFrame extends HotSpotFrameInstance {
         public static final Method METHOD;
         static {
             try {
-                METHOD = OptimizedDirectCallNode.class.getDeclaredMethod("callProxy", MaterializedFrameNotify.class, CallTarget.class, VirtualFrame.class, Object[].class, boolean.class);
+                METHOD = OptimizedDirectCallNode.class.getDeclaredMethod("callProxy", MaterializedFrameNotify.class, CallTarget.class, VirtualFrame.class, Object[].class, boolean.class, boolean.class);
             } catch (NoSuchMethodException | SecurityException e) {
                 throw new GraalInternalError(e);
             }

@@ -23,14 +23,14 @@
 package com.oracle.graal.java;
 
 import static com.oracle.graal.bytecode.Bytecodes.*;
-import static com.oracle.graal.phases.GraalOptions.*;
+import static com.oracle.graal.compiler.common.GraalOptions.*;
 
 import java.util.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.bytecode.*;
-import com.oracle.graal.cfg.*;
+import com.oracle.graal.compiler.common.cfg.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.nodes.*;

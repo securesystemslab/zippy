@@ -22,12 +22,12 @@
  */
 package com.oracle.graal.hotspot;
 
-import static com.oracle.graal.graph.UnsafeAccess.*;
+import static com.oracle.graal.compiler.common.UnsafeAccess.*;
 
 import java.lang.reflect.*;
 import java.util.*;
 
-import com.oracle.graal.graph.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.hotspot.bridge.*;
 import com.oracle.graal.hotspot.meta.*;
 
@@ -794,6 +794,7 @@ public class HotSpotVMConfig extends CompilerObject {
     // offsets, ...
     @HotSpotVMFlag(name = "StackShadowPages") @Stable public int stackShadowPages;
     @HotSpotVMFlag(name = "UseStackBanging") @Stable public boolean useStackBanging;
+    @HotSpotVMConstant(name = "STACK_BIAS") @Stable public int stackBias;
 
     @HotSpotVMField(name = "oopDesc::_mark", type = "markOop", get = HotSpotVMField.Type.OFFSET) @Stable public int markOffset;
     @HotSpotVMField(name = "oopDesc::_metadata._klass", type = "Klass*", get = HotSpotVMField.Type.OFFSET) @Stable public int hubOffset;

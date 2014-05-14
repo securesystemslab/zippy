@@ -24,6 +24,7 @@ package com.oracle.graal.loop;
 
 import java.util.*;
 
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Graph.DuplicationReplacement;
 import com.oracle.graal.graph.iterators.*;
@@ -112,7 +113,11 @@ public class LoopFragmentInside extends LoopFragment {
             for (LoopExitNode exit : exits()) {
                 FrameState exitState = exit.stateAfter();
                 if (exitState != null) {
-                    exitState.applyToVirtual(v -> nodes.clear(v));
+                    exitState.applyToVirtual(v -> {
+                        if (v.usages().filter(n -> nodes.isMarked(n) && n != exit).isEmpty()) {
+                            nodes.clear(v);
+                        }
+                    });
                 }
                 for (ProxyNode proxy : exit.proxies()) {
                     nodes.clear(proxy);

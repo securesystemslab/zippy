@@ -23,13 +23,14 @@
 package com.oracle.graal.phases.schedule;
 
 import static com.oracle.graal.api.meta.LocationIdentity.*;
+import static com.oracle.graal.compiler.common.GraalOptions.*;
 import static com.oracle.graal.nodes.cfg.ControlFlowGraph.*;
-import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.cfg.*;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.cfg.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.Verbosity;
@@ -930,7 +931,7 @@ public final class SchedulePhase extends Phase {
             }
             if (canNotMove) {
                 if (b.getEndNode() instanceof ControlSplitNode) {
-                    throw new GraalInternalError("Schedule is not possible : needs to move a node after the last node of the block which can not be move").addContext(lastSorted).addContext(
+                    throw new GraalGraphInternalError("Schedule is not possible : needs to move a node after the last node of the block which can not be move").addContext(lastSorted).addContext(
                                     b.getEndNode());
                 }
 
@@ -985,13 +986,21 @@ public final class SchedulePhase extends Phase {
             stateAfter = ((StateSplit) i).stateAfter();
         }
 
+        if (i instanceof LoopExitNode) {
+            for (ProxyNode proxy : ((LoopExitNode) i).proxies()) {
+                addToLatestSorting(b, proxy, sortedInstructions, visited, reads, beforeLastLocation);
+            }
+        }
+
         for (Node input : i.inputs()) {
             if (input instanceof FrameState) {
                 if (input != stateAfter) {
                     addUnscheduledToLatestSorting(b, (FrameState) input, sortedInstructions, visited, reads, beforeLastLocation);
                 }
             } else {
-                addToLatestSorting(b, (ScheduledNode) input, sortedInstructions, visited, reads, beforeLastLocation);
+                if (!(i instanceof ProxyNode && input instanceof LoopExitNode)) {
+                    addToLatestSorting(b, (ScheduledNode) input, sortedInstructions, visited, reads, beforeLastLocation);
+                }
             }
         }
 

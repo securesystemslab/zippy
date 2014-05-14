@@ -27,7 +27,7 @@ import static com.oracle.graal.api.code.ValueUtil.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.hsail.*;
 
 /**
@@ -545,6 +545,17 @@ public abstract class HSAILAssembler extends AbstractHSAILAssembler {
         }
         String prefix = getArgTypeForceUnsigned(result);
         emitString(String.format("atomic_add_global_%s   %s, %s, %s;", prefix, HSAIL.mapRegister(result), mapAddress(address), mapRegOrConstToString(mydelta)));
+    }
+
+    /**
+     * Emits an atomic_exch_global instruction.
+     *
+     * @param result result operand that gets the original contents of the memory location
+     * @param address the memory location
+     * @param newValue the new value to write to the memory location
+     */
+    public void emitAtomicExch(Kind accessKind, AllocatableValue result, HSAILAddress address, Value newValue) {
+        emitString(String.format("atomic_exch_global_b%d   %s, %s, %s;", getArgSizeFromKind(accessKind), HSAIL.mapRegister(result), mapAddress(address), mapRegOrConstToString(newValue)));
     }
 
     /**

@@ -28,8 +28,8 @@ import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.hsail.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.MoveOp;
 import com.oracle.graal.lir.asm.*;
@@ -446,6 +446,65 @@ public class HSAILMove {
         }
     }
 
+    @Opcode("ATOMIC_READ_AND_ADD")
+    public static class AtomicReadAndAddOp extends HSAILLIRInstruction {
+
+        private final Kind accessKind;
+
+        @Def protected AllocatableValue result;
+        @Use({COMPOSITE}) protected HSAILAddressValue address;
+        @Use({REG, CONST}) protected Value delta;
+
+        public AtomicReadAndAddOp(Kind accessKind, AllocatableValue result, HSAILAddressValue address, Value delta) {
+            this.accessKind = accessKind;
+            this.result = result;
+            this.address = address;
+            this.delta = delta;
+        }
+
+        public HSAILAddressValue getAddress() {
+            return address;
+        }
+
+        @Override
+        public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
+            switch (accessKind) {
+                case Int:
+                case Long:
+                    masm.emitAtomicAdd(result, address.toAddress(), delta);
+                    break;
+                default:
+                    throw GraalInternalError.shouldNotReachHere();
+            }
+        }
+    }
+
+    @Opcode("ATOMIC_READ_AND_WRITE")
+    public static class AtomicReadAndWriteOp extends HSAILLIRInstruction {
+
+        private final Kind accessKind;
+
+        @Def protected AllocatableValue result;
+        @Use({COMPOSITE}) protected HSAILAddressValue address;
+        @Use({REG, CONST}) protected Value newValue;
+
+        public AtomicReadAndWriteOp(Kind accessKind, AllocatableValue result, HSAILAddressValue address, Value newValue) {
+            this.accessKind = accessKind;
+            this.result = result;
+            this.address = address;
+            this.newValue = newValue;
+        }
+
+        public HSAILAddressValue getAddress() {
+            return address;
+        }
+
+        @Override
+        public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
+            masm.emitAtomicExch(accessKind, result, address.toAddress(), newValue);
+        }
+    }
+
     public static class NullCheckOp extends HSAILLIRInstruction {
 
         @Use protected Value input;
@@ -486,29 +545,6 @@ public class HSAILMove {
             }
         } else {
             throw GraalInternalError.shouldNotReachHere();
-        }
-    }
-
-    @Opcode("ATOMICADD")
-    public static class AtomicGetAndAddOp extends HSAILLIRInstruction {
-
-        @Def protected AllocatableValue result;
-        @Use({COMPOSITE}) protected HSAILAddressValue address;
-        @Use({REG, CONST}) protected Value delta;
-
-        public AtomicGetAndAddOp(AllocatableValue result, HSAILAddressValue address, Value delta) {
-            this.result = result;
-            this.address = address;
-            this.delta = delta;
-        }
-
-        public HSAILAddressValue getAddress() {
-            return address;
-        }
-
-        @Override
-        public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
-            masm.emitAtomicAdd(result, address.toAddress(), delta);
         }
     }
 
