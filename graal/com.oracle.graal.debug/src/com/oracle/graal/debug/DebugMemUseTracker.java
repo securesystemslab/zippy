@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,29 +20,37 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.hotspot;
+package com.oracle.graal.debug;
 
-import java.lang.annotation.*;
+import com.sun.management.*;
 
 /**
- * Refers to a C++ constant in the VM.
+ * Tracks memory usage within a scope using {@link ThreadMXBean}. This facility should be employed
+ * using the try-with-resources pattern:
+ *
+ * <pre>
+ * try (DebugMemUseTracker.Closeable a = memUseTracker.start()) {
+ *     // the code to measure
+ * }
+ * </pre>
  */
-@Target(ElementType.FIELD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface HotSpotVMConstant {
+public interface DebugMemUseTracker {
+
+    public interface Closeable extends AutoCloseable {
+        void close();
+    }
 
     /**
-     * Returns the name of the constant.
+     * Creates a point from which memory usage will be recorded if memory use tracking is
+     * {@linkplain Debug#isMemUseTrackingEnabled() enabled}.
      *
-     * @return name of constant
+     * @return an object that must be closed once the activity has completed to add the memory used
+     *         since this call to the total for this tracker
      */
-    String name();
+    Closeable start();
 
     /**
-     * List of architectures where this constant is required. Names are derived from
-     * {@link HotSpotVMConfig#getHostArchitectureName()}. An empty list implies that the constant is
-     * required on all architectures.
+     * Gets the current value of this tracker.
      */
-    String[] archs() default {};
-
+    long getCurrentValue();
 }

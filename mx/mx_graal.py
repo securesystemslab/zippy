@@ -26,7 +26,7 @@
 #
 # ----------------------------------------------------------------------------------------------------
 
-import os, sys, shutil, zipfile, tarfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO, socket
+import os, stat, errno, sys, shutil, zipfile, tarfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO, socket
 from os.path import join, exists, dirname, basename, getmtime
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, REMAINDER
 from outputparser import OutputParser, ValuesMatcher
@@ -80,8 +80,7 @@ _vm_prefix = None
 
 _make_eclipse_launch = False
 
-# @CallerSensitive introduced in 7u25
-_minVersion = mx.VersionSpec('1.7.0_25')
+_minVersion = mx.VersionSpec('1.8')
 
 JDK_UNIX_PERMISSIONS = 0755
 
@@ -150,10 +149,19 @@ def chmodRecursive(dirname, chmodFlags):
 def clean(args):
     """clean the GraalVM source tree"""
     opts = mx.clean(args, parser=ArgumentParser(prog='mx clean'))
+
     if opts.native:
+        def handleRemoveReadonly(func, path, exc):
+            excvalue = exc[1]
+            if mx.get_os() == 'windows' and func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
+                os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO) # 0777
+                func(path)
+            else:
+                raise
+
         def rmIfExists(name):
             if os.path.isdir(name):
-                shutil.rmtree(name)
+                shutil.rmtree(name, ignore_errors=False, onerror=handleRemoveReadonly)
             elif os.path.isfile(name):
                 os.unlink(name)
 
@@ -959,15 +967,18 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
         (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
         os.close(_)
     corecp = mx.classpath(['com.oracle.graal.test'])
+
+    if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
+        subprocess.check_call([mx.java().javac, '-cp', corecp, '-d', mxdir, javaSource])
+
     coreArgs = []
     if verbose:
         coreArgs.append('-JUnitVerbose')
     if enable_timing:
         coreArgs.append('-JUnitEnableTiming')
 
+
     def harness(projectscp, vmArgs):
-        if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
-            subprocess.check_call([mx.java().javac, '-cp', projectscp, '-d', mxdir, javaSource])
         if _get_vm() != 'graal':
             prefixArgs = ['-esa', '-ea']
         else:
@@ -1570,7 +1581,7 @@ def makejmhdeps(args):
                     if not mx.library(name, fatalIfMissing=False):
                         mx.log('Skipping ' + groupId + '.' + artifactId + '.jar as ' + name + ' cannot be resolved')
                         return
-        d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=deps, excludedLibs=[])
+        d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=deps, excludedDependencies=[])
         d.make_archive()
         cmd = ['mvn', 'install:install-file', '-DgroupId=' + groupId, '-DartifactId=' + artifactId,
                '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar', '-Dfile=' + d.path]
@@ -1657,8 +1668,11 @@ def jmh(args):
 
     benchmarks = [b for b in benchmarksAndJsons if not b.startswith('{')]
     jmhArgJsons = [b for b in benchmarksAndJsons if b.startswith('{')]
-
-    jmhArgs = {'-rff' : join(_graal_home, 'mx', 'jmh', 'jmh.out'), '-v' : 'EXTRA' if mx._opts.verbose else 'NORMAL'}
+    jmhOutDir = join(_graal_home, 'mx', 'jmh')
+    if not exists(jmhOutDir):
+        os.makedirs(jmhOutDir)
+    jmhOut = join(jmhOutDir, 'jmh.out')
+    jmhArgs = {'-rff' : jmhOut, '-v' : 'EXTRA' if mx._opts.verbose else 'NORMAL'}
 
     # e.g. '{"-wi" : 20}'
     for j in jmhArgJsons:
@@ -1686,7 +1700,8 @@ def jmh(args):
 
         microJar = os.path.join(absoluteMicro, "target", "microbenchmarks.jar")
         if not exists(microJar):
-            mx.abort('Missing ' + microJar + ' - please run "mx buildjmh"')
+            mx.log('Missing ' + microJar + ' - please run "mx buildjmh"')
+            continue
         if benchmarks:
             def _addBenchmark(x):
                 if x.startswith("Benchmark:"):
@@ -1841,20 +1856,6 @@ def sl(args):
     """run an SL program"""
     vmArgs, slArgs = _extract_VM_args(args)
     vm(vmArgs + ['-cp', mx.classpath("com.oracle.truffle.sl"), "com.oracle.truffle.sl.SLMain"] + slArgs)
-
-def trufflejar(args=None):
-    """make truffle.jar"""
-
-    # Test with the built classes
-    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@Parameters'])
-
-    # We use the DSL processor as the starting point for the classpath - this
-    # therefore includes the DSL processor, the DSL and the API.
-    packagejar(mx.classpath("com.oracle.truffle.dsl.processor").split(os.pathsep), "truffle.jar", None, "com.oracle.truffle.dsl.processor.TruffleProcessor")
-
-    # Test with the JAR
-    _unittest(["com.oracle.truffle.api.test", "com.oracle.truffle.api.dsl.test"], ['@Test', '@Parameters'], "truffle.jar:")
-
 
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
@@ -2102,8 +2103,7 @@ def mx_init(suite):
         'vmfg': [vmfg, '[-options] class [args...]'],
         'deoptalot' : [deoptalot, '[n]'],
         'longtests' : [longtests, ''],
-        'sl' : [sl, '[SL args|@VM options]'],
-        'trufflejar' : [trufflejar, '']
+        'sl' : [sl, '[SL args|@VM options]']
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])

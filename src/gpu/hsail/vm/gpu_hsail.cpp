@@ -33,7 +33,7 @@
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/ostream.hpp"
 #include "graal/graalEnv.hpp"
-#include "graal/graalCompiler.hpp"
+#include "graal/graalRuntime.hpp"
 #include "graal/graalJavaAccess.hpp"
 #include "hsailKernelArguments.hpp"
 #include "hsailJavaCallArguments.hpp"
@@ -392,19 +392,16 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
   // Reset the kernel arguments
   _okra_clearargs(kernel);
 
-  // get how many bytes per deopt save area are required
-  int saveAreaCounts = OopSaver::getSaveAreaCounts(oop_map_array);
-  int numSRegs = saveAreaCounts & 0xff;
-  int numDRegs = (saveAreaCounts >> 8) & 0xff;
-  int numStackSlots = (saveAreaCounts >> 16);
-  int bytesPerSaveArea = numSRegs * 4 + (numDRegs + numStackSlots) * 8;
-
   HSAILDeoptimizationInfo* e;
   if (UseHSAILDeoptimization) {
-    e = new (MAX_DEOPT_SLOTS, bytesPerSaveArea) HSAILDeoptimizationInfo(MAX_DEOPT_SLOTS, bytesPerSaveArea);
-    e->set_never_ran_array(NEW_C_HEAP_ARRAY(jboolean, dimX, mtInternal));
-    memset(e->never_ran_array(), 0, dimX * sizeof(jboolean));
-    e->set_donor_threads(donorThreads);
+    // get how many bytes per deopt save area are required
+    int saveAreaCounts = OopSaver::getSaveAreaCounts(oop_map_array);
+    int numSRegs = saveAreaCounts & 0xff;
+    int numDRegs = (saveAreaCounts >> 8) & 0xff;
+    int numStackSlots = (saveAreaCounts >> 16);
+    int bytesPerSaveArea = numSRegs * 4 + (numDRegs + numStackSlots) * 8;
+
+    e = new (MAX_DEOPT_SLOTS, bytesPerSaveArea) HSAILDeoptimizationInfo(MAX_DEOPT_SLOTS, bytesPerSaveArea, dimX, donorThreads);
   }
 
   // This object sets up the kernel arguments
@@ -455,7 +452,6 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
   }
 
   if (UseHSAILDeoptimization) {
-    kernelStats.incDeopts();
     // check if any workitem requested a deopt
     int deoptcode = e->deopt_occurred();
     if (deoptcode != 1) {
@@ -470,6 +466,7 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
         guarantee(deoptcode == 1, msg);
       }
     } else {
+      kernelStats.incDeopts();
 
       {
         TraceTime t3("handle deoptimizing workitems", TraceGPUInteraction);
@@ -586,7 +583,6 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
       } // end of never-ran handling
     }
 
-    FREE_C_HEAP_ARRAY(jboolean, e->never_ran_array(), mtInternal);
     delete e;
   }
   kernelStats.finishDispatch();

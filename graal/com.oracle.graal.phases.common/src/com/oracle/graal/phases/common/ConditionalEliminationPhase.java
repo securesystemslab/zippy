@@ -332,12 +332,12 @@ public class ConditionalEliminationPhase extends Phase {
         }
     }
 
-    public class ConditionalElimination extends PostOrderNodeIterator<State> {
+    public class ConditionalElimination extends SinglePassNodeIterator<State> {
 
         private final LogicNode trueConstant;
         private final LogicNode falseConstant;
 
-        public ConditionalElimination(FixedNode start, State initialState) {
+        public ConditionalElimination(StartNode start, State initialState) {
             super(start, initialState);
             trueConstant = LogicConstantNode.tautology(graph);
             falseConstant = LogicConstantNode.contradiction(graph);
@@ -351,6 +351,7 @@ public class ConditionalEliminationPhase extends Phase {
             if (falseConstant.usages().isEmpty()) {
                 graph.removeFloating(falseConstant);
             }
+            super.finished();
         }
 
         private void registerCondition(boolean isTrue, LogicNode condition, ValueNode anchor) {

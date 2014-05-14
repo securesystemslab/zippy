@@ -88,7 +88,18 @@ com.oracle.graal.truffle.hotspot.amd64,\
 com.oracle.graal.hotspot.sparc,\
 com.oracle.graal.hotspot,\
 com.oracle.graal.hotspot.hsail
-distribution@GRAAL@excludeLibs=FINDBUGS
+distribution@GRAAL@exclude=FINDBUGS
+
+distribution@TRUFFLE@path=truffle.jar
+distribution@TRUFFLE@sourcesPath=truffle-sources.jar
+distribution@TRUFFLE@dependencies=\
+com.oracle.truffle.api.dsl
+
+distribution@TRUFFLE-DSL-PROCESSOR@path=truffle-dsl-processor.jar
+distribution@TRUFFLE-DSL-PROCESSOR@sourcesPath=truffle-dsl-processor-sources.jar
+distribution@TRUFFLE-DSL-PROCESSOR@dependencies=\
+com.oracle.truffle.dsl.processor
+distribution@TRUFFLE-DSL-PROCESSOR@distDependency=TRUFFLE
 
 # graal.api.collections
 project@com.oracle.graal.api.collections@subDir=graal
@@ -653,7 +664,7 @@ project@com.oracle.graal.compiler.hsail@javaCompliance=1.8
 # graal.compiler.hsail.test.infra - HSAIL compiler test infrastructure
 project@com.oracle.graal.compiler.hsail.test.infra@subDir=graal
 project@com.oracle.graal.compiler.hsail.test.infra@sourceDirs=src
-project@com.oracle.graal.compiler.hsail.test.infra@dependencies=com.oracle.graal.hotspot.hsail,JUNIT,OKRA_WITH_SIM
+project@com.oracle.graal.compiler.hsail.test.infra@dependencies=com.oracle.graal.test,com.oracle.graal.hotspot.hsail,OKRA_WITH_SIM
 project@com.oracle.graal.compiler.hsail.test.infra@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.hsail.test.infra@javaCompliance=1.8
 

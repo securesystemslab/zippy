@@ -98,7 +98,7 @@ import static com.oracle.graal.api.meta.DeoptimizationReason.*;
  */
 public class FlowSensitiveReduction extends FixedGuardReduction {
 
-    public FlowSensitiveReduction(FixedNode start, State initialState, PhaseContext context) {
+    public FlowSensitiveReduction(StartNode start, State initialState, PhaseContext context) {
         super(start, initialState, context);
     }
 
@@ -165,6 +165,7 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
         assert !isAliveWithoutUsages(trueConstant);
         assert !isAliveWithoutUsages(falseConstant);
         assert !isAliveWithoutUsages(nullConstant);
+        super.finished();
     }
 
     private static boolean isAliveWithoutUsages(FloatingNode node) {
