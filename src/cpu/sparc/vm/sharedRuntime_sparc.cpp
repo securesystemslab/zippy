@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1113,9 +1113,7 @@ static VMReg int_stk_helper( int i ) {
 
 int SharedRuntime::c_calling_convention(const BasicType *sig_bt,
                                          VMRegPair *regs,
-                                         VMRegPair *regs2,
                                          int total_args_passed) {
-    assert(regs2 == NULL, "not needed on sparc");
 
     // Return the number of VMReg stack_slots needed for the args.
     // This value does not include an abi space (like register window
@@ -1823,31 +1821,6 @@ static void gen_special_dispatch(MacroAssembler* masm,
   verify_oop_args(masm, method, sig_bt, regs);
   vmIntrinsics::ID iid = method->intrinsic_id();
 
-#ifdef GRAAL
-  if (iid == vmIntrinsics::_CompilerToVMImpl_executeCompiledMethod) {
-    // We are called from compiled code here. The three object arguments
-    // are already in the correct registers (j_rarg0, jrarg1, jrarg2). The
-    // fourth argument (j_rarg3) is a pointer to the HotSpotInstalledCode object.
-
-    // Load the nmethod pointer from the HotSpotInstalledCode object
-//    __ movq(j_rarg3, Address(j_rarg3, sizeof(oopDesc)));
-
-    // Check whether the nmethod was invalidated
-//    __ testq(j_rarg3, j_rarg3);
-//    Label invalid_nmethod;
-//    __ jcc(Assembler::zero, invalid_nmethod);
-
-    // Perform a tail call to the verified entry point of the nmethod.
-//    __ jmp(Address(j_rarg3, nmethod::verified_entry_point_offset()));
-
-//    __ bind(invalid_nmethod);
-
-//    __ jump(RuntimeAddress(StubRoutines::throw_InvalidInstalledCodeException_entry()));
-    __ stop("_CompilerToVMImpl_executeCompiledMethod not implemented");
-    return;
-  }
-#endif
-
   // Now write the args into the outgoing interpreter space
   bool     has_receiver   = false;
   Register receiver_reg   = noreg;
@@ -2118,7 +2091,7 @@ nmethod* SharedRuntime::generate_native_wrapper(MacroAssembler* masm,
   // the 1st six register arguments). It's weird see int_stk_helper.
   //
   int out_arg_slots;
-  out_arg_slots = c_calling_convention(out_sig_bt, out_regs, NULL, total_c_args);
+  out_arg_slots = c_calling_convention(out_sig_bt, out_regs, total_c_args);
 
   if (is_critical_native) {
     // Critical natives may have to call out so they need a save area
@@ -2865,7 +2838,7 @@ nmethod *SharedRuntime::generate_dtrace_nmethod(
   // the 1st six register arguments). It's weird see int_stk_helper.
   //
   int out_arg_slots;
-  out_arg_slots = c_calling_convention(out_sig_bt, out_regs, NULL, total_c_args);
+  out_arg_slots = c_calling_convention(out_sig_bt, out_regs, total_c_args);
 
   // Calculate the total number of stack slots we will need.
 

@@ -127,7 +127,7 @@ public abstract class DispatchUnboxedNode extends Node {
         @Child protected AttributeReadNode read;
         @Child protected DispatchUnboxedNode next;
 
-        private final Class cachedClass;
+        private final Class<?> cachedClass;
         private final PythonObject cachedStorage;
 
         public LinkedDispatchUnboxedNode(String attributeId, Object primary, PythonObject storage, DispatchUnboxedNode next) {

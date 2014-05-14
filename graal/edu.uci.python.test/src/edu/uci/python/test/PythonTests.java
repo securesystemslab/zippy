@@ -67,7 +67,7 @@ public class PythonTests {
 
         PythonContext context = getContext(printStream, System.err);
         Source source = context.getSourceManager().get("(test)", code);
-        new CustomConsole().parseFile(context, source);
+        new ZipPyConsole().parseFile(context, source);
         return byteArray.toString().replaceAll("\r\n", "\n");
     }
 
@@ -122,7 +122,7 @@ public class PythonTests {
     }
 
     public static VirtualFrame createVirtualFrame() {
-        return Truffle.getRuntime().createVirtualFrame(null, null, new FrameDescriptor());
+        return Truffle.getRuntime().createVirtualFrame(null, new FrameDescriptor());
     }
 
 }

@@ -36,9 +36,11 @@ import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.ptx.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
+import com.oracle.graal.gpu.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.meta.*;
@@ -51,7 +53,6 @@ import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.lir.ptx.*;
 import com.oracle.graal.lir.ptx.PTXMemOp.LoadReturnAddrOp;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.tiers.*;
@@ -66,7 +67,7 @@ public class PTXHotSpotBackend extends HotSpotBackend {
 
     /**
      * Descriptor for the PTX runtime method for calling a kernel. The C++ signature is:
-     * 
+     *
      * <pre>
      *     jlong (JavaThread* thread,
      *            jlong kernel,
@@ -94,6 +95,7 @@ public class PTXHotSpotBackend extends HotSpotBackend {
                     long.class, // objectParameterOffsets
                     long.class, // pinnedObjects
                     int.class); // encodedReturnTypeSize
+
     // @formatter:on
 
     public PTXHotSpotBackend(HotSpotGraalRuntime runtime, HotSpotProviders providers) {
@@ -112,7 +114,7 @@ public class PTXHotSpotBackend extends HotSpotBackend {
 
     /**
      * Initializes the GPU device.
-     * 
+     *
      * @return whether or not initialization was successful
      */
     private static native boolean initialize();
@@ -153,8 +155,8 @@ public class PTXHotSpotBackend extends HotSpotBackend {
     private static native long getLaunchKernelAddress();
 
     @Override
-    public FrameMap newFrameMap() {
-        return new PTXFrameMap(getCodeCache());
+    public FrameMap newFrameMap(RegisterConfig registerConfig) {
+        return new PTXFrameMap(getCodeCache(), registerConfig);
     }
 
     /**
@@ -166,7 +168,7 @@ public class PTXHotSpotBackend extends HotSpotBackend {
 
     /**
      * Compiles a given method to PTX code.
-     * 
+     *
      * @param makeBinary specifies whether a GPU binary should also be generated for the PTX code.
      *            If true, the returned value is guaranteed to have a non-zero
      *            {@linkplain ExternalCompilationResult#getEntryPoint() entry point}.
@@ -327,18 +329,23 @@ public class PTXHotSpotBackend extends HotSpotBackend {
     }
 
     @Override
-    public CompilationResultBuilder newCompilationResultBuilder(LIRGenerator lirGen, CompilationResult compilationResult, CompilationResultBuilderFactory factory) {
+    public CompilationResultBuilder newCompilationResultBuilder(LIRGenerationResult lirGenRes, CompilationResult compilationResult, CompilationResultBuilderFactory factory) {
         // Omit the frame of the method:
         // - has no spill slots or other slots allocated during register allocation
         // - has no callee-saved registers
         // - has no incoming arguments passed on the stack
         // - has no instructions with debug info
-        FrameMap frameMap = lirGen.frameMap;
+        FrameMap frameMap = lirGenRes.getFrameMap();
         Assembler masm = createAssembler(frameMap);
         PTXFrameContext frameContext = new PTXFrameContext();
         CompilationResultBuilder crb = factory.createBuilder(getCodeCache(), getForeignCalls(), frameMap, masm, frameContext, compilationResult);
-        crb.setFrameSize(0);
+        crb.setTotalFrameSize(0);
         return crb;
+    }
+
+    @Override
+    public LIRGenerationResult newLIRGenerationResult(LIR lir, FrameMap frameMap, Object stub) {
+        return new LIRGenerationResultBase(lir, frameMap);
     }
 
     @Override
@@ -347,8 +354,13 @@ public class PTXHotSpotBackend extends HotSpotBackend {
     }
 
     @Override
-    public LIRGenerator newLIRGenerator(StructuredGraph graph, Object stub, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        return new PTXHotSpotLIRGenerator(graph, getProviders(), getRuntime().getConfig(), frameMap, cc, lir);
+    public LIRGenerator newLIRGenerator(CallingConvention cc, LIRGenerationResult lirGenRes) {
+        return new PTXHotSpotLIRGenerator(getProviders(), getRuntime().getConfig(), cc, lirGenRes);
+    }
+
+    @Override
+    public NodeLIRBuilder newNodeLIRGenerator(StructuredGraph graph, LIRGenerator lirGen) {
+        return new PTXHotSpotNodeLIRBuilder(graph, lirGen);
     }
 
     private static void emitKernelEntry(CompilationResultBuilder crb, LIR lir, ResolvedJavaMethod codeCacheOwner) {
@@ -367,14 +379,14 @@ public class PTXHotSpotBackend extends HotSpotBackend {
         asm.emitString("");
 
         // Get the start block
-        Block startBlock = lir.getControlFlowGraph().getStartBlock();
+        AbstractBlock<?> startBlock = lir.getControlFlowGraph().getStartBlock();
         // Keep a list of ParameterOp instructions to delete from the
         // list of instructions in the block.
         ArrayList<LIRInstruction> deleteOps = new ArrayList<>();
 
         // Emit .param arguments to kernel entry based on ParameterOp
         // instruction.
-        for (LIRInstruction op : lir.lir(startBlock)) {
+        for (LIRInstruction op : lir.getLIRforBlock(startBlock)) {
             if (op instanceof PTXParameterOp) {
                 op.emitCode(crb);
                 deleteOps.add(op);
@@ -383,7 +395,7 @@ public class PTXHotSpotBackend extends HotSpotBackend {
 
         // Delete ParameterOp instructions.
         for (LIRInstruction op : deleteOps) {
-            lir.lir(startBlock).remove(op);
+            lir.getLIRforBlock(startBlock).remove(op);
         }
 
         // Start emiting body of the PTX kernel.
@@ -398,8 +410,8 @@ public class PTXHotSpotBackend extends HotSpotBackend {
 
         RegisterAnalysis registerAnalysis = new RegisterAnalysis();
 
-        for (Block b : lir.codeEmittingOrder()) {
-            for (LIRInstruction op : lir.lir(b)) {
+        for (AbstractBlock<?> b : lir.codeEmittingOrder()) {
+            for (LIRInstruction op : lir.getLIRforBlock(b)) {
                 if (op instanceof LabelOp) {
                     // Don't consider this as a definition
                 } else {

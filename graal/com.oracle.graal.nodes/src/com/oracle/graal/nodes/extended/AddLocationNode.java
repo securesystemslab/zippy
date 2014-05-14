@@ -54,7 +54,7 @@ public final class AddLocationNode extends LocationNode implements Canonicalizab
     }
 
     private AddLocationNode(ValueNode x, ValueNode y) {
-        super(StampFactory.extension());
+        super(StampFactory.forVoid());
         this.x = x;
         this.y = y;
     }
@@ -107,9 +107,9 @@ public final class AddLocationNode extends LocationNode implements Canonicalizab
     }
 
     @Override
-    public Value generateAddress(LIRGeneratorTool gen, Value base) {
-        Value xAddr = getX().generateAddress(gen, base);
-        return getY().generateAddress(gen, xAddr);
+    public Value generateAddress(NodeMappableLIRBuilder builder, LIRGeneratorTool gen, Value base) {
+        Value xAddr = getX().generateAddress(builder, gen, base);
+        return getY().generateAddress(builder, gen, xAddr);
     }
 
     @NodeIntrinsic

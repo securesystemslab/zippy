@@ -27,21 +27,143 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.meta.*;
+import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.extended.*;
+import com.oracle.graal.nodes.java.*;
+import com.oracle.graal.hotspot.hsail.nodes.*;
+import com.oracle.graal.hotspot.hsail.replacements.*;
+import java.util.HashMap;
 
 public class HSAILHotSpotLoweringProvider extends HotSpotLoweringProvider {
 
+    private HSAILNewObjectSnippets.Templates hsailNewObjectSnippets;
+
+    abstract class LoweringStrategy {
+        abstract void lower(Node n, LoweringTool tool);
+    }
+
+    LoweringStrategy PassThruStrategy = new LoweringStrategy() {
+        @Override
+        void lower(Node n, LoweringTool tool) {
+            return;
+        }
+    };
+
+    LoweringStrategy RejectStrategy = new LoweringStrategy() {
+        @Override
+        void lower(Node n, LoweringTool tool) {
+            throw new GraalInternalError("Node implementing Lowerable not handled in HSAIL Backend: " + n);
+        }
+    };
+
+    LoweringStrategy NewObjectStrategy = new LoweringStrategy() {
+        @Override
+        void lower(Node n, LoweringTool tool) {
+            StructuredGraph graph = (StructuredGraph) n.graph();
+            if (graph.getGuardsStage() == StructuredGraph.GuardsStage.AFTER_FSA) {
+                if (n instanceof NewInstanceNode) {
+                    hsailNewObjectSnippets.lower((NewInstanceNode) n, tool);
+                } else if (n instanceof NewArrayNode) {
+                    hsailNewObjectSnippets.lower((NewArrayNode) n, tool);
+                }
+            }
+        }
+    };
+
+    // strategy to replace an UnwindNode with a DeoptNode
+    LoweringStrategy UnwindNodeStrategy = new LoweringStrategy() {
+        @Override
+        void lower(Node n, LoweringTool tool) {
+            StructuredGraph graph = (StructuredGraph) n.graph();
+            UnwindNode unwind = (UnwindNode) n;
+            ValueNode exception = unwind.exception();
+            if (exception instanceof ForeignCallNode) {
+                // build up action and reason
+                String callName = ((ForeignCallNode) exception).getDescriptor().getName();
+                DeoptimizationReason reason;
+                switch (callName) {
+                    case "createOutOfBoundsException":
+                        reason = DeoptimizationReason.BoundsCheckException;
+                        break;
+                    case "createNullPointerException":
+                        reason = DeoptimizationReason.NullCheckException;
+                        break;
+                    default:
+                        reason = DeoptimizationReason.None;
+                }
+                unwind.replaceAtPredecessor(graph.add(new DeoptimizeNode(DeoptimizationAction.InvalidateReprofile, reason)));
+                unwind.safeDelete();
+            } else {
+                // unwind whose exception is not an instance of ForeignCallNode
+                throw new GraalInternalError("UnwindNode seen without ForeignCallNode: " + exception);
+            }
+        }
+    };
+
+    LoweringStrategy AtomicGetAndAddStrategy = new LoweringStrategy() {
+        @Override
+        void lower(Node n, LoweringTool tool) {
+            StructuredGraph graph = (StructuredGraph) n.graph();
+
+            // Note: this code adapted from CompareAndSwapNode
+            // lowering but since we are not dealing with an object
+            // but a word (thread passed in), I wasn't sure what
+            // should be done with the Location stuff so leaving it
+            // out for now
+
+            AtomicGetAndAddNode getAdd = (AtomicGetAndAddNode) n;
+            // LocationNode location = IndexedLocationNode.create(ANY_LOCATION, Kind.Long, 0,
+            // getAdd.offset(), graph, 1);
+            LocationNode location = IndexedLocationNode.create(getAdd.getLocationIdentity(), Kind.Long, 0, getAdd.offset(), graph, 1);
+            // note: getAdd.base() used to be getAdd.object()
+            LoweredAtomicGetAndAddNode loweredAtomicGetAdd = graph.add(new LoweredAtomicGetAndAddNode(getAdd.base(), location, getAdd.delta(), HeapAccess.BarrierType.NONE,
+                            getAdd.getKind() == Kind.Object));
+            loweredAtomicGetAdd.setStateAfter(getAdd.stateAfter());
+            graph.replaceFixedWithFixed(getAdd, loweredAtomicGetAdd);
+        }
+    };
+
+    private HashMap<Class<?>, LoweringStrategy> strategyMap = new HashMap<>();
+
+    void initStrategyMap() {
+        strategyMap.put(ConvertNode.class, PassThruStrategy);
+        strategyMap.put(FloatConvertNode.class, PassThruStrategy);
+        strategyMap.put(NewInstanceNode.class, NewObjectStrategy);
+        strategyMap.put(NewArrayNode.class, NewObjectStrategy);
+        strategyMap.put(NewMultiArrayNode.class, RejectStrategy);
+        strategyMap.put(DynamicNewArrayNode.class, RejectStrategy);
+        strategyMap.put(MonitorEnterNode.class, RejectStrategy);
+        strategyMap.put(MonitorExitNode.class, RejectStrategy);
+        strategyMap.put(UnwindNode.class, UnwindNodeStrategy);
+        strategyMap.put(AtomicGetAndAddNode.class, AtomicGetAndAddStrategy);
+    }
+
+    private LoweringStrategy getStrategy(Node n) {
+        return strategyMap.get(n.getClass());
+    }
+
     public HSAILHotSpotLoweringProvider(HotSpotGraalRuntime runtime, MetaAccessProvider metaAccess, ForeignCallsProvider foreignCalls, HotSpotRegistersProvider registers) {
         super(runtime, metaAccess, foreignCalls, registers);
+        initStrategyMap();
+    }
+
+    @Override
+    public void initialize(HotSpotProviders providers, HotSpotVMConfig config) {
+        super.initialize(providers, config);
+        TargetDescription target = providers.getCodeCache().getTarget();
+        hsailNewObjectSnippets = new HSAILNewObjectSnippets.Templates(providers, target);
     }
 
     @Override
     public void lower(Node n, LoweringTool tool) {
-        if (n instanceof ConvertNode) {
-            return;
-        } else {
+        LoweringStrategy strategy = getStrategy(n);
+        // if not in map, let superclass handle it
+        if (strategy == null) {
             super.lower(n, tool);
+        } else {
+            strategy.lower(n, tool);
         }
     }
 

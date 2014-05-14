@@ -59,6 +59,11 @@ public class CompilationProfile {
         this.name = name;
     }
 
+    @Override
+    public String toString() {
+        return String.format("CompilationProfile(callCount=%d/%d, callAndLoopCount=%d/%d)", callCount, compilationCallThreshold, callAndLoopCount, compilationCallAndLoopThreshold);
+    }
+
     public Map<String, Object> getDebugProperties() {
         Map<String, Object> properties = new LinkedHashMap<>();
         String callsThreshold = String.format("%7d/%5d", getCallCount(), getCompilationCallThreshold());
@@ -126,13 +131,13 @@ public class CompilationProfile {
         this.previousTimestamp = timestamp;
     }
 
-    void reportInvalidated() {
+    public void reportInvalidated() {
         invalidationCount++;
         int reprofile = TruffleInvalidationReprofileCount.getValue();
         ensureProfiling(reprofile, reprofile);
     }
 
-    void reportInterpreterCall() {
+    public void reportInterpreterCall() {
         callCount++;
         callAndLoopCount++;
     }

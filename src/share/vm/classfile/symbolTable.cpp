@@ -38,9 +38,6 @@
 
 // --------------------------------------------------------------------------
 
-// the number of buckets a thread claims
-const int ClaimChunkSize = 32;
-
 SymbolTable* SymbolTable::_the_table = NULL;
 // Static arena for symbols that are not deallocated
 Arena* SymbolTable::_arena = NULL;
@@ -86,12 +83,16 @@ void SymbolTable::symbols_do(SymbolClosure *cl) {
   }
 }
 
-int SymbolTable::_symbols_removed = 0;
-int SymbolTable::_symbols_counted = 0;
-volatile int SymbolTable::_parallel_claimed_idx = 0;
+int SymbolTable::symbols_removed = 0;
+int SymbolTable::symbols_counted = 0;
 
-void SymbolTable::buckets_unlink(int start_idx, int end_idx, int* processed, int* removed, size_t* memory_total) {
-  for (int i = start_idx; i < end_idx; ++i) {
+// Remove unreferenced symbols from the symbol table
+// This is done late during GC.
+void SymbolTable::unlink() {
+  int removed = 0;
+  int total = 0;
+  size_t memory_total = 0;
+  for (int i = 0; i < the_table()->table_size(); ++i) {
     HashtableEntry<Symbol*, mtSymbol>** p = the_table()->bucket_addr(i);
     HashtableEntry<Symbol*, mtSymbol>* entry = the_table()->bucket(i);
     while (entry != NULL) {
@@ -103,14 +104,14 @@ void SymbolTable::buckets_unlink(int start_idx, int end_idx, int* processed, int
         break;
       }
       Symbol* s = entry->literal();
-      (*memory_total) += s->size();
-      (*processed)++;
+      memory_total += s->size();
+      total++;
       assert(s != NULL, "just checking");
       // If reference count is zero, remove.
       if (s->refcount() == 0) {
         assert(!entry->is_shared(), "shared entries should be kept live");
         delete s;
-        (*removed)++;
+        removed++;
         *p = entry->next();
         the_table()->free_entry(entry);
       } else {
@@ -120,45 +121,12 @@ void SymbolTable::buckets_unlink(int start_idx, int end_idx, int* processed, int
       entry = (HashtableEntry<Symbol*, mtSymbol>*)HashtableEntry<Symbol*, mtSymbol>::make_ptr(*p);
     }
   }
-}
-
-// Remove unreferenced symbols from the symbol table
-// This is done late during GC.
-void SymbolTable::unlink(int* processed, int* removed) {
-  size_t memory_total = 0;
-  buckets_unlink(0, the_table()->table_size(), processed, removed, &memory_total);
-  _symbols_removed += *removed;
-  _symbols_counted += *processed;
+  symbols_removed += removed;
+  symbols_counted += total;
   // Exclude printing for normal PrintGCDetails because people parse
   // this output.
   if (PrintGCDetails && Verbose && WizardMode) {
-    gclog_or_tty->print(" [Symbols=%d size=" SIZE_FORMAT "K] ", *processed,
-                        (memory_total*HeapWordSize)/1024);
-  }
-}
-
-void SymbolTable::possibly_parallel_unlink(int* processed, int* removed) {
-  const int limit = the_table()->table_size();
-
-  size_t memory_total = 0;
-
-  for (;;) {
-    // Grab next set of buckets to scan
-    int start_idx = Atomic::add(ClaimChunkSize, &_parallel_claimed_idx) - ClaimChunkSize;
-    if (start_idx >= limit) {
-      // End of table
-      break;
-    }
-
-    int end_idx = MIN2(limit, start_idx + ClaimChunkSize);
-    buckets_unlink(start_idx, end_idx, processed, removed, &memory_total);
-  }
-  Atomic::add(*processed, &_symbols_counted);
-  Atomic::add(*removed, &_symbols_removed);
-  // Exclude printing for normal PrintGCDetails because people parse
-  // this output.
-  if (PrintGCDetails && Verbose && WizardMode) {
-    gclog_or_tty->print(" [Symbols: scanned=%d removed=%d size=" SIZE_FORMAT "K] ", *processed, *removed,
+    gclog_or_tty->print(" [Symbols=%d size=" SIZE_FORMAT "K] ", total,
                         (memory_total*HeapWordSize)/1024);
   }
 }
@@ -526,11 +494,11 @@ void SymbolTable::print_histogram() {
   tty->print_cr("Total number of symbols  %5d", count);
   tty->print_cr("Total size in memory     %5dK",
           (memory_total*HeapWordSize)/1024);
-  tty->print_cr("Total counted            %5d", _symbols_counted);
-  tty->print_cr("Total removed            %5d", _symbols_removed);
-  if (_symbols_counted > 0) {
+  tty->print_cr("Total counted            %5d", symbols_counted);
+  tty->print_cr("Total removed            %5d", symbols_removed);
+  if (symbols_counted > 0) {
     tty->print_cr("Percent removed          %3.2f",
-          ((float)_symbols_removed/(float)_symbols_counted)* 100);
+          ((float)symbols_removed/(float)symbols_counted)* 100);
   }
   tty->print_cr("Reference counts         %5d", Symbol::_total_count);
   tty->print_cr("Symbol arena size        %5d used %5d",
@@ -771,38 +739,39 @@ oop StringTable::intern(const char* utf8_string, TRAPS) {
   return result;
 }
 
-void StringTable::unlink_or_oops_do(BoolObjectClosure* is_alive, OopClosure* f, int* processed, int* removed) {
-  buckets_unlink_or_oops_do(is_alive, f, 0, the_table()->table_size(), processed, removed);
-}
-
-void StringTable::possibly_parallel_unlink_or_oops_do(BoolObjectClosure* is_alive, OopClosure* f, int* processed, int* removed) {
+void StringTable::unlink_or_oops_do(BoolObjectClosure* is_alive, OopClosure* f) {
   // Readers of the table are unlocked, so we should only be removing
   // entries at a safepoint.
   assert(SafepointSynchronize::is_at_safepoint(), "must be at safepoint");
-  const int limit = the_table()->table_size();
+  for (int i = 0; i < the_table()->table_size(); ++i) {
+    HashtableEntry<oop, mtSymbol>** p = the_table()->bucket_addr(i);
+    HashtableEntry<oop, mtSymbol>* entry = the_table()->bucket(i);
+    while (entry != NULL) {
+      assert(!entry->is_shared(), "CDS not used for the StringTable");
 
-  for (;;) {
-    // Grab next set of buckets to scan
-    int start_idx = Atomic::add(ClaimChunkSize, &_parallel_claimed_idx) - ClaimChunkSize;
-    if (start_idx >= limit) {
-      // End of table
-      break;
+      if (is_alive->do_object_b(entry->literal())) {
+        if (f != NULL) {
+          f->do_oop((oop*)entry->literal_addr());
+        }
+        p = entry->next_addr();
+      } else {
+        *p = entry->next();
+        the_table()->free_entry(entry);
+      }
+      entry = *p;
     }
-
-    int end_idx = MIN2(limit, start_idx + ClaimChunkSize);
-    buckets_unlink_or_oops_do(is_alive, f, start_idx, end_idx, processed, removed);
   }
 }
 
-void StringTable::buckets_oops_do(OopClosure* f, int start_idx, int end_idx) {
+void StringTable::buckets_do(OopClosure* f, int start_idx, int end_idx) {
   const int limit = the_table()->table_size();
 
   assert(0 <= start_idx && start_idx <= limit,
-         err_msg("start_idx (" INT32_FORMAT ") is out of bounds", start_idx));
+         err_msg("start_idx (" INT32_FORMAT ") oob?", start_idx));
   assert(0 <= end_idx && end_idx <= limit,
-         err_msg("end_idx (" INT32_FORMAT ") is out of bounds", end_idx));
+         err_msg("end_idx (" INT32_FORMAT ") oob?", end_idx));
   assert(start_idx <= end_idx,
-         err_msg("Index ordering: start_idx=" INT32_FORMAT", end_idx=" INT32_FORMAT,
+         err_msg("Ordering: start_idx=" INT32_FORMAT", end_idx=" INT32_FORMAT,
                  start_idx, end_idx));
 
   for (int i = start_idx; i < end_idx; i += 1) {
@@ -817,44 +786,12 @@ void StringTable::buckets_oops_do(OopClosure* f, int start_idx, int end_idx) {
   }
 }
 
-void StringTable::buckets_unlink_or_oops_do(BoolObjectClosure* is_alive, OopClosure* f, int start_idx, int end_idx, int* processed, int* removed) {
-  const int limit = the_table()->table_size();
-
-  assert(0 <= start_idx && start_idx <= limit,
-         err_msg("start_idx (" INT32_FORMAT ") is out of bounds", start_idx));
-  assert(0 <= end_idx && end_idx <= limit,
-         err_msg("end_idx (" INT32_FORMAT ") is out of bounds", end_idx));
-  assert(start_idx <= end_idx,
-         err_msg("Index ordering: start_idx=" INT32_FORMAT", end_idx=" INT32_FORMAT,
-                 start_idx, end_idx));
-
-  for (int i = start_idx; i < end_idx; ++i) {
-    HashtableEntry<oop, mtSymbol>** p = the_table()->bucket_addr(i);
-    HashtableEntry<oop, mtSymbol>* entry = the_table()->bucket(i);
-    while (entry != NULL) {
-      assert(!entry->is_shared(), "CDS not used for the StringTable");
-
-      if (is_alive->do_object_b(entry->literal())) {
-        if (f != NULL) {
-          f->do_oop((oop*)entry->literal_addr());
-        }
-        p = entry->next_addr();
-      } else {
-        *p = entry->next();
-        the_table()->free_entry(entry);
-        (*removed)++;
-      }
-      (*processed)++;
-      entry = *p;
-    }
-  }
-}
-
 void StringTable::oops_do(OopClosure* f) {
-  buckets_oops_do(f, 0, the_table()->table_size());
+  buckets_do(f, 0, the_table()->table_size());
 }
 
 void StringTable::possibly_parallel_oops_do(OopClosure* f) {
+  const int ClaimChunkSize = 32;
   const int limit = the_table()->table_size();
 
   for (;;) {
@@ -866,7 +803,7 @@ void StringTable::possibly_parallel_oops_do(OopClosure* f) {
     }
 
     int end_idx = MIN2(limit, start_idx + ClaimChunkSize);
-    buckets_oops_do(f, start_idx, end_idx);
+    buckets_do(f, start_idx, end_idx);
   }
 }
 

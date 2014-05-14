@@ -32,6 +32,7 @@ import org.junit.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.compiler.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.compiler.test.*;
@@ -41,7 +42,6 @@ import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.LIRInstruction.ValueProcedure;
 import com.oracle.graal.lir.StandardOp.MoveOp;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.schedule.*;
 
@@ -73,8 +73,8 @@ public class AllocatorTest extends GraalCompilerTest {
         public RegisterStats(LIR lir) {
             this.lir = lir;
 
-            for (Block block : lir.codeEmittingOrder()) {
-                for (LIRInstruction instr : lir.lir(block)) {
+            for (AbstractBlock<?> block : lir.codeEmittingOrder()) {
+                for (LIRInstruction instr : lir.getLIRforBlock(block)) {
                     collectStats(instr);
                 }
             }
@@ -113,14 +113,14 @@ public class AllocatorTest extends GraalCompilerTest {
 
         SchedulePhase schedule = null;
         try (Scope s = Debug.scope("FrontEnd")) {
-            schedule = GraalCompiler.emitHIR(getProviders(), getBackend().getTarget(), graph, assumptions, null, getDefaultGraphBuilderSuite(), OptimisticOptimizations.NONE,
-                            graph.method().getProfilingInfo(), new SpeculationLog(), getSuites());
+            schedule = GraalCompiler.emitFrontEnd(getProviders(), getBackend().getTarget(), graph, assumptions, null, getDefaultGraphBuilderSuite(), OptimisticOptimizations.NONE,
+                            graph.method().getProfilingInfo(), null, getSuites());
         } catch (Throwable e) {
             throw Debug.handle(e);
         }
 
         CallingConvention cc = getCallingConvention(getCodeCache(), Type.JavaCallee, graph.method(), false);
-        LIRGenerator lirGen = GraalCompiler.emitLIR(getBackend(), getBackend().getTarget(), schedule, graph, null, cc);
-        return new RegisterStats(lirGen.lir);
+        LIRGenerationResult lirGen = GraalCompiler.emitLIR(getBackend(), getBackend().getTarget(), schedule, graph, null, cc, null);
+        return new RegisterStats(lirGen.getLIR());
     }
 }

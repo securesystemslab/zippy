@@ -45,9 +45,6 @@
 #include "runtime/vframeArray.hpp"
 #include "utilities/debug.hpp"
 #include "utilities/macros.hpp"
-#ifdef GRAAL
-#include "graal/graalJavaAccess.hpp"
-#endif
 
 #define __ _masm->
 
@@ -852,65 +849,6 @@ address InterpreterGenerator::generate_Reference_get_entry(void) {
   return generate_accessor_entry();
 }
 
-#ifdef GRAAL
-
-// Interpreter stub for calling a compiled method with 3 object arguments
-address InterpreterGenerator::generate_execute_compiled_method_entry() {
-  address entry_point = __ pc();
-
-  // Pick up the return address
-  __ movptr(rax, Address(rsp, 0));
-
-  // Must preserve original SP for loading incoming arguments because
-  // we need to align the outgoing SP for compiled code.
-  __ movptr(r11, rsp);
-
-  // Move first object argument from interpreter calling convention to compiled
-  // code calling convention.
-  __ movq(j_rarg0, Address(r11, Interpreter::stackElementSize*4));
-
-  // Move second object argument.
-  __ movq(j_rarg1, Address(r11, Interpreter::stackElementSize*3));
-
-  // Move third object argument.
-  __ movq(j_rarg2, Address(r11, Interpreter::stackElementSize*2));
-
-  // Load the raw pointer to the HotSpotInstalledCode object.
-  __ movq(j_rarg3, Address(r11, Interpreter::stackElementSize));
-
-  // Load the nmethod pointer from the HotSpotInstalledCode object
-  __ movq(j_rarg3, Address(j_rarg3, sizeof(oopDesc)));
-
-  // Check whether the nmethod was invalidated
-  __ testq(j_rarg3, j_rarg3);
-  Label invalid_nmethod;
-  __ jcc(Assembler::zero, invalid_nmethod);
-
-  // Ensure compiled code always sees stack at proper alignment
-  __ andptr(rsp, -16);
-
-  // push the return address and misalign the stack that youngest frame always sees
-  // as far as the placement of the call instruction
-  __ push(rax);
-
-  // Perform a tail call to the verified entry point of the nmethod.
-  __ jmp(Address(j_rarg3, nmethod::verified_entry_point_offset()));
-
-  __ bind(invalid_nmethod);
-
-  //  pop return address, reset last_sp to NULL
-  __ empty_expression_stack();
-  __ restore_bcp();      // rsi must be correct for exception handler   (was destroyed)
-  __ restore_locals();   // make sure locals pointer is correct as well (was destroyed)
-  __ call_VM(noreg, CAST_FROM_FN_PTR(address, InterpreterRuntime::throw_InvalidInstalledCodeException));
-  // the call_VM checks for exception, so we should never return here.
-  __ should_not_reach_here();
-
-  return entry_point;
-}
-
-#endif
-
 /**
  * Method entry for static native methods:
  *   int java.util.zip.CRC32.update(int crc, int b)
@@ -1702,9 +1640,6 @@ address AbstractInterpreterGenerator::generate_method_entry(
   switch (kind) {
   case Interpreter::zerolocals             :                                                      break;
   case Interpreter::zerolocals_synchronized: synchronized = true;                                 break;
-#ifdef GRAAL
-  case Interpreter::execute_compiled_method: entry_point = ig_this->generate_execute_compiled_method_entry(); break;
-#endif
   case Interpreter::native                 : entry_point = ig_this->generate_native_entry(false); break;
   case Interpreter::native_synchronized    : entry_point = ig_this->generate_native_entry(true);  break;
   case Interpreter::empty                  : entry_point = ig_this->generate_empty_entry();       break;

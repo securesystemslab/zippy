@@ -27,7 +27,6 @@
 #include "runtime/javaCalls.hpp"
 #include "runtime/serviceThread.hpp"
 #include "runtime/mutexLocker.hpp"
-#include "runtime/os.hpp"
 #include "prims/jvmtiImpl.hpp"
 #include "services/gcNotifier.hpp"
 #include "services/diagnosticArgument.hpp"
@@ -67,7 +66,7 @@ void ServiceThread::initialize() {
     // exceptions anyway, check and abort if this fails.
     if (thread == NULL || thread->osthread() == NULL) {
       vm_exit_during_initialization("java.lang.OutOfMemoryError",
-                                    os::native_thread_creation_failed_msg());
+                                    "unable to create new native thread");
     }
 
     java_lang_Thread::set_thread(thread_oop(), thread);

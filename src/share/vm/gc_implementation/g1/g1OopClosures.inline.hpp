@@ -29,7 +29,6 @@
 #include "gc_implementation/g1/g1CollectedHeap.hpp"
 #include "gc_implementation/g1/g1OopClosures.hpp"
 #include "gc_implementation/g1/g1RemSet.hpp"
-#include "gc_implementation/g1/g1RemSet.inline.hpp"
 #include "gc_implementation/g1/heapRegionRemSet.hpp"
 
 /*
@@ -83,7 +82,7 @@ inline void G1ParScanClosure::do_oop_nv(T* p) {
 
       _par_scan_state->push_on_queue(p);
     } else {
-      _par_scan_state->update_rs(_from, p, _worker_id);
+      _par_scan_state->update_rs(_from, p, _par_scan_state->queue_num());
     }
   }
 }
@@ -178,7 +177,7 @@ inline void G1UpdateRSOrPushRefOopClosure::do_oop_nv(T* p) {
     // The _record_refs_into_cset flag is true during the RSet
     // updating part of an evacuation pause. It is false at all
     // other times:
-    //  * rebuilding the remembered sets after a full GC
+    //  * rebuilding the rembered sets after a full GC
     //  * during concurrent refinement.
     //  * updating the remembered sets of regions in the collection
     //    set in the event of an evacuation failure (when deferred

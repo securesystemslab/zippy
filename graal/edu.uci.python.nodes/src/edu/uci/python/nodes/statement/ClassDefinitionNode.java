@@ -62,7 +62,7 @@ public final class ClassDefinitionNode extends StatementNode {
             throw new IllegalStateException();
         }
 
-        definitionFunc.call(frame.pack(), new Object[]{newClass});
+        definitionFunc.call(new Object[]{newClass});
         return newClass;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -138,9 +138,9 @@ private:
   static BasicType basic_type_mirror_to_basic_type(oop basic_type_mirror, TRAPS);
 
 public:
-  // Method invocation through java.lang.reflect.Method
+  // Method invokation through java.lang.reflect.Method
   static oop      invoke_method(oop method_mirror, Handle receiver, objArrayHandle args, TRAPS);
-  // Method invocation through java.lang.reflect.Constructor
+  // Method invokation through java.lang.reflect.Constructor
   static oop      invoke_constructor(oop method_mirror, objArrayHandle args, TRAPS);
 
 };

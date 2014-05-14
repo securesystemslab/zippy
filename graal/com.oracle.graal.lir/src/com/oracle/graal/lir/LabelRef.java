@@ -23,6 +23,7 @@
 package com.oracle.graal.lir;
 
 import com.oracle.graal.asm.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.lir.StandardOp.BranchOp;
 import com.oracle.graal.lir.StandardOp.JumpOp;
 import com.oracle.graal.nodes.cfg.*;
@@ -38,42 +39,42 @@ import com.oracle.graal.nodes.cfg.*;
 public final class LabelRef {
 
     private final LIR lir;
-    private final Block block;
+    private final AbstractBlock<?> block;
     private final int suxIndex;
 
     /**
      * Returns a new reference to a successor of the given block.
-     * 
+     *
      * @param block The base block that contains the successor list.
      * @param suxIndex The index of the successor.
      * @return The newly created label reference.
      */
-    public static LabelRef forSuccessor(final LIR lir, final Block block, final int suxIndex) {
+    public static LabelRef forSuccessor(final LIR lir, final AbstractBlock<?> block, final int suxIndex) {
         return new LabelRef(lir, block, suxIndex);
     }
 
     /**
      * Returns a new reference to a successor of the given block.
-     * 
+     *
      * @param block The base block that contains the successor list.
      * @param suxIndex The index of the successor.
      */
-    private LabelRef(final LIR lir, final Block block, final int suxIndex) {
+    private LabelRef(final LIR lir, final AbstractBlock<?> block, final int suxIndex) {
         this.lir = lir;
         this.block = block;
         this.suxIndex = suxIndex;
     }
 
-    public Block getSourceBlock() {
+    public AbstractBlock<?> getSourceBlock() {
         return block;
     }
 
-    public Block getTargetBlock() {
+    public AbstractBlock<?> getTargetBlock() {
         return block.getSuccessors().get(suxIndex);
     }
 
     public Label label() {
-        return ((StandardOp.LabelOp) lir.lir(getTargetBlock()).get(0)).getLabel();
+        return ((StandardOp.LabelOp) lir.getLIRforBlock(getTargetBlock()).get(0)).getLabel();
     }
 
     @Override

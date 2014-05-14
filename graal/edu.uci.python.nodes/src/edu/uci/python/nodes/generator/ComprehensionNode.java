@@ -156,7 +156,7 @@ public abstract class ComprehensionNode extends FrameSlotNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            return comprehension.execute(frameFactory.create(frameDescriptor, null, PArguments.EMPTY_ARGUMENT));
+            return comprehension.execute(frameFactory.create(frameDescriptor, null, PArguments.EMPTY_ARGUMENTS_ARRAY));
         }
     }
 

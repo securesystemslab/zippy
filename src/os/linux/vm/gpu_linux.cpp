@@ -38,7 +38,7 @@ static unsigned int amd_vendor_id = 0x1002;
 
 #define PCI_DRIVER_NAME_START_POS 255
 
-jobject gpu::probe_gpus(JNIEnv* env) {
+jobject Gpu::probe_gpus(JNIEnv* env) {
   bool hsail = false;
   bool ptx = false;
 

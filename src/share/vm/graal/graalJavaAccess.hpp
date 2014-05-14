@@ -49,7 +49,7 @@ void graal_compute_offsets();
 
 #define COMPILER_CLASSES_DO(start_class, end_class, char_field, int_field, boolean_field, long_field, float_field, oop_field, static_oop_field)                \
   start_class(HotSpotResolvedObjectType)                                                                                                                       \
-    oop_field(HotSpotResolvedObjectType, javaClass, "Ljava/lang/Class;")                                                                                      \
+    oop_field(HotSpotResolvedObjectType, javaClass, "Ljava/lang/Class;")                                                                                       \
   end_class                                                                                                                                                    \
   start_class(HotSpotResolvedJavaMethod)                                                                                                                       \
     oop_field(HotSpotResolvedJavaMethod, name, "Ljava/lang/String;")                                                                                           \
@@ -59,8 +59,11 @@ void graal_compute_offsets();
   start_class(HotSpotJavaType)                                                                                                                                 \
     oop_field(HotSpotJavaType, name, "Ljava/lang/String;")                                                                                                     \
   end_class                                                                                                                                                    \
+  start_class(InstalledCode)                                                                                                                                   \
+    long_field(InstalledCode, address)                                                                                                                         \
+    long_field(InstalledCode, version)                                                                                                                         \
+  end_class                                                                                                                                                    \
   start_class(HotSpotInstalledCode)                                                                                                                            \
-    long_field(HotSpotInstalledCode, codeBlob)                                                                                                                 \
     int_field(HotSpotInstalledCode, size)                                                                                                                      \
     long_field(HotSpotInstalledCode, codeStart)                                                                                                                \
     int_field(HotSpotInstalledCode, codeSize)                                                                                                                  \
@@ -113,7 +116,7 @@ void graal_compute_offsets();
     long_field(ExternalCompilationResult, entryPoint)                                                                                                          \
   end_class                                                                                                                                                    \
   start_class(CompilationResult)                                                                                                                               \
-    int_field(CompilationResult, frameSize)                                                                                                                    \
+    int_field(CompilationResult, totalFrameSize)                                                                                                               \
     int_field(CompilationResult, customStackAreaOffset)                                                                                                        \
     oop_field(CompilationResult, targetCode, "[B")                                                                                                             \
     oop_field(CompilationResult, assumptions, "Lcom/oracle/graal/api/code/Assumptions;")                                                                       \
@@ -201,8 +204,18 @@ void graal_compute_offsets();
   end_class                                                                                                                                                    \
   start_class(Constant)                                                                                                                                        \
     oop_field(Constant, kind, "Lcom/oracle/graal/api/meta/Kind;")                                                                                              \
-    oop_field(Constant, object, "Ljava/lang/Object;")                                                                                                          \
-    long_field(Constant, primitive)                                                                                                                            \
+  end_class                                                                                                                                                    \
+  start_class(PrimitiveConstant)                                                                                                                               \
+    long_field(PrimitiveConstant, primitive)                                                                                                                   \
+  end_class                                                                                                                                                    \
+  start_class(NullConstant)                                                                                                                                    \
+  end_class                                                                                                                                                    \
+  start_class(HotSpotObjectConstant)                                                                                                                           \
+    oop_field(HotSpotObjectConstant, object, "Ljava/lang/Object;")                                                                                             \
+  end_class                                                                                                                                                    \
+  start_class(HotSpotMetaspaceConstant)                                                                                                                        \
+    long_field(HotSpotMetaspaceConstant, primitive)                                                                                                            \
+    oop_field(HotSpotMetaspaceConstant, metaspaceObject, "Ljava/lang/Object;")                                                                                 \
   end_class                                                                                                                                                    \
   start_class(Kind)                                                                                                                                            \
     char_field(Kind, typeChar)                                                                                                                                 \
@@ -239,7 +252,16 @@ void graal_compute_offsets();
   end_class                                                                                                                                                    \
   start_class(SpeculationLog)                                                                                                                                  \
     oop_field(SpeculationLog, lastFailed, "Ljava/lang/Object;")                                                                                                \
-  end_class
+  end_class                                                                                                                                                    \
+  start_class(HotSpotStackFrameReference)                                                                                                                      \
+    oop_field(HotSpotStackFrameReference, compilerToVM, "Lcom/oracle/graal/hotspot/bridge/CompilerToVM;")                                                      \
+    long_field(HotSpotStackFrameReference, stackPointer)                                                                                                       \
+    int_field(HotSpotStackFrameReference, frameNumber)                                                                                                         \
+    int_field(HotSpotStackFrameReference, bci)                                                                                                                 \
+    long_field(HotSpotStackFrameReference, metaspaceMethod)                                                                                                    \
+    oop_field(HotSpotStackFrameReference, locals, "[Ljava/lang/Object;")                                                                                       \
+    oop_field(HotSpotStackFrameReference, localIsVirtual, "[Z")                                                                                                \
+  end_class                                                                                                                                                    \
   /* end*/
 
 #define START_CLASS(name)                                                                                                                                      \

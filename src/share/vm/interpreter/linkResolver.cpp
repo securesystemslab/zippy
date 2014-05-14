@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -300,7 +300,7 @@ int LinkResolver::vtable_index_of_interface_method(KlassHandle klass,
   Symbol* signature = resolved_method->signature();
 
   // First check in default method array
-  if (!resolved_method->is_abstract() &&
+  if (!resolved_method->is_abstract()  &&
     (InstanceKlass::cast(klass())->default_methods() != NULL)) {
     int index = InstanceKlass::find_method_index(InstanceKlass::cast(klass())->default_methods(), name, signature);
     if (index >= 0 ) {
@@ -318,11 +318,7 @@ int LinkResolver::vtable_index_of_interface_method(KlassHandle klass,
 
 void LinkResolver::lookup_method_in_interfaces(methodHandle& result, KlassHandle klass, Symbol* name, Symbol* signature, TRAPS) {
   InstanceKlass *ik = InstanceKlass::cast(klass());
-
-  // Specify 'true' in order to skip default methods when searching the
-  // interfaces.  Function lookup_method_in_klasses() already looked for
-  // the method in the default methods table.
-  result = methodHandle(THREAD, ik->lookup_method_in_all_interfaces(name, signature, true));
+  result = methodHandle(THREAD, ik->lookup_method_in_all_interfaces(name, signature));
 }
 
 void LinkResolver::lookup_polymorphic_method(methodHandle& result,
@@ -564,7 +560,16 @@ void LinkResolver::resolve_method(methodHandle& resolved_method, KlassHandle res
     }
   }
 
-  // 5. access checks, access checking may be turned off when calling from within the VM.
+  // 5. check if method is concrete
+  if (resolved_method->is_abstract() && !resolved_klass->is_abstract()) {
+    ResourceMark rm(THREAD);
+    THROW_MSG(vmSymbols::java_lang_AbstractMethodError(),
+              Method::name_and_sig_as_C_string(resolved_klass(),
+                                                      method_name,
+                                                      method_signature));
+  }
+
+  // 6. access checks, access checking may be turned off when calling from within the VM.
   if (check_access) {
     assert(current_klass.not_null() , "current_klass should not be null");
 
@@ -615,7 +620,7 @@ void LinkResolver::resolve_interface_method(methodHandle& resolved_method,
                                             bool check_access,
                                             bool nostatics, TRAPS) {
 
-  // check if klass is interface
+ // check if klass is interface
   if (!resolved_klass->is_interface()) {
     ResourceMark rm(THREAD);
     char buf[200];
@@ -639,6 +644,16 @@ void LinkResolver::resolve_interface_method(methodHandle& resolved_method,
                                                         method_signature));
     }
   }
+
+  if (nostatics && resolved_method->is_static()) {
+    ResourceMark rm(THREAD);
+    char buf[200];
+    jio_snprintf(buf, sizeof(buf), "Expected instance not static method %s", Method::name_and_sig_as_C_string(resolved_klass(),
+                                                      resolved_method->name(),
+                                                      resolved_method->signature()));
+    THROW_MSG(vmSymbols::java_lang_IncompatibleClassChangeError(), buf);
+  }
+
 
   if (check_access) {
     // JDK8 adds non-public interface methods, and accessability check requirement
@@ -681,15 +696,6 @@ void LinkResolver::resolve_interface_method(methodHandle& resolved_method,
         THROW_MSG(vmSymbols::java_lang_LinkageError(), buf);
       }
     }
-  }
-
-  if (nostatics && resolved_method->is_static()) {
-    ResourceMark rm(THREAD);
-    char buf[200];
-    jio_snprintf(buf, sizeof(buf), "Expected instance not static method %s",
-                 Method::name_and_sig_as_C_string(resolved_klass(),
-                 resolved_method->name(), resolved_method->signature()));
-    THROW_MSG(vmSymbols::java_lang_IncompatibleClassChangeError(), buf);
   }
 
   if (TraceItables && Verbose) {
@@ -1285,11 +1291,8 @@ void LinkResolver::runtime_resolve_interface_method(CallInfo& result, methodHand
                  resolved_klass()->external_name());
     THROW_MSG(vmSymbols::java_lang_IncompatibleClassChangeError(), buf);
   }
-
   // do lookup based on receiver klass
   methodHandle sel_method;
-  // This search must match the linktime preparation search for itable initialization
-  // to correctly enforce loader constraints for interface method inheritance
   lookup_instance_method_in_klasses(sel_method, recv_klass,
             resolved_method->name(),
             resolved_method->signature(), CHECK);

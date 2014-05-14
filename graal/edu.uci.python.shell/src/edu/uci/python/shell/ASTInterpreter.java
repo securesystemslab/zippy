@@ -50,8 +50,7 @@ public class ASTInterpreter {
             }
         }
 
-        Arguments arguments = PArguments.EMPTY_ARGUMENT;
-        module.call(null, arguments);
+	   module.call(PArguments.EMPTY_ARGUMENTS_ARRAY);
     }
 
 }

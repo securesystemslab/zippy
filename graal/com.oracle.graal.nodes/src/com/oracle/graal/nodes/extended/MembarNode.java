@@ -38,6 +38,7 @@ import com.oracle.graal.nodes.type.*;
 /**
  * Creates a memory barrier.
  */
+@NodeInfo(allowedUsageTypes = {InputType.Memory})
 public class MembarNode extends FixedWithNextNode implements LIRLowerable, MemoryCheckpoint.Single {
 
     private final int barriers;
@@ -56,8 +57,8 @@ public class MembarNode extends FixedWithNextNode implements LIRLowerable, Memor
     }
 
     @Override
-    public void generate(LIRGeneratorTool generator) {
-        generator.emitMembar(barriers);
+    public void generate(NodeLIRBuilderTool generator) {
+        generator.getLIRGeneratorTool().emitMembar(barriers);
     }
 
     public MemoryCheckpoint asMemoryCheckpoint() {

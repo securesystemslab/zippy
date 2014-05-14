@@ -28,7 +28,7 @@
 
 import os, sys, shutil, zipfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO
 from os.path import join, exists, dirname, basename, getmtime
-from argparse import ArgumentParser, REMAINDER
+from argparse import ArgumentParser, RawDescriptionHelpFormatter, REMAINDER
 from outputparser import OutputParser, ValuesMatcher
 import mx
 import xml.dom.minidom
@@ -79,7 +79,8 @@ _vm_prefix = None
 
 _make_eclipse_launch = False
 
-_minVersion = mx.VersionSpec('1.7.0_04')
+# @CallerSensitive introduced in 7u25
+_minVersion = mx.VersionSpec('1.7.0_25')
 
 JDK_UNIX_PERMISSIONS = 0755
 
@@ -402,17 +403,24 @@ def _updateInstalledGraalOptionsFile(jdk):
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
     jdks = _jdksDir()
+
     if exists(jdks):
         for e in os.listdir(jdks):
             jreLibDir = join(jdks, e, 'jre', 'lib')
             if exists(jreLibDir):
-                # do a copy and then a move to get atomic updating (on Unix) of graal.jar in the JRE
-                fd, tmp = tempfile.mkstemp(suffix='', prefix='graal.jar', dir=jreLibDir)
-                shutil.copyfile(graalJar, tmp)
-                os.close(fd)
-                graalJar = join(jreLibDir, 'graal.jar')
-                shutil.move(tmp, graalJar)
-                os.chmod(graalJar, JDK_UNIX_PERMISSIONS)
+                def install(srcJar, dstDir):
+                    # do a copy and then a move to get atomic updating (on Unix)
+                    name = os.path.basename(srcJar)
+                    fd, tmp = tempfile.mkstemp(suffix='', prefix=name, dir=dstDir)
+                    shutil.copyfile(srcJar, tmp)
+                    os.close(fd)
+                    dstJar = join(dstDir, name)
+                    shutil.move(tmp, dstJar)
+                    os.chmod(dstJar, JDK_UNIX_PERMISSIONS)
+
+                install(graalJar, jreLibDir)
+                if graalDist.sourcesPath:
+                    install(graalDist.sourcesPath, join(jdks, e))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo=None):
@@ -583,7 +591,7 @@ def build(args, vm=None):
         if not exists(vmDir):
             if mx.get_os() != 'windows':
                 chmodRecursive(jdk, JDK_UNIX_PERMISSIONS)
-            mx.log('Creating VM directory in JDK7: ' + vmDir)
+            mx.log('Creating VM directory in JDK: ' + vmDir)
             os.makedirs(vmDir)
 
         def filterXusage(line):
@@ -646,18 +654,6 @@ def build(args, vm=None):
             env.setdefault('HOTSPOT_BUILD_JOBS', str(cpus))
             env.setdefault('ALT_BOOTDIR', mx.java().jdk)
 
-            # extract latest release tag for graal
-            try:
-                tags = [x.split(' ')[0] for x in subprocess.check_output(['hg', 'tags']).split('\n') if x.startswith("graal-")]
-            except:
-                # not a mercurial repository or hg commands are not available.
-                tags = None
-
-            if tags:
-                # extract the most recent tag
-                tag = sorted(tags, key=lambda e: [int(x) for x in e[len("graal-"):].split('.')], reverse=True)[0]
-                env.setdefault('USER_RELEASE_SUFFIX', tag)
-
             if not mx._opts.verbose:
                 runCmd.append('MAKE_VERBOSE=')
             env['JAVA_HOME'] = jdk
@@ -665,6 +661,22 @@ def build(args, vm=None):
                 env['INCLUDE_GRAAL'] = 'false'
                 env.setdefault('ALT_OUTPUTDIR', join(_graal_home, 'build-nograal', mx.get_os()))
             else:
+                # extract latest release tag for graal
+                try:
+                    tags = [x.split(' ')[0] for x in subprocess.check_output(['hg', '-R', _graal_home, 'tags']).split('\n') if x.startswith("graal-")]
+                except:
+                    # not a mercurial repository or hg commands are not available.
+                    tags = None
+
+                if tags:
+                    # extract the most recent tag
+                    tag = sorted(tags, key=lambda e: [int(x) for x in e[len("graal-"):].split('.')], reverse=True)[0]
+                    env.setdefault('USER_RELEASE_SUFFIX', tag)
+                    env.setdefault('GRAAL_VERSION', tag[len("graal-"):])
+                else:
+                    version = 'unknown-{}-{}'.format(platform.node(), time.strftime('%Y-%m-%d_%H-%M-%S_%Z'))
+                    env.setdefault('USER_RELEASE_SUFFIX', 'graal-' + version)
+                    env.setdefault('GRAAL_VERSION', version)
                 env['INCLUDE_GRAAL'] = 'true'
             env.setdefault('INSTALL', 'y')
             if mx.get_os() == 'solaris':
@@ -816,7 +828,7 @@ def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False, defaultAll
     else:
         return [], args
 
-def _run_tests(args, harness, annotations, testfile):
+def _run_tests(args, harness, annotations, testfile, whitelist):
 
 
     vmArgs, tests = _extract_VM_args(args)
@@ -848,6 +860,9 @@ def _run_tests(args, harness, annotations, testfile):
                 mx.log('warning: no tests matched by substring "' + t)
         projectscp = mx.classpath(projs)
 
+    if whitelist:
+        classes = list(set(classes) & set(whitelist))
+
     if len(classes) != 0:
         f_testfile = open(testfile, 'w')
         for c in classes:
@@ -855,7 +870,7 @@ def _run_tests(args, harness, annotations, testfile):
         f_testfile.close()
         harness(projectscp, vmArgs)
 
-def _unittest(args, annotations, prefixcp=""):
+def _unittest(args, annotations, prefixcp="", whitelist=None):
     mxdir = dirname(__file__)
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
@@ -882,12 +897,20 @@ def _unittest(args, annotations, prefixcp=""):
             vm(prefixArgs + vmArgs + ['-cp', prefixcp + projectscp + os.pathsep + mxdir, name] + [testfile])
 
     try:
-        _run_tests(args, harness, annotations, testfile)
+        _run_tests(args, harness, annotations, testfile, whitelist)
     finally:
         if os.environ.get('MX_TESTFILE') is None:
             os.remove(testfile)
 
 _unittestHelpSuffix = """
+    Unittest options:
+
+      --short-only           run short testcases only
+      --long-only            run long testcases only
+      --baseline-whitelist   run only testcases which are known to
+                             work with the baseline compiler
+
+    To avoid conflicts with VM options '--' can be used as delimiter.
 
     If filters are supplied, only tests whose fully qualified name
     includes a filter as a substring are run.
@@ -916,17 +939,64 @@ _unittestHelpSuffix = """
 def unittest(args):
     """run the JUnit tests (all testcases){0}"""
 
-    _unittest(args, ['@Test', '@LongTest', '@Parameters'])
+    parser = ArgumentParser(prog='mx unittest',
+          description='run the JUnit tests',
+          add_help=False,
+          formatter_class=RawDescriptionHelpFormatter,
+          epilog=_unittestHelpSuffix,
+        )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('--short-only', action='store_true', help='run short testcases only')
+    group.add_argument('--long-only', action='store_true', help='run long testcases only')
+    parser.add_argument('--baseline-whitelist', action='store_true', help='run baseline testcases only')
+
+    ut_args = []
+    delimiter = False
+    # check for delimiter
+    while len(args) > 0:
+        arg = args.pop(0)
+        if arg == '--':
+            delimiter = True
+            break
+        ut_args.append(arg)
+
+    if delimiter:
+        # all arguments before '--' must be recognized
+        parsed_args = parser.parse_args(ut_args)
+    else:
+        # parse all know arguments
+        parsed_args, remaining_args = parser.parse_known_args(ut_args)
+        args = remaining_args + args
+
+    whitelist = None
+    if parsed_args.baseline_whitelist:
+        baseline_whitelist_file = 'test/baseline_whitelist.txt'
+        try:
+            with open(join(_graal_home, baseline_whitelist_file)) as fp:
+                whitelist = [l.rstrip() for l in fp.readlines()]
+        except IOError:
+            mx.log('warning: could not read baseline whitelist: ' + baseline_whitelist_file)
+
+    if parsed_args.long_only:
+        annotations = ['@LongTest', '@Parameters']
+    elif parsed_args.short_only:
+        annotations = ['@Test']
+    else:
+        annotations = ['@Test', '@LongTest', '@Parameters']
+
+    _unittest(args, annotations, whitelist=whitelist)
 
 def shortunittest(args):
-    """run the JUnit tests (short testcases only){0}"""
+    """alias for 'unittest --short-only'{0}"""
 
-    _unittest(args, ['@Test'])
+    args.insert(0, '--short-only')
+    unittest(args)
 
 def longunittest(args):
-    """run the JUnit tests (long testcases only){0}"""
+    """alias for 'unittest --long-only'{0}"""
 
-    _unittest(args, ['@LongTest', '@Parameters'])
+    args.insert(0, '--long-only')
+    unittest(args)
 
 def buildvms(args):
     """build one or more VMs in various configurations"""
@@ -1000,34 +1070,34 @@ def _basic_gate_body(args, tasks):
 
     with VM('graal', 'fastdebug'):
         t = Task('BootstrapWithSystemAssertions:fastdebug')
-        vm(['-esa', '-version'])
+        vm(['-esa', '-XX:-TieredCompilation', '-version'])
         tasks.append(t.stop())
 
     with VM('graal', 'fastdebug'):
-        t = Task('NoTieredBootstrapWithSystemAssertions:fastdebug')
-        vm(['-esa', '-XX:-TieredCompilation', '-version'])
+        t = Task('BootstrapWithSystemAssertionsNoCoop:fastdebug')
+        vm(['-esa', '-XX:-TieredCompilation', '-XX:-UseCompressedOops', '-version'])
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithGCVerification:product')
         out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
-        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
+        vm(['-XX:-TieredCompilation', '-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithG1GCVerification:product')
         out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
-        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
+        vm(['-XX:-TieredCompilation', '-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithRegisterPressure:product')
-        vm(['-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
+        vm(['-XX:-TieredCompilation', '-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithImmutableCode:product')
-        vm(['-G:+ImmutableCode', '-G:+VerifyPhases', '-esa', '-version'])
+        vm(['-XX:-TieredCompilation', '-G:+ImmutableCode', '-G:+VerifyPhases', '-esa', '-version'])
         tasks.append(t.stop())
 
     with VM('server', 'product'):  # hosted mode
@@ -1036,11 +1106,7 @@ def _basic_gate_body(args, tasks):
         tasks.append(t.stop())
 
     for vmbuild in ['fastdebug', 'product']:
-        for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
-            if 'eclipse' in str(test) and mx.java().version >= mx.VersionSpec('1.8'):
-                # DaCapo eclipse doesn't run under JDK8
-                continue
-
+        for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild) + sanitycheck.getScalaDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
             t = Task(str(test) + ':' + vmbuild)
             if not test.test('graal'):
                 t.abort(test.name + ' Failed')
@@ -1143,9 +1209,14 @@ def gate(args, gate_body=_basic_gate_body):
         build(['--no-native', '--force-javac'])
         tasks.append(t.stop())
 
-        t = Task('Checkstyle')
-        if mx.checkstyle([]) != 0:
-            t.abort('Checkstyle warnings were found')
+        t = Task('Checkheaders')
+        if checkheaders([]) != 0:
+            t.abort('Checkheaders warnings were found')
+        tasks.append(t.stop())
+
+        t = Task('FindBugs')
+        if findbugs([]) != 0:
+            t.abort('FindBugs warnings were found')
         tasks.append(t.stop())
 
         if exists('jacoco.exec'):
@@ -1379,20 +1450,86 @@ def bench(args):
             f.write(json.dumps(results))
 
 def jmh(args):
-    """run the JMH_BENCHMARKS"""
+    """run the JMH_BENCHMARKS
+
+    The benchmarks are running with the default VM.
+    You can override this with an explicit option.
+    For example:
+
+        mx jmh -server ...
+
+    Will force the benchmarks to be run with the server VM.
+"""
 
     # TODO: add option for `mvn clean package'
-    # TODO: add options to pass through arguments directly to JMH
 
-    vmArgs, benchmarks = _extract_VM_args(args)
+    vmArgs, benchmarksAndJsons = _extract_VM_args(args)
+
+    benchmarks = [b for b in benchmarksAndJsons if not b.startswith('{')]
+    jmhArgJsons = [b for b in benchmarksAndJsons if b.startswith('{')]
+
+    jmhArgs = {'-rff' : join(_graal_home, 'mx', 'jmh', 'jmh.out'), '-v' : 'EXTRA' if mx._opts.verbose else 'NORMAL'}
+
+    # e.g. '{"-wi" : 20}'
+    for j in jmhArgJsons:
+        try:
+            for n, v in json.loads(j).iteritems():
+                if v is None:
+                    del jmhArgs[n]
+                else:
+                    jmhArgs[n] = v
+        except ValueError as e:
+            mx.abort('error parsing JSON input: {}"\n{}'.format(j, e))
+
     jmhPath = mx.get_env('JMH_BENCHMARKS', None)
-    if not jmhPath or not exists(jmhPath):
-        mx.abort("$JMH_BENCHMARKS not properly definied")
+    if not jmhPath:
+        probe = join(dirname(_graal_home), 'java-benchmarks')
+        if exists(probe):
+            jmhPath = probe
 
-    def _blackhole(x):
-        mx.logv(x[:-1])
-    mx.log("Building benchmarks...")
-    mx.run(['mvn', 'package'], cwd=jmhPath, out=_blackhole)
+    if not jmhPath:
+        mx.abort("Please set the JMH_BENCHMARKS environment variable to point to the java-benchmarks workspace")
+    if not exists(jmhPath):
+        mx.abort("The directory denoted by the JMH_BENCHMARKS environment variable does not exist: " + jmhPath)
+    mx.log('Using benchmarks in ' + jmhPath)
+
+    timestamp = mx.TimeStampFile(join(_graal_home, 'mx', 'jmh', jmhPath.replace(os.sep, '_') + '.timestamp'))
+    buildJmh = False
+    jmhTree = []
+    for root, dirnames, filenames in os.walk(jmhPath):
+        if root == jmhPath:
+            for n in ['.hg', '.metadata']:
+                if n in dirnames:
+                    dirnames.remove(n)
+        jmhTree.append(os.path.relpath(root, jmhPath) + ':')
+        jmhTree = jmhTree + filenames
+        jmhTree.append('')
+
+        files = [join(root, f) for f in filenames]
+        if timestamp.isOlderThan(files):
+            buildJmh = True
+
+    if not buildJmh:
+        with open(timestamp.path) as fp:
+            oldJmhTree = fp.read().split('\n')
+            if oldJmhTree != jmhTree:
+                import difflib
+                diff = difflib.unified_diff(oldJmhTree, jmhTree)
+                mx.log("Need to rebuild JMH due to change in JMH directory tree indicated by this diff:")
+                mx.log('\n'.join(diff))
+                buildJmh = True
+
+    if buildJmh:
+        def _blackhole(x):
+            mx.logv(x[:-1])
+        env = os.environ.copy()
+        env['JAVA_HOME'] = _jdk(vmToCheck='graal')
+        env['MAVEN_OPTS'] = '-graal'
+        mx.log("Building benchmarks...")
+        mx.run(['mvn', 'package'], cwd=jmhPath, out=_blackhole, env=env)
+        timestamp.touch()
+        with open(timestamp.path, 'w') as fp:
+            fp.write('\n'.join(jmhTree))
 
     matchedSuites = set()
     numBench = [0]
@@ -1438,15 +1575,14 @@ def jmh(args):
         (pfx, exe, vm, forkedVmArgs, _) = _parseVmArgs(vmArgs)
         if pfx:
             mx.warn("JMH ignores prefix: \"" + pfx + "\"")
-        mx.run_java(
-           ['-jar', os.path.join(absoluteMicro, "target", "microbenchmarks.jar"),
-            "-f", "1",
-            "-v", "EXTRA" if mx._opts.verbose else "NORMAL",
-            "-i", "10", "-wi", "10",
-            "--jvm", exe,
-            "--jvmArgs", " ".join(["-" + vm] + forkedVmArgs)] + regex,
-            addDefaultArgs=False,
-            cwd=jmhPath)
+        javaArgs = ['-jar', os.path.join(absoluteMicro, "target", "microbenchmarks.jar"),
+                    '--jvm', exe,
+                    '--jvmArgs', ' '.join(["-" + vm] + forkedVmArgs)]
+        for k, v in jmhArgs.iteritems():
+            javaArgs.append(k)
+            if len(str(v)):
+                javaArgs.append(str(v))
+        mx.run_java(javaArgs + regex, addDefaultArgs=False, cwd=jmhPath)
 
 
 def specjvm2008(args):
@@ -1751,13 +1887,45 @@ def findbugs(args):
     nonTestProjects = [p for p in mx.projects() if not p.name.endswith('.test') and not p.name.endswith('.jtt')]
     outputDirs = [p.output_dir() for p in nonTestProjects]
     findbugsResults = join(_graal_home, 'findbugs.results')
-    exitcode = mx.run_java(['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15', '-exclude', join(_graal_home, 'graal', 'findbugsExcludeFilter.xml'),
-                 '-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-progress', '-exitcode'] + args + outputDirs, nonZeroIsFatal=False)
+
+    cmd = ['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15']
+    if sys.stdout.isatty():
+        cmd.append('-progress')
+    cmd = cmd + ['-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-exitcode'] + args + outputDirs
+    exitcode = mx.run_java(cmd, nonZeroIsFatal=False)
     if exitcode != 0:
         with open(findbugsResults) as fp:
             mx.log(fp.read())
     os.unlink(findbugsResults)
     return exitcode
+
+def checkheaders(args):
+    """check Java source headers against any required pattern"""
+    failures = {}
+    for p in mx.projects():
+        if p.native:
+            continue
+
+        csConfig = join(mx.project(p.checkstyleProj).dir, '.checkstyle_checks.xml.disabled')
+        dom = xml.dom.minidom.parse(csConfig)
+        for module in dom.getElementsByTagName('module'):
+            if module.getAttribute('name') == 'RegexpHeader':
+                for prop in module.getElementsByTagName('property'):
+                    if prop.getAttribute('name') == 'header':
+                        value = prop.getAttribute('value')
+                        matcher = re.compile(value, re.MULTILINE)
+                        for sourceDir in p.source_dirs():
+                            for root, _, files in os.walk(sourceDir):
+                                for name in files:
+                                    if name.endswith('.java') and name != 'package-info.java':
+                                        f = join(root, name)
+                                        with open(f) as fp:
+                                            content = fp.read()
+                                        if not matcher.match(content):
+                                            failures[f] = csConfig
+    for n, v in failures.iteritems():
+        mx.log('{}: header does not match RegexpHeader defined in {}'.format(n, v))
+    return len(failures)
 
 def mx_init(suite):
     commands = {
@@ -1765,6 +1933,7 @@ def mx_init(suite):
         'buildvars': [buildvars, ''],
         'buildvms': [buildvms, '[-options]'],
         'c1visualizer' : [c1visualizer, ''],
+        'checkheaders': [checkheaders, ''],
         'clean': [clean, ''],
         'findbugs': [findbugs, ''],
         'generateZshCompletion' : [generateZshCompletion, ''],
@@ -1772,7 +1941,7 @@ def mx_init(suite):
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
         'jdkhome': [print_jdkhome, ''],
-        'jmh': [jmh, '[VM options] [filters...]'],
+        'jmh': [jmh, '[VM options] [filters|JMH-args-as-json...]'],
         'dacapo': [dacapo, '[VM options] benchmarks...|"all" [DaCapo options]'],
         'scaladacapo': [scaladacapo, '[VM options] benchmarks...|"all" [Scala DaCapo options]'],
         'specjvm2008': [specjvm2008, '[VM options] benchmarks...|"all" [SPECjvm2008 options]'],
@@ -1780,9 +1949,9 @@ def mx_init(suite):
         'specjbb2005': [specjbb2005, '[VM options] [-- [SPECjbb2005 options]]'],
         'gate' : [gate, '[-options]'],
         'bench' : [bench, '[-resultfile file] [all(default)|dacapo|specjvm2008|bootstrap]'],
-        'unittest' : [unittest, '[VM options] [filters...]', _unittestHelpSuffix],
-        'longunittest' : [longunittest, '[VM options] [filters...]', _unittestHelpSuffix],
-        'shortunittest' : [shortunittest, '[VM options] [filters...]', _unittestHelpSuffix],
+        'unittest' : [unittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
+        'longunittest' : [longunittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
+        'shortunittest' : [shortunittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
         'jacocoreport' : [jacocoreport, '[output directory]'],
         'python' : [python, '[Python args|@VM options]'],
         'site' : [site, '[-options]'],

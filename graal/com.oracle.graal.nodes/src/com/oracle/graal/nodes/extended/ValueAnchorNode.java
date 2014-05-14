@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.nodes.extended;
 
+import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
@@ -32,17 +33,18 @@ import com.oracle.graal.nodes.util.*;
 /**
  * The ValueAnchor instruction keeps non-CFG (floating) nodes above a certain point in the graph.
  */
+@NodeInfo(allowedUsageTypes = {InputType.Anchor, InputType.Guard})
 public final class ValueAnchorNode extends FixedWithNextNode implements LIRLowerable, Simplifiable, Virtualizable, GuardingNode {
 
-    @Input private ValueNode anchored;
+    @Input(InputType.Guard) private ValueNode anchored;
 
     public ValueAnchorNode(ValueNode value) {
-        super(StampFactory.dependency());
+        super(StampFactory.forVoid());
         this.anchored = value;
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         // Nothing to emit, since this node is used for structural purposes only.
     }
 
@@ -89,7 +91,7 @@ public final class ValueAnchorNode extends FixedWithNextNode implements LIRLower
 
     @Override
     public void virtualize(VirtualizerTool tool) {
-        if (anchored != null && !(anchored instanceof AbstractBeginNode)) {
+        if (anchored != null && !(anchored instanceof BeginNode)) {
             State state = tool.getObjectState(anchored);
             if (state == null || state.getState() != EscapeState.Virtual) {
                 return;

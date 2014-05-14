@@ -28,7 +28,7 @@ import java.io.*;
  * A profiled type that has a probability. Profiled types are naturally sorted in descending order
  * of their probabilities.
  */
-public abstract class AbstractProfiledItem<T> implements Comparable<AbstractProfiledItem>, Serializable {
+public abstract class AbstractProfiledItem<T> implements Comparable<AbstractProfiledItem<?>>, Serializable {
 
     private static final long serialVersionUID = 7838575753661305744L;
 
@@ -48,15 +48,15 @@ public abstract class AbstractProfiledItem<T> implements Comparable<AbstractProf
 
     /**
      * Returns the estimated probability of {@link #getItem()}.
-     * 
-     * @return double value >= 0.0 and <= 1.0
+     *
+     * @return double value &ge; 0.0 and &le; 1.0
      */
     public double getProbability() {
         return probability;
     }
 
     @Override
-    public int compareTo(AbstractProfiledItem o) {
+    public int compareTo(AbstractProfiledItem<?> o) {
         if (getProbability() > o.getProbability()) {
             return -1;
         } else if (getProbability() < o.getProbability()) {
@@ -87,7 +87,7 @@ public abstract class AbstractProfiledItem<T> implements Comparable<AbstractProf
         if (getClass() != obj.getClass()) {
             return false;
         }
-        AbstractProfiledItem other = (AbstractProfiledItem) obj;
+        AbstractProfiledItem<?> other = (AbstractProfiledItem<?>) obj;
         if (Double.doubleToLongBits(probability) != Double.doubleToLongBits(other.probability)) {
             return false;
         }

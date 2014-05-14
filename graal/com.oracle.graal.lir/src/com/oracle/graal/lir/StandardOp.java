@@ -29,9 +29,9 @@ import java.util.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.asm.*;
-import com.oracle.graal.nodes.cfg.*;
 
 /**
  * A collection of machine-independent LIR operations, as well as interfaces to be implemented for
@@ -154,7 +154,7 @@ public class StandardOp {
 
         /**
          * Prunes {@code doNotSave} from the registers saved by this operation.
-         * 
+         *
          * @param doNotSave registers that should not be saved by this operation
          * @return the number of registers pruned
          * @throws UnsupportedOperationException if removal is not {@linkplain #supportsRemove()
@@ -165,7 +165,7 @@ public class StandardOp {
         /**
          * Gets a map from the saved registers saved by this operation to the frame slots in which
          * they are saved.
-         * 
+         *
          * @param frameMap used to {@linkplain FrameMap#indexForStackSlot(StackSlot) convert} a
          *            virtual slot to a frame slot index
          */
@@ -182,20 +182,20 @@ public class StandardOp {
         /**
          * The block in which this instruction is located.
          */
-        final Block block;
+        final AbstractBlock<?> block;
 
         /**
          * The block index of this instruction.
          */
         final int index;
 
-        public NoOp(Block block, int index) {
+        public NoOp(AbstractBlock<?> block, int index) {
             this.block = block;
             this.index = index;
         }
 
         public void replace(LIR lir, LIRInstruction replacement) {
-            lir.lir(block).set(index, replacement);
+            lir.getLIRforBlock(block).set(index, replacement);
         }
 
         @Override

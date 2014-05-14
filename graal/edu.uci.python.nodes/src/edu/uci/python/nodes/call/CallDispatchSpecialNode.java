@@ -143,7 +143,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
 
             if (callee != null) {
                 // Non reflective special method is found.
-                return callee.call(frame.pack(), new Object[]{left, right});
+                return callee.call(new Object[]{left, right});
             }
 
             specialMethodId = calleeName.replaceFirst("__", "__r");
@@ -151,7 +151,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
 
             if (callee != null) {
                 // Reflective special method is found.
-                return callee.call(frame.pack(), new Object[]{right, left});
+                return callee.call(new Object[]{right, left});
             }
 
             throw new IllegalStateException("Call to " + calleeName + " not supported.");

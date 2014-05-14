@@ -31,15 +31,15 @@ import java.lang.invoke.*;
  */
 public final class GeneratedPythonObjectStorage {
 
-    private final Class storageClass;
+    private final Class<?> storageClass;
     private final MethodHandle ctor;
 
-    public GeneratedPythonObjectStorage(Class storageClass, MethodHandle ctor) {
+    public GeneratedPythonObjectStorage(Class<?> storageClass, MethodHandle ctor) {
         this.storageClass = storageClass;
         this.ctor = ctor;
     }
 
-    public Class getStorageClass() {
+    public Class<?> getStorageClass() {
         return storageClass;
     }
 

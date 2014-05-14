@@ -41,8 +41,8 @@ import com.oracle.graal.asm.amd64.AMD64Assembler.ConditionFlag;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.hotspot.*;
-import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.meta.HotSpotCodeCacheProvider.MarkId;
+import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.nfi.*;
 import com.oracle.graal.hotspot.stubs.*;
 import com.oracle.graal.lir.*;
@@ -67,18 +67,34 @@ public class AMD64HotSpotBackend extends HotSpotHostBackend {
     }
 
     @Override
-    public FrameMap newFrameMap() {
-        return new AMD64FrameMap(getCodeCache());
+    public FrameMap newFrameMap(RegisterConfig registerConfig) {
+        return new AMD64FrameMap(getCodeCache(), registerConfig);
     }
 
     @Override
-    public LIRGenerator newLIRGenerator(StructuredGraph graph, Object stub, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        return new AMD64HotSpotLIRGenerator(graph, stub, getProviders(), getRuntime().getConfig(), frameMap, cc, lir);
+    public LIRGenerator newLIRGenerator(CallingConvention cc, LIRGenerationResult lirGenRes) {
+        return new AMD64HotSpotLIRGenerator(getProviders(), getRuntime().getConfig(), cc, lirGenRes);
+    }
+
+    @Override
+    public LIRGenerationResult newLIRGenerationResult(LIR lir, FrameMap frameMap, Object stub) {
+        return new AMD64HotSpotLIRGenerationResult(lir, frameMap, stub);
+    }
+
+    @Override
+    public NodeLIRBuilder newNodeLIRGenerator(StructuredGraph graph, LIRGenerator lirGen) {
+        return new AMD64HotSpotNodeLIRBuilder(graph, lirGen);
+    }
+
+    @Override
+    public BytecodeLIRBuilder newBytecodeLIRBuilder(LIRGenerator gen, BytecodeParserTool parser) {
+        return new AMD64HotSpotBytecodeLIRBuilder(gen, parser);
+
     }
 
     /**
      * Emits code to do stack overflow checking.
-     * 
+     *
      * @param afterFrameInit specifies if the stack pointer has already been adjusted to allocate
      *            the current frame
      * @param isVerifiedEntryPoint specifies if the code buffer is currently at the verified entry
@@ -192,32 +208,32 @@ public class AMD64HotSpotBackend extends HotSpotHostBackend {
     }
 
     @Override
-    public CompilationResultBuilder newCompilationResultBuilder(LIRGenerator lirGen, CompilationResult compilationResult, CompilationResultBuilderFactory factory) {
+    public CompilationResultBuilder newCompilationResultBuilder(LIRGenerationResult lirGenRen, CompilationResult compilationResult, CompilationResultBuilderFactory factory) {
         // Omit the frame if the method:
         // - has no spill slots or other slots allocated during register allocation
         // - has no callee-saved registers
         // - has no incoming arguments passed on the stack
         // - has no deoptimization points
         // - makes no foreign calls (which require an aligned stack)
-        AMD64HotSpotLIRGenerator gen = (AMD64HotSpotLIRGenerator) lirGen;
-        FrameMap frameMap = gen.frameMap;
-        LIR lir = gen.lir;
-        assert gen.deoptimizationRescueSlot == null || frameMap.frameNeedsAllocating() : "method that can deoptimize must have a frame";
+        AMD64HotSpotLIRGenerationResult gen = (AMD64HotSpotLIRGenerationResult) lirGenRen;
+        FrameMap frameMap = gen.getFrameMap();
+        LIR lir = gen.getLIR();
+        assert gen.getDeoptimizationRescueSlot() == null || frameMap.frameNeedsAllocating() : "method that can deoptimize must have a frame";
         boolean omitFrame = CanOmitFrame.getValue() && !frameMap.frameNeedsAllocating() && !lir.hasArgInCallerFrame() && !gen.hasForeignCall();
 
         Stub stub = gen.getStub();
         Assembler masm = createAssembler(frameMap);
         HotSpotFrameContext frameContext = new HotSpotFrameContext(stub != null, omitFrame);
         CompilationResultBuilder crb = factory.createBuilder(getCodeCache(), getForeignCalls(), frameMap, masm, frameContext, compilationResult);
-        crb.setFrameSize(frameMap.frameSize());
-        StackSlot deoptimizationRescueSlot = gen.deoptimizationRescueSlot;
+        crb.setTotalFrameSize(frameMap.totalFrameSize());
+        StackSlot deoptimizationRescueSlot = gen.getDeoptimizationRescueSlot();
         if (deoptimizationRescueSlot != null && stub == null) {
             crb.compilationResult.setCustomStackAreaOffset(frameMap.offsetForStackSlot(deoptimizationRescueSlot));
         }
 
         if (stub != null) {
             Set<Register> definedRegisters = gatherDefinedRegisters(lir);
-            updateStub(stub, definedRegisters, gen.calleeSaveInfo, frameMap);
+            updateStub(stub, definedRegisters, gen.getCalleeSaveInfo(), frameMap);
         }
 
         return crb;
@@ -243,7 +259,7 @@ public class AMD64HotSpotBackend extends HotSpotHostBackend {
 
     /**
      * Emits the code prior to the verified entry point.
-     * 
+     *
      * @param installedCodeOwner see {@link Backend#emitCode}
      */
     public void emitCodePrefix(ResolvedJavaMethod installedCodeOwner, CompilationResultBuilder crb, AMD64MacroAssembler asm, RegisterConfig regConfig, HotSpotVMConfig config, Label verifiedEntry) {
@@ -278,7 +294,7 @@ public class AMD64HotSpotBackend extends HotSpotHostBackend {
 
     /**
      * Emits the code which starts at the verified entry point.
-     * 
+     *
      * @param installedCodeOwner see {@link Backend#emitCode}
      */
     public void emitCodeBody(ResolvedJavaMethod installedCodeOwner, CompilationResultBuilder crb, LIR lir) {
@@ -318,4 +334,5 @@ public class AMD64HotSpotBackend extends HotSpotHostBackend {
         };
         return new HotSpotNativeFunctionInterface(getProviders(), factory, this, config.dllLoad, config.dllLookup, config.rtldDefault);
     }
+
 }

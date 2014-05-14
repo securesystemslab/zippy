@@ -30,14 +30,14 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CompilationResult.Data;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.nodes.cfg.*;
 
 /**
  * Fills in a {@link CompilationResult} as its code is being assembled.
- * 
+ *
  * @see CompilationResultBuilderFactory
  */
 public class CompilationResultBuilder {
@@ -88,8 +88,8 @@ public class CompilationResultBuilder {
         assert frameContext != null;
     }
 
-    public void setFrameSize(int frameSize) {
-        compilationResult.setFrameSize(frameSize);
+    public void setTotalFrameSize(int frameSize) {
+        compilationResult.setTotalFrameSize(frameSize);
     }
 
     private static final CompilationResult.Mark[] NO_REFS = {};
@@ -264,13 +264,23 @@ public class CompilationResultBuilder {
         return recordDataReferenceInCode((Constant) value, 8);
     }
 
+    public AbstractAddress asByteAddr(Value value) {
+        assert value.getKind().getByteCount() >= Kind.Byte.getByteCount();
+        return asAddress(value);
+    }
+
+    public AbstractAddress asShortAddr(Value value) {
+        assert value.getKind().getByteCount() >= Kind.Short.getByteCount();
+        return asAddress(value);
+    }
+
     public AbstractAddress asIntAddr(Value value) {
-        assert value.getKind() == Kind.Int;
+        assert value.getKind().getByteCount() >= Kind.Int.getByteCount();
         return asAddress(value);
     }
 
     public AbstractAddress asLongAddr(Value value) {
-        assert value.getKind() == Kind.Long;
+        assert value.getKind().getByteCount() >= Kind.Long.getByteCount();
         return asAddress(value);
     }
 
@@ -280,12 +290,12 @@ public class CompilationResultBuilder {
     }
 
     public AbstractAddress asFloatAddr(Value value) {
-        assert value.getKind() == Kind.Float;
+        assert value.getKind().getByteCount() >= Kind.Float.getByteCount();
         return asAddress(value);
     }
 
     public AbstractAddress asDoubleAddr(Value value) {
-        assert value.getKind() == Kind.Double;
+        assert value.getKind().getByteCount() >= Kind.Double.getByteCount();
         return asAddress(value);
     }
 
@@ -301,7 +311,7 @@ public class CompilationResultBuilder {
      */
     public boolean isSuccessorEdge(LabelRef edge) {
         assert lir != null;
-        List<Block> order = lir.codeEmittingOrder();
+        List<? extends AbstractBlock<?>> order = lir.codeEmittingOrder();
         assert order.get(currentBlockIndex) == edge.getSourceBlock();
         return currentBlockIndex < order.size() - 1 && order.get(currentBlockIndex + 1) == edge.getTargetBlock();
     }
@@ -315,7 +325,7 @@ public class CompilationResultBuilder {
         this.lir = lir;
         this.currentBlockIndex = 0;
         frameContext.enter(this);
-        for (Block b : lir.codeEmittingOrder()) {
+        for (AbstractBlock<?> b : lir.codeEmittingOrder()) {
             emitBlock(b);
             currentBlockIndex++;
         }
@@ -323,12 +333,12 @@ public class CompilationResultBuilder {
         this.currentBlockIndex = 0;
     }
 
-    private void emitBlock(Block block) {
+    private void emitBlock(AbstractBlock<?> block) {
         if (Debug.isDumpEnabled()) {
             blockComment(String.format("block B%d %s", block.getId(), block.getLoop()));
         }
 
-        for (LIRInstruction op : lir.lir(block)) {
+        for (LIRInstruction op : lir.getLIRforBlock(block)) {
             if (Debug.isDumpEnabled()) {
                 blockComment(String.format("%d %s", op.id(), op));
             }

@@ -23,17 +23,18 @@
 package com.oracle.graal.hotspot.nodes;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.gen.*;
-import com.oracle.graal.compiler.target.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
+import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 /**
  * Intrinsic for closing a {@linkplain BeginLockScopeNode scope} binding a stack-based lock with an
  * object.
  */
-public final class EndLockScopeNode extends AbstractMemoryCheckpoint implements LIRGenLowerable, MonitorExit, MemoryCheckpoint.Single {
+@NodeInfo(allowedUsageTypes = {InputType.Memory})
+public final class EndLockScopeNode extends AbstractMemoryCheckpoint implements LIRLowerable, MonitorExit, MemoryCheckpoint.Single {
 
     public EndLockScopeNode() {
         super(StampFactory.forVoid());
@@ -50,7 +51,7 @@ public final class EndLockScopeNode extends AbstractMemoryCheckpoint implements 
     }
 
     @Override
-    public void generate(LIRGenerator gen) {
+    public void generate(NodeLIRBuilderTool gen) {
     }
 
     @NodeIntrinsic

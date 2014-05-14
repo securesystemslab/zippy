@@ -31,17 +31,17 @@ import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.util.*;
 
-@NodeInfo(nameTemplate = "Invoke!#{p#targetMethod/s}")
+@NodeInfo(nameTemplate = "Invoke!#{p#targetMethod/s}", allowedUsageTypes = {InputType.Memory})
 public class InvokeWithExceptionNode extends ControlSplitNode implements Invoke, MemoryCheckpoint.Single, LIRLowerable {
 
     private static final double EXCEPTION_PROBA = 1e-5;
 
-    @Successor private AbstractBeginNode next;
+    @Successor private BeginNode next;
     @Successor private DispatchBeginNode exceptionEdge;
-    @Input private CallTargetNode callTarget;
-    @Input private FrameState deoptState;
-    @Input private FrameState stateAfter;
-    @Input private GuardingNode guard;
+    @Input(InputType.Extension) private CallTargetNode callTarget;
+    @Input(InputType.State) private FrameState stateDuring;
+    @Input(InputType.State) private FrameState stateAfter;
+    @Input(InputType.Guard) private GuardingNode guard;
     private final int bci;
     private boolean polymorphic;
     private boolean useForInlining;
@@ -66,11 +66,11 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Invoke,
         exceptionEdge = x;
     }
 
-    public AbstractBeginNode next() {
+    public BeginNode next() {
         return next;
     }
 
-    public void setNext(AbstractBeginNode x) {
+    public void setNext(BeginNode x) {
         updatePredecessor(next, x);
         next = x;
     }
@@ -133,7 +133,7 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Invoke,
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         gen.emitInvoke(this);
     }
 
@@ -163,7 +163,7 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Invoke,
     }
 
     public void killExceptionEdge() {
-        AbstractBeginNode edge = exceptionEdge();
+        BeginNode edge = exceptionEdge();
         setExceptionEdge(null);
         GraphUtil.killCFG(edge);
     }
@@ -196,12 +196,12 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Invoke,
     }
 
     @Override
-    public double probability(AbstractBeginNode successor) {
+    public double probability(BeginNode successor) {
         return successor == next ? 1 - exceptionProbability : exceptionProbability;
     }
 
     @Override
-    public void setProbability(AbstractBeginNode successor, double value) {
+    public void setProbability(BeginNode successor, double value) {
         assert successor == next || successor == exceptionEdge;
         this.exceptionProbability = successor == next ? 1 - value : value;
     }
@@ -213,20 +213,20 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Invoke,
 
     @Override
     public FrameState stateDuring() {
-        return deoptState;
+        return stateDuring;
     }
 
     @Override
     public void setStateDuring(FrameState stateDuring) {
-        updateUsages(deoptState, stateDuring);
-        deoptState = stateDuring;
+        updateUsages(this.stateDuring, stateDuring);
+        this.stateDuring = stateDuring;
     }
 
     @Override
     public void computeStateDuring(FrameState tempStateAfter) {
-        FrameState stateDuring = tempStateAfter.duplicateModified(bci(), tempStateAfter.rethrowException(), getKind());
-        stateDuring.setDuringCall(true);
-        setStateDuring(stateDuring);
+        FrameState newStateDuring = tempStateAfter.duplicateModified(bci(), tempStateAfter.rethrowException(), getKind());
+        newStateDuring.setDuringCall(true);
+        setStateDuring(newStateDuring);
     }
 
     @Override
@@ -236,7 +236,7 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Invoke,
 
     @Override
     public void setGuard(GuardingNode guard) {
-        updateUsages(this.guard == null ? null : this.guard.asNode(), guard == null ? null : guard.asNode());
+        updateUsagesInterface(this.guard, guard);
         this.guard = guard;
     }
 

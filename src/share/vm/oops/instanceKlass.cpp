@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -49,7 +49,6 @@
 #include "prims/jvmtiExport.hpp"
 #include "prims/jvmtiRedefineClassesTrace.hpp"
 #include "prims/jvmtiRedefineClasses.hpp"
-#include "prims/jvmtiThreadState.hpp"
 #include "prims/methodComparator.hpp"
 #include "runtime/fieldDescriptor.hpp"
 #include "runtime/handles.inline.hpp"
@@ -78,6 +77,51 @@
 
 #ifdef DTRACE_ENABLED
 
+#ifndef USDT2
+
+HS_DTRACE_PROBE_DECL4(hotspot, class__initialization__required,
+  char*, intptr_t, oop, intptr_t);
+HS_DTRACE_PROBE_DECL5(hotspot, class__initialization__recursive,
+  char*, intptr_t, oop, intptr_t, int);
+HS_DTRACE_PROBE_DECL5(hotspot, class__initialization__concurrent,
+  char*, intptr_t, oop, intptr_t, int);
+HS_DTRACE_PROBE_DECL5(hotspot, class__initialization__erroneous,
+  char*, intptr_t, oop, intptr_t, int);
+HS_DTRACE_PROBE_DECL5(hotspot, class__initialization__super__failed,
+  char*, intptr_t, oop, intptr_t, int);
+HS_DTRACE_PROBE_DECL5(hotspot, class__initialization__clinit,
+  char*, intptr_t, oop, intptr_t, int);
+HS_DTRACE_PROBE_DECL5(hotspot, class__initialization__error,
+  char*, intptr_t, oop, intptr_t, int);
+HS_DTRACE_PROBE_DECL5(hotspot, class__initialization__end,
+  char*, intptr_t, oop, intptr_t, int);
+
+#define DTRACE_CLASSINIT_PROBE(type, clss, thread_type)          \
+  {                                                              \
+    char* data = NULL;                                           \
+    int len = 0;                                                 \
+    Symbol* name = (clss)->name();                               \
+    if (name != NULL) {                                          \
+      data = (char*)name->bytes();                               \
+      len = name->utf8_length();                                 \
+    }                                                            \
+    HS_DTRACE_PROBE4(hotspot, class__initialization__##type,     \
+      data, len, SOLARIS_ONLY((void *))(clss)->class_loader(), thread_type);           \
+  }
+
+#define DTRACE_CLASSINIT_PROBE_WAIT(type, clss, thread_type, wait) \
+  {                                                              \
+    char* data = NULL;                                           \
+    int len = 0;                                                 \
+    Symbol* name = (clss)->name();                               \
+    if (name != NULL) {                                          \
+      data = (char*)name->bytes();                               \
+      len = name->utf8_length();                                 \
+    }                                                            \
+    HS_DTRACE_PROBE5(hotspot, class__initialization__##type,     \
+      data, len, SOLARIS_ONLY((void *))(clss)->class_loader(), thread_type, wait);     \
+  }
+#else /* USDT2 */
 
 #define HOTSPOT_CLASS_INITIALIZATION_required HOTSPOT_CLASS_INITIALIZATION_REQUIRED
 #define HOTSPOT_CLASS_INITIALIZATION_recursive HOTSPOT_CLASS_INITIALIZATION_RECURSIVE
@@ -112,6 +156,7 @@
     HOTSPOT_CLASS_INITIALIZATION_##type(                         \
       data, len, (clss)->class_loader(), thread_type, wait);     \
   }
+#endif /* USDT2 */
 
 #else //  ndef DTRACE_ENABLED
 
@@ -243,6 +288,9 @@ InstanceKlass::InstanceKlass(int vtable_len,
   set_init_state(InstanceKlass::allocated);
   set_init_thread(NULL);
   set_reference_type(rt);
+#ifdef GRAAL
+  set_graal_node_class(NULL);
+#endif
   set_oop_map_cache(NULL);
   set_jni_ids(NULL);
   set_osr_nmethods_head(NULL);
@@ -272,6 +320,12 @@ InstanceKlass::InstanceKlass(int vtable_len,
   set_layout_helper(Klass::instance_layout_helper(0, true));
 }
 
+#ifdef GRAAL
+void InstanceKlass::oops_do(OopClosure* cl) {
+  Klass::oops_do(cl);
+  cl->do_oop(adr_graal_node_class());
+}
+#endif
 
 void InstanceKlass::deallocate_methods(ClassLoaderData* loader_data,
                                        Array<Method*>* methods) {
@@ -863,16 +917,10 @@ void InstanceKlass::initialize_impl(instanceKlassHandle this_oop, TRAPS) {
     // Step 10 and 11
     Handle e(THREAD, PENDING_EXCEPTION);
     CLEAR_PENDING_EXCEPTION;
-    // JVMTI has already reported the pending exception
-    // JVMTI internal flag reset is needed in order to report ExceptionInInitializerError
-    JvmtiExport::clear_detected_exception((JavaThread*)THREAD);
     {
       EXCEPTION_MARK;
       this_oop->set_initialization_state_and_notify(initialization_error, THREAD);
       CLEAR_PENDING_EXCEPTION;   // ignore any exception thrown, class initialization error is thrown below
-      // JVMTI has already reported the pending exception
-      // JVMTI internal flag reset is needed in order to report ExceptionInInitializerError
-      JvmtiExport::clear_detected_exception((JavaThread*)THREAD);
     }
     DTRACE_CLASSINIT_PROBE_WAIT(error, InstanceKlass::cast(this_oop()), -1,wait);
     if (e->is_a(SystemDictionary::Error_klass())) {
@@ -1153,6 +1201,21 @@ void InstanceKlass::call_class_initializer_impl(instanceKlassHandle this_oop, TR
     JavaValue result(T_VOID);
     JavaCalls::call(&result, h_method, &args, CHECK); // Static call (no args)
   }
+
+#ifdef GRAAL
+  if (this_oop->is_subtype_of(SystemDictionary::Node_klass())) {
+    if (this_oop() != SystemDictionary::Node_klass()) {
+      // Create the NodeClass for a Node subclass.
+      TempNewSymbol sig = SymbolTable::new_symbol("(Ljava/lang/Class;)Lcom/oracle/graal/graph/NodeClass;", CHECK);
+      JavaValue result(T_OBJECT);
+      JavaCalls::call_static(&result, SystemDictionary::NodeClass_klass(), vmSymbols::get_name(), sig, this_oop->java_mirror(), CHECK);
+      this_oop->set_graal_node_class((oop) result.get_jobject());
+    } else {
+      // A NodeClass cannot be created for Node due to checks in
+      // NodeClass.FieldScanner.scanField()
+    }
+  }
+#endif
 }
 
 
@@ -1164,11 +1227,7 @@ void InstanceKlass::mask_for(methodHandle method, int bci,
     MutexLocker x(OopMapCacheAlloc_lock);
     // First time use. Allocate a cache in C heap
     if (_oop_map_cache == NULL) {
-      // Release stores from OopMapCache constructor before assignment
-      // to _oop_map_cache. C++ compilers on ppc do not emit the
-      // required memory barrier only because of the volatile
-      // qualifier of _oop_map_cache.
-      OrderAccess::release_store_ptr(&_oop_map_cache, new OopMapCache());
+      _oop_map_cache = new OopMapCache();
     }
   }
   // _oop_map_cache is constant after init; lookup below does is own locking.
@@ -1463,18 +1522,13 @@ int InstanceKlass::find_method_by_name(
   return -1;
 }
 
-// uncached_lookup_method searches both the local class methods array and all
-// superclasses methods arrays, skipping any overpass methods in superclasses.
+// lookup_method searches both the local methods array and all superclasses methods arrays
 Method* InstanceKlass::uncached_lookup_method(Symbol* name, Symbol* signature) const {
   Klass* klass = const_cast<InstanceKlass*>(this);
-  bool dont_ignore_overpasses = true;  // For the class being searched, find its overpasses.
   while (klass != NULL) {
     Method* method = InstanceKlass::cast(klass)->find_method(name, signature);
-    if ((method != NULL) && (dont_ignore_overpasses || !method->is_overpass())) {
-      return method;
-    }
+    if (method != NULL) return method;
     klass = InstanceKlass::cast(klass)->super();
-    dont_ignore_overpasses = false;  // Ignore overpass methods in all superclasses.
   }
   return NULL;
 }
@@ -1489,7 +1543,7 @@ Method* InstanceKlass::lookup_method_in_ordered_interfaces(Symbol* name,
   }
   // Look up interfaces
   if (m == NULL) {
-    m = lookup_method_in_all_interfaces(name, signature, false);
+    m = lookup_method_in_all_interfaces(name, signature);
   }
   return m;
 }
@@ -1498,16 +1552,14 @@ Method* InstanceKlass::lookup_method_in_ordered_interfaces(Symbol* name,
 // Do NOT return private or static methods, new in JDK8 which are not externally visible
 // They should only be found in the initial InterfaceMethodRef
 Method* InstanceKlass::lookup_method_in_all_interfaces(Symbol* name,
-                                                       Symbol* signature,
-                                                       bool skip_default_methods) const {
+                                                         Symbol* signature) const {
   Array<Klass*>* all_ifs = transitive_interfaces();
   int num_ifs = all_ifs->length();
   InstanceKlass *ik = NULL;
   for (int i = 0; i < num_ifs; i++) {
     ik = InstanceKlass::cast(all_ifs->at(i));
     Method* m = ik->lookup_method(name, signature);
-    if (m != NULL && m->is_public() && !m->is_static() &&
-        (!skip_default_methods || !m->is_default_method())) {
+    if (m != NULL && m->is_public() && !m->is_static()) {
       return m;
     }
   }
@@ -2199,7 +2251,15 @@ void InstanceKlass::clean_method_data(BoolObjectClosure* is_alive) {
   for (int m = 0; m < methods()->length(); m++) {
     MethodData* mdo = methods()->at(m)->method_data();
     if (mdo != NULL) {
-      mdo->clean_method_data(is_alive);
+      for (ProfileData* data = mdo->first_data();
+           mdo->is_valid(data);
+           data = mdo->next_data(data)) {
+        data->clean_weak_klass_links(is_alive);
+      }
+      ParametersTypeData* parameters = mdo->parameters_type_data();
+      if (parameters != NULL) {
+        parameters->clean_weak_klass_links(is_alive);
+      }
     }
   }
 }
@@ -2217,6 +2277,10 @@ void InstanceKlass::remove_unshareable_info() {
     unlink_class();
   }
   init_implementor();
+
+#ifdef GRAAL
+  set_graal_node_class(NULL);
+#endif
 
   constants()->remove_unshareable_info();
 
@@ -2718,7 +2782,7 @@ void InstanceKlass::remove_osr_nmethod(nmethod* n) {
   Method* m = n->method();
   // Search for match
   while(cur != NULL && cur != n) {
-    if (TieredCompilation && m == cur->method()) {
+    if (TieredCompilation) {
       // Find max level before n
       max_level = MAX2(max_level, cur->comp_level());
     }
@@ -2740,9 +2804,7 @@ void InstanceKlass::remove_osr_nmethod(nmethod* n) {
     cur = next;
     while (cur != NULL) {
       // Find max level after n
-      if (m == cur->method()) {
-        max_level = MAX2(max_level, cur->comp_level());
-      }
+      max_level = MAX2(max_level, cur->comp_level());
       cur = cur->osr_link();
     }
     m->set_highest_osr_comp_level(max_level);
@@ -2988,7 +3050,8 @@ void InstanceKlass::oop_print_on(oop obj, outputStream* st) {
         offset          <= (juint) value->length() &&
         offset + length <= (juint) value->length()) {
       st->print(BULLET"string: ");
-      java_lang_String::print(obj, st);
+      Handle h_obj(obj);
+      java_lang_String::print(h_obj, st);
       st->cr();
       if (!WizardMode)  return;  // that is enough
     }
@@ -3139,7 +3202,7 @@ class VerifyFieldClosure: public OopClosure {
   virtual void do_oop(narrowOop* p) { VerifyFieldClosure::do_oop_work(p); }
 };
 
-void InstanceKlass::verify_on(outputStream* st) {
+void InstanceKlass::verify_on(outputStream* st, bool check_dictionary) {
 #ifndef PRODUCT
   // Avoid redundant verifies, this really should be in product.
   if (_verify_count == Universe::verify_count()) return;
@@ -3147,11 +3210,14 @@ void InstanceKlass::verify_on(outputStream* st) {
 #endif
 
   // Verify Klass
-  Klass::verify_on(st);
+  Klass::verify_on(st, check_dictionary);
 
-  // Verify that klass is present in ClassLoaderData
-  guarantee(class_loader_data()->contains_klass(this),
-            "this class isn't found in class loader data");
+  // Verify that klass is present in SystemDictionary if not already
+  // verifying the SystemDictionary.
+  if (is_loaded() && !is_anonymous() && check_dictionary) {
+    Symbol* h_name = name();
+    SystemDictionary::verify_obj_klass_present(h_name, class_loader_data());
+  }
 
   // Verify vtables
   if (is_linked()) {
@@ -3411,6 +3477,10 @@ static void purge_previous_versions_internal(InstanceKlass* ik, int emcp_method_
               ("purge: %s(%s): prev method @%d in version @%d is alive",
               method->name()->as_C_string(),
               method->signature()->as_C_string(), j, i));
+            if (method->method_data() != NULL) {
+              // Clean out any weak method links
+              method->method_data()->clean_weak_method_links();
+            }
           }
         }
       }
@@ -3419,6 +3489,14 @@ static void purge_previous_versions_internal(InstanceKlass* ik, int emcp_method_
     RC_TRACE(0x00000200,
       ("purge: previous version stats: live=%d, deleted=%d", live_count,
       deleted_count));
+  }
+
+  Array<Method*>* methods = ik->methods();
+  int num_methods = methods->length();
+  for (int index2 = 0; index2 < num_methods; ++index2) {
+    if (methods->at(index2)->method_data() != NULL) {
+      methods->at(index2)->method_data()->clean_weak_method_links();
+    }
   }
 }
 

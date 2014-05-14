@@ -23,11 +23,7 @@
 package com.oracle.graal.hotspot.sparc;
 
 import static com.oracle.graal.api.code.ValueUtil.*;
-import static com.oracle.graal.hotspot.HotSpotBackend.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
-import static com.oracle.graal.sparc.SPARC.*;
-
-import java.lang.reflect.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
@@ -35,28 +31,25 @@ import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.compiler.sparc.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
+import com.oracle.graal.hotspot.HotSpotVMConfig.CompressEncoding;
 import com.oracle.graal.hotspot.meta.*;
-import com.oracle.graal.hotspot.nodes.*;
 import com.oracle.graal.hotspot.stubs.*;
 import com.oracle.graal.lir.*;
+import com.oracle.graal.lir.StandardOp.SaveRegistersOp;
 import com.oracle.graal.lir.sparc.*;
-import com.oracle.graal.lir.sparc.SPARCMove.CompareAndSwapOp;
 import com.oracle.graal.lir.sparc.SPARCMove.LoadOp;
 import com.oracle.graal.lir.sparc.SPARCMove.StoreConstantOp;
 import com.oracle.graal.lir.sparc.SPARCMove.StoreOp;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
-import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 
 public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSpotLIRGenerator {
 
-    private final HotSpotVMConfig config;
-    private final Object stub;
+    final HotSpotVMConfig config;
 
-    public SPARCHotSpotLIRGenerator(StructuredGraph graph, Object stub, HotSpotProviders providers, HotSpotVMConfig config, FrameMap frameMap, CallingConvention cc, LIR lir) {
-        super(graph, providers, frameMap, cc, lir);
+    public SPARCHotSpotLIRGenerator(HotSpotProviders providers, HotSpotVMConfig config, CallingConvention cc, LIRGenerationResult lirGenRes) {
+        super(providers, cc, lirGenRes);
         this.config = config;
-        this.stub = stub;
     }
 
     @Override
@@ -69,115 +62,61 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
      * deoptimization. The return address slot in the callee is overwritten with the address of a
      * deoptimization stub.
      */
-    StackSlot deoptimizationRescueSlot;
-
-    @SuppressWarnings("hiding")
-    @Override
-    protected DebugInfoBuilder createDebugInfoBuilder(NodeMap<Value> nodeOperands) {
-        HotSpotLockStack lockStack = new HotSpotLockStack(frameMap, Kind.Long);
-        return new HotSpotDebugInfoBuilder(nodeOperands, lockStack);
-    }
+    private StackSlot deoptimizationRescueSlot;
 
     @Override
     public StackSlot getLockSlot(int lockDepth) {
-        return ((HotSpotDebugInfoBuilder) debugInfoBuilder).lockStack().makeLockSlot(lockDepth);
+        return ((HotSpotDebugInfoBuilder) getDebugInfoBuilder()).lockStack().makeLockSlot(lockDepth);
     }
 
     @Override
     protected boolean needOnlyOopMaps() {
         // Stubs only need oop maps
-        return stub != null;
+        return getStub() != null;
     }
 
-    Stub getStub() {
-        return (Stub) stub;
+    public Stub getStub() {
+        return ((SPARCHotSpotLIRGenerationResult) getResult()).getStub();
     }
 
     @Override
     public Variable emitForeignCall(ForeignCallLinkage linkage, DeoptimizingNode info, Value... args) {
+        HotSpotForeignCallLinkage hotspotLinkage = (HotSpotForeignCallLinkage) linkage;
         Variable result;
+        DeoptimizingNode deoptInfo = null;
+        if (hotspotLinkage.canDeoptimize()) {
+            deoptInfo = info;
+            assert deoptInfo != null || getStub() != null;
+        }
 
-        if (linkage.canDeoptimize()) {
-            assert info != null || getStub() != null;
+        if (hotspotLinkage.needsJavaFrameAnchor()) {
             HotSpotRegistersProvider registers = getProviders().getRegisters();
             Register thread = registers.getThreadRegister();
             Register stackPointer = registers.getStackPointerRegister();
             append(new SPARCHotSpotCRuntimeCallPrologueOp(config.threadLastJavaSpOffset(), thread, stackPointer));
-            result = super.emitForeignCall(linkage, info, args);
+            result = super.emitForeignCall(hotspotLinkage, deoptInfo, args);
             append(new SPARCHotSpotCRuntimeCallEpilogueOp(config.threadLastJavaSpOffset(), config.threadLastJavaPcOffset(), config.threadJavaFrameAnchorFlagsOffset(), thread));
         } else {
-            result = super.emitForeignCall(linkage, null, args);
+            result = super.emitForeignCall(hotspotLinkage, deoptInfo, args);
         }
 
         return result;
     }
 
     @Override
-    protected void emitReturn(Value input) {
-        append(new SPARCHotSpotReturnOp(input, getStub() != null));
-    }
-
-    @Override
-    public void visitSafepointNode(SafepointNode i) {
-        LIRFrameState info = state(i);
-        append(new SPARCHotSpotSafepointOp(info, config, this));
-    }
-
-    @Override
-    public void visitDirectCompareAndSwap(DirectCompareAndSwapNode x) {
-        Kind kind = x.newValue().getKind();
-        assert kind == x.expectedValue().getKind();
-
-        Variable address = load(operand(x.object()));
-        Value offset = operand(x.offset());
-        Variable cmpValue = (Variable) loadNonConst(operand(x.expectedValue()));
-        Variable newValue = load(operand(x.newValue()));
-
-        if (ValueUtil.isConstant(offset)) {
-            assert !getCodeCache().needsDataPatch(asConstant(offset));
-            Variable longAddress = newVariable(Kind.Long);
-            emitMove(longAddress, address);
-            address = emitAdd(longAddress, asConstant(offset));
-        } else {
-            if (isLegal(offset)) {
-                address = emitAdd(address, offset);
-            }
+    public void emitReturn(Value input) {
+        AllocatableValue operand = Value.ILLEGAL;
+        if (input != null) {
+            operand = resultOperandFor(input.getKind());
+            emitMove(operand, input);
         }
-
-        append(new CompareAndSwapOp(address, cmpValue, newValue));
-
-        Variable result = newVariable(x.getKind());
-        emitMove(result, newValue);
-        setResult(x, result);
+        append(new SPARCHotSpotReturnOp(operand, getStub() != null));
     }
 
     @Override
     public void emitTailcall(Value[] args, Value address) {
         // append(new AMD64TailcallOp(args, address));
         throw GraalInternalError.unimplemented();
-    }
-
-    @Override
-    protected void emitDirectCall(DirectCallTargetNode callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState callState) {
-        InvokeKind invokeKind = ((HotSpotDirectCallTargetNode) callTarget).invokeKind();
-        if (invokeKind == InvokeKind.Interface || invokeKind == InvokeKind.Virtual) {
-            append(new SPARCHotspotDirectVirtualCallOp(callTarget.target(), result, parameters, temps, callState, invokeKind));
-        } else {
-            assert invokeKind == InvokeKind.Static || invokeKind == InvokeKind.Special;
-            HotSpotResolvedJavaMethod resolvedMethod = (HotSpotResolvedJavaMethod) callTarget.target();
-            assert !Modifier.isAbstract(resolvedMethod.getModifiers()) : "Cannot make direct call to abstract method.";
-            Constant metaspaceMethod = resolvedMethod.getMetaspaceMethodConstant();
-            append(new SPARCHotspotDirectStaticCallOp(callTarget.target(), result, parameters, temps, callState, invokeKind, metaspaceMethod));
-        }
-    }
-
-    @Override
-    protected void emitIndirectCall(IndirectCallTargetNode callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState callState) {
-        AllocatableValue metaspaceMethod = g5.asValue();
-        emitMove(metaspaceMethod, operand(((HotSpotIndirectCallTargetNode) callTarget).metaspaceMethod()));
-        AllocatableValue targetAddress = g3.asValue();
-        emitMove(targetAddress, operand(callTarget.computedAddress()));
-        append(new SPARCIndirectCallOp(callTarget.target(), result, parameters, temps, metaspaceMethod, targetAddress, callState));
     }
 
     @Override
@@ -214,34 +153,14 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
         append(new SPARCHotSpotDeoptimizeCallerOp());
     }
 
-    @Override
-    public void emitPatchReturnAddress(ValueNode address) {
-        append(new SPARCHotSpotPatchReturnAddressOp(load(operand(address))));
-    }
-
-    @Override
-    public void emitJumpToExceptionHandlerInCaller(ValueNode handlerInCallerPc, ValueNode exception, ValueNode exceptionPc) {
-        Variable handler = load(operand(handlerInCallerPc));
-        ForeignCallLinkage linkage = getForeignCalls().lookupForeignCall(EXCEPTION_HANDLER_IN_CALLER);
-        CallingConvention linkageCc = linkage.getOutgoingCallingConvention();
-        assert linkageCc.getArgumentCount() == 2;
-        RegisterValue exceptionFixed = (RegisterValue) linkageCc.getArgument(0);
-        RegisterValue exceptionPcFixed = (RegisterValue) linkageCc.getArgument(1);
-        emitMove(exceptionFixed, operand(exception));
-        emitMove(exceptionPcFixed, operand(exceptionPc));
-        Register thread = getProviders().getRegisters().getThreadRegister();
-        SPARCHotSpotJumpToExceptionHandlerInCallerOp op = new SPARCHotSpotJumpToExceptionHandlerInCallerOp(handler, exceptionFixed, exceptionPcFixed, config.threadIsMethodHandleReturnOffset, thread);
-        append(op);
-    }
-
     private static boolean isCompressCandidate(Access access) {
         return access != null && access.isCompressible();
     }
 
     @Override
-    public Variable emitLoad(Kind kind, Value address, Access access) {
+    public Variable emitLoad(PlatformKind kind, Value address, Access access) {
         SPARCAddressValue loadAddress = asAddressValue(address);
-        Variable result = newVariable(kind.getStackKind());
+        Variable result = newVariable(kind);
         LIRFrameState state = null;
         if (access instanceof DeoptimizingNode) {
             state = state((DeoptimizingNode) access);
@@ -260,16 +179,16 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
                 // config.logKlassAlignment));
                 throw GraalInternalError.unimplemented();
             } else {
-                append(new LoadOp(kind, result, loadAddress, state));
+                append(new LoadOp((Kind) kind, result, loadAddress, state));
             }
         } else {
-            append(new LoadOp(kind, result, loadAddress, state));
+            append(new LoadOp((Kind) kind, result, loadAddress, state));
         }
         return result;
     }
 
     @Override
-    public void emitStore(Kind kind, Value address, Value inputVal, Access access) {
+    public void emitStore(PlatformKind kind, Value address, Value inputVal, Access access) {
         SPARCAddressValue storeAddress = asAddressValue(address);
         LIRFrameState state = null;
         if (access instanceof DeoptimizingNode) {
@@ -279,11 +198,11 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
             Constant c = asConstant(inputVal);
             if (canStoreConstant(c, isCompressCandidate(access))) {
                 if (inputVal.getKind() == Kind.Object) {
-                    append(new StoreConstantOp(kind, storeAddress, c, state, config.useCompressedOops && isCompressCandidate(access)));
+                    append(new StoreConstantOp((Kind) kind, storeAddress, c, state, config.useCompressedOops && isCompressCandidate(access)));
                 } else if (inputVal.getKind() == Kind.Long) {
-                    append(new StoreConstantOp(kind, storeAddress, c, state, config.useCompressedClassPointers && isCompressCandidate(access)));
+                    append(new StoreConstantOp((Kind) kind, storeAddress, c, state, config.useCompressedClassPointers && isCompressCandidate(access)));
                 } else {
-                    append(new StoreConstantOp(kind, storeAddress, c, state, false));
+                    append(new StoreConstantOp((Kind) kind, storeAddress, c, state, false));
                 }
                 return;
             }
@@ -308,11 +227,15 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
                 // config.logKlassAlignment));
                 throw GraalInternalError.unimplemented();
             } else {
-                append(new StoreOp(kind, storeAddress, input, state));
+                append(new StoreOp((Kind) kind, storeAddress, input, state));
             }
         } else {
-            append(new StoreOp(kind, storeAddress, input, state));
+            append(new StoreOp((Kind) kind, storeAddress, input, state));
         }
+    }
+
+    public Value emitCompareAndSwap(Value address, Value expectedValue, Value newValue, Value trueValue, Value falseValue) {
+        throw new InternalError("NYI");
     }
 
     @Override
@@ -321,8 +244,54 @@ public class SPARCHotSpotLIRGenerator extends SPARCLIRGenerator implements HotSp
         return null;
     }
 
-    public void emitPrefetchAllocate(ValueNode address, ValueNode distance) {
-        SPARCAddressValue addr = emitAddress(operand(address), 0, loadNonConst(operand(distance)), 1);
-        append(new SPARCPrefetchOp(addr, config.allocatePrefetchInstr));
+    public StackSlot getDeoptimizationRescueSlot() {
+        return deoptimizationRescueSlot;
+    }
+
+    @Override
+    public Value emitCompress(Value pointer, CompressEncoding encoding, boolean nonNull) {
+        // TODO
+        throw GraalInternalError.unimplemented();
+    }
+
+    @Override
+    public Value emitUncompress(Value pointer, CompressEncoding encoding, boolean nonNull) {
+        // TODO
+        throw GraalInternalError.unimplemented();
+    }
+
+    public SaveRegistersOp emitSaveAllRegisters() {
+        // TODO Auto-generated method stub
+        throw GraalInternalError.unimplemented();
+    }
+
+    public void emitLeaveCurrentStackFrame() {
+        // TODO Auto-generated method stub
+        throw GraalInternalError.unimplemented();
+    }
+
+    public void emitLeaveDeoptimizedStackFrame(Value frameSize, Value initialInfo) {
+        // TODO Auto-generated method stub
+        throw GraalInternalError.unimplemented();
+    }
+
+    public void emitEnterUnpackFramesStackFrame(Value framePc, Value senderSp, Value senderFp) {
+        // TODO Auto-generated method stub
+        throw GraalInternalError.unimplemented();
+    }
+
+    public void emitLeaveUnpackFramesStackFrame() {
+        // TODO Auto-generated method stub
+        throw GraalInternalError.unimplemented();
+    }
+
+    public void emitPushInterpreterFrame(Value frameSize, Value framePc, Value senderSp, Value initialInfo) {
+        // TODO Auto-generated method stub
+        throw GraalInternalError.unimplemented();
+    }
+
+    public Value emitUncommonTrapCall(Value trapRequest, SaveRegistersOp saveRegisterOp) {
+        // TODO Auto-generated method stub
+        throw GraalInternalError.unimplemented();
     }
 }

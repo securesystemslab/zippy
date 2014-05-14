@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,13 +24,14 @@ package com.oracle.graal.lir.amd64;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.asm.*;
 import com.oracle.graal.lir.*;
 
 /**
  * AMD64 specific frame map.
- * 
+ *
  * This is the format of an AMD64 stack frame:
- * 
+ *
  * <pre>
  *   Base       Contents
  * 
@@ -54,10 +55,10 @@ import com.oracle.graal.lir.*;
  *            | outgoing overflow argument n   |    ^            |      |
  *            :     ...                        :    | positive   |      |
  *            | outgoing overflow argument 0   |    | offsets    v      v
- *    %sp-->  +--------------------------------+---------------------------
- * 
+ *    %sp--&gt;  +--------------------------------+---------------------------
+ *
  * </pre>
- * 
+ *
  * The spill slot area also includes stack allocated memory blocks (ALLOCA blocks). The size of such
  * a block may be greater than the size of a normal spill slot or the word size.
  * <p>
@@ -69,8 +70,8 @@ import com.oracle.graal.lir.*;
  */
 public class AMD64FrameMap extends FrameMap {
 
-    public AMD64FrameMap(CodeCacheProvider codeCache) {
-        super(codeCache);
+    public AMD64FrameMap(CodeCacheProvider codeCache, RegisterConfig registerConfig) {
+        super(codeCache, registerConfig);
         // (negative) offset relative to sp + total frame size
         initialSpillSize = returnAddressSize() + calleeSaveAreaSize();
         spillSize = initialSpillSize;
@@ -88,8 +89,7 @@ public class AMD64FrameMap extends FrameMap {
 
     @Override
     protected int alignFrameSize(int size) {
-        int x = size + returnAddressSize() + (target.stackAlignment - 1);
-        return (x / target.stackAlignment) * target.stackAlignment - returnAddressSize();
+        return NumUtil.roundUp(size + returnAddressSize(), target.stackAlignment) - returnAddressSize();
     }
 
     @Override

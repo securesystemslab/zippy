@@ -190,7 +190,7 @@ public class ImportManager {
 
         if (parsedModule != null) {
             CallTarget callTarget = Truffle.getRuntime().createCallTarget(parsedModule.getModuleRoot());
-            callTarget.call(null, PArguments.EMPTY_ARGUMENT);
+            callTarget.call(PArguments.EMPTY_ARGUMENTS_ARRAY);
             return parsedModule.getModule();
         }
 

@@ -28,7 +28,6 @@ import java.lang.reflect.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.hotspot.bridge.*;
 
 /**
  * Implementation of {@link InstalledCode} for code installed as an nmethod. The nmethod stores a
@@ -40,8 +39,6 @@ import com.oracle.graal.hotspot.bridge.*;
  * strong GC roots.
  */
 public final class HotSpotNmethod extends HotSpotInstalledCode {
-
-    private static final long serialVersionUID = -1784683588947054103L;
 
     /**
      * This (indirect) Method* reference is safe since class redefinition preserves all methods
@@ -72,14 +69,8 @@ public final class HotSpotNmethod extends HotSpotInstalledCode {
         return isExternal;
     }
 
-    @Override
     public ResolvedJavaMethod getMethod() {
         return method;
-    }
-
-    @Override
-    public boolean isValid() {
-        return getCodeBlob() != 0;
     }
 
     @Override
@@ -89,13 +80,7 @@ public final class HotSpotNmethod extends HotSpotInstalledCode {
 
     @Override
     public String toString() {
-        return String.format("InstalledNmethod[method=%s, codeBlob=0x%x, isDefault=%b, name=%s]", method, getCodeBlob(), isDefault, name);
-    }
-
-    @Override
-    public Object execute(Object arg1, Object arg2, Object arg3) throws InvalidInstalledCodeException {
-        assert checkThreeObjectArgs();
-        return CompilerToVMImpl.executeCompiledMethodIntrinsic(arg1, arg2, arg3, this);
+        return String.format("InstalledNmethod[method=%s, codeBlob=0x%x, isDefault=%b, name=%s]", method, getAddress(), isDefault, name);
     }
 
     protected boolean checkThreeObjectArgs() {

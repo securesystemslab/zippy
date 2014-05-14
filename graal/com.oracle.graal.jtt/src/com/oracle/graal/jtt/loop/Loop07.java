@@ -22,11 +22,10 @@
  */
 package com.oracle.graal.jtt.loop;
 
-import com.oracle.graal.jtt.*;
 import org.junit.*;
 
-/*
- */
+import com.oracle.graal.jtt.*;
+
 public class Loop07 extends JTTTest {
 
     public static String test(int arg) {

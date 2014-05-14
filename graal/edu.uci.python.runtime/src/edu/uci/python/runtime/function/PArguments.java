@@ -33,7 +33,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
 
-public class PArguments extends Arguments {
+public class PArguments {
 
     public static final Object[] EMPTY_ARGUMENTS_ARRAY = new Object[0];
     public static final PArguments EMPTY_ARGUMENT = new PArguments(null, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
@@ -53,20 +53,24 @@ public class PArguments extends Arguments {
         this(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
     }
 
+    public final Object[] packAsObjectArray() {
+        return new Object[]{this};
+    }
+
     public static PArguments get(Frame frame) {
-        return frame.getArguments(PArguments.class);
+        return CompilerDirectives.unsafeCast(frame.getArguments()[0], PArguments.class, true);
     }
 
     public static VirtualFrameCargoArguments getVirtualFrameCargoArguments(Frame frame) {
-        return frame.getArguments(PArguments.VirtualFrameCargoArguments.class);
+        return CompilerDirectives.unsafeCast(frame.getArguments()[0], VirtualFrameCargoArguments.class, true);
     }
 
     public static GeneratorArguments getGeneratorArguments(Frame frame) {
-        return frame.getArguments(PArguments.GeneratorArguments.class);
+        return CompilerDirectives.unsafeCast(frame.getArguments()[0], GeneratorArguments.class, true);
     }
 
     public static ParallelGeneratorArguments getParallelGeneratorArguments(Frame frame) {
-        return frame.getArguments(PArguments.ParallelGeneratorArguments.class);
+        return CompilerDirectives.unsafeCast(frame.getArguments()[0], ParallelGeneratorArguments.class, true);
     }
 
     public final int getArgumentsLength() {

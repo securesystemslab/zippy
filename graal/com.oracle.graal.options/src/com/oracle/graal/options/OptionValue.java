@@ -38,7 +38,7 @@ public class OptionValue<T> {
      * <p>
      * Since the returned object is {@link AutoCloseable} the try-with-resource construct can be
      * used:
-     * 
+     *
      * <pre>
      * try (OverrideScope s = OptionValue.override(myOption, myValue) {
      *     // code that depends on myOption == myValue
@@ -65,9 +65,9 @@ public class OptionValue<T> {
      * <p>
      * Since the returned object is {@link AutoCloseable} the try-with-resource construct can be
      * used:
-     * 
+     *
      * <pre>
-     * Map<OptionValue, Object> overrides = new HashMap<>();
+     * Map&lt;OptionValue, Object&gt; overrides = new HashMap&lt;&gt;();
      * overrides.put(myOption1, myValue1);
      * overrides.put(myOption2, myValue2);
      * try (OverrideScope s = OptionValue.override(overrides) {
@@ -96,13 +96,13 @@ public class OptionValue<T> {
      * <p>
      * Since the returned object is {@link AutoCloseable} the try-with-resource construct can be
      * used:
-     * 
+     *
      * <pre>
      * try (OverrideScope s = OptionValue.override(myOption1, myValue1, myOption2, myValue2) {
      *     // code that depends on myOption == myValue
      * }
      * </pre>
-     * 
+     *
      * @param overrides overrides in the form {@code [option1, override1, option2, override2, ...]}
      */
     public static OverrideScope override(Object... overrides) {
@@ -139,7 +139,7 @@ public class OptionValue<T> {
 
     private long reads;
     private OptionValue<?> next;
-    private static OptionValue head;
+    private static OptionValue<?> head;
 
     private static final boolean ShowReadsHistogram = Boolean.getBoolean("graal.showOptionValueReadsHistogram");
 
@@ -221,14 +221,14 @@ public class OptionValue<T> {
 
     /**
      * Gets the values of this option including overridden values.
-     * 
+     *
      * @param c the collection to which the values are added. If null, one is allocated.
      * @return the collection to which the values were added in order from most overridden to
      *         current value
      */
     @SuppressWarnings("unchecked")
     public Collection<T> getValues(Collection<T> c) {
-        Collection<T> values = c == null ? new ArrayList<T>() : c;
+        Collection<T> values = c == null ? new ArrayList<>() : c;
         if (!(this instanceof StableOptionValue)) {
             OverrideScope overrideScope = overrideScopes.get();
             if (overrideScope != null) {
@@ -252,7 +252,7 @@ public class OptionValue<T> {
      * {@link OptionValue#override(OptionValue, Object)} or {@link OptionValue#override(Map)}.
      */
     public abstract static class OverrideScope implements AutoCloseable {
-        abstract void addToInherited(Map<OptionValue, Object> inherited);
+        abstract void addToInherited(Map<OptionValue<?>, Object> inherited);
 
         abstract <T> T getOverride(OptionValue<T> option);
 
@@ -276,7 +276,7 @@ public class OptionValue<T> {
         }
 
         @Override
-        void addToInherited(Map<OptionValue, Object> inherited) {
+        void addToInherited(Map<OptionValue<?>, Object> inherited) {
             inherited.put(option, value);
         }
 
@@ -304,7 +304,7 @@ public class OptionValue<T> {
 
     static class MultipleOverridesScope extends OverrideScope {
         final OverrideScope parent;
-        final Map<OptionValue, Object> overrides;
+        final Map<OptionValue<?>, Object> overrides;
 
         public MultipleOverridesScope(OverrideScope parent, OptionValue<?> option, Object value) {
             this.parent = parent;
@@ -348,7 +348,7 @@ public class OptionValue<T> {
         }
 
         @Override
-        void addToInherited(Map<OptionValue, Object> inherited) {
+        void addToInherited(Map<OptionValue<?>, Object> inherited) {
             if (parent != null) {
                 parent.addToInherited(inherited);
             }

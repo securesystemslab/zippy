@@ -25,6 +25,7 @@
 package edu.uci.python.nodes.statement;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
@@ -36,10 +37,21 @@ public class IfNode extends StatementNode {
     @Child protected PNode then;
     @Child protected PNode orelse;
 
+    protected final BranchProfile thenProfile = new BranchProfile();
+    private final BranchProfile elseProfile = new BranchProfile();
+
     public IfNode(CastToBooleanNode condition, PNode then, PNode orelse) {
         this.condition = condition;
         this.then = then;
         this.orelse = orelse;
+    }
+
+    public static IfNode create(CastToBooleanNode condition, PNode then, PNode orelse) {
+        if (orelse != EmptyNode.INSTANCE) {
+            return new IfNode(condition, then, orelse);
+        } else {
+            return new IfWithoutElseNode(condition, then);
+        }
     }
 
     public CastToBooleanNode getCondition() {
@@ -57,12 +69,29 @@ public class IfNode extends StatementNode {
     @Override
     public Object execute(VirtualFrame frame) {
         if (condition.executeBoolean(frame)) {
-            then.execute(frame);
+            thenProfile.enter();
+            return then.execute(frame);
         } else {
-            orelse.execute(frame);
+            elseProfile.enter();
+            return orelse.execute(frame);
+        }
+    }
+
+    public static final class IfWithoutElseNode extends IfNode {
+
+        public IfWithoutElseNode(CastToBooleanNode condition, PNode then) {
+            super(condition, then, EmptyNode.INSTANCE);
         }
 
-        return PNone.NONE;
+        @Override
+        public Object execute(VirtualFrame frame) {
+            if (condition.executeBoolean(frame)) {
+                thenProfile.enter();
+                return then.execute(frame);
+            }
+
+            return PNone.NONE;
+        }
     }
 
 }

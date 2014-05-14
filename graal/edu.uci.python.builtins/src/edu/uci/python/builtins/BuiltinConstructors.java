@@ -364,7 +364,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
             try {
                 while (true) {
-                    list.append(mappingFunction.call(null, new Object[]{iter.__next__()}));
+                    list.append(mappingFunction.call(new Object[]{iter.__next__()}));
                 }
             } catch (StopIterationException e) {
 
@@ -390,7 +390,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
                     PythonCallable initMethod = clazz.lookUpMethod("__init__");
                     if (initMethod != null) {
-                        initMethod.call(null, selfWithArgs);
+                        initMethod.call(selfWithArgs);
                         list.append(obj);
                     }
 

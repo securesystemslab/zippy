@@ -105,14 +105,13 @@ public class SignExtendNode extends IntegerConvertNode {
     }
 
     @Override
-    public void generate(ArithmeticLIRGenerator gen) {
-        gen.setResult(this, gen.emitSignExtend(gen.operand(getInput()), getInputBits(), getResultBits()));
+    public void generate(NodeMappableLIRBuilder builder, ArithmeticLIRGenerator gen) {
+        builder.setResult(this, gen.emitSignExtend(builder.operand(getInput()), getInputBits(), getResultBits()));
     }
 
     @Override
     public boolean generate(MemoryArithmeticLIRLowerer gen, Access access) {
-        assert !access.nullCheckLocation().getValueKind().isUnsigned() : "can't sign extend unsigned value";
-        Value result = gen.emitSignExtendMemory(access, access.nullCheckLocation().getValueKind().getBitCount(), getResultBits());
+        Value result = gen.emitSignExtendMemory(access, getInputBits(), getResultBits());
         if (result != null) {
             gen.setResult(this, result);
         }

@@ -31,41 +31,35 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
+import com.oracle.graal.phases.util.*;
 
 public class TruffleExpansionLogger {
 
+    private final Providers providers;
     private final ExpansionTree root;
     private final Map<MethodCallTargetNode, ExpansionTree> callToParentTree = new HashMap<>();
 
-    public TruffleExpansionLogger(StructuredGraph graph) {
+    public TruffleExpansionLogger(Providers providers, StructuredGraph graph) {
+        this.providers = providers;
         root = new ExpansionTree(null, null, graph.method(), -1);
         registerParentInCalls(root, graph);
     }
 
     public void preExpand(MethodCallTargetNode callTarget, StructuredGraph inliningGraph) {
-        ResolvedJavaMethod sourceMethod = callTarget.invoke().stateAfter().method();
-
         int sourceMethodBci = callTarget.invoke().bci();
         ResolvedJavaMethod targetMethod = callTarget.targetMethod();
-        Object targetReceiver = null;
-        if (!Modifier.isStatic(sourceMethod.getModifiers())) {
-            /**
-             * zwei: This is a work around to avoid {@link NullPointException} when {@link firstArg}
-             * is not a constant.
-             */
-            // targetReceiver = callTarget.arguments().first().asConstant().asObject();
-            NodeInputList<ValueNode> args = callTarget.arguments();
-            ValueNode firstArg = args.first();
-            Constant cst = firstArg.asConstant();
-            targetReceiver = cst == null ? cst : cst.asObject();
-
+        ResolvedJavaType targetReceiverType = null;
+        if (!Modifier.isStatic(targetMethod.getModifiers()) && callTarget.receiver().isConstant()) {
+            targetReceiverType = providers.getMetaAccess().lookupJavaType(callTarget.arguments().first().asConstant());
         }
 
-        ExpansionTree parent = callToParentTree.get(callTarget);
-        assert parent != null;
-        callToParentTree.remove(callTarget);
-        ExpansionTree tree = new ExpansionTree(parent, targetReceiver, targetMethod, sourceMethodBci);
-        registerParentInCalls(tree, inliningGraph);
+        if (targetReceiverType != null) {
+            ExpansionTree parent = callToParentTree.get(callTarget);
+            assert parent != null;
+            callToParentTree.remove(callTarget);
+            ExpansionTree tree = new ExpansionTree(parent, targetReceiverType, targetMethod, sourceMethodBci);
+            registerParentInCalls(tree, inliningGraph);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -101,14 +95,14 @@ public class TruffleExpansionLogger {
     private static final class ExpansionTree implements Comparable<ExpansionTree> {
 
         private final ExpansionTree parent;
-        private final Object targetReceiver;
+        private final ResolvedJavaType targetReceiverType;
         private final ResolvedJavaMethod targetMethod;
         private final int parentBci;
         private final List<ExpansionTree> children = new ArrayList<>();
 
-        public ExpansionTree(ExpansionTree parent, Object receiver, ResolvedJavaMethod targetMethod, int parentBci) {
+        public ExpansionTree(ExpansionTree parent, ResolvedJavaType targetReceiverType, ResolvedJavaMethod targetMethod, int parentBci) {
             this.parent = parent;
-            this.targetReceiver = receiver;
+            this.targetReceiverType = targetReceiverType;
             this.targetMethod = targetMethod;
             this.parentBci = parentBci;
             if (parent != null) {
@@ -148,9 +142,9 @@ public class TruffleExpansionLogger {
             }
 
             String constantType = "";
-            if (targetReceiver != null) {
-                if (!targetReceiver.getClass().getSimpleName().equals(className)) {
-                    constantType = "<" + targetReceiver.getClass().getSimpleName() + ">";
+            if (targetReceiverType != null) {
+                if (!targetReceiverType.getName().equals(className)) {
+                    constantType = "<" + targetReceiverType.getName() + ">";
                 }
             }
 

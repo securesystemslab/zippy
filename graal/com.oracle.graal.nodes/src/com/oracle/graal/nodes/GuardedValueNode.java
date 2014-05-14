@@ -32,10 +32,10 @@ import com.oracle.graal.nodes.type.*;
 /**
  * A node that changes the type of its input, usually narrowing it. For example, a GuardedValueNode
  * is used to keep the nodes depending on guards inside a loop during speculative guard movement.
- * 
+ *
  * A GuardedValueNode will only go away if its guard is null or {@link StructuredGraph#start()}.
  */
-public class GuardedValueNode extends FloatingGuardedNode implements LIRLowerable, Virtualizable, IterableNodeType, GuardingNode, Canonicalizable, ValueProxy {
+public class GuardedValueNode extends FloatingGuardedNode implements LIRLowerable, Virtualizable, IterableNodeType, Canonicalizable, ValueProxy {
 
     @Input private ValueNode object;
 
@@ -53,7 +53,7 @@ public class GuardedValueNode extends FloatingGuardedNode implements LIRLowerabl
     }
 
     @Override
-    public void generate(LIRGeneratorTool generator) {
+    public void generate(NodeLIRBuilderTool generator) {
         if (object.getKind() != Kind.Void && object.getKind() != Kind.Illegal) {
             generator.setResult(this, generator.operand(object));
         }
@@ -88,7 +88,7 @@ public class GuardedValueNode extends FloatingGuardedNode implements LIRLowerabl
     }
 
     @Override
-    public ValueNode getOriginalValue() {
+    public ValueNode getOriginalNode() {
         return object;
     }
 }

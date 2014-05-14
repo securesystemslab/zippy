@@ -185,7 +185,7 @@ ifeq ($(JDK6_OR_EARLIER),0)
       ENABLE_FULL_DEBUG_SYMBOLS = $(FULL_DEBUG_SYMBOLS)
     else
       # debug variants always get Full Debug Symbols (if available)
-      ENABLE_FULL_DEBUG_SYMBOLS ?= 1
+      ENABLE_FULL_DEBUG_SYMBOLS = 1
     endif
     _JUNK_ := $(shell \
       echo >&2 "INFO: ENABLE_FULL_DEBUG_SYMBOLS=$(ENABLE_FULL_DEBUG_SYMBOLS)")

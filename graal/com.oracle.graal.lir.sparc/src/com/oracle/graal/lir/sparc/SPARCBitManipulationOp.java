@@ -24,13 +24,19 @@ package com.oracle.graal.lir.sparc;
 
 import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.asm.sparc.SPARCAssembler.*;
-import static com.oracle.graal.asm.sparc.SPARCMacroAssembler.*;
 import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 import static com.oracle.graal.sparc.SPARC.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.asm.sparc.SPARCAssembler.Andn;
+import com.oracle.graal.asm.sparc.SPARCAssembler.Or;
+import com.oracle.graal.asm.sparc.SPARCAssembler.Popc;
+import com.oracle.graal.asm.sparc.SPARCAssembler.Srl;
+import com.oracle.graal.asm.sparc.SPARCAssembler.Srlx;
+import com.oracle.graal.asm.sparc.SPARCAssembler.Sub;
 import com.oracle.graal.asm.sparc.*;
+import com.oracle.graal.asm.sparc.SPARCMacroAssembler.Mov;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
@@ -39,7 +45,11 @@ import com.oracle.graal.nodes.spi.*;
 public class SPARCBitManipulationOp extends SPARCLIRInstruction {
 
     public enum IntrinsicOpcode {
-        IPOPCNT, LPOPCNT, IBSR, LBSR, BSF;
+        IPOPCNT,
+        LPOPCNT,
+        IBSR,
+        LBSR,
+        BSF;
     }
 
     @Opcode private final IntrinsicOpcode opcode;

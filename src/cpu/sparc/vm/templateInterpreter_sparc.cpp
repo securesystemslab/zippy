@@ -156,10 +156,6 @@ address TemplateInterpreterGenerator::generate_StackOverflowError_handler() {
 address TemplateInterpreterGenerator::generate_return_entry_for(TosState state, int step, size_t index_size) {
   address entry = __ pc();
 
-  if (state == atos) {
-    __ profile_return_type(O0, G3_scratch, G1_scratch);
-  }
-
 #if !defined(_LP64) && defined(COMPILER2)
   // All return values are where we want them, except for Longs.  C2 returns
   // longs in G1 in the 32-bit build whereas the interpreter wants them in O0/O1.
@@ -808,18 +804,6 @@ address InterpreterGenerator::generate_Reference_get_entry(void) {
   return generate_accessor_entry();
 }
 
-#ifdef GRAAL
-
-// Interpreter stub for calling a compiled method with 3 object arguments
-address InterpreterGenerator::generate_execute_compiled_method_entry() {
-  address entry_point = __ pc();
-
-  __ stop("graal-sparc unimp");
-
-  return entry_point;
-}
-
-#endif
 
 //
 // Interpreter stub for calling a native method. (asm interpreter)
@@ -1350,7 +1334,6 @@ address InterpreterGenerator::generate_normal_entry(bool synchronized) {
   __ movbool(true, G3_scratch);
   __ stbool(G3_scratch, do_not_unlock_if_synchronized);
 
-  __ profile_parameters_type(G1_scratch, G3_scratch, G4_scratch, Lscratch);
   // increment invocation counter and check for overflow
   //
   // Note: checking for negative value instead of overflow

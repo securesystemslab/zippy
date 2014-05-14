@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,6 +47,8 @@
 
 #define VM_INT_CONSTANTS_CPU(declare_constant, declare_preprocessor_constant, declare_c1_constant, declare_c2_constant, declare_c2_preprocessor_constant) \
   declare_constant(frame::arg_reg_save_area_bytes)                  \
+  declare_constant(frame::interpreter_frame_sender_sp_offset)       \
+  declare_constant(frame::interpreter_frame_last_sp_offset)         \
   declare_constant(VM_Version::CPU_CX8)                             \
   declare_constant(VM_Version::CPU_CMOV)                            \
   declare_constant(VM_Version::CPU_FXSR)                            \

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -201,7 +201,7 @@ JVMState* VirtualCallGenerator::generate(JVMState* jvms, Parse* parent_parser) {
   // Block::implicit_null_check() only looks for loads and stores, not calls.
   ciMethod *caller = kit.method();
   ciMethodData *caller_md = (caller == NULL) ? NULL : caller->method_data();
-  if (!UseInlineCaches || !ImplicitNullChecks || !os::zero_page_read_protected() ||
+  if (!UseInlineCaches || !ImplicitNullChecks ||
        ((ImplicitNullCheckThreshold > 0) && caller_md &&
        (caller_md->trap_count(Deoptimization::Reason_null_check)
        >= (uint)ImplicitNullCheckThreshold))) {
@@ -722,7 +722,7 @@ JVMState* PredictedCallGenerator::generate(JVMState* jvms, Parse* parent_parser)
     Node* m = kit.map()->in(i);
     Node* n = slow_map->in(i);
     if (m != n) {
-      const Type* t = gvn.type(m)->meet_speculative(gvn.type(n));
+      const Type* t = gvn.type(m)->meet(gvn.type(n));
       Node* phi = PhiNode::make(region, m, t);
       phi->set_req(2, n);
       kit.map()->set_req(i, gvn.transform(phi));
@@ -975,7 +975,7 @@ JVMState* PredictedIntrinsicGenerator::generate(JVMState* jvms, Parse* parent_pa
     Node* m = kit.map()->in(i);
     Node* n = slow_map->in(i);
     if (m != n) {
-      const Type* t = gvn.type(m)->meet_speculative(gvn.type(n));
+      const Type* t = gvn.type(m)->meet(gvn.type(n));
       Node* phi = PhiNode::make(region, m, t);
       phi->set_req(2, n);
       kit.map()->set_req(i, gvn.transform(phi));

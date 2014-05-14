@@ -1,5 +1,5 @@
 #
-# Copyright (c) 1999, 2014, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 1999, 2013, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -109,6 +109,10 @@ CXXFLAGS += $(CXXFLAGS/BYFILE)
 
 ifdef DEFAULT_LIBPATH
 CXXFLAGS += -DDEFAULT_LIBPATH="\"$(DEFAULT_LIBPATH)\""
+endif
+
+ifeq ($(INCLUDE_GRAAL), true)
+  CXXFLAGS += -DGRAAL_VERSION="\"$(GRAAL_VERSION)\""
 endif
 
 # CFLAGS_WARN holds compiler options to suppress/enable warnings.
@@ -388,10 +392,10 @@ DEST_JVM_DIZ       = $(DEST_SUBDIR)/$(LIBJVM_DIZ)
 install_jvm: $(LIBJVM)
 	@echo "Copying $(LIBJVM) to $(DEST_JVM)"
 ifeq ($(OS_VENDOR), Darwin)
-	$(QUIETLY) test ! -d $(LIBJVM_DEBUGINFO) || \
+	-$(QUIETLY) test -d $(LIBJVM_DEBUGINFO) && \
 	    cp -f -r $(LIBJVM_DEBUGINFO) $(DEST_JVM_DEBUGINFO)
 else
-	$(QUIETLY) test ! -f $(LIBJVM_DEBUGINFO) || \
+	$(QUIETLY) test -f $(LIBJVM_DEBUGINFO) && \
 	    cp -f $(LIBJVM_DEBUGINFO) $(DEST_JVM_DEBUGINFO)
 endif
 	$(QUIETLY) test ! -f $(LIBJVM_DIZ) || \

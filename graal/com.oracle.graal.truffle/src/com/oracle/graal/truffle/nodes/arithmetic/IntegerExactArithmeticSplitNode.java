@@ -23,21 +23,19 @@
 package com.oracle.graal.truffle.nodes.arithmetic;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.gen.*;
-import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
-public abstract class IntegerExactArithmeticSplitNode extends ControlSplitNode implements LIRGenLowerable {
+public abstract class IntegerExactArithmeticSplitNode extends ControlSplitNode implements LIRLowerable {
 
-    @Successor private AbstractBeginNode overflowSuccessor;
-    @Successor private AbstractBeginNode next;
+    @Successor private BeginNode overflowSuccessor;
+    @Successor private BeginNode next;
     @Input private ValueNode x;
     @Input private ValueNode y;
 
-    public IntegerExactArithmeticSplitNode(Stamp stamp, ValueNode x, ValueNode y, AbstractBeginNode next, AbstractBeginNode overflowSuccessor) {
+    public IntegerExactArithmeticSplitNode(Stamp stamp, ValueNode x, ValueNode y, BeginNode next, BeginNode overflowSuccessor) {
         super(stamp);
         this.x = x;
         this.y = y;
@@ -46,20 +44,20 @@ public abstract class IntegerExactArithmeticSplitNode extends ControlSplitNode i
     }
 
     @Override
-    public double probability(AbstractBeginNode successor) {
+    public double probability(BeginNode successor) {
         return successor == next ? 1 : 0;
     }
 
     @Override
-    public void setProbability(AbstractBeginNode successor, double value) {
+    public void setProbability(BeginNode successor, double value) {
         assert probability(successor) == value;
     }
 
-    public AbstractBeginNode getNext() {
+    public BeginNode getNext() {
         return next;
     }
 
-    public AbstractBeginNode getOverflowSuccessor() {
+    public BeginNode getOverflowSuccessor() {
         return overflowSuccessor;
     }
 
@@ -72,12 +70,12 @@ public abstract class IntegerExactArithmeticSplitNode extends ControlSplitNode i
     }
 
     @Override
-    public void generate(LIRGenerator generator) {
+    public void generate(NodeLIRBuilderTool generator) {
         generator.setResult(this, generateArithmetic(generator));
-        generator.emitOverflowCheckBranch(generator.getLIRBlock(getOverflowSuccessor()), generator.getLIRBlock(getNext()), probability(getOverflowSuccessor()));
+        generator.emitOverflowCheckBranch(getOverflowSuccessor(), getNext(), probability(getOverflowSuccessor()));
     }
 
-    protected abstract Value generateArithmetic(LIRGeneratorTool generator);
+    protected abstract Value generateArithmetic(NodeLIRBuilderTool generator);
 
     static void lower(LoweringTool tool, IntegerExactArithmeticNode node) {
         if (node.asNode().graph().getGuardsStage() == StructuredGraph.GuardsStage.FIXED_DEOPTS) {

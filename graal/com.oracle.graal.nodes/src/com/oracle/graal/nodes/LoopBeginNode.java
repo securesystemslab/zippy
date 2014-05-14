@@ -38,7 +38,7 @@ public class LoopBeginNode extends MergeNode implements IterableNodeType, LIRLow
     private double loopFrequency;
     private int nextEndIndex;
     private int unswitches;
-    @Input private GuardingNode overflowGuard;
+    @Input(InputType.Guard) private GuardingNode overflowGuard;
 
     public LoopBeginNode() {
         loopFrequency = 1;
@@ -57,7 +57,7 @@ public class LoopBeginNode extends MergeNode implements IterableNodeType, LIRLow
      * Returns the <b>unordered</b> set of {@link LoopEndNode} that correspond to back-edges for
      * this loop. The order of the back-edges is unspecified, if you need to get an ordering
      * compatible for {@link PhiNode} creation, use {@link #orderedLoopEnds()}.
-     * 
+     *
      * @return the set of {@code LoopEndNode} that correspond to back-edges for this loop
      */
     public NodeIterable<LoopEndNode> loopEnds() {
@@ -77,7 +77,7 @@ public class LoopBeginNode extends MergeNode implements IterableNodeType, LIRLow
      * Returns the set of {@link LoopEndNode} that correspond to back-edges for this loop, ordered
      * in increasing {@link #phiPredecessorIndex}. This method is suited to create new loop
      * {@link PhiNode}.
-     * 
+     *
      * @return the set of {@code LoopEndNode} that correspond to back-edges for this loop
      */
     public List<LoopEndNode> orderedLoopEnds() {
@@ -98,7 +98,7 @@ public class LoopBeginNode extends MergeNode implements IterableNodeType, LIRLow
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         // Nothing to emit, since this is node is used for structural purposes only.
     }
 
@@ -178,7 +178,7 @@ public class LoopBeginNode extends MergeNode implements IterableNodeType, LIRLow
         // nothing yet
     }
 
-    public boolean isLoopExit(AbstractBeginNode begin) {
+    public boolean isLoopExit(BeginNode begin) {
         return begin instanceof LoopExitNode && ((LoopExitNode) begin).loopBegin() == this;
     }
 
@@ -198,7 +198,30 @@ public class LoopBeginNode extends MergeNode implements IterableNodeType, LIRLow
     }
 
     public void setOverflowGuard(GuardingNode overflowGuard) {
-        updateUsages(this.overflowGuard == null ? null : this.overflowGuard.asNode(), overflowGuard == null ? null : overflowGuard.asNode());
+        updateUsagesInterface(this.overflowGuard, overflowGuard);
         this.overflowGuard = overflowGuard;
+    }
+
+    /**
+     * Removes dead {@linkplain PhiNode phi nodes} hanging from this node.
+     *
+     * This method uses the heuristic that any node which not a phi node of this LoopBeginNode is
+     * alive. This allows the removal of dead phi loops.
+     */
+    public void removeDeadPhis() {
+        Set<PhiNode> alive = new HashSet<>();
+        for (PhiNode phi : phis()) {
+            NodePredicate isAlive = u -> !isPhiAtMerge(u) || alive.contains(u);
+            if (phi.usages().filter(isAlive).isNotEmpty()) {
+                alive.add(phi);
+                for (PhiNode keptAlive : phi.values().filter(PhiNode.class).filter(isAlive.negate())) {
+                    alive.add(keptAlive);
+                }
+            }
+        }
+        for (PhiNode phi : phis().filter(((NodePredicate) alive::contains).negate()).snapshot()) {
+            phi.replaceAtUsages(null);
+            phi.safeDelete();
+        }
     }
 }

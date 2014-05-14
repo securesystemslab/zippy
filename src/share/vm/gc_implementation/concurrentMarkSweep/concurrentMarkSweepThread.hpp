@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -164,7 +164,7 @@ class ConcurrentMarkSweepThread: public ConcurrentGCThread {
   //  _pending_yields that holds the sum (of both sync and async requests), and
   //  a second counter _pending_decrements that only holds the async requests,
   //  for greater efficiency, since in a typical CMS run, there are many more
-  //  potential (i.e. static) yield points than there are actual
+  //  pontential (i.e. static) yield points than there are actual
   //  (i.e. dynamic) yields because of requests, which are few and far between.
   //
   // Note that, while "_pending_yields >= _pending_decrements" is an invariant,

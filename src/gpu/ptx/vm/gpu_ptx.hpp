@@ -93,7 +93,7 @@
 
 #define GRAAL_SUPPORTED_COMPUTE_CAPABILITY_VERSION 3.0
 
-class Ptx {
+class Ptx : public Gpu {
   friend class PtxCall;
 
 private:
@@ -120,6 +120,9 @@ private:
   static int ncores(int major, int minor);
 
 public:
+
+  virtual const char* name() { return "PTX"; }
+
   // Registers the implementations for the native methods in PTXHotSpotBackend
   static bool register_natives(JNIEnv* env);
 

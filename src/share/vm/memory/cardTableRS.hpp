@@ -105,6 +105,8 @@ public:
   ~CardTableRS();
 
   // *** GenRemSet functions.
+  GenRemSet::Name rs_kind() { return GenRemSet::CardTable; }
+
   CardTableRS* as_CardTableRS() { return this; }
 
   CardTableModRefBS* ct_bs() { return _ct_bs; }

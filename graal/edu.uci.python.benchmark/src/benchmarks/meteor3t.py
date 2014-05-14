@@ -150,6 +150,6 @@ def measure():
 # warm up
 num =  int(sys.argv[1])
 for run in range(10):
-    main(5000)
+    main(num)
 
 measure()

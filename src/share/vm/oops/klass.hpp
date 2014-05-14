@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -298,10 +298,6 @@ class Klass : public Metadata {
   static ByteSize modifier_flags_offset()        { return in_ByteSize(offset_of(Klass, _modifier_flags)); }
   static ByteSize layout_helper_offset()         { return in_ByteSize(offset_of(Klass, _layout_helper)); }
   static ByteSize access_flags_offset()          { return in_ByteSize(offset_of(Klass, _access_flags)); }
-#ifdef GRAAL
-  static ByteSize next_sibling_offset()          { return in_ByteSize(offset_of(Klass, _next_sibling)); }
-  static ByteSize subklass_offset()              { return in_ByteSize(offset_of(Klass, _subklass)); }
-#endif
 
   // Unpacking layout_helper:
   enum {
@@ -502,7 +498,6 @@ class Klass : public Metadata {
   virtual bool oop_is_objArray_slow()       const { return false; }
   virtual bool oop_is_typeArray_slow()      const { return false; }
  public:
-  virtual bool oop_is_instanceClassLoader() const { return false; }
   virtual bool oop_is_instanceMirror()      const { return false; }
   virtual bool oop_is_instanceRef()         const { return false; }
 
@@ -700,8 +695,8 @@ class Klass : public Metadata {
   virtual const char* internal_name() const = 0;
 
   // Verification
-  virtual void verify_on(outputStream* st);
-  void verify() { verify_on(tty); }
+  virtual void verify_on(outputStream* st, bool check_dictionary);
+  void verify(bool check_dictionary = true) { verify_on(tty, check_dictionary); }
 
 #ifndef PRODUCT
   bool verify_vtable_index(int index);

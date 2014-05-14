@@ -710,7 +710,7 @@ public:
 
   // tells if any of this method's dependencies have been invalidated
   // (this is expensive!)
-  static void check_all_dependencies(DepChange& changes);
+  bool check_all_dependencies();
 
   // tells if this compiled method is dependent on the given changes,
   // and the changes have invalidated it

@@ -51,31 +51,31 @@ public class PartialEvaluationTest extends GraalCompilerTest {
 
     public PartialEvaluationTest() {
         // Make sure Truffle runtime is initialized.
-        Assert.assertTrue(Truffle.getRuntime() instanceof GraalTruffleRuntime);
+        Assert.assertTrue(Truffle.getRuntime() != null);
         this.truffleCompiler = new TruffleCompilerImpl();
 
         DebugEnvironment.initialize(System.out);
     }
 
     protected InstalledCode assertPartialEvalEquals(String methodName, RootNode root) {
-        return assertPartialEvalEquals(methodName, root, Arguments.EMPTY_ARGUMENTS);
+        return assertPartialEvalEquals(methodName, root, new Object[0]);
     }
 
-    protected InstalledCode assertPartialEvalEquals(String methodName, RootNode root, Arguments arguments) {
+    protected InstalledCode assertPartialEvalEquals(String methodName, RootNode root, Object[] arguments) {
         Assumptions assumptions = new Assumptions(true);
         StructuredGraph actual = partialEval(root, arguments, assumptions, true);
-        InstalledCode result = truffleCompiler.compileMethodHelper(actual, assumptions, root.toString(), getSpeculationLog());
+        InstalledCode result = truffleCompiler.compileMethodHelper(actual, assumptions, root.toString(), getSpeculationLog(), null);
         StructuredGraph expected = parseForComparison(methodName);
         removeFrameStates(actual);
-        Assert.assertEquals(getCanonicalGraphString(expected, true), getCanonicalGraphString(actual, true));
+        Assert.assertEquals(getCanonicalGraphString(expected, true, true), getCanonicalGraphString(actual, true, true));
         return result;
     }
 
     protected void assertPartialEvalNoInvokes(RootNode root) {
-        assertPartialEvalNoInvokes(root, Arguments.EMPTY_ARGUMENTS);
+        assertPartialEvalNoInvokes(root, new Object[0]);
     }
 
-    protected void assertPartialEvalNoInvokes(RootNode root, Arguments arguments) {
+    protected void assertPartialEvalNoInvokes(RootNode root, Object[] arguments) {
         Assumptions assumptions = new Assumptions(true);
         StructuredGraph actual = partialEval(root, arguments, assumptions, true);
         removeFrameStates(actual);
@@ -84,13 +84,13 @@ public class PartialEvaluationTest extends GraalCompilerTest {
         }
     }
 
-    protected StructuredGraph partialEval(RootNode root, Arguments arguments, final Assumptions assumptions, final boolean canonicalizeReads) {
+    protected StructuredGraph partialEval(RootNode root, Object[] arguments, final Assumptions assumptions, final boolean canonicalizeReads) {
         final OptimizedCallTarget compilable = (OptimizedCallTarget) Truffle.getRuntime().createCallTarget(root);
 
         // Executed AST so that all classes are loaded and initialized.
-        compilable.call(null, arguments);
-        compilable.call(null, arguments);
-        compilable.call(null, arguments);
+        compilable.call(arguments);
+        compilable.call(arguments);
+        compilable.call(arguments);
         compilable.performInlining();
 
         try (Scope s = Debug.scope("TruffleCompilation", new TruffleDebugJavaMethod(compilable))) {

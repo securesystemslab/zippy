@@ -103,12 +103,11 @@ public class ClassLoaderStats extends Tool {
       }
 
       SystemDictionary dict = VM.getVM().getSystemDictionary();
-      dict.classesDo(new SystemDictionary.ClassVisitor() {
-                        public void visit(Klass k) {
+      dict.classesDo(new SystemDictionary.ClassAndLoaderVisitor() {
+                        public void visit(Klass k, Oop loader) {
                            if (! (k instanceof InstanceKlass)) {
                               return;
                            }
-                           Oop loader = ((InstanceKlass) k).getClassLoader();
                            LoaderData ld = (loader != null) ? (LoaderData)loaderMap.get(loader)
                                                             : bootstrapLoaderData;
                            if (ld != null) {

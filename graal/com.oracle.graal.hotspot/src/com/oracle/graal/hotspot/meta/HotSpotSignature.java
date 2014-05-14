@@ -122,9 +122,26 @@ public class HotSpotSignature extends CompilerObject implements Signature {
     public int getParameterSlots(boolean withReceiver) {
         int argSlots = 0;
         for (int i = 0; i < getParameterCount(false); i++) {
-            argSlots += FrameStateBuilder.stackSlots(getParameterKind(i));
+            argSlots += HIRFrameStateBuilder.stackSlots(getParameterKind(i));
         }
         return argSlots + (withReceiver ? 1 : 0);
+    }
+
+    private static boolean checkValidCache(JavaType type, ResolvedJavaType accessingClass) {
+        if (!(type instanceof ResolvedJavaType)) {
+            return false;
+        }
+
+        if (type instanceof HotSpotResolvedObjectType) {
+            HotSpotResolvedObjectType resolved = (HotSpotResolvedObjectType) type;
+            if (accessingClass == null) {
+                return resolved.mirror().getClassLoader() == null;
+            } else {
+                return resolved.mirror().getClassLoader() == ((HotSpotResolvedObjectType) accessingClass).mirror().getClassLoader();
+            }
+        }
+
+        return true;
     }
 
     @Override
@@ -133,7 +150,7 @@ public class HotSpotSignature extends CompilerObject implements Signature {
             parameterTypes = new JavaType[parameters.size()];
         }
         JavaType type = parameterTypes[index];
-        if (type == null || !(type instanceof ResolvedJavaType)) {
+        if (!checkValidCache(type, accessingClass)) {
             type = runtime().lookupType(parameters.get(index), (HotSpotResolvedObjectType) accessingClass, false);
             parameterTypes[index] = type;
         }
@@ -152,7 +169,7 @@ public class HotSpotSignature extends CompilerObject implements Signature {
 
     @Override
     public JavaType getReturnType(ResolvedJavaType accessingClass) {
-        if (returnTypeCache == null || !(returnTypeCache instanceof ResolvedJavaType)) {
+        if (!checkValidCache(returnTypeCache, accessingClass)) {
             returnTypeCache = runtime().lookupType(returnType, (HotSpotResolvedObjectType) accessingClass, false);
         }
         return returnTypeCache;

@@ -41,7 +41,7 @@ public abstract class StorageLocation {
 
     public abstract void write(PythonObject object, Object value) throws StorageLocationGeneralizeException;
 
-    public abstract Class getStoredClass();
+    public abstract Class<?> getStoredClass();
 
     public ObjectLayout getObjectLayout() {
         return objectLayout;

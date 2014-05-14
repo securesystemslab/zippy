@@ -72,7 +72,7 @@ public final class IntStorageLocation extends FieldStorageLocation {
     }
 
     @Override
-    public Class getStoredClass() {
+    public Class<?> getStoredClass() {
         return Integer.class;
     }
 

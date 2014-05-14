@@ -27,7 +27,6 @@ package edu.uci.python.nodes.function;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -119,7 +118,7 @@ public class GeneratorExpressionNode extends PNode {
     }
 
     public RootNode getFunctionRootNode() {
-        DefaultCallTarget defaultTarget = (DefaultCallTarget) callTarget;
+        RootCallTarget defaultTarget = callTarget;
         return defaultTarget.getRootNode();
     }
 
@@ -147,12 +146,12 @@ public class GeneratorExpressionNode extends PNode {
         }
 
         @Override
-        public Object call(PackedFrame caller, Object[] args) {
+        public Object call(Object[] args) {
             return PGenerator.create(getName(), context, getCallTarget(), getFrameDescriptor(), null, args, getNumOfActiveFlags(), getNumOfGeneratorBlockNode(), getNumOfGeneratorForNode());
         }
 
         @Override
-        public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+        public Object call(Object[] args, PKeyword[] keywords) {
             throw new UnsupportedOperationException();
         }
 

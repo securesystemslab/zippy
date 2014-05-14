@@ -292,6 +292,9 @@
   /* Support for Graal */                                                                                                             \
   template(com_oracle_graal_compiler_CompilerThread,                 "com/oracle/graal/compiler/CompilerThread")                      \
   template(java_util_BitSet,	                                       "java/util/BitSet")                                              \
+  /* graal.graph */                                                                                                                   \
+  template(com_oracle_graal_graph_Node,                              "com/oracle/graal/graph/Node")                                   \
+  template(com_oracle_graal_graph_NodeClass,                         "com/oracle/graal/graph/NodeClass")                              \
   /* graal.hotspot */                                                                                                                 \
   template(com_oracle_graal_hotspot_HotSpotGraalRuntime,             "com/oracle/graal/hotspot/HotSpotGraalRuntime")                  \
   template(com_oracle_graal_hotspot_HotSpotKlassOop,                 "com/oracle/graal/hotspot/HotSpotKlassOop")                      \
@@ -315,8 +318,13 @@
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,  "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod")       \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,  "com/oracle/graal/hotspot/meta/HotSpotResolvedObjectType")       \
   template(com_oracle_graal_hotspot_meta_HotSpotMonitorValue,        "com/oracle/graal/hotspot/meta/HotSpotMonitorValue")             \
+  template(com_oracle_graal_hotspot_meta_HotSpotObjectConstant,      "com/oracle/graal/hotspot/meta/HotSpotObjectConstant")           \
+  template(com_oracle_graal_hotspot_meta_HotSpotMetaspaceConstant,   "com/oracle/graal/hotspot/meta/HotSpotMetaspaceConstant")        \
+  template(com_oracle_graal_hotspot_HotSpotStackFrameReference,      "com/oracle/graal/hotspot/HotSpotStackFrameReference")           \
   /* graal.api.meta */                                                                                                                \
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
+  template(com_oracle_graal_api_meta_PrimitiveConstant,              "com/oracle/graal/api/meta/PrimitiveConstant")                   \
+  template(com_oracle_graal_api_meta_NullConstant,                   "com/oracle/graal/api/meta/NullConstant")                        \
   template(com_oracle_graal_api_meta_ConstantPool,                   "com/oracle/graal/api/meta/ConstantPool")                        \
   template(com_oracle_graal_api_meta_ExceptionHandler,               "com/oracle/graal/api/meta/ExceptionHandler")                    \
   template(com_oracle_graal_api_meta_JavaMethod,                     "com/oracle/graal/api/meta/JavaMethod")                          \
@@ -338,8 +346,8 @@
   template(com_oracle_graal_api_code_CompilationResult_Mark,         "com/oracle/graal/api/code/CompilationResult$Mark")              \
   template(com_oracle_graal_api_code_CompilationResult_Infopoint,    "com/oracle/graal/api/code/CompilationResult$Infopoint")         \
   template(com_oracle_graal_api_code_CompilationResult_Site,         "com/oracle/graal/api/code/CompilationResult$Site")              \
-  template(com_oracle_graal_api_code_ExternalCompilationResult,      "com/oracle/graal/api/code/ExternalCompilationResult")           \
   template(com_oracle_graal_api_code_InfopointReason,                "com/oracle/graal/api/code/InfopointReason")                     \
+  template(com_oracle_graal_api_code_InstalledCode,                  "com/oracle/graal/api/code/InstalledCode")                       \
   template(com_oracle_graal_api_code_BytecodeFrame,                  "com/oracle/graal/api/code/BytecodeFrame")                       \
   template(com_oracle_graal_api_code_BytecodePosition,               "com/oracle/graal/api/code/BytecodePosition")                    \
   template(com_oracle_graal_api_code_DebugInfo,                      "com/oracle/graal/api/code/DebugInfo")                           \
@@ -350,8 +358,10 @@
   template(com_oracle_graal_api_code_RegisterSaveLayout,             "com/oracle/graal/api/code/RegisterSaveLayout")                  \
   template(com_oracle_graal_api_code_InvalidInstalledCodeException,  "com/oracle/graal/api/code/InvalidInstalledCodeException")       \
   template(com_oracle_graal_api_code_SpeculationLog,                 "com/oracle/graal/api/code/SpeculationLog")                      \
+  /* graal.gpu */                                                                                                                     \
+  template(com_oracle_graal_gpu_ExternalCompilationResult,           "com/oracle/graal/gpu/ExternalCompilationResult")                \
   /* graal.truffle */                                                                                                                 \
-  template(com_oracle_graal_truffle_GraalTruffleRuntime,             "com/oracle/graal/truffle/GraalTruffleRuntime")                  \
+  template(com_oracle_graal_truffle_hotspot_HotSpotTruffleRuntime,   "com/oracle/graal/truffle/hotspot/HotSpotTruffleRuntime")        \
   template(startCompiler_name,                    "startCompiler")                                                                    \
   template(bootstrap_name,                        "bootstrap")                                                                        \
   template(compileTheWorld_name,                  "compileTheWorld")                                                                  \
@@ -366,7 +376,7 @@
   template(runtime_name,                          "runtime")                                                                          \
   template(runtime_signature,                     "()Lcom/oracle/graal/hotspot/HotSpotGraalRuntime;")                                 \
   template(makeInstance_name,                     "makeInstance")                                                                     \
-  template(makeInstance_signature,                "()Lcom/oracle/graal/truffle/GraalTruffleRuntime;")                                 \
+  template(makeInstance_signature,                "()Lcom/oracle/graal/truffle/hotspot/HotSpotTruffleRuntime;")                       \
   template(initialize_name,                       "initialize")                                                                       \
   template(forObject_name,                        "forObject")                                                                        \
   template(callbackInternal_name,                 "callbackInternal")                                                                 \
@@ -740,9 +750,9 @@
   do_intrinsic(_addExactI,                java_lang_Math,         addExact_name, int2_int_signature,             F_S)   \
   do_intrinsic(_addExactL,                java_lang_Math,         addExact_name, long2_long_signature,           F_S)   \
   do_intrinsic(_decrementExactI,          java_lang_Math,         decrementExact_name, int_int_signature,        F_S)   \
-  do_intrinsic(_decrementExactL,          java_lang_Math,         decrementExact_name, long_long_signature,      F_S)   \
+  do_intrinsic(_decrementExactL,          java_lang_Math,         decrementExact_name, long2_long_signature,     F_S)   \
   do_intrinsic(_incrementExactI,          java_lang_Math,         incrementExact_name, int_int_signature,        F_S)   \
-  do_intrinsic(_incrementExactL,          java_lang_Math,         incrementExact_name, long_long_signature,      F_S)   \
+  do_intrinsic(_incrementExactL,          java_lang_Math,         incrementExact_name, long2_long_signature,     F_S)   \
   do_intrinsic(_multiplyExactI,           java_lang_Math,         multiplyExact_name, int2_int_signature,        F_S)   \
   do_intrinsic(_multiplyExactL,           java_lang_Math,         multiplyExact_name, long2_long_signature,      F_S)   \
   do_intrinsic(_negateExactI,             java_lang_Math,         negateExact_name, int_int_signature,           F_S)   \
@@ -873,7 +883,7 @@
    do_intrinsic(_cipherBlockChaining_decryptAESCrypt, com_sun_crypto_provider_cipherBlockChaining, decrypt_name, byteArray_int_int_byteArray_int_signature, F_R)   \
    do_name(     encrypt_name,                                      "encrypt")                                           \
    do_name(     decrypt_name,                                      "decrypt")                                           \
-   do_signature(byteArray_int_int_byteArray_int_signature,         "([BII[BI)I")                                        \
+   do_signature(byteArray_int_int_byteArray_int_signature,         "([BII[BI)V")                                        \
                                                                                                                         \
   /* support for java.util.zip */                                                                                       \
   do_class(java_util_zip_CRC32,           "java/util/zip/CRC32")                                                        \
@@ -1153,9 +1163,6 @@
   do_intrinsic(_Double_valueOf,           java_lang_Double,       valueOf_name, Double_valueOf_signature, F_S)          \
    do_name(     Double_valueOf_signature,                        "(D)Ljava/lang/Double;")                               \
                                                                                                                         \
-  do_intrinsic(_CompilerToVMImpl_executeCompiledMethod,           com_oracle_graal_hotspot_bridge_CompilerToVMImpl, executeCompiledMethod_name, CompilerToVMImpl_executeCompiledMethod_signature, F_SN)\
-   do_name(     CompilerToVMImpl_executeCompiledMethod_signature, "(Ljava/lang/Object;Ljava/lang/Object;Ljava/lang/Object;Lcom/oracle/graal/hotspot/meta/HotSpotInstalledCode;)Ljava/lang/Object;")                               \
-   do_name(     executeCompiledMethod_name,                       "executeCompiledMethodIntrinsic")                     \
     /*end*/
 
 

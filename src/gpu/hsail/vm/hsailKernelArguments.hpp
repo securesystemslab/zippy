@@ -25,90 +25,82 @@
 #ifndef KERNEL_ARGUMENTS_HSAIL_HPP
 #define KERNEL_ARGUMENTS_HSAIL_HPP
 
-#include "runtime/gpu.hpp"
-#include "hsail/vm/gpu_hsail.hpp"
+#include "gpu_hsail.hpp"
 #include "runtime/signature.hpp"
+#include "hsailArgumentsBase.hpp"
 
-class HSAILKernelArguments : public SignatureIterator {
+class HSAILKernelArguments : public HSAILArgumentsBase {
   friend class Hsail;
 
 public:
 
 private:
-  // Array of java argument oops
-  objArrayOop _args;
-  // Length of args array
-  int   _length;
-  // Current index into _args
-  int _index;
   // Kernel to push into
   address _kernel;
-  // number of parameters in the signature
-  int _parameter_count;
-
-  bool _is_static;
-  
-  // Get next java argument
-  oop next_arg(BasicType expectedType);
+  void * _exceptionHolder;
 
  public:
-  HSAILKernelArguments(address kernel, Symbol* signature, objArrayOop args, bool is_static) : SignatureIterator(signature) {
-    this->_return_type = T_ILLEGAL;
-    _index = 0;
-    _args = args;
-    _kernel = kernel;
-    _is_static = is_static;
+    HSAILKernelArguments(address kernel, Symbol* signature, objArrayOop args, bool is_static, void* exceptionHolder) : HSAILArgumentsBase(signature, args, is_static) {
+        _kernel = kernel;
+        _exceptionHolder = exceptionHolder;
+        collectArgs();
+    }
+    virtual char *argsBuilderName() {return (char *)"HSAILKernelArguments";}
+    virtual void pushObject(void *obj) {
+        bool pushed = Hsail::_okra_push_object(_kernel, obj);
+        assert(pushed == true, "arg push failed");
+    }
+    virtual void pushBool(jboolean z) {
+        bool pushed = Hsail::_okra_push_boolean(_kernel, z);
+        assert(pushed == true, "arg push failed");
+    }
+    virtual void pushByte(jbyte b) {
+        bool pushed = Hsail::_okra_push_byte(_kernel, b);
+        assert(pushed == true, "arg push failed");
+    }
 
-    _length = args->length();
-    _parameter_count = ArgumentCount(signature).size();
+    virtual void pushDouble(jdouble d) {
+        bool pushed = Hsail::_okra_push_double(_kernel, d);
+        assert(pushed == true, "arg push failed");
+    }
 
-    if (TraceGPUInteraction) {
-      char buf[O_BUFLEN];
-      tty->print_cr("[HSAIL] sig:%s  args length=%d, _parameter_count=%d", signature->as_C_string(buf, O_BUFLEN), _length, _parameter_count);
-    }    
-    if (!_is_static) {      
-      // First object in args should be 'this'
-      oop arg = args->obj_at(_index++);
-      assert(arg->is_instance() && (! arg->is_array()), "First arg should be 'this'");
+    virtual void pushFloat(jfloat f) {
+        bool pushed = Hsail::_okra_push_float(_kernel, f);
+        assert(pushed == true, "arg push failed");
+    }
+
+    virtual void pushInt(jint i) {
+        bool pushed = Hsail::_okra_push_int(_kernel, i);
+        assert(pushed == true, "arg push failed");
+    }
+
+    virtual void pushLong(jlong j) {
+        bool pushed = Hsail::_okra_push_long(_kernel, j);
+        assert(pushed == true, "arg push failed");
+    }
+    virtual void pushTrailingArgs() {
+        if (UseHSAILDeoptimization) {
+            // Last argument is the exception info block
+            if (TraceGPUInteraction) {
+                tty->print_cr("[HSAIL] exception block=" PTR_FORMAT, _exceptionHolder);
+            }
+            pushObject(_exceptionHolder);
+        }
+    }
+
+    // For kernel arguments we don't pass the final int parameter
+    // since we use the HSAIL workitemid instruction in place of that int value
+    virtual void handleFinalIntParameter() {
       if (TraceGPUInteraction) {
-        tty->print_cr("[HSAIL] instance method, this 0x%08x, is a %s", (address) arg, arg->klass()->external_name());
-      }
-      bool pushed = Hsail::_okra_push_object(kernel, arg);
-      assert(pushed == true, "'this' push failed");
-    } else {
-      if (TraceGPUInteraction) {
-        tty->print_cr("[HSAIL] static method");
+        tty->print_cr("[HSAIL] HSAILKernelArguments, not pushing trailing int");
       }
     }
-    // Iterate over the entire signature
-    iterate();
-  }
 
-  void do_bool();
-  void do_byte();
-  void do_double();
-  void do_float();
-  void do_int();
-  void do_long();
-  void do_array(int begin, int end);
-  void do_object();
-  void do_object(int begin, int end);
-
-  void do_void();
-
-  inline void do_char()   {
-    /* TODO : To be implemented */
-    guarantee(false, "do_char:NYI");
-  }
-  inline void do_short()  {
-    /* TODO : To be implemented */
-    guarantee(false, "do_short:NYI");
-  }
-
-  bool isLastParameter() {
-      return  (_index == (_is_static ?  _parameter_count - 1 : _parameter_count));
-  }
-
+    // for kernel arguments, final obj parameter should be an object
+    // stream source array (already checked in the base class) so here we just pass it
+    virtual void handleFinalObjParameter(void *arg) {
+      pushObject(arg);
+    }
 };
 
-#endif  // KERNEL_ARGUMENTS_HPP
+#endif  // KERNEL_ARGUMENTS_HSAIL_HPP

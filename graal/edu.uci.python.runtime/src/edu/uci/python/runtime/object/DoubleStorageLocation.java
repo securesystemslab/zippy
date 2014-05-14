@@ -72,7 +72,7 @@ public final class DoubleStorageLocation extends FieldStorageLocation {
     }
 
     @Override
-    public Class getStoredClass() {
+    public Class<?> getStoredClass() {
         return Double.class;
     }
 

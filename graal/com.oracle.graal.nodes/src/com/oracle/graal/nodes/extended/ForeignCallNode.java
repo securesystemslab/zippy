@@ -34,12 +34,12 @@ import com.oracle.graal.nodes.type.*;
 /**
  * Node for a {@linkplain ForeignCallDescriptor foreign} call.
  */
-@NodeInfo(nameTemplate = "ForeignCall#{p#descriptor/s}")
+@NodeInfo(nameTemplate = "ForeignCall#{p#descriptor/s}", allowedUsageTypes = {InputType.Memory})
 public class ForeignCallNode extends AbstractMemoryCheckpoint implements LIRLowerable, DeoptimizingNode.DeoptDuring, MemoryCheckpoint.Multi {
 
     @Input private final NodeInputList<ValueNode> arguments;
+    @Input(InputType.State) private FrameState stateDuring;
     private final ForeignCallsProvider foreignCalls;
-    @Input private FrameState deoptState;
 
     private final ForeignCallDescriptor descriptor;
 
@@ -82,7 +82,7 @@ public class ForeignCallNode extends AbstractMemoryCheckpoint implements LIRLowe
         return foreignCalls.getKilledLocations(descriptor);
     }
 
-    protected Value[] operands(LIRGeneratorTool gen) {
+    protected Value[] operands(NodeLIRBuilderTool gen) {
         Value[] operands = new Value[arguments.size()];
         for (int i = 0; i < operands.length; i++) {
             operands[i] = gen.operand(arguments.get(i));
@@ -91,10 +91,10 @@ public class ForeignCallNode extends AbstractMemoryCheckpoint implements LIRLowe
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
-        ForeignCallLinkage linkage = gen.getForeignCalls().lookupForeignCall(descriptor);
+    public void generate(NodeLIRBuilderTool gen) {
+        ForeignCallLinkage linkage = gen.getLIRGeneratorTool().getForeignCalls().lookupForeignCall(descriptor);
         Value[] operands = operands(gen);
-        Value result = gen.emitForeignCall(linkage, this, operands);
+        Value result = gen.getLIRGeneratorTool().emitForeignCall(linkage, this, operands);
         if (result != null) {
             gen.setResult(this, result);
         }
@@ -102,24 +102,24 @@ public class ForeignCallNode extends AbstractMemoryCheckpoint implements LIRLowe
 
     @Override
     public FrameState stateDuring() {
-        return deoptState;
+        return stateDuring;
     }
 
     @Override
     public void setStateDuring(FrameState stateDuring) {
-        updateUsages(deoptState, stateDuring);
-        deoptState = stateDuring;
+        updateUsages(this.stateDuring, stateDuring);
+        this.stateDuring = stateDuring;
     }
 
     @Override
     public void computeStateDuring(FrameState stateAfter) {
-        FrameState stateDuring;
+        FrameState newStateDuring;
         if ((stateAfter.stackSize() > 0 && stateAfter.stackAt(stateAfter.stackSize() - 1) == this) || (stateAfter.stackSize() > 1 && stateAfter.stackAt(stateAfter.stackSize() - 2) == this)) {
-            stateDuring = stateAfter.duplicateModified(stateAfter.bci, stateAfter.rethrowException(), this.getKind());
+            newStateDuring = stateAfter.duplicateModified(stateAfter.bci, stateAfter.rethrowException(), this.getKind());
         } else {
-            stateDuring = stateAfter;
+            newStateDuring = stateAfter;
         }
-        setStateDuring(stateDuring);
+        setStateDuring(newStateDuring);
     }
 
     @Override

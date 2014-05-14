@@ -27,6 +27,7 @@ import java.util.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.java.*;
 import com.oracle.graal.nodes.*;
@@ -106,7 +107,7 @@ public class GraphKit {
      * @param name the name of the invoked method
      * @param args the arguments to the invocation
      */
-    public InvokeNode createInvoke(Class<?> declaringClass, String name, InvokeKind invokeKind, FrameStateBuilder frameStateBuilder, int bci, ValueNode... args) {
+    public InvokeNode createInvoke(Class<?> declaringClass, String name, InvokeKind invokeKind, HIRFrameStateBuilder frameStateBuilder, int bci, ValueNode... args) {
         boolean isStatic = invokeKind == InvokeKind.Static;
         ResolvedJavaMethod method = null;
         for (Method m : declaringClass.getDeclaredMethods()) {
@@ -123,7 +124,7 @@ public class GraphKit {
      * Creates and appends an {@link InvokeNode} for a call to a given method with a given set of
      * arguments.
      */
-    public InvokeNode createInvoke(ResolvedJavaMethod method, InvokeKind invokeKind, FrameStateBuilder frameStateBuilder, int bci, ValueNode... args) {
+    public InvokeNode createInvoke(ResolvedJavaMethod method, InvokeKind invokeKind, HIRFrameStateBuilder frameStateBuilder, int bci, ValueNode... args) {
         assert Modifier.isStatic(method.getModifiers()) == (invokeKind == InvokeKind.Static);
         Signature signature = method.getSignature();
         JavaType returnType = signature.getReturnType(null);
@@ -179,16 +180,16 @@ public class GraphKit {
     /**
      * Rewrite all word types in the graph.
      */
-    public void rewriteWordTypes() {
-        new WordTypeRewriterPhase(providers.getMetaAccess(), providers.getCodeCache().getTarget().wordKind).apply(graph);
+    public void rewriteWordTypes(SnippetReflectionProvider snippetReflection) {
+        new WordTypeRewriterPhase(providers.getMetaAccess(), snippetReflection, providers.getCodeCache().getTarget().wordKind).apply(graph);
     }
 
     /**
-     * {@linkplain #inline(InvokeNode) Inlines} all invocations currently in the graph.
+     * {@linkplain #inline Inlines} all invocations currently in the graph.
      */
-    public void inlineInvokes() {
+    public void inlineInvokes(SnippetReflectionProvider snippetReflection) {
         for (InvokeNode invoke : graph.getNodes().filter(InvokeNode.class).snapshot()) {
-            inline(invoke);
+            inline(invoke, snippetReflection);
         }
 
         // Clean up all code that is now dead after inlining.
@@ -201,9 +202,9 @@ public class GraphKit {
      * {@linkplain ReplacementsImpl#makeGraph processed} in the same manner as for snippets and
      * method substitutions.
      */
-    public void inline(InvokeNode invoke) {
+    public void inline(InvokeNode invoke, SnippetReflectionProvider snippetReflection) {
         ResolvedJavaMethod method = ((MethodCallTargetNode) invoke.callTarget()).targetMethod();
-        ReplacementsImpl repl = new ReplacementsImpl(providers, new Assumptions(false), providers.getCodeCache().getTarget());
+        ReplacementsImpl repl = new ReplacementsImpl(providers, snippetReflection, new Assumptions(false), providers.getCodeCache().getTarget());
         StructuredGraph calleeGraph = repl.makeGraph(method, null, method, null, FrameStateProcessing.CollapseFrameForSingleSideEffect);
         InliningUtil.inline(invoke, calleeGraph, false);
     }
@@ -221,7 +222,10 @@ public class GraphKit {
     }
 
     protected enum IfState {
-        CONDITION, THEN_PART, ELSE_PART, FINISHED
+        CONDITION,
+        THEN_PART,
+        ELSE_PART,
+        FINISHED
     }
 
     static class IfStructure extends Structure {

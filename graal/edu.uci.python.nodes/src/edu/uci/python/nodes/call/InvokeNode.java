@@ -32,9 +32,9 @@ import edu.uci.python.runtime.function.*;
 
 public abstract class InvokeNode extends Node {
 
-    @Child protected CallNode callNode;
+    @Child protected DirectCallNode callNode;
 
-    public InvokeNode(CallNode callNode) {
+    public InvokeNode(DirectCallNode callNode) {
         this.callNode = callNode;
     }
 
@@ -88,14 +88,14 @@ public abstract class InvokeNode extends Node {
         private final MaterializedFrame declarationFrame;
 
         public InvokeNoKeywordNode(CallTarget callTarget, MaterializedFrame declarationFrame) {
-            super(Truffle.getRuntime().createCallNode(callTarget));
+            super(Truffle.getRuntime().createDirectCallNode(callTarget));
             this.declarationFrame = declarationFrame;
         }
 
         @Override
         protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
             PArguments arg = new PArguments(declarationFrame, arguments);
-            return callNode.call(frame.pack(), arg);
+            return callNode.call(frame, arg.packAsObjectArray());
         }
     }
 
@@ -105,7 +105,7 @@ public abstract class InvokeNode extends Node {
         private final Arity arity;
 
         public InvokeWithKeywordNode(CallTarget callTarget, MaterializedFrame declarationFrame, Arity arity) {
-            super(Truffle.getRuntime().createCallNode(callTarget));
+            super(Truffle.getRuntime().createDirectCallNode(callTarget));
             this.declarationFrame = declarationFrame;
             this.arity = arity;
         }
@@ -114,20 +114,20 @@ public abstract class InvokeNode extends Node {
         protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
             Object[] combined = PFunction.applyKeywordArgs(arity, arguments, keywords);
             PArguments arg = new PArguments(declarationFrame, combined);
-            return callNode.call(frame.pack(), arg);
+            return callNode.call(frame, arg.packAsObjectArray());
         }
     }
 
     public static final class InvokeBuiltinWithKeywordNode extends InvokeNode {
 
         public InvokeBuiltinWithKeywordNode(CallTarget callTarget) {
-            super(Truffle.getRuntime().createCallNode(callTarget));
+            super(Truffle.getRuntime().createDirectCallNode(callTarget));
         }
 
         @Override
         protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
             PArguments arg = new PArguments(null, arguments, keywords);
-            return callNode.call(frame.pack(), arg);
+            return callNode.call(frame, arg.packAsObjectArray());
         }
     }
 

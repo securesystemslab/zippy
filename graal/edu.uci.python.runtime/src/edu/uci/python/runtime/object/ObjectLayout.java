@@ -63,10 +63,10 @@ public class ObjectLayout {
     }
 
     public ObjectLayout(String originHint, ObjectLayout parent) {
-        this(originHint, parent, new HashMap<String, Class>());
+        this(originHint, parent, new HashMap<String, Class<?>>());
     }
 
-    private ObjectLayout(String originHint, ObjectLayout parent, Map<String, Class> storageTypes) {
+    private ObjectLayout(String originHint, ObjectLayout parent, Map<String, Class<?>> storageTypes) {
         this.originHint = originHint;
         this.parent = parent;
 
@@ -89,12 +89,12 @@ public class ObjectLayout {
         }
 
         // Go through the variables we've been asked to store
-        for (Entry<String, Class> entry : storageTypes.entrySet()) {
+        for (Entry<String, Class<?>> entry : storageTypes.entrySet()) {
             final String name = entry.getKey();
-            final Class type = entry.getValue();
+            final Class<?> type = entry.getValue();
 
             if (parent == null || parent.findStorageLocation(name) == null) {
-                Class storedClass;
+                Class<?> storedClass;
 
                 if (type == Integer.class) {
                     if (primitiveIntStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
@@ -155,7 +155,7 @@ public class ObjectLayout {
         validAssumption = Truffle.getRuntime().createAssumption(originHint + " ObjectLayout valid");
     }
 
-    private ObjectLayout(String originHint, ObjectLayout parent, Map<String, Class> storageTypes, Class objectStorageClass) {
+    private ObjectLayout(String originHint, ObjectLayout parent, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass) {
         this.originHint = originHint;
         this.parent = parent;
 
@@ -178,9 +178,9 @@ public class ObjectLayout {
         }
 
         // Go through the variables we've been asked to store
-        for (Entry<String, Class> entry : storageTypes.entrySet()) {
+        for (Entry<String, Class<?>> entry : storageTypes.entrySet()) {
             final String name = entry.getKey();
-            final Class type = entry.getValue();
+            final Class<?> type = entry.getValue();
 
             if (parent == null || parent.findStorageLocation(name) == null) {
                 StorageLocation newStorageLocation;
@@ -235,21 +235,21 @@ public class ObjectLayout {
     /**
      * Create a new version of this layout but with a new variable.
      */
-    protected ObjectLayout withNewAttribute(String name, Class type) {
-        final Map<String, Class> storageTypes = getStorageTypes();
+    protected ObjectLayout withNewAttribute(String name, Class<?> type) {
+        final Map<String, Class<?>> storageTypes = getStorageTypes();
         storageTypes.put(name, type);
         validAssumption.invalidate();
         return new ObjectLayout(originHint + "+" + name, parent, storageTypes);
     }
 
     protected ObjectLayout withoutAttribute(String name) {
-        final Map<String, Class> storageTypes = getStorageTypes();
+        final Map<String, Class<?>> storageTypes = getStorageTypes();
         storageTypes.remove(name);
         validAssumption.invalidate();
         return new ObjectLayout(originHint + "-" + name, parent, storageTypes);
     }
 
-    protected ObjectLayout switchObjectStorageClass(Class objectStorageClass) {
+    protected ObjectLayout switchObjectStorageClass(Class<?> objectStorageClass) {
         validAssumption.invalidate();
         return new ObjectLayout(originHint + ".switch", parent, getStorageTypes(), objectStorageClass);
     }
@@ -259,7 +259,7 @@ public class ObjectLayout {
      * type.
      */
     public ObjectLayout withGeneralisedVariable(String name) {
-        final Map<String, Class> storageTypes = getStorageTypes();
+        final Map<String, Class<?>> storageTypes = getStorageTypes();
         storageTypes.put(name, Object.class);
         validAssumption.invalidate();
         return new ObjectLayout(originHint + "!" + name, parent, storageTypes);
@@ -268,8 +268,8 @@ public class ObjectLayout {
     /**
      * Get a map of instance variable names to the type that they store.
      */
-    public Map<String, Class> getStorageTypes() {
-        Map<String, Class> storageTypes = new HashMap<>();
+    public Map<String, Class<?>> getStorageTypes() {
+        Map<String, Class<?>> storageTypes = new HashMap<>();
 
         for (Entry<String, StorageLocation> entry : storageLocations.entrySet()) {
             final String name = entry.getKey();
@@ -321,7 +321,7 @@ public class ObjectLayout {
     }
 
     public String findAttributeId(StorageLocation location) {
-        for (Entry entry : storageLocations.entrySet()) {
+        for (Entry<String, StorageLocation> entry : storageLocations.entrySet()) {
             if (entry.getValue() == location) {
                 return entry.getKey().toString();
             }

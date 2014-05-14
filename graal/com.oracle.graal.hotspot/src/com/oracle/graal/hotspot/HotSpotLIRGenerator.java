@@ -25,34 +25,40 @@ package com.oracle.graal.hotspot;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.gen.*;
+import com.oracle.graal.hotspot.HotSpotVMConfig.CompressEncoding;
 import com.oracle.graal.hotspot.meta.*;
-import com.oracle.graal.hotspot.nodes.*;
-import com.oracle.graal.nodes.*;
+import com.oracle.graal.lir.StandardOp.SaveRegistersOp;
 import com.oracle.graal.nodes.spi.*;
 
 /**
  * This interface defines the contract a HotSpot backend LIR generator needs to fulfill in addition
  * to abstract methods from {@link LIRGenerator} and {@link LIRGeneratorTool}.
  */
-public interface HotSpotLIRGenerator {
+public interface HotSpotLIRGenerator extends LIRGeneratorTool {
 
     /**
      * Emits an operation to make a tail call.
-     * 
+     *
      * @param args the arguments of the call
      * @param address the target address of the call
      */
     void emitTailcall(Value[] args, Value address);
 
+    void emitLeaveCurrentStackFrame();
+
+    void emitLeaveDeoptimizedStackFrame(Value frameSize, Value initialInfo);
+
+    void emitEnterUnpackFramesStackFrame(Value framePc, Value senderSp, Value senderFp);
+
+    void emitLeaveUnpackFramesStackFrame();
+
+    SaveRegistersOp emitSaveAllRegisters();
+
     void emitDeoptimizeCaller(DeoptimizationAction action, DeoptimizationReason reason);
 
-    void emitPatchReturnAddress(ValueNode address);
+    void emitPushInterpreterFrame(Value frameSize, Value framePc, Value senderSp, Value initialInfo);
 
-    void emitJumpToExceptionHandlerInCaller(ValueNode handlerInCallerPc, ValueNode exception, ValueNode exceptionPc);
-
-    void emitPrefetchAllocate(ValueNode address, ValueNode distance);
-
-    void visitDirectCompareAndSwap(DirectCompareAndSwapNode x);
+    Value emitUncommonTrapCall(Value trapRequest, SaveRegistersOp saveRegisterOp);
 
     /**
      * Gets a stack slot for a lock at a given lock nesting depth.
@@ -60,4 +66,8 @@ public interface HotSpotLIRGenerator {
     StackSlot getLockSlot(int lockDepth);
 
     HotSpotProviders getProviders();
+
+    Value emitCompress(Value pointer, CompressEncoding encoding, boolean nonNull);
+
+    Value emitUncompress(Value pointer, CompressEncoding encoding, boolean nonNull);
 }

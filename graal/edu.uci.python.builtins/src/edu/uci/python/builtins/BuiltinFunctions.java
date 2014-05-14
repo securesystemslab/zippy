@@ -310,7 +310,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             PythonParser parser = getContext().getParser();
             PythonParseResult parsed = parser.parse(getContext(), new PythonModule(getContext(), "<eval>", null), expression);
             RootNode root = parsed.getModuleRoot();
-            VirtualFrame frame = Truffle.getRuntime().createVirtualFrame(null, null, root.getFrameDescriptor());
+            VirtualFrame frame = Truffle.getRuntime().createVirtualFrame(null, root.getFrameDescriptor());
             Truffle.getRuntime().createCallTarget(root);
             return root.execute(frame);
         }
@@ -329,7 +329,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 while (true) {
                     Object item = iter.__next__();
                     Object[] args = new Object[]{item};
-                    Object result = function.call(null, args);
+                    Object result = function.call(args);
                     if (result instanceof Boolean) {
                         boolean booleanResult = (Boolean) result;
                         if (booleanResult) {

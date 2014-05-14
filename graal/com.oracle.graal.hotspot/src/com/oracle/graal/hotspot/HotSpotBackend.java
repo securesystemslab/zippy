@@ -25,7 +25,9 @@ package com.oracle.graal.hotspot;
 import java.util.*;
 
 import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.code.stack.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.stubs.*;
@@ -34,7 +36,6 @@ import com.oracle.graal.lir.LIRInstruction.ValueProcedure;
 import com.oracle.graal.lir.StandardOp.LabelOp;
 import com.oracle.graal.lir.StandardOp.SaveRegistersOp;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.word.*;
 
@@ -44,9 +45,9 @@ import com.oracle.graal.word.*;
 public abstract class HotSpotBackend extends Backend {
 
     /**
-     * Descriptor for SharedRuntime::deopt_blob()->uncommon_trap().
+     * Descriptor for {@link DeoptimizationStub}.
      */
-    public static final ForeignCallDescriptor UNCOMMON_TRAP = new ForeignCallDescriptor("deoptimize", void.class);
+    public static final ForeignCallDescriptor UNCOMMON_TRAP_HANDLER = new ForeignCallDescriptor("uncommonTrapHandler", void.class);
 
     /**
      * Descriptor for {@link ExceptionHandlerStub}. This stub is called by the
@@ -56,7 +57,7 @@ public abstract class HotSpotBackend extends Backend {
     public static final ForeignCallDescriptor EXCEPTION_HANDLER = new ForeignCallDescriptor("exceptionHandler", void.class, Object.class, Word.class);
 
     /**
-     * Descriptor for SharedRuntime::deopt_blob()->unpack().
+     * Descriptor for SharedRuntime::deopt_blob()-&gt;unpack().
      */
     public static final ForeignCallDescriptor DEOPT_HANDLER = new ForeignCallDescriptor("deoptHandler", void.class);
 
@@ -96,7 +97,7 @@ public abstract class HotSpotBackend extends Backend {
 
     /**
      * Finds all the registers that are defined by some given LIR.
-     * 
+     *
      * @param lir the LIR to examine
      * @return the registers that are defined by or used as temps for any instruction in {@code lir}
      */
@@ -113,8 +114,8 @@ public abstract class HotSpotBackend extends Backend {
                 return value;
             }
         };
-        for (Block block : lir.codeEmittingOrder()) {
-            for (LIRInstruction op : lir.lir(block)) {
+        for (AbstractBlock<?> block : lir.codeEmittingOrder()) {
+            for (LIRInstruction op : lir.getLIRforBlock(block)) {
                 if (op instanceof LabelOp) {
                     // Don't consider this as a definition
                 } else {
@@ -134,7 +135,7 @@ public abstract class HotSpotBackend extends Backend {
      * {@linkplain SaveRegistersOp#remove(Set) removed} as these registers are declared as
      * temporaries in the stub's {@linkplain ForeignCallLinkage linkage} (and thus will be saved by
      * the stub's caller).
-     * 
+     *
      * @param stub the stub to update
      * @param destroyedRegisters the registers destroyed by the stub
      * @param calleeSaveInfo a map from debug infos to the operations that provide their
@@ -155,6 +156,11 @@ public abstract class HotSpotBackend extends Backend {
                 info.setCalleeSaveInfo(save.getMap(frameMap));
             }
         }
+    }
+
+    @Override
+    public StackIntrospection getStackIntrospection() {
+        return runtime;
     }
 
     @Override

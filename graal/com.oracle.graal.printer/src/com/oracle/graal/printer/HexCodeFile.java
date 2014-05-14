@@ -34,54 +34,54 @@ import com.oracle.graal.api.code.CompilationResult.JumpTable;
 /**
  * A HexCodeFile is a textual format for representing a chunk of machine code along with extra
  * information that can be used to enhance a disassembly of the code.
- * 
+ *
  * A pseudo grammar for a HexCodeFile is given below.
- * 
+ *
  * <pre>
  *     HexCodeFile ::= Platform Delim HexCode Delim (OptionalSection Delim)*
- * 
+ *
  *     OptionalSection ::= Comment | OperandComment | JumpTable | LookupTable
- * 
+ *
  *     Platform ::= "Platform" ISA WordWidth
- * 
+ *
  *     HexCode ::= "HexCode" StartAddress HexDigits
- * 
+ *
  *     Comment ::= "Comment" Position String
- * 
+ *
  *     OperandComment ::= "OperandComment" Position String
- * 
+ *
  *     JumpTable ::= "JumpTable" Position EntrySize Low High
- * 
+ *
  *     LookupTable ::= "LookupTable" Position NPairs KeySize OffsetSize
- * 
+ *
  *     Position, EntrySize, Low, High, NPairs KeySize OffsetSize ::= int
- * 
- *     Delim := "<||@"
+ *
+ *     Delim := "&lt;||@"
  * </pre>
- * 
+ *
  * There must be exactly one HexCode and Platform part in a HexCodeFile. The length of HexDigits
  * must be even as each pair of digits represents a single byte.
  * <p>
  * Below is an example of a valid Code input:
- * 
+ *
  * <pre>
- * 
- *  Platform AMD64 64  <||@
- *  HexCode 0 e8000000009090904883ec084889842410d0ffff48893c24e800000000488b3c24488bf0e8000000004883c408c3  <||@
+ *
+ *  Platform AMD64 64  &lt;||@
+ *  HexCode 0 e8000000009090904883ec084889842410d0ffff48893c24e800000000488b3c24488bf0e8000000004883c408c3  &lt;||@
  *  Comment 24 frame-ref-map: +0 {0}
  *  at java.lang.String.toLowerCase(String.java:2496) [bci: 1]
  *              |0
  *     locals:  |stack:0:a
  *     stack:   |stack:0:a
- *    <||@
- *  OperandComment 24 {java.util.Locale.getDefault()}  <||@
+ *    &lt;||@
+ *  OperandComment 24 {java.util.Locale.getDefault()}  &lt;||@
  *  Comment 36 frame-ref-map: +0 {0}
  *  at java.lang.String.toLowerCase(String.java:2496) [bci: 4]
  *              |0
  *     locals:  |stack:0:a
- *    <||@
- *  OperandComment 36 {java.lang.String.toLowerCase(Locale)}  <||@
- * 
+ *    &lt;||@
+ *  OperandComment 36 {java.lang.String.toLowerCase(Locale)}  lt;||@
+ *
  * </pre>
  */
 public class HexCodeFile {
@@ -184,15 +184,19 @@ public class HexCodeFile {
      * Formats a byte array as a string of hex digits.
      */
     public static String hexCodeString(byte[] code) {
-        StringBuilder sb = new StringBuilder(code.length * 2);
-        for (int b : code) {
-            String hex = Integer.toHexString(b & 0xff);
-            if (hex.length() == 1) {
-                sb.append('0');
+        if (code == null) {
+            return "";
+        } else {
+            StringBuilder sb = new StringBuilder(code.length * 2);
+            for (int b : code) {
+                String hex = Integer.toHexString(b & 0xff);
+                if (hex.length() == 1) {
+                    sb.append('0');
+                }
+                sb.append(hex);
             }
-            sb.append(hex);
+            return sb.toString();
         }
-        return sb.toString();
     }
 
     /**
@@ -209,7 +213,7 @@ public class HexCodeFile {
 
     /**
      * Sets an operand comment for a given position.
-     * 
+     *
      * @return the previous operand comment for {@code pos}
      */
     public String addOperandComment(int pos, String comment) {

@@ -46,7 +46,8 @@ public class HotSpotForeignCallLinkage implements ForeignCallLinkage, InvokeTarg
      * {@linkplain ForeignCallLinkage#getTemporaries() temporary} registers.
      */
     public enum RegisterEffect {
-        DESTROYS_REGISTERS, PRESERVES_REGISTERS
+        DESTROYS_REGISTERS,
+        PRESERVES_REGISTERS
     }
 
     /**
@@ -55,7 +56,10 @@ public class HotSpotForeignCallLinkage implements ForeignCallLinkage, InvokeTarg
      * by another thread.
      */
     public enum Transition {
-        LEAF_NOFP, LEAF, NOT_LEAF;
+        LEAF_NOFP,
+        LEAF,
+        LEAF_SP,
+        NOT_LEAF;
     }
 
     /**
@@ -107,7 +111,7 @@ public class HotSpotForeignCallLinkage implements ForeignCallLinkage, InvokeTarg
 
     /**
      * Creates a {@link HotSpotForeignCallLinkage}.
-     * 
+     *
      * @param descriptor the descriptor of the call
      * @param address the address of the code to call
      * @param effect specifies if the call destroys or preserves all registers (apart from
@@ -147,7 +151,7 @@ public class HotSpotForeignCallLinkage implements ForeignCallLinkage, InvokeTarg
         return regConfig.getCallingConvention(ccType, returnType, parameterTypes, target, false);
     }
 
-    private static JavaType asJavaType(Class type, MetaAccessProvider metaAccess, CodeCacheProvider codeCache) {
+    private static JavaType asJavaType(Class<?> type, MetaAccessProvider metaAccess, CodeCacheProvider codeCache) {
         if (WordBase.class.isAssignableFrom(type)) {
             return metaAccess.lookupJavaType(codeCache.getTarget().wordKind.toJavaClass());
         } else {
@@ -260,5 +264,9 @@ public class HotSpotForeignCallLinkage implements ForeignCallLinkage, InvokeTarg
 
     public boolean mayContainFP() {
         return transition != Transition.LEAF_NOFP;
+    }
+
+    public boolean needsJavaFrameAnchor() {
+        return canDeoptimize() || transition == Transition.LEAF_SP;
     }
 }

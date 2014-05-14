@@ -25,15 +25,19 @@ package com.oracle.graal.hotspot.phases;
 import static com.oracle.graal.nodes.ConstantNode.*;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.tiers.*;
+
+import edu.umd.cs.findbugs.annotations.*;
 
 /**
  * Checks for illegal object constants in a graph processed for AOT compilation. The only legal
  * object constants are {@linkplain String#intern() interned} strings as they will be installed in
  * the Class Data Sharing (CDS) space.
- * 
+ *
  * @see LoadJavaMirrorWithKlassPhase
  */
 public class AheadOfTimeVerificationPhase extends VerifyPhase<PhaseContext> {
@@ -42,7 +46,7 @@ public class AheadOfTimeVerificationPhase extends VerifyPhase<PhaseContext> {
     protected boolean verify(StructuredGraph graph, PhaseContext context) {
         for (ConstantNode node : getConstantNodes(graph)) {
             if (node.recordsUsages() || !node.gatherUsages(graph).isEmpty()) {
-                if (isObject(node) && !isNullReference(node) && !isInternedString(node)) {
+                if (isObject(node) && !isNullReference(node) && !isInternedString(node) && !isDirectMethodHandle(node)) {
                     throw new VerificationError("illegal object constant: " + node);
                 }
             }
@@ -55,15 +59,23 @@ public class AheadOfTimeVerificationPhase extends VerifyPhase<PhaseContext> {
     }
 
     private static boolean isNullReference(ConstantNode node) {
-        return isObject(node) && node.asConstant().asObject() == null;
+        return isObject(node) && node.asConstant().isNull();
     }
 
+    private static boolean isDirectMethodHandle(ConstantNode node) {
+        if (!isObject(node)) {
+            return false;
+        }
+        return "Ljava/lang/invoke/DirectMethodHandle;".equals(ObjectStamp.typeOrNull(node).getName());
+    }
+
+    @SuppressFBWarnings(value = "ES_COMPARING_STRINGS_WITH_EQ", justification = "reference equality is what we want")
     private static boolean isInternedString(ConstantNode node) {
         if (!isObject(node)) {
             return false;
         }
 
-        Object o = node.asConstant().asObject();
+        Object o = HotSpotObjectConstant.asObject(node.asConstant());
         if (!(o instanceof String)) {
             return false;
         }

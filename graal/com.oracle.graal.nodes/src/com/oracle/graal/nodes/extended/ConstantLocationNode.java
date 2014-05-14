@@ -43,7 +43,7 @@ public final class ConstantLocationNode extends LocationNode {
     }
 
     private ConstantLocationNode(LocationIdentity identity, Kind kind, long displacement) {
-        super(StampFactory.extension());
+        super(StampFactory.forVoid());
         assert kind != Kind.Illegal && kind != Kind.Void;
         this.valueKind = kind;
         this.locationIdentity = identity;
@@ -65,7 +65,7 @@ public final class ConstantLocationNode extends LocationNode {
     }
 
     @Override
-    public Value generateAddress(LIRGeneratorTool gen, Value base) {
+    public Value generateAddress(NodeMappableLIRBuilder builder, LIRGeneratorTool gen, Value base) {
         return gen.emitAddress(base, getDisplacement(), Value.ILLEGAL, 0);
     }
 }

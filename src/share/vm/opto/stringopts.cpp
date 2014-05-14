@@ -1122,8 +1122,7 @@ Node* PhaseStringOpts::fetch_static_field(GraphKit& kit, ciField* field) {
 
   return kit.make_load(NULL, kit.basic_plus_adr(klass_node, field->offset_in_bytes()),
                        type, T_OBJECT,
-                       C->get_alias_index(mirror_type->add_offset(field->offset_in_bytes())),
-                       MemNode::unordered);
+                       C->get_alias_index(mirror_type->add_offset(field->offset_in_bytes())));
 }
 
 Node* PhaseStringOpts::int_stringSize(GraphKit& kit, Node* arg) {
@@ -1315,7 +1314,7 @@ void PhaseStringOpts::int_getChars(GraphKit& kit, Node* arg, Node* char_array, N
     Node* ch = __ AddI(r, __ intcon('0'));
 
     Node* st = __ store_to_memory(kit.control(), kit.array_element_address(char_array, m1, T_CHAR),
-                                  ch, T_CHAR, char_adr_idx, MemNode::unordered);
+                                  ch, T_CHAR, char_adr_idx);
 
 
     IfNode* iff = kit.create_and_map_if(head, __ Bool(__ CmpI(q, __ intcon(0)), BoolTest::ne),
@@ -1357,7 +1356,7 @@ void PhaseStringOpts::int_getChars(GraphKit& kit, Node* arg, Node* char_array, N
     } else {
       Node* m1 = __ SubI(charPos, __ intcon(1));
       Node* st = __ store_to_memory(kit.control(), kit.array_element_address(char_array, m1, T_CHAR),
-                                    sign, T_CHAR, char_adr_idx, MemNode::unordered);
+                                    sign, T_CHAR, char_adr_idx);
 
       final_merge->init_req(1, kit.control());
       final_mem->init_req(1, st);
@@ -1388,8 +1387,7 @@ Node* PhaseStringOpts::copy_string(GraphKit& kit, Node* str, Node* char_array, N
     ciTypeArray* value_array = t->const_oop()->as_type_array();
     for (int e = 0; e < c; e++) {
       __ store_to_memory(kit.control(), kit.array_element_address(char_array, start, T_CHAR),
-                         __ intcon(value_array->char_at(o + e)), T_CHAR, char_adr_idx,
-                         MemNode::unordered);
+                         __ intcon(value_array->char_at(o + e)), T_CHAR, char_adr_idx);
       start = __ AddI(start, __ intcon(1));
     }
   } else {
@@ -1609,7 +1607,7 @@ void PhaseStringOpts::replace_string_concat(StringConcat* sc) {
         }
         case StringConcat::CharMode: {
           __ store_to_memory(kit.control(), kit.array_element_address(char_array, start, T_CHAR),
-                             arg, T_CHAR, char_adr_idx, MemNode::unordered);
+                             arg, T_CHAR, char_adr_idx);
           start = __ AddI(start, __ intcon(1));
           break;
         }

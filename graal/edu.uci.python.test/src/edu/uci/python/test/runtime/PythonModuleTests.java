@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -51,7 +51,7 @@ public class PythonModuleTests {
         final PythonContext context = PythonTests.getContext();
         final PythonModule builtins = context.getBuiltins();
         PBuiltinFunction min = (PBuiltinFunction) builtins.getAttribute("min");
-        Object returnValue = min.call(PythonTests.createVirtualFrame().pack(), new Object[]{4, 2, 1});
+        Object returnValue = min.call(new Object[]{4, 2, 1});
         assertEquals(1, returnValue);
     }
 
@@ -60,7 +60,7 @@ public class PythonModuleTests {
         final PythonContext context = PythonTests.getContext();
         final PythonModule builtins = context.getBuiltins();
         PythonBuiltinClass intClass = (PythonBuiltinClass) builtins.getAttribute("int");
-        Object returnValue = intClass.call(PythonTests.createVirtualFrame().pack(), new Object[]{"42"});
+        Object returnValue = intClass.call(new Object[]{"42"});
         assertEquals(42, returnValue);
     }
 
@@ -70,7 +70,8 @@ public class PythonModuleTests {
         PythonModule main = context.createMainModule(null);
         PythonModule builtins = (PythonModule) main.getAttribute("__builtins__");
         PBuiltinFunction abs = (PBuiltinFunction) builtins.getAttribute("abs");
-        Object returned = abs.call(PythonTests.createVirtualFrame().pack(), new Object[]{-42});
+        Object returned = abs.call(new Object[]{-42});
         assertEquals(42, returned);
     }
+
 }

@@ -113,6 +113,10 @@ public abstract class HotSpotCodeCacheProvider implements CodeCacheProvider {
     @Override
     public String disassemble(CompilationResult compResult, InstalledCode installedCode) {
         byte[] code = installedCode == null ? Arrays.copyOf(compResult.getTargetCode(), compResult.getTargetCodeSize()) : installedCode.getCode();
+        if (code == null) {
+            // Method was deoptimized/invalidated
+            return "";
+        }
         long start = installedCode == null ? 0L : installedCode.getStart();
         HexCodeFile hcf = new HexCodeFile(code, start, target.arch.getName(), target.wordSize * 8);
         if (compResult != null) {
@@ -192,7 +196,7 @@ public abstract class HotSpotCodeCacheProvider implements CodeCacheProvider {
         return runtime.getConfig().runtimeCallStackSize;
     }
 
-    public HotSpotInstalledCode logOrDump(HotSpotInstalledCode installedCode, CompilationResult compResult) {
+    public InstalledCode logOrDump(InstalledCode installedCode, CompilationResult compResult) {
         if (Debug.isDumpEnabled()) {
             Debug.dump(new Object[]{compResult, installedCode}, "After code installation");
         }
@@ -202,7 +206,7 @@ public abstract class HotSpotCodeCacheProvider implements CodeCacheProvider {
         return installedCode;
     }
 
-    public HotSpotInstalledCode installMethod(HotSpotResolvedJavaMethod method, CompilationResult compResult) {
+    public InstalledCode installMethod(HotSpotResolvedJavaMethod method, CompilationResult compResult) {
         if (compResult.getId() == -1) {
             compResult.setId(method.allocateCompileId(compResult.getEntryBCI()));
         }
@@ -212,17 +216,21 @@ public abstract class HotSpotCodeCacheProvider implements CodeCacheProvider {
     }
 
     @Override
-    public InstalledCode addMethod(ResolvedJavaMethod method, CompilationResult compResult, SpeculationLog log) {
+    public InstalledCode addMethod(ResolvedJavaMethod method, CompilationResult compResult, SpeculationLog log, InstalledCode predefinedInstalledCode) {
         HotSpotResolvedJavaMethod hotspotMethod = (HotSpotResolvedJavaMethod) method;
         if (compResult.getId() == -1) {
             compResult.setId(hotspotMethod.allocateCompileId(compResult.getEntryBCI()));
         }
-        HotSpotInstalledCode code = new HotSpotNmethod(hotspotMethod, compResult.getName(), false);
-        CodeInstallResult result = runtime.getCompilerToVM().installCode(new HotSpotCompiledNmethod(target, hotspotMethod, compResult), code, log);
+        InstalledCode installedCode = predefinedInstalledCode;
+        if (installedCode == null) {
+            HotSpotInstalledCode code = new HotSpotNmethod(hotspotMethod, compResult.getName(), false);
+            installedCode = code;
+        }
+        CodeInstallResult result = runtime.getCompilerToVM().installCode(new HotSpotCompiledNmethod(target, hotspotMethod, compResult), installedCode, log);
         if (result != CodeInstallResult.OK) {
             return null;
         }
-        return logOrDump(code, compResult);
+        return logOrDump(installedCode, compResult);
     }
 
     @Override
@@ -247,14 +255,16 @@ public abstract class HotSpotCodeCacheProvider implements CodeCacheProvider {
     }
 
     public boolean needsDataPatch(Constant constant) {
-        return constant.getPrimitiveAnnotation() != null;
+        return constant instanceof HotSpotMetaspaceConstant;
     }
 
     public Data createDataItem(Constant constant, int alignment) {
-        if (constant.getPrimitiveAnnotation() != null) {
-            return new MetaspaceData(alignment, constant.asLong(), constant.getPrimitiveAnnotation(), false);
+        if (constant instanceof HotSpotMetaspaceConstant) {
+            // constant.getKind() == target.wordKind for uncompressed pointers
+            // otherwise, it's a compressed pointer
+            return new MetaspaceData(alignment, constant.asLong(), HotSpotMetaspaceConstant.getMetaspaceObject(constant), constant.getKind() != target.wordKind);
         } else if (constant.getKind().isObject()) {
-            return new OopData(alignment, constant.asObject(), false);
+            return new OopData(alignment, HotSpotObjectConstant.asObject(constant), false);
         } else {
             return new PrimitiveData(constant, alignment);
         }
@@ -267,7 +277,7 @@ public abstract class HotSpotCodeCacheProvider implements CodeCacheProvider {
 
     public String disassemble(InstalledCode code) {
         if (code.isValid()) {
-            long codeBlob = ((HotSpotInstalledCode) code).getCodeBlob();
+            long codeBlob = ((HotSpotInstalledCode) code).getAddress();
             return runtime.getCompilerToVM().disassembleCodeBlob(codeBlob);
         }
         return null;

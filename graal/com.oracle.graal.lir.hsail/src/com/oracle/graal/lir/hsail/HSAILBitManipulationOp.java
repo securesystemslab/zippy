@@ -22,10 +22,10 @@
  */
 package com.oracle.graal.lir.hsail;
 
-import com.oracle.graal.lir.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.hsail.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
 
 /**
@@ -34,7 +34,11 @@ import com.oracle.graal.lir.asm.*;
 public class HSAILBitManipulationOp extends HSAILLIRInstruction {
 
     public enum IntrinsicOpcode {
-        IPOPCNT, LPOPCNT, IBSR, LBSR, BSF;
+        IPOPCNT,
+        LPOPCNT,
+        IBSR,
+        LBSR,
+        BSF;
     }
 
     @Opcode private final IntrinsicOpcode opcode;

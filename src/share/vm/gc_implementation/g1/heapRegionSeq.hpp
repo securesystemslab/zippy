@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -97,7 +97,7 @@ class HeapRegionSeq: public CHeapObj<mtGC> {
   HeapWord* heap_end() const {return _regions.end_address_mapped(); }
 
  public:
-  // Empty constructor, we'll initialize it with the initialize() method.
+  // Empty contructor, we'll initialize it with the initialize() method.
   HeapRegionSeq() : _regions(), _committed_length(0), _next_search_index(0), _allocated_length(0) { }
 
   void initialize(HeapWord* bottom, HeapWord* end);

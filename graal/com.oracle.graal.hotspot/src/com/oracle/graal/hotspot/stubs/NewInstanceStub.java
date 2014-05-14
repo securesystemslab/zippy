@@ -65,7 +65,7 @@ public class NewInstanceStub extends SnippetStub {
         // convert the hub (i.e., Klass*) for int[] to be a naked word. This should be safe since
         // the int[] class will never be unloaded.
         Constant intArrayHub = intArrayType.klass();
-        intArrayHub = Constant.forIntegerKind(runtime().getTarget().wordKind, intArrayHub.asLong(), null);
+        intArrayHub = Constant.forIntegerKind(runtime().getTarget().wordKind, intArrayHub.asLong());
 
         Arguments args = new Arguments(stub, GuardsStage.FLOATING_GUARDS, LoweringTool.StandardLoweringStage.HIGH_TIER);
         args.add("hub", null);
@@ -97,7 +97,7 @@ public class NewInstanceStub extends SnippetStub {
     /**
      * Re-attempts allocation after an initial TLAB allocation failed or was skipped (e.g., due to
      * -XX:-UseTLAB).
-     * 
+     *
      * @param hub the hub of the object to be allocated
      * @param intArrayHub the hub for {@code int[].class}
      */
@@ -127,11 +127,11 @@ public class NewInstanceStub extends SnippetStub {
 
     /**
      * Attempts to refill the current thread's TLAB and retries the allocation.
-     * 
+     *
      * @param intArrayHub the hub for {@code int[].class}
      * @param sizeInBytes the size of the allocation
      * @param log specifies if logging is enabled
-     * 
+     *
      * @return the newly allocated, uninitialized chunk of memory, or {@link Word#zero()} if the
      *         operation was unsuccessful
      */
@@ -188,7 +188,7 @@ public class NewInstanceStub extends SnippetStub {
                 // an int
                 int tlabFreeSpaceInInts = (int) tlabFreeSpaceInBytes >>> 2;
                 int length = ((alignmentReserveInBytes - headerSize) >>> 2) + tlabFreeSpaceInInts;
-                NewObjectSnippets.formatArray(intArrayHub, -1, length, headerSize, top, intArrayMarkWord, false, false);
+                NewObjectSnippets.formatArray(intArrayHub, -1, length, headerSize, top, intArrayMarkWord, false, false, false);
 
                 long allocated = thread.readLong(threadAllocatedBytesOffset(), TLAB_THREAD_ALLOCATED_BYTES_LOCATION);
                 allocated = allocated + top.subtract(readTlabStart(thread)).rawValue();
@@ -226,12 +226,12 @@ public class NewInstanceStub extends SnippetStub {
 
     /**
      * Attempts to allocate a chunk of memory from Eden space.
-     * 
+     *
      * @param sizeInBytes the size of the chunk to allocate
      * @param log specifies if logging is enabled
      * @return the allocated chunk or {@link Word#zero()} if allocation fails
      */
-    static Word edenAllocate(Word sizeInBytes, boolean log) {
+    public static Word edenAllocate(Word sizeInBytes, boolean log) {
         Word heapTopAddress = Word.unsigned(heapTopAddress());
         Word heapEndAddress = Word.unsigned(heapEndAddress());
 

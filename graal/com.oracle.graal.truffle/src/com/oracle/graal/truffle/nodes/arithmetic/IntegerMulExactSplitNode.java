@@ -29,12 +29,12 @@ import com.oracle.graal.nodes.type.*;
 
 public class IntegerMulExactSplitNode extends IntegerExactArithmeticSplitNode {
 
-    public IntegerMulExactSplitNode(Stamp stamp, ValueNode x, ValueNode y, AbstractBeginNode next, AbstractBeginNode overflowSuccessor) {
+    public IntegerMulExactSplitNode(Stamp stamp, ValueNode x, ValueNode y, BeginNode next, BeginNode overflowSuccessor) {
         super(stamp, x, y, next, overflowSuccessor);
     }
 
     @Override
-    protected Value generateArithmetic(LIRGeneratorTool gen) {
-        return gen.emitMul(gen.operand(getX()), gen.operand(getY()));
+    protected Value generateArithmetic(NodeLIRBuilderTool gen) {
+        return gen.getLIRGeneratorTool().emitMul(gen.operand(getX()), gen.operand(getY()));
     }
 }

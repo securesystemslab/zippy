@@ -44,7 +44,7 @@ public class PGenerator implements PIterator {
         /**
          * Setting up the persistent frame in {@link #arguments}.
          */
-        MaterializedFrame generatorFrame = Truffle.getRuntime().createMaterializedFrame(PArguments.EMPTY_ARGUMENT, frameDescriptor);
+        MaterializedFrame generatorFrame = Truffle.getRuntime().createMaterializedFrame(PArguments.EMPTY_ARGUMENTS_ARRAY, frameDescriptor);
         PArguments generatorArgs = new PArguments.GeneratorArguments(declarationFrame, generatorFrame, arguments, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
 
         if (PythonOptions.ProfileGeneratorCalls) {
@@ -69,12 +69,12 @@ public class PGenerator implements PIterator {
 
     @Override
     public Object __next__() throws StopIterationException {
-        return callTarget.call(null, arguments);
+        return callTarget.call(arguments.packAsObjectArray());
     }
 
     @SuppressWarnings("unused")
     public Object send(Object value) throws StopIterationException {
-        return callTarget.call(null, arguments);
+        return callTarget.call(arguments.packAsObjectArray());
     }
 
     @Override

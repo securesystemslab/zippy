@@ -118,6 +118,26 @@ public class HSAIL extends Architecture {
     public static final Register q14 = new Register(70, 14, "q14", CPU);
     public static final Register q15 = new Register(71, 15, "q15", CPU);
 
+    // non-allocatable registers used for deopt
+    public static final Register s32 = new Register(72, 32, "s32", CPU);
+    public static final Register s33 = new Register(73, 33, "s33", CPU);
+    public static final Register s34 = new Register(74, 34, "s34", CPU);
+    public static final Register s35 = new Register(75, 35, "s35", CPU);
+    public static final Register s36 = new Register(76, 36, "s36", CPU);
+    public static final Register s37 = new Register(77, 37, "s37", CPU);
+    public static final Register s38 = new Register(78, 38, "s38", CPU);
+    public static final Register s39 = new Register(79, 39, "s39", CPU);
+    public static final Register d16 = new Register(80, 16, "d16", CPU);
+    public static final Register d17 = new Register(81, 17, "d17", CPU);
+    public static final Register d18 = new Register(82, 18, "d18", CPU);
+    public static final Register d19 = new Register(83, 19, "d19", CPU);
+    public static final Register d20 = new Register(84, 20, "d20", CPU);
+
+    public static final Register threadRegister = d20;
+    public static final Register actionAndReasonReg = s32;
+    public static final Register codeBufferOffsetReg = s33;
+    public static final Register dregOopMapReg = s39;
+
     // @formatter:off
     public static final Register[] cRegisters = {
         c0, c1, c2, c3, c4, c5, c6, c7
@@ -131,7 +151,7 @@ public class HSAIL extends Architecture {
     };
 
     public static final Register[] dRegisters = {
-        d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15
+        d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13, d14, d15, threadRegister
     };
 
     public static final Register[] qRegisters = {
@@ -142,7 +162,7 @@ public class HSAIL extends Architecture {
         c0, c1, c2, c3, c4, c5, c6, c7, s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14, s15,
         d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12, d13,
         d14, d15, q0, q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11,
-        q12, q13, q14, q15
+        q12, q13, q14, q15, threadRegister
     };
 
     // @formatter:on
@@ -162,20 +182,7 @@ public class HSAIL extends Architecture {
     }
 
     public static String mapRegister(Value arg) {
-        Register reg;
-        int encoding = 0;
-        String regPrefix = null;
-        Kind kind = arg.getKind();
-        if (kind == Kind.Double || kind == Kind.Long) {
-            regPrefix = "$d";
-        } else if (kind == Kind.Int || kind == Kind.Float) {
-            regPrefix = "$s";
-        } else {
-            regPrefix = "$d";
-        }
-        reg = asRegister(arg);
-        encoding = reg.encoding();
-        return new String(regPrefix + encoding);
+        return "$" + asRegister(arg).name;
     }
 
     @Override

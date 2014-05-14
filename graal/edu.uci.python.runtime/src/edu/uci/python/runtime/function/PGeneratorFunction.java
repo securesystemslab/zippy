@@ -58,7 +58,7 @@ public final class PGeneratorFunction extends PFunction {
     }
 
     @Override
-    public Object call(PackedFrame caller, Object[] args) {
+    public Object call(Object[] args) {
         if (PythonOptions.ParallelizeGeneratorCalls) {
             assert parallelCallTarget != null;
             return makeParallelGeneratorHelper(args);
@@ -82,10 +82,10 @@ public final class PGeneratorFunction extends PFunction {
     }
 
     @Override
-    public Object call(PackedFrame caller, Object[] arguments, PKeyword[] keywords) {
+    public Object call(Object[] arguments, PKeyword[] keywords) {
         // keywords are ignored.
         assert keywords.length == 0;
-        return call(caller, arguments);
+        return call(arguments);
     }
 
 }

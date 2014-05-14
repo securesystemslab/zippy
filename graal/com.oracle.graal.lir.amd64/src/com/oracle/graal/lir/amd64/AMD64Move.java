@@ -28,8 +28,8 @@ import static java.lang.Double.*;
 import static java.lang.Float.*;
 
 import com.oracle.graal.amd64.*;
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CompilationResult.RawData;
+import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.amd64.*;
@@ -42,20 +42,35 @@ import com.oracle.graal.lir.asm.*;
 
 public class AMD64Move {
 
-    @Opcode("MOVE")
-    public static class MoveToRegOp extends AMD64LIRInstruction implements MoveOp {
+    private abstract static class AbstractMoveOp extends AMD64LIRInstruction implements MoveOp {
 
-        @Def({REG, HINT}) protected AllocatableValue result;
-        @Use({REG, STACK, CONST}) protected Value input;
+        private Kind moveKind;
 
-        public MoveToRegOp(AllocatableValue result, Value input) {
-            this.result = result;
-            this.input = input;
+        public AbstractMoveOp(Kind moveKind) {
+            if (moveKind == Kind.Illegal) {
+                // unknown operand size, conservatively move the whole register
+                this.moveKind = Kind.Long;
+            } else {
+                this.moveKind = moveKind;
+            }
         }
 
         @Override
         public void emitCode(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
-            move(crb, masm, getResult(), getInput());
+            move(moveKind, crb, masm, getResult(), getInput());
+        }
+    }
+
+    @Opcode("MOVE")
+    public static class MoveToRegOp extends AbstractMoveOp {
+
+        @Def({REG, HINT}) protected AllocatableValue result;
+        @Use({REG, STACK, CONST}) protected Value input;
+
+        public MoveToRegOp(Kind moveKind, AllocatableValue result, Value input) {
+            super(moveKind);
+            this.result = result;
+            this.input = input;
         }
 
         @Override
@@ -70,19 +85,15 @@ public class AMD64Move {
     }
 
     @Opcode("MOVE")
-    public static class MoveFromRegOp extends AMD64LIRInstruction implements MoveOp {
+    public static class MoveFromRegOp extends AbstractMoveOp {
 
         @Def({REG, STACK}) protected AllocatableValue result;
         @Use({REG, CONST, HINT}) protected Value input;
 
-        public MoveFromRegOp(AllocatableValue result, Value input) {
+        public MoveFromRegOp(Kind moveKind, AllocatableValue result, Value input) {
+            super(moveKind);
             this.result = result;
             this.input = input;
-        }
-
-        @Override
-        public void emitCode(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
-            move(crb, masm, getResult(), getInput());
         }
 
         @Override
@@ -385,12 +396,15 @@ public class AMD64Move {
     @Opcode("CAS")
     public static class CompareAndSwapOp extends AMD64LIRInstruction {
 
+        private final Kind accessKind;
+
         @Def protected AllocatableValue result;
         @Use({COMPOSITE}) protected AMD64AddressValue address;
         @Use protected AllocatableValue cmpValue;
         @Use protected AllocatableValue newValue;
 
-        public CompareAndSwapOp(AllocatableValue result, AMD64AddressValue address, AllocatableValue cmpValue, AllocatableValue newValue) {
+        public CompareAndSwapOp(Kind accessKind, AllocatableValue result, AMD64AddressValue address, AllocatableValue cmpValue, AllocatableValue newValue) {
+            this.accessKind = accessKind;
             this.result = result;
             this.address = address;
             this.cmpValue = cmpValue;
@@ -399,22 +413,41 @@ public class AMD64Move {
 
         @Override
         public void emitCode(CompilationResultBuilder crb, AMD64MacroAssembler masm) {
-            compareAndSwap(crb, masm, result, address, cmpValue, newValue);
+            assert asRegister(cmpValue).equals(AMD64.rax) && asRegister(result).equals(AMD64.rax);
+
+            if (crb.target.isMP) {
+                masm.lock();
+            }
+            switch (accessKind) {
+                case Int:
+                    masm.cmpxchgl(asRegister(newValue), address.toAddress());
+                    break;
+                case Long:
+                case Object:
+                    masm.cmpxchgq(asRegister(newValue), address.toAddress());
+                    break;
+                default:
+                    throw GraalInternalError.shouldNotReachHere();
+            }
         }
     }
 
     public static void move(CompilationResultBuilder crb, AMD64MacroAssembler masm, Value result, Value input) {
+        move(result.getKind(), crb, masm, result, input);
+    }
+
+    public static void move(Kind moveKind, CompilationResultBuilder crb, AMD64MacroAssembler masm, Value result, Value input) {
         if (isRegister(input)) {
             if (isRegister(result)) {
-                reg2reg(masm, result, input);
+                reg2reg(moveKind, masm, result, input);
             } else if (isStackSlot(result)) {
-                reg2stack(crb, masm, result, input);
+                reg2stack(moveKind, crb, masm, result, input);
             } else {
                 throw GraalInternalError.shouldNotReachHere();
             }
         } else if (isStackSlot(input)) {
             if (isRegister(result)) {
-                stack2reg(crb, masm, result, input);
+                stack2reg(moveKind, crb, masm, result, input);
             } else {
                 throw GraalInternalError.shouldNotReachHere();
             }
@@ -431,11 +464,11 @@ public class AMD64Move {
         }
     }
 
-    private static void reg2reg(AMD64MacroAssembler masm, Value result, Value input) {
+    private static void reg2reg(Kind kind, AMD64MacroAssembler masm, Value result, Value input) {
         if (asRegister(input).equals(asRegister(result))) {
             return;
         }
-        switch (input.getKind()) {
+        switch (kind.getStackKind()) {
             case Int:
                 masm.movl(asRegister(result), asRegister(input));
                 break;
@@ -456,9 +489,17 @@ public class AMD64Move {
         }
     }
 
-    private static void reg2stack(CompilationResultBuilder crb, AMD64MacroAssembler masm, Value result, Value input) {
+    private static void reg2stack(Kind kind, CompilationResultBuilder crb, AMD64MacroAssembler masm, Value result, Value input) {
         AMD64Address dest = (AMD64Address) crb.asAddress(result);
-        switch (input.getKind()) {
+        switch (kind) {
+            case Boolean:
+            case Byte:
+                masm.movb(dest, asRegister(input));
+                break;
+            case Short:
+            case Char:
+                masm.movw(dest, asRegister(input));
+                break;
             case Int:
                 masm.movl(dest, asRegister(input));
                 break;
@@ -479,9 +520,21 @@ public class AMD64Move {
         }
     }
 
-    private static void stack2reg(CompilationResultBuilder crb, AMD64MacroAssembler masm, Value result, Value input) {
+    private static void stack2reg(Kind kind, CompilationResultBuilder crb, AMD64MacroAssembler masm, Value result, Value input) {
         AMD64Address src = (AMD64Address) crb.asAddress(input);
-        switch (input.getKind()) {
+        switch (kind) {
+            case Boolean:
+                masm.movzbl(asRegister(result), src);
+                break;
+            case Byte:
+                masm.movsbl(asRegister(result), src);
+                break;
+            case Short:
+                masm.movswl(asRegister(result), src);
+                break;
+            case Char:
+                masm.movzwl(asRegister(result), src);
+                break;
             case Int:
                 masm.movl(asRegister(result), src);
                 break;
@@ -601,26 +654,6 @@ public class AMD64Move {
                 } else {
                     throw GraalInternalError.shouldNotReachHere("Non-null object constants must be in register");
                 }
-                break;
-            default:
-                throw GraalInternalError.shouldNotReachHere();
-        }
-    }
-
-    protected static void compareAndSwap(CompilationResultBuilder crb, AMD64MacroAssembler masm, AllocatableValue result, AMD64AddressValue address, AllocatableValue cmpValue,
-                    AllocatableValue newValue) {
-        assert asRegister(cmpValue).equals(AMD64.rax) && asRegister(result).equals(AMD64.rax);
-
-        if (crb.target.isMP) {
-            masm.lock();
-        }
-        switch (cmpValue.getKind()) {
-            case Int:
-                masm.cmpxchgl(asRegister(newValue), address.toAddress());
-                break;
-            case Long:
-            case Object:
-                masm.cmpxchgq(asRegister(newValue), address.toAddress());
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();

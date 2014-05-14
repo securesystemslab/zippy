@@ -29,12 +29,12 @@ import java.util.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.LIRInstruction.OperandFlag;
 import com.oracle.graal.lir.LIRInstruction.OperandMode;
 import com.oracle.graal.lir.LIRInstruction.ValueProcedure;
-import com.oracle.graal.nodes.cfg.*;
 
 public final class LIRVerifier {
 
@@ -46,11 +46,11 @@ public final class LIRVerifier {
     private final BitSet[] blockLiveOut;
     private final Object[] variableDefinitions;
 
-    private BitSet liveOutFor(Block block) {
+    private BitSet liveOutFor(AbstractBlock<?> block) {
         return blockLiveOut[block.getId()];
     }
 
-    private void setLiveOutFor(Block block, BitSet liveOut) {
+    private void setLiveOutFor(AbstractBlock<?> block, BitSet liveOut) {
         blockLiveOut[block.getId()] = liveOut;
     }
 
@@ -98,7 +98,7 @@ public final class LIRVerifier {
     private BitSet curVariablesLive;
     private Value[] curRegistersLive;
 
-    private Block curBlock;
+    private AbstractBlock<?> curBlock;
     private Object curInstruction;
     private BitSet curRegistersDefined;
 
@@ -120,7 +120,7 @@ public final class LIRVerifier {
 
         int maxRegisterNum = maxRegisterNum();
         curRegistersDefined = new BitSet();
-        for (Block block : lir.linearScanOrder()) {
+        for (AbstractBlock<?> block : lir.linearScanOrder()) {
             curBlock = block;
             curVariablesLive = new BitSet();
             curRegistersLive = new Value[maxRegisterNum];
@@ -129,14 +129,14 @@ public final class LIRVerifier {
                 curVariablesLive.or(liveOutFor(block.getDominator()));
             }
 
-            assert lir.lir(block).get(0) instanceof StandardOp.LabelOp : "block must start with label";
+            assert lir.getLIRforBlock(block).get(0) instanceof StandardOp.LabelOp : "block must start with label";
 
             if (block.getSuccessorCount() > 0) {
-                LIRInstruction last = lir.lir(block).get(lir.lir(block).size() - 1);
+                LIRInstruction last = lir.getLIRforBlock(block).get(lir.getLIRforBlock(block).size() - 1);
                 assert last instanceof StandardOp.JumpOp : "block with successor must end with unconditional jump";
             }
 
-            for (LIRInstruction op : lir.lir(block)) {
+            for (LIRInstruction op : lir.getLIRforBlock(block)) {
                 curInstruction = op;
 
                 op.forEachInput(useProc);

@@ -113,7 +113,7 @@ public class NodeFactory {
     }
 
     public StatementNode createIf(CastToBooleanNode condition, PNode thenPart, PNode elsePart) {
-        return new IfNode(condition, thenPart, elsePart);
+        return IfNode.create(condition, thenPart, elsePart);
     }
 
     public GetIteratorNode createGetIterator(PNode collection) {
@@ -386,10 +386,6 @@ public class NodeFactory {
 
     public CastToBooleanNode createYesNode(PNode operand) {
         return YesNodeFactory.create(operand);
-    }
-
-    public PNode createIfExpNode(CastToBooleanNode condition, PNode then, PNode orelse) {
-        return new IfExpressionNode(condition, then, orelse);
     }
 
     public StatementNode createTryFinallyNode(PNode body, PNode finalbody) {

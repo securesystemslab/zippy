@@ -32,10 +32,10 @@ import com.oracle.graal.hotspot.meta.*;
  */
 public class CompilerToVMImpl implements CompilerToVM {
 
-    private native int installCode0(HotSpotCompiledCode compiledCode, HotSpotInstalledCode code, SpeculationLog speculationLog);
+    private native int installCode0(HotSpotCompiledCode compiledCode, InstalledCode code, SpeculationLog speculationLog);
 
     @Override
-    public CodeInstallResult installCode(HotSpotCompiledCode compiledCode, HotSpotInstalledCode code, SpeculationLog speculationLog) {
+    public CodeInstallResult installCode(HotSpotCompiledCode compiledCode, InstalledCode code, SpeculationLog speculationLog) {
         return CodeInstallResult.getEnum(installCode0(compiledCode, code, speculationLog));
     }
 
@@ -120,7 +120,7 @@ public class CompilerToVMImpl implements CompilerToVM {
     public native StackTraceElement getStackTraceElement(long metaspaceMethod, int bci);
 
     @Override
-    public native Object executeCompiledMethodVarargs(Object[] args, HotSpotInstalledCode hotspotInstalledCode);
+    public native Object executeCompiledMethodVarargs(Object[] args, InstalledCode hotspotInstalledCode);
 
     @Override
     public native long[] getLineNumberTable(long metaspaceMethod);
@@ -138,10 +138,10 @@ public class CompilerToVMImpl implements CompilerToVM {
     public native void reprofile(long metaspaceMethod);
 
     @Override
-    public native void invalidateInstalledCode(HotSpotInstalledCode hotspotInstalledCode);
+    public native void invalidateInstalledCode(InstalledCode hotspotInstalledCode);
 
     @Override
-    public native Object readUnsafeUncompressedPointer(Object o, long displacement);
+    public native Class<?> getJavaMirror(long metaspaceKlass);
 
     @Override
     public native long readUnsafeKlassPointer(Object o);
@@ -150,25 +150,16 @@ public class CompilerToVMImpl implements CompilerToVM {
     public native void doNotInlineOrCompile(long metaspaceMethod);
 
     @Override
-    public Object executeCompiledMethod(Object arg1, Object arg2, Object arg3, HotSpotInstalledCode hotspotInstalledCode) throws InvalidInstalledCodeException {
-        return executeCompiledMethodIntrinsic(arg1, arg2, arg3, hotspotInstalledCode);
+    public Object executeCompiledMethod(Object arg1, Object arg2, Object arg3, InstalledCode hotspotInstalledCode) throws InvalidInstalledCodeException {
+        return executeCompiledMethodVarargs(new Object[]{arg1, arg2, arg3}, hotspotInstalledCode);
     }
 
     public synchronized native void notifyCompilationStatistics(int id, HotSpotResolvedJavaMethod method, boolean osr, int processedBytecodes, long time, long timeUnitsPerSecond,
-                    HotSpotInstalledCode installedCode);
+                    InstalledCode installedCode);
 
     public synchronized native void printCompilationStatistics(boolean perCompiler, boolean aggregate);
 
     public native void resetCompilationStatistics();
-
-    /**
-     * Direct call to the given nmethod with three object arguments and an object return value. This
-     * method does not have an implementation on the C++ side, but its entry points (from
-     * interpreter and from compiled code) are directly pointing to a manually generated assembly
-     * stub that does the necessary argument shuffling and a tail call via an indirect jump to the
-     * verified entry point of the given native method.
-     */
-    public static native Object executeCompiledMethodIntrinsic(Object arg1, Object arg2, Object arg3, HotSpotInstalledCode hotspotInstalledCode) throws InvalidInstalledCodeException;
 
     public native long[] collectCounters();
 
@@ -184,4 +175,9 @@ public class CompilerToVMImpl implements CompilerToVM {
 
     public native boolean hasCompiledCodeForOSR(long metaspaceMethod, int entryBCI, int level);
 
+    public native HotSpotStackFrameReference getNextStackFrame(HotSpotStackFrameReference frame, long[] methods, int initialSkip);
+
+    public native void materializeVirtualObjects(HotSpotStackFrameReference stackFrame, boolean invalidate);
+
+    public native long getTimeStamp();
 }

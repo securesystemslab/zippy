@@ -63,7 +63,7 @@ void compute_offset(int &dest_offset, Klass* klass, const char* name, const char
 
 void graal_compute_offsets() {
   COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD, LONG_FIELD, FLOAT_FIELD, OOP_FIELD, STATIC_OOP_FIELD)
-  guarantee(HotSpotInstalledCode::_codeBlob_offset == sizeof(oopDesc), "codeBlob must be first field!");
+  guarantee(InstalledCode::_address_offset == sizeof(oopDesc), "codeBlob must be first field!");
 }
 
 #define EMPTY0
