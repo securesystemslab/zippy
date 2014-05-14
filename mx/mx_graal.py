@@ -1072,15 +1072,14 @@ def unittest(args):
         # parse all know arguments
         parsed_args, args = parser.parse_known_args(ut_args)
 
-    whitelist = None
     if parsed_args.whitelist:
         try:
             with open(join(_graal_home, parsed_args.whitelist)) as fp:
-                whitelist = [re.compile(fnmatch.translate(l.rstrip())) for l in fp.readlines() if not l.startswith('#')]
+                parsed_args.whitelist = [re.compile(fnmatch.translate(l.rstrip())) for l in fp.readlines() if not l.startswith('#')]
         except IOError:
             mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
 
-    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist, verbose=parsed_args.verbose, enable_timing=parsed_args.enable_timing, regex=parsed_args.regex, color=parsed_args.color, eager_stacktrace=parsed_args.eager_stacktrace)
+    _unittest(args, ['@Test', '@Parameters'], **parsed_args.__dict__)
 
 def shortunittest(args):
     """alias for 'unittest --whitelist test/whitelist_shortunittest.txt'{0}"""
