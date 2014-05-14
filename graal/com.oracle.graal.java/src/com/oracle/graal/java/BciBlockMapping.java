@@ -30,10 +30,10 @@ import java.util.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.bytecode.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.cfg.*;
 
 /**
  * Builds a mapping between bytecodes and basic blocks and builds a conservative control flow graph
@@ -82,12 +82,14 @@ public final class BciBlockMapping {
         public boolean isLoopHeader;
         public int loopId;
 
-        public FixedWithNextNode firstInstruction;
-        public HIRFrameStateBuilder entryState;
+        /**
+         * XXX to be removed - currently only used by baseline compiler
+         */
+        public Loop<BciBlock> loop;
+        public boolean isLoopEnd;
 
-        // public ArrayList<BciBlock> successors = new ArrayList<>(2);
-        // public ArrayList<BciBlock> predecessors = new ArrayList<>(2); // only used in the
-        // baseline
+        public FixedWithNextNode firstInstruction;
+        public AbstractFrameStateBuilder<?, ?> entryState;
 
         public long exits;
 
@@ -148,14 +150,12 @@ public final class BciBlockMapping {
             return sb.toString();
         }
 
-        public Loop getLoop() {
-            // TODO Auto-generated method stub
-            return null;
+        public Loop<BciBlock> getLoop() {
+            return loop;
         }
 
         public int getLoopDepth() {
-            // TODO Auto-generated method stub
-            return 0;
+            return Long.bitCount(loops);
         }
 
         public boolean isLoopHeader() {
@@ -163,13 +163,11 @@ public final class BciBlockMapping {
         }
 
         public boolean isLoopEnd() {
-            // TODO Auto-generated method stub
-            return false;
+            return isLoopEnd;
         }
 
         public boolean isExceptionEntry() {
-            // TODO Auto-generated method stub
-            return false;
+            return isExceptionEntry;
         }
 
         public BciBlock getSuccessor(int index) {
@@ -720,6 +718,10 @@ public final class BciBlockMapping {
         for (BciBlock successor : block.getSuccessors()) {
             // Recursively process successors.
             loops |= computeBlockOrder(successor);
+            if (block.visited && successor.active) {
+                // Reached block via backward branch.
+                block.isLoopEnd = true;
+            }
         }
 
         block.loops = loops;

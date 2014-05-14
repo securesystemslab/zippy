@@ -69,7 +69,7 @@ public final class BooleanStorageLocation extends FieldStorageLocation {
     }
 
     @Override
-    public Class getStoredClass() {
+    public Class<?> getStoredClass() {
         return Boolean.class;
     }
 

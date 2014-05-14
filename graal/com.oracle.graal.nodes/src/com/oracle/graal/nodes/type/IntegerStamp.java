@@ -31,38 +31,42 @@ import com.oracle.graal.nodes.spi.*;
 
 /**
  * Describes the possible values of a {@link ValueNode} that produces an int or long result.
- * 
+ *
  * The description consists of (inclusive) lower and upper bounds and up (may be set) and down
  * (always set) bit-masks.
  */
 public class IntegerStamp extends PrimitiveStamp {
-
-    private final boolean unsigned;
 
     private final long lowerBound;
     private final long upperBound;
     private final long downMask;
     private final long upMask;
 
-    public IntegerStamp(int bits, boolean unsigned, long lowerBound, long upperBound, long downMask, long upMask) {
+    public IntegerStamp(int bits, long lowerBound, long upperBound, long downMask, long upMask) {
         super(bits);
-        this.unsigned = unsigned;
         this.lowerBound = lowerBound;
         this.upperBound = upperBound;
         this.downMask = downMask;
         this.upMask = upMask;
-        assert lowerBound <= upperBound : this;
-        assert lowerBound >= defaultMinValue(bits, unsigned) : this;
-        assert upperBound <= defaultMaxValue(bits, unsigned) : this;
+        assert lowerBound >= defaultMinValue(bits) : this;
+        assert upperBound <= defaultMaxValue(bits) : this;
         assert (downMask & defaultMask(bits)) == downMask : this;
         assert (upMask & defaultMask(bits)) == upMask : this;
-        assert (lowerBound & downMask) == downMask : this;
-        assert (upperBound & downMask) == downMask : this;
     }
 
     @Override
     public Stamp unrestricted() {
-        return new IntegerStamp(getBits(), unsigned, defaultMinValue(getBits(), unsigned), defaultMaxValue(getBits(), unsigned), 0, defaultMask(getBits()));
+        return new IntegerStamp(getBits(), defaultMinValue(getBits()), defaultMaxValue(getBits()), 0, defaultMask(getBits()));
+    }
+
+    @Override
+    public Stamp illegal() {
+        return new IntegerStamp(getBits(), defaultMaxValue(getBits()), defaultMinValue(getBits()), defaultMask(getBits()), 0);
+    }
+
+    @Override
+    public boolean isLegal() {
+        return lowerBound <= upperBound;
     }
 
     @Override
@@ -76,29 +80,21 @@ public class IntegerStamp extends PrimitiveStamp {
 
     @Override
     public PlatformKind getPlatformKind(LIRTypeTool tool) {
-        return tool.getIntegerKind(getBits(), unsigned);
+        return tool.getIntegerKind(getBits());
     }
 
     @Override
     public ResolvedJavaType javaType(MetaAccessProvider metaAccess) {
         switch (getBits()) {
             case 1:
-                assert unsigned;
                 return metaAccess.lookupJavaType(Boolean.TYPE);
             case 8:
-                assert !unsigned;
                 return metaAccess.lookupJavaType(Byte.TYPE);
             case 16:
-                if (unsigned) {
-                    return metaAccess.lookupJavaType(Character.TYPE);
-                } else {
-                    return metaAccess.lookupJavaType(Short.TYPE);
-                }
+                return metaAccess.lookupJavaType(Short.TYPE);
             case 32:
-                assert !unsigned;
                 return metaAccess.lookupJavaType(Integer.TYPE);
             case 64:
-                assert !unsigned;
                 return metaAccess.lookupJavaType(Long.TYPE);
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -106,21 +102,14 @@ public class IntegerStamp extends PrimitiveStamp {
     }
 
     /**
-     * Check whether the value described by this stamp is unsigned.
-     */
-    public boolean isUnsigned() {
-        return unsigned;
-    }
-
-    /**
-     * The (inclusive) lower bound on the value described by this stamp.
+     * The signed inclusive lower bound on the value described by this stamp.
      */
     public long lowerBound() {
         return lowerBound;
     }
 
     /**
-     * The (inclusive) upper bound on the value described by this stamp.
+     * The signed inclusive upper bound on the value described by this stamp.
      */
     public long upperBound() {
         return upperBound;
@@ -141,7 +130,7 @@ public class IntegerStamp extends PrimitiveStamp {
     }
 
     public boolean isUnrestricted() {
-        return lowerBound == defaultMinValue(getBits(), unsigned) && upperBound == defaultMaxValue(getBits(), unsigned) && downMask == 0 && upMask == defaultMask(getBits());
+        return lowerBound == defaultMinValue(getBits()) && upperBound == defaultMaxValue(getBits()) && downMask == 0 && upMask == defaultMask(getBits());
     }
 
     public boolean contains(long value) {
@@ -175,11 +164,11 @@ public class IntegerStamp extends PrimitiveStamp {
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append(unsigned ? 'u' : 'i');
+        str.append('i');
         str.append(getBits());
         if (lowerBound == upperBound) {
             str.append(" [").append(lowerBound).append(']');
-        } else if (lowerBound != defaultMinValue(getBits(), unsigned) || upperBound != defaultMaxValue(getBits(), unsigned)) {
+        } else if (lowerBound != defaultMinValue(getBits()) || upperBound != defaultMaxValue(getBits())) {
             str.append(" [").append(lowerBound).append(" - ").append(upperBound).append(']');
         }
         if (downMask != 0) {
@@ -194,7 +183,7 @@ public class IntegerStamp extends PrimitiveStamp {
     }
 
     private Stamp createStamp(IntegerStamp other, long newUpperBound, long newLowerBound, long newDownMask, long newUpMask) {
-        assert getBits() == other.getBits() && unsigned == other.unsigned;
+        assert getBits() == other.getBits();
         if (newLowerBound > newUpperBound || (newDownMask & (~newUpMask)) != 0) {
             return illegal();
         } else if (newLowerBound == lowerBound && newUpperBound == upperBound && newDownMask == downMask && newUpMask == upMask) {
@@ -202,7 +191,7 @@ public class IntegerStamp extends PrimitiveStamp {
         } else if (newLowerBound == other.lowerBound && newUpperBound == other.upperBound && newDownMask == other.downMask && newUpMask == other.upMask) {
             return other;
         } else {
-            return new IntegerStamp(getBits(), unsigned, newLowerBound, newUpperBound, newDownMask, newUpMask);
+            return new IntegerStamp(getBits(), newLowerBound, newUpperBound, newDownMask, newUpMask);
         }
     }
 
@@ -210,9 +199,6 @@ public class IntegerStamp extends PrimitiveStamp {
     public Stamp meet(Stamp otherStamp) {
         if (otherStamp == this) {
             return this;
-        }
-        if (otherStamp instanceof IllegalStamp) {
-            return otherStamp.meet(this);
         }
         if (!(otherStamp instanceof IntegerStamp)) {
             return StampFactory.illegal(Kind.Illegal);
@@ -225,9 +211,6 @@ public class IntegerStamp extends PrimitiveStamp {
     public Stamp join(Stamp otherStamp) {
         if (otherStamp == this) {
             return this;
-        }
-        if (otherStamp instanceof IllegalStamp) {
-            return otherStamp.join(this);
         }
         if (!(otherStamp instanceof IntegerStamp)) {
             return StampFactory.illegal(Kind.Illegal);
@@ -245,7 +228,7 @@ public class IntegerStamp extends PrimitiveStamp {
         }
         if (stamp instanceof IntegerStamp) {
             IntegerStamp other = (IntegerStamp) stamp;
-            return getBits() == other.getBits() && unsigned == other.unsigned;
+            return getBits() == other.getBits();
         }
         return false;
     }
@@ -278,7 +261,7 @@ public class IntegerStamp extends PrimitiveStamp {
     }
 
     public static long defaultMask(int bits) {
-        assert 0 < bits && bits <= 64;
+        assert 0 <= bits && bits <= 64;
         if (bits == 64) {
             return 0xffffffffffffffffL;
         } else {
@@ -286,16 +269,12 @@ public class IntegerStamp extends PrimitiveStamp {
         }
     }
 
-    public static long defaultMinValue(int bits, boolean unsigned) {
-        if (unsigned) {
-            return 0;
-        } else {
-            return -1L << (bits - 1);
-        }
+    public static long defaultMinValue(int bits) {
+        return -1L << (bits - 1);
     }
 
-    public static long defaultMaxValue(int bits, boolean unsigned) {
-        return defaultMask(unsigned ? bits : bits - 1);
+    public static long defaultMaxValue(int bits) {
+        return defaultMask(bits - 1);
     }
 
     public static long upMaskFor(int bits, long lowerBound, long upperBound) {
@@ -310,7 +289,7 @@ public class IntegerStamp extends PrimitiveStamp {
     /**
      * Checks if the 2 stamps represent values of the same sign. Returns true if the two stamps are
      * both positive of null or if they are both strictly negative
-     * 
+     *
      * @return true if the two stamps are both positive of null or if they are both strictly
      *         negative
      */
@@ -327,11 +306,7 @@ public class IntegerStamp extends PrimitiveStamp {
                 case 8:
                     return Constant.forByte((byte) lowerBound);
                 case 16:
-                    if (unsigned) {
-                        return Constant.forChar((char) lowerBound);
-                    } else {
-                        return Constant.forShort((short) lowerBound);
-                    }
+                    return Constant.forShort((short) lowerBound);
                 case 32:
                     return Constant.forInt((int) lowerBound);
                 case 64:

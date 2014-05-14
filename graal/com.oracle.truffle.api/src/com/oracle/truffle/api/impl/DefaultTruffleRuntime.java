@@ -53,8 +53,12 @@ public final class DefaultTruffleRuntime implements TruffleRuntime {
         return new DefaultCallTarget(rootNode);
     }
 
-    public CallNode createCallNode(CallTarget target) {
-        return new DefaultCallNode(target);
+    public DirectCallNode createDirectCallNode(CallTarget target) {
+        return new DefaultDirectCallNode(target);
+    }
+
+    public IndirectCallNode createIndirectCallNode() {
+        return new DefaultIndirectCallNode();
     }
 
     @Override
@@ -80,5 +84,15 @@ public final class DefaultTruffleRuntime implements TruffleRuntime {
     @Override
     public Assumption createAssumption(String name) {
         return new DefaultAssumption(name);
+    }
+
+    public Iterable<FrameInstance> getStackTrace() {
+        // TODO(lstadler) implement this using ThreadLocal
+        return null;
+    }
+
+    public FrameInstance getCurrentFrame() {
+        // TODO(lstadler) implement this using ThreadLocal
+        return null;
     }
 }

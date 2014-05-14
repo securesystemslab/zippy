@@ -40,7 +40,6 @@ import com.oracle.graal.nodes.HeapAccess.BarrierType;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.*;
-import com.oracle.graal.phases.util.*;
 import com.oracle.graal.replacements.*;
 import com.oracle.graal.replacements.Snippet.ConstantParameter;
 import com.oracle.graal.replacements.SnippetTemplate.AbstractTemplates;
@@ -72,7 +71,7 @@ public class WriteBarrierSnippets implements Snippets {
         Object fixedObject = FixedValueAnchorNode.getObject(object);
         Pointer oop;
         if (usePrecise) {
-            oop = Word.fromArray(fixedObject, location);
+            oop = Word.fromArray(fixedObject, SnippetLocationProxyNode.location(location));
         } else {
             oop = Word.fromObject(fixedObject);
         }
@@ -117,7 +116,7 @@ public class WriteBarrierSnippets implements Snippets {
         Object fixedObject = FixedValueAnchorNode.getObject(object);
         verifyOop(fixedObject);
         Object fixedExpectedObject = FixedValueAnchorNode.getObject(expectedObject);
-        Word field = (Word) Word.fromArray(fixedObject, location);
+        Word field = (Word) Word.fromArray(fixedObject, SnippetLocationProxyNode.location(location));
         Word previousOop = (Word) Word.fromObject(fixedExpectedObject);
         byte markingValue = thread.readByte(g1SATBQueueMarkingOffset());
         Word bufferAddress = thread.readWord(g1SATBQueueBufferOffset());
@@ -174,7 +173,7 @@ public class WriteBarrierSnippets implements Snippets {
         validateObject(fixedObject, fixedValue);
         Word oop;
         if (usePrecise) {
-            oop = (Word) Word.fromArray(fixedObject, location);
+            oop = (Word) Word.fromArray(fixedObject, SnippetLocationProxyNode.location(location));
         } else {
             oop = (Word) Word.fromObject(fixedObject);
         }
@@ -334,8 +333,8 @@ public class WriteBarrierSnippets implements Snippets {
 
         private final CompressEncoding oopEncoding;
 
-        public Templates(Providers providers, TargetDescription target, CompressEncoding oopEncoding) {
-            super(providers, target);
+        public Templates(HotSpotProviders providers, TargetDescription target, CompressEncoding oopEncoding) {
+            super(providers, providers.getSnippetReflection(), target);
             this.oopEncoding = oopEncoding;
         }
 

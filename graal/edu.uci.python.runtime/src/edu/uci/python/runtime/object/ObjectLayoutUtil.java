@@ -74,7 +74,7 @@ public class ObjectLayoutUtil {
         }
     }
 
-    protected static long getExactFieldOffsetOf(Class storageClass, String fieldName) throws NoSuchFieldException {
+    protected static long getExactFieldOffsetOf(Class<?> storageClass, String fieldName) throws NoSuchFieldException {
         Field field = storageClass.getDeclaredField(fieldName);
         assert field != null;
         return OFFSET_PROVIDER.objectFieldOffset(field);

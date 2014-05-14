@@ -90,6 +90,14 @@ public class FloatingReadPhase extends Phase {
             return lastMemorySnapshot.keySet();
         }
 
+        @Override
+        public void replaceLastLocationAccess(MemoryNode oldNode, MemoryNode newNode) {
+            for (Map.Entry<LocationIdentity, MemoryNode> entry : lastMemorySnapshot.entrySet()) {
+                if (entry.getValue() == oldNode) {
+                    entry.setValue(newNode);
+                }
+            }
+        }
     }
 
     private final ExecutionMode execmode;
@@ -183,7 +191,7 @@ public class FloatingReadPhase extends Phase {
         }
 
         @Override
-        protected Set<LocationIdentity> afterSplit(AbstractBeginNode node, Set<LocationIdentity> oldState) {
+        protected Set<LocationIdentity> afterSplit(BeginNode node, Set<LocationIdentity> oldState) {
             return new HashSet<>(oldState);
         }
 
@@ -284,7 +292,7 @@ public class FloatingReadPhase extends Phase {
         }
 
         @Override
-        protected MemoryMapImpl afterSplit(AbstractBeginNode node, MemoryMapImpl oldState) {
+        protected MemoryMapImpl afterSplit(BeginNode node, MemoryMapImpl oldState) {
             MemoryMapImpl result = new MemoryMapImpl(oldState);
             if (node.predecessor() instanceof InvokeWithExceptionNode) {
                 /*

@@ -113,6 +113,10 @@ ifneq ($(LP64), 1)
 CXXFLAGS/ostream.o += -D_FILE_OFFSET_BITS=64
 endif # ifneq ($(LP64), 1)
 
+ifeq ($(INCLUDE_GRAAL), true)
+  CXXFLAGS += -DGRAAL_VERSION="\"$(GRAAL_VERSION)\""
+endif
+
 # CFLAGS_WARN holds compiler options to suppress/enable warnings.
 CFLAGS += $(CFLAGS_WARN/BYFILE)
 
@@ -181,8 +185,10 @@ SHARK_PATHS := $(GAMMADIR)/src/share/vm/shark
 
 GRAAL_PATHS += $(call altsrc,$(HS_COMMON_SRC)/share/vm/graal)
 GRAAL_PATHS += $(call altsrc,$(HS_COMMON_SRC)/gpu/ptx/vm)
+GRAAL_PATHS += $(call altsrc,$(HS_COMMON_SRC)/gpu/hsail/vm)
 GRAAL_PATHS += $(HS_COMMON_SRC)/share/vm/graal
 GRAAL_PATHS += $(HS_COMMON_SRC)/gpu/ptx/vm
+GRAAL_PATHS += $(HS_COMMON_SRC)/gpu/hsail/vm
 
 # Include dirs per type.
 Src_Dirs/CORE      := $(CORE_PATHS)

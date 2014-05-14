@@ -298,10 +298,6 @@ class Klass : public Metadata {
   static ByteSize modifier_flags_offset()        { return in_ByteSize(offset_of(Klass, _modifier_flags)); }
   static ByteSize layout_helper_offset()         { return in_ByteSize(offset_of(Klass, _layout_helper)); }
   static ByteSize access_flags_offset()          { return in_ByteSize(offset_of(Klass, _access_flags)); }
-#ifdef GRAAL
-  static ByteSize next_sibling_offset()          { return in_ByteSize(offset_of(Klass, _next_sibling)); }
-  static ByteSize subklass_offset()              { return in_ByteSize(offset_of(Klass, _subklass)); }
-#endif
 
   // Unpacking layout_helper:
   enum {

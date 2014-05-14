@@ -31,6 +31,7 @@ import java.util.*;
 import java.util.Map.Entry;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.NodeClass.Position;
 import com.oracle.graal.nodes.*;
@@ -282,7 +283,7 @@ public class BinaryGraphPrinter implements GraphPrinter {
         } else if (object instanceof Enum<?>) {
             writeByte(POOL_ENUM);
             writePoolObject(object.getClass());
-            writeInt(((Enum) object).ordinal());
+            writeInt(((Enum<?>) object).ordinal());
         } else if (object instanceof JavaType) {
             JavaType type = (JavaType) object;
             writeByte(POOL_CLASS);

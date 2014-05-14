@@ -59,7 +59,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
 
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchUnboxedNode next;
-        private final Class cachedPrimaryType;
+        private final Class<?> cachedPrimaryType;
 
         public LinkedDispatchUnboxedNode(Object primary, PBuiltinMethod callee, UninitializedDispatchUnboxedNode next) {
             super(callee.getName());

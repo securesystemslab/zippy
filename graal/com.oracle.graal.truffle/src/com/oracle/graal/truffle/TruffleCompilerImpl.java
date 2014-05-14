@@ -66,7 +66,7 @@ public class TruffleCompilerImpl implements TruffleCompiler {
     private final TruffleCache truffleCache;
     private final ThreadPoolExecutor compileQueue;
 
-    private static final Class[] SKIPPED_EXCEPTION_CLASSES = new Class[]{UnexpectedResultException.class, SlowPathException.class, ArithmeticException.class};
+    private static final Class<?>[] SKIPPED_EXCEPTION_CLASSES = new Class[]{UnexpectedResultException.class, SlowPathException.class, ArithmeticException.class};
 
     public static final OptimisticOptimizations Optimizations = OptimisticOptimizations.ALL.remove(OptimisticOptimizations.Optimization.UseExceptionProbability,
                     OptimisticOptimizations.Optimization.RemoveNeverExecutedCode, OptimisticOptimizations.Optimization.UseTypeCheckedInlining, OptimisticOptimizations.Optimization.UseTypeCheckHints);
@@ -118,11 +118,12 @@ public class TruffleCompilerImpl implements TruffleCompiler {
     public Future<InstalledCode> compile(final OptimizedCallTarget compilable) {
         return compileQueue.submit(new Callable<InstalledCode>() {
             @Override
-            public InstalledCode call() throws Exception {
+            public InstalledCode call() {
                 try (Scope s = Debug.scope("Truffle", new TruffleDebugJavaMethod(compilable))) {
-                    return compileMethodImpl((OptimizedCallTargetImpl) compilable);
+                    return compileMethodImpl(compilable);
                 } catch (Throwable e) {
-                    throw Debug.handle(e);
+                    compilable.exceptionWhileCompiling(e);
+                    return null;
                 }
             }
         });
@@ -132,11 +133,11 @@ public class TruffleCompilerImpl implements TruffleCompiler {
     public static final DebugTimer CompilationTime = Debug.timer("CompilationTime");
     public static final DebugTimer CodeInstallationTime = Debug.timer("CodeInstallation");
 
-    private InstalledCode compileMethodImpl(final OptimizedCallTargetImpl compilable) {
+    private InstalledCode compileMethodImpl(final OptimizedCallTarget compilable) {
         final StructuredGraph graph;
 
         if (TraceTruffleCompilation.getValue()) {
-            OptimizedCallTargetImpl.logOptimizingStart(compilable);
+            OptimizedCallTargetLog.logOptimizingStart(compilable);
         }
 
         long timeCompilationStarted = System.nanoTime();
@@ -151,25 +152,21 @@ public class TruffleCompilerImpl implements TruffleCompiler {
 
         long timePartialEvaluationFinished = System.nanoTime();
         int nodeCountPartialEval = graph.getNodeCount();
-        InstalledCode compiledMethod = compileMethodHelper(graph, assumptions, compilable.toString(), compilable.getSpeculationLog());
+        InstalledCode compiledMethod = compileMethodHelper(graph, assumptions, compilable.toString(), compilable.getSpeculationLog(), compilable);
         long timeCompilationFinished = System.nanoTime();
         int nodeCountLowered = graph.getNodeCount();
 
-        if (compiledMethod == null) {
-            throw new BailoutException("Could not install method, code cache is full!");
-        }
-
         if (!compiledMethod.isValid()) {
-            return null;
+            throw new BailoutException("Could not install method, code cache is full!");
         }
 
         if (TraceTruffleCompilation.getValue()) {
             byte[] code = compiledMethod.getCode();
-            int calls = OptimizedCallUtils.countCalls(compilable.getInliningResult(), new TruffleCallPath(compilable));
-            int inlinedCalls = (compilable.getInliningResult() != null ? compilable.getInliningResult().size() : 0);
+            int calls = OptimizedCallUtils.countCalls(compilable);
+            int inlinedCalls = OptimizedCallUtils.countCallsInlined(compilable);
             int dispatchedCalls = calls - inlinedCalls;
             Map<String, Object> properties = new LinkedHashMap<>();
-            OptimizedCallTarget.addASTSizeProperty(compilable.getInliningResult(), new TruffleCallPath(compilable), properties);
+            OptimizedCallTargetLog.addASTSizeProperty(compilable, properties);
             properties.put("Time", String.format("%5.0f(%4.0f+%-4.0f)ms", //
                             (timeCompilationFinished - timeCompilationStarted) / 1e6, //
                             (timePartialEvaluationFinished - timeCompilationStarted) / 1e6, //
@@ -179,7 +176,7 @@ public class TruffleCompilerImpl implements TruffleCompiler {
             properties.put("CodeSize", code != null ? code.length : 0);
             properties.put("Source", formatSourceSection(compilable.getRootNode().getSourceSection()));
 
-            OptimizedCallTargetImpl.logOptimizingDone(compilable, properties);
+            OptimizedCallTargetLog.logOptimizingDone(compilable, properties);
         }
         return compiledMethod;
     }
@@ -188,7 +185,7 @@ public class TruffleCompilerImpl implements TruffleCompiler {
         return sourceSection != null ? sourceSection.toString() : "n/a";
     }
 
-    public InstalledCode compileMethodHelper(StructuredGraph graph, Assumptions assumptions, String name, SpeculationLog speculationLog) {
+    public InstalledCode compileMethodHelper(StructuredGraph graph, Assumptions assumptions, String name, SpeculationLog speculationLog, InstalledCode predefinedInstalledCode) {
         try (Scope s = Debug.scope("TruffleFinal")) {
             Debug.dump(graph, "After TruffleTier");
         } catch (Throwable e) {
@@ -224,7 +221,7 @@ public class TruffleCompilerImpl implements TruffleCompiler {
 
         InstalledCode installedCode;
         try (Scope s = Debug.scope("CodeInstall", providers.getCodeCache()); TimerCloseable a = CodeInstallationTime.start()) {
-            installedCode = providers.getCodeCache().addMethod(graph.method(), result, speculationLog);
+            installedCode = providers.getCodeCache().addMethod(graph.method(), result, speculationLog, predefinedInstalledCode);
         } catch (Throwable e) {
             throw Debug.handle(e);
         }

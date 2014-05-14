@@ -103,6 +103,40 @@ public abstract class GraalKernelTester extends KernelTester {
         return (canGenerateCalls && canExecuteCalls);
     }
 
+    private static boolean supportsObjectAllocation() {
+        return true;
+    }
+
+    /**
+     * Determines if the runtime supports object allocation in HSAIL code.
+     */
+    public boolean canHandleObjectAllocation() {
+        return supportsObjectAllocation() && canDeoptimize();
+    }
+
+    /**
+     * Determines if the runtime supports deoptimization in HSAIL code.
+     */
+    public boolean canDeoptimize() {
+        return getHSAILBackend().getRuntime().getConfig().useHSAILDeoptimization;
+    }
+
+    /**
+     * Determines if the runtime supports {@link VirtualObject}s in {@link DebugInfo} associated
+     * with HSAIL code.
+     */
+    public boolean canHandleDeoptVirtualObjects() {
+        return false;
+    }
+
+    /**
+     * Determines if the runtime supports {@link StackSlot}s in {@link DebugInfo} associated with
+     * HSAIL code.
+     */
+    public boolean canHandleDeoptStackSlots() {
+        return false;
+    }
+
     /**
      * Determines if the runtime has the capabilities required by this test.
      */
@@ -126,7 +160,7 @@ public abstract class GraalKernelTester extends KernelTester {
         }
     }
 
-    public static OptionValue<?> getOptionFromField(Class declaringClass, String fieldName) {
+    public static OptionValue<?> getOptionFromField(Class<?> declaringClass, String fieldName) {
         try {
             Field f = declaringClass.getDeclaredField(fieldName);
             f.setAccessible(true);
@@ -156,8 +190,8 @@ public abstract class GraalKernelTester extends KernelTester {
     @Override
     public void testGeneratedHsailUsingLambdaMethod() {
         try (OverrideScope s = getOverrideScope()) {
+            assumeTrue(supportsRequiredCapabilities());
             super.testGeneratedHsailUsingLambdaMethod();
         }
     }
-
 }

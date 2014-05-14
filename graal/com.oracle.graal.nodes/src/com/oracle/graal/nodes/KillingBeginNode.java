@@ -23,9 +23,11 @@
 package com.oracle.graal.nodes;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.extended.*;
 
-public class KillingBeginNode extends AbstractBeginNode implements MemoryCheckpoint.Single {
+@NodeInfo(allowedUsageTypes = {InputType.Memory})
+public class KillingBeginNode extends BeginNode implements MemoryCheckpoint.Single {
 
     private LocationIdentity locationIdentity;
 

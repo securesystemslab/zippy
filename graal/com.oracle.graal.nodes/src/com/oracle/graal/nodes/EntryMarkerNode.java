@@ -30,7 +30,8 @@ import com.oracle.graal.nodes.spi.*;
  * This node will be inserted at point specified by {@link StructuredGraph#getEntryBCI()}, usually
  * by the graph builder.
  */
-public class EntryMarkerNode extends AbstractBeginNode implements IterableNodeType, Simplifiable, LIRLowerable {
+@NodeInfo(allowedUsageTypes = {InputType.Association})
+public class EntryMarkerNode extends BeginStateSplitNode implements IterableNodeType, Simplifiable, LIRLowerable {
 
     @Override
     public void simplify(SimplifierTool tool) {

@@ -27,7 +27,6 @@ package edu.uci.python.nodes.function;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -119,7 +118,7 @@ public class GeneratorExpressionNode extends PNode {
     }
 
     public RootNode getFunctionRootNode() {
-        DefaultCallTarget defaultTarget = (DefaultCallTarget) callTarget;
+        RootCallTarget defaultTarget = callTarget;
         return defaultTarget.getRootNode();
     }
 

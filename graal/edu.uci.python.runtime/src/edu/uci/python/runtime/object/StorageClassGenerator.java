@@ -59,7 +59,7 @@ public final class StorageClassGenerator {
     }
 
     public GeneratedPythonObjectStorage generate() {
-        final Class storageClass = BytecodeLoader.makeClass(getValidClassName(), generateClassData(), PythonObject.class);
+        final Class<?> storageClass = BytecodeLoader.makeClass(getValidClassName(), generateClassData(), PythonObject.class);
         final MethodHandle ctor = lookupConstructor(storageClass);
         synchronizeObjectLayout(storageClass);
         return new GeneratedPythonObjectStorage(storageClass, ctor);
@@ -69,7 +69,7 @@ public final class StorageClassGenerator {
         return validClassName.replace('/', '.');
     }
 
-    private static MethodHandle lookupConstructor(Class storageClass) {
+    private static MethodHandle lookupConstructor(Class<?> storageClass) {
         try {
             MethodType mt = MethodType.methodType(PythonObject.class, PythonClass.class);
             return MethodHandles.lookup().findStatic(storageClass, CREATE, mt);
@@ -78,7 +78,7 @@ public final class StorageClassGenerator {
         }
     }
 
-    private void synchronizeObjectLayout(Class storageClass) {
+    private void synchronizeObjectLayout(Class<?> storageClass) {
         ObjectLayout oldLayout = pythonClass.getInstanceObjectLayout();
         ObjectLayout newLayout = oldLayout.switchObjectStorageClass(storageClass);
         pythonClass.updateInstanceObjectLayout(newLayout);
@@ -102,7 +102,7 @@ public final class StorageClassGenerator {
         return classWriter.toByteArray();
     }
 
-    private static Class getPrimitiveStoredClass(Class clazz) {
+    private static Class<?> getPrimitiveStoredClass(Class<?> clazz) {
         if (clazz == Integer.class) {
             return int.class;
         } else if (clazz == Boolean.class) {
@@ -114,7 +114,7 @@ public final class StorageClassGenerator {
         }
     }
 
-    private void addField(String name, Class clazz) {
+    private void addField(String name, Class<?> clazz) {
         fieldVisitor = classWriter.visitField(ACC_PROTECTED, name, CodegenUtils.ci(clazz), null, null);
         fieldVisitor.visitEnd();
     }

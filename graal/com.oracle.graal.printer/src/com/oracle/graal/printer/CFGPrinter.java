@@ -29,6 +29,7 @@ import java.util.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.compiler.alloc.*;
 import com.oracle.graal.compiler.alloc.Interval.UsePosList;
 import com.oracle.graal.compiler.gen.*;
@@ -37,6 +38,7 @@ import com.oracle.graal.graph.Node.Verbosity;
 import com.oracle.graal.graph.NodeClass.NodeClassIterator;
 import com.oracle.graal.graph.NodeClass.Position;
 import com.oracle.graal.java.*;
+import com.oracle.graal.java.BciBlockMapping.BciBlock;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
@@ -53,10 +55,11 @@ class CFGPrinter extends CompilationPrinter {
     protected NodeLIRBuilder nodeLirGenerator;
     protected ControlFlowGraph cfg;
     protected SchedulePhase schedule;
+    protected ResolvedJavaMethod method;
 
     /**
      * Creates a control flow graph printer.
-     * 
+     *
      * @param out where the output generated via this printer shown be written
      */
     public CFGPrinter(OutputStream out) {
@@ -65,7 +68,7 @@ class CFGPrinter extends CompilationPrinter {
 
     /**
      * Prints the control flow graph denoted by a given block map.
-     * 
+     *
      * @param label A label describing the compilation phase that produced the control flow graph.
      * @param blockMap A data structure describing the blocks in a method and how they are
      *            connected.
@@ -125,7 +128,7 @@ class CFGPrinter extends CompilationPrinter {
 
     /**
      * Prints the specified list of blocks.
-     * 
+     *
      * @param label A label describing the compilation phase that produced the control flow graph.
      * @param blocks The list of blocks to be printed.
      */
@@ -154,6 +157,12 @@ class CFGPrinter extends CompilationPrinter {
             printBlock(block, printNodes);
         }
         end("cfg");
+        // NOTE: we do this only because the c1visualizer does not recognize the bytecode block if
+        // it is proceeding the cfg blocks. Currently we have no direct influence on the emit order.
+        // As a workaround we dump the bytecode after every cfg.
+        if (method != null) {
+            printBytecodes(new BytecodeDisassembler(false).disassemble(method));
+        }
 
         latestScheduling = null;
     }
@@ -204,8 +213,13 @@ class CFGPrinter extends CompilationPrinter {
         begin("block");
 
         out.print("name \"").print(blockToString(block)).println('"');
-        out.println("from_bci -1");
-        out.println("to_bci -1");
+        if (block instanceof BciBlock) {
+            out.print("from_bci ").println(((BciBlock) block).startBci);
+            out.print("to_bci ").println(((BciBlock) block).endBci);
+        } else {
+            out.println("from_bci -1");
+            out.println("to_bci -1");
+        }
 
         out.print("predecessors ");
         for (AbstractBlock<?> pred : block.getPredecessors()) {
@@ -425,7 +439,7 @@ class CFGPrinter extends CompilationPrinter {
 
     /**
      * Prints the LIR for each instruction in a given block.
-     * 
+     *
      * @param block the block to print
      */
     private void printLIR(AbstractBlock<?> block) {
@@ -475,7 +489,7 @@ class CFGPrinter extends CompilationPrinter {
             return "-";
         }
         String prefix;
-        if (node instanceof AbstractBeginNode && (lir == null && schedule == null)) {
+        if (node instanceof BeginNode && (lir == null && schedule == null)) {
             prefix = "B";
         } else if (node instanceof ValueNode) {
             ValueNode value = (ValueNode) node;

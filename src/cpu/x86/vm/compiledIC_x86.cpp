@@ -78,27 +78,32 @@ CompiledIC::CompiledIC(nmethod* nm, NativeCall* call)
 // ----------------------------------------------------------------------------
 
 #define __ _masm.
-void CompiledStaticCall::emit_to_interp_stub(CodeBuffer &cbuf) {
+void CompiledStaticCall::emit_to_interp_stub(CodeBuffer &cbuf, address mark) {
   // Stub is fixed up when the corresponding call is converted from
   // calling compiled code to calling interpreted code.
   // movq rbx, 0
   // jmp -5 # to self
 
-  address mark = cbuf.insts_mark();  // Get mark within main instrs section.
+  if (mark == NULL) {
+    mark = cbuf.insts_mark();  // Get mark within main instrs section.
+  }
 
   // Note that the code buffer's insts_mark is always relative to insts.
   // That's why we must use the macroassembler to generate a stub.
   MacroAssembler _masm(&cbuf);
 
   address base =
-  __ start_a_stub(to_interp_stub_size()*2);
-  if (base == NULL) return;  // CodeBuffer::expand failed.
+  __ start_a_stub(to_interp_stub_size());
+  guarantee(base != NULL, "out of space");
+
   // Static stub relocation stores the instruction address of the call.
   __ relocate(static_stub_Relocation::spec(mark), Assembler::imm_operand);
   // Static stub relocation also tags the Method* in the code-stream.
   __ mov_metadata(rbx, (Metadata*) NULL);  // Method is zapped till fixup time.
   // This is recognized as unresolved by relocs/nativeinst/ic code.
   __ jump(RuntimeAddress(__ pc()));
+
+  assert(__ pc() - base <= to_interp_stub_size(), "wrong stub size"); 
 
   // Update current stubs pointer and restore insts_end.
   __ end_a_stub();
@@ -117,12 +122,6 @@ int CompiledStaticCall::reloc_to_interp_stub() {
 
 void CompiledStaticCall::set_to_interpreted(methodHandle callee, address entry) {
   address stub = find_stub();
-#ifdef GRAAL
-  if (stub == NULL) {
-    set_destination_mt_safe(entry);
-    return;
-  }
-#endif
   guarantee(stub != NULL, "stub not found");
 
   if (TraceICs) {
@@ -172,14 +171,12 @@ void CompiledStaticCall::verify() {
     verify_alignment();
   }
 
-#ifndef GRAAL
   // Verify stub.
   address stub = find_stub();
   assert(stub != NULL, "no stub found for static call");
   // Creation also verifies the object.
   NativeMovConstReg* method_holder = nativeMovConstReg_at(stub);
   NativeJump*        jump          = nativeJump_at(method_holder->next_instruction_address());
-#endif
 
   // Verify state.
   assert(is_clean() || is_call_to_compiled() || is_call_to_interpreted(), "sanity check");

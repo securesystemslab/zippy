@@ -407,7 +407,7 @@ public class ConditionalEliminationPhase extends Phase {
             }
         }
 
-        private void registerControlSplitInfo(Node pred, AbstractBeginNode begin) {
+        private void registerControlSplitInfo(Node pred, BeginNode begin) {
             assert pred != null && begin != null;
             if (begin instanceof LoopExitNode) {
                 state.clear();
@@ -656,8 +656,8 @@ public class ConditionalEliminationPhase extends Phase {
 
         @Override
         protected void node(FixedNode node) {
-            if (node instanceof AbstractBeginNode) {
-                AbstractBeginNode begin = (AbstractBeginNode) node;
+            if (node instanceof BeginNode) {
+                BeginNode begin = (BeginNode) node;
                 Node pred = node.predecessor();
 
                 if (pred != null) {
@@ -707,24 +707,16 @@ public class ConditionalEliminationPhase extends Phase {
                     if (nonNull) {
                         replacementAnchor = searchAnchor(GraphUtil.unproxify(object), type);
                     }
-                    ValueAnchorNode anchor = null;
-                    if (replacementAnchor == null) {
-                        anchor = graph.add(new ValueAnchorNode(null));
-                        replacementAnchor = anchor;
-                    }
+                    replacementAnchor = BeginNode.prevBegin(checkCast);
                     PiNode piNode;
                     if (isNull) {
-                        ConstantNode nullObject = ConstantNode.forObject(null, metaAccess, graph);
+                        ConstantNode nullObject = ConstantNode.defaultForKind(Kind.Object, graph);
                         piNode = graph.unique(new PiNode(nullObject, StampFactory.forConstant(nullObject.getValue(), metaAccess), replacementAnchor.asNode()));
                     } else {
                         piNode = graph.unique(new PiNode(object, StampFactory.declared(type, nonNull), replacementAnchor.asNode()));
                     }
                     checkCast.replaceAtUsages(piNode);
-                    if (anchor != null) {
-                        graph.replaceFixedWithFixed(checkCast, anchor);
-                    } else {
-                        graph.removeFixed(checkCast);
-                    }
+                    graph.removeFixed(checkCast);
                     metricCheckCastRemoved.increment();
                 }
             } else if (node instanceof ConditionAnchorNode) {
@@ -750,7 +742,7 @@ public class ConditionalEliminationPhase extends Phase {
 
                 LogicNode replacement = null;
                 ValueNode replacementAnchor = null;
-                AbstractBeginNode survivingSuccessor = null;
+                BeginNode survivingSuccessor = null;
                 if (state.trueConditions.containsKey(compare)) {
                     replacement = trueConstant;
                     replacementAnchor = state.trueConditions.get(compare);
@@ -772,7 +764,7 @@ public class ConditionalEliminationPhase extends Phase {
                 }
 
                 if (replacement != null) {
-                    if (!(replacementAnchor instanceof AbstractBeginNode)) {
+                    if (!(replacementAnchor instanceof BeginNode)) {
                         ValueAnchorNode anchor = graph.add(new ValueAnchorNode(replacementAnchor));
                         graph.addBeforeFixed(ifNode, anchor);
                     }
@@ -822,7 +814,7 @@ public class ConditionalEliminationPhase extends Phase {
                         if (!Objects.equals(type, ObjectStamp.typeOrNull(receiver))) {
                             ResolvedJavaMethod method = type.resolveMethod(callTarget.targetMethod());
                             if (method != null) {
-                                if (Modifier.isFinal(method.getModifiers()) || Modifier.isFinal(type.getModifiers())) {
+                                if (method.canBeStaticallyBound() || Modifier.isFinal(type.getModifiers())) {
                                     callTarget.setInvokeKind(InvokeKind.Special);
                                     callTarget.setTargetMethod(method);
                                 }
@@ -853,7 +845,7 @@ public class ConditionalEliminationPhase extends Phase {
             for (Node n : value.usages()) {
                 if (n instanceof ValueProxy) {
                     ValueProxy proxyNode = (ValueProxy) n;
-                    if (proxyNode.getOriginalValue() == value) {
+                    if (proxyNode.getOriginalNode() == value) {
                         GuardingNode result = searchAnchor((ValueNode) n, type);
                         if (result != null) {
                             return result;

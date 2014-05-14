@@ -292,6 +292,9 @@
   /* Support for Graal */                                                                                                             \
   template(com_oracle_graal_compiler_CompilerThread,                 "com/oracle/graal/compiler/CompilerThread")                      \
   template(java_util_BitSet,	                                       "java/util/BitSet")                                              \
+  /* graal.graph */                                                                                                                   \
+  template(com_oracle_graal_graph_Node,                              "com/oracle/graal/graph/Node")                                   \
+  template(com_oracle_graal_graph_NodeClass,                         "com/oracle/graal/graph/NodeClass")                              \
   /* graal.hotspot */                                                                                                                 \
   template(com_oracle_graal_hotspot_HotSpotGraalRuntime,             "com/oracle/graal/hotspot/HotSpotGraalRuntime")                  \
   template(com_oracle_graal_hotspot_HotSpotKlassOop,                 "com/oracle/graal/hotspot/HotSpotKlassOop")                      \
@@ -315,8 +318,13 @@
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,  "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod")       \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,  "com/oracle/graal/hotspot/meta/HotSpotResolvedObjectType")       \
   template(com_oracle_graal_hotspot_meta_HotSpotMonitorValue,        "com/oracle/graal/hotspot/meta/HotSpotMonitorValue")             \
+  template(com_oracle_graal_hotspot_meta_HotSpotObjectConstant,      "com/oracle/graal/hotspot/meta/HotSpotObjectConstant")           \
+  template(com_oracle_graal_hotspot_meta_HotSpotMetaspaceConstant,   "com/oracle/graal/hotspot/meta/HotSpotMetaspaceConstant")        \
+  template(com_oracle_graal_hotspot_HotSpotStackFrameReference,      "com/oracle/graal/hotspot/HotSpotStackFrameReference")           \
   /* graal.api.meta */                                                                                                                \
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
+  template(com_oracle_graal_api_meta_PrimitiveConstant,              "com/oracle/graal/api/meta/PrimitiveConstant")                   \
+  template(com_oracle_graal_api_meta_NullConstant,                   "com/oracle/graal/api/meta/NullConstant")                        \
   template(com_oracle_graal_api_meta_ConstantPool,                   "com/oracle/graal/api/meta/ConstantPool")                        \
   template(com_oracle_graal_api_meta_ExceptionHandler,               "com/oracle/graal/api/meta/ExceptionHandler")                    \
   template(com_oracle_graal_api_meta_JavaMethod,                     "com/oracle/graal/api/meta/JavaMethod")                          \
@@ -339,6 +347,7 @@
   template(com_oracle_graal_api_code_CompilationResult_Infopoint,    "com/oracle/graal/api/code/CompilationResult$Infopoint")         \
   template(com_oracle_graal_api_code_CompilationResult_Site,         "com/oracle/graal/api/code/CompilationResult$Site")              \
   template(com_oracle_graal_api_code_InfopointReason,                "com/oracle/graal/api/code/InfopointReason")                     \
+  template(com_oracle_graal_api_code_InstalledCode,                  "com/oracle/graal/api/code/InstalledCode")                       \
   template(com_oracle_graal_api_code_BytecodeFrame,                  "com/oracle/graal/api/code/BytecodeFrame")                       \
   template(com_oracle_graal_api_code_BytecodePosition,               "com/oracle/graal/api/code/BytecodePosition")                    \
   template(com_oracle_graal_api_code_DebugInfo,                      "com/oracle/graal/api/code/DebugInfo")                           \
@@ -352,7 +361,7 @@
   /* graal.gpu */                                                                                                                     \
   template(com_oracle_graal_gpu_ExternalCompilationResult,           "com/oracle/graal/gpu/ExternalCompilationResult")                \
   /* graal.truffle */                                                                                                                 \
-  template(com_oracle_graal_truffle_GraalTruffleRuntime,             "com/oracle/graal/truffle/GraalTruffleRuntime")                  \
+  template(com_oracle_graal_truffle_hotspot_HotSpotTruffleRuntime,   "com/oracle/graal/truffle/hotspot/HotSpotTruffleRuntime")        \
   template(startCompiler_name,                    "startCompiler")                                                                    \
   template(bootstrap_name,                        "bootstrap")                                                                        \
   template(compileTheWorld_name,                  "compileTheWorld")                                                                  \
@@ -367,7 +376,7 @@
   template(runtime_name,                          "runtime")                                                                          \
   template(runtime_signature,                     "()Lcom/oracle/graal/hotspot/HotSpotGraalRuntime;")                                 \
   template(makeInstance_name,                     "makeInstance")                                                                     \
-  template(makeInstance_signature,                "()Lcom/oracle/graal/truffle/GraalTruffleRuntime;")                                 \
+  template(makeInstance_signature,                "()Lcom/oracle/graal/truffle/hotspot/HotSpotTruffleRuntime;")                       \
   template(initialize_name,                       "initialize")                                                                       \
   template(forObject_name,                        "forObject")                                                                        \
   template(callbackInternal_name,                 "callbackInternal")                                                                 \

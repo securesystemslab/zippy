@@ -102,7 +102,9 @@ private:
   // extract the fields of the CompilationResult
   void initialize_fields(oop target_method);
   void initialize_assumptions(oop target_method);
-
+  
+  int estimate_stub_entries();
+  
   // perform data and call relocation on the CodeBuffer
   bool initialize_buffer(CodeBuffer& buffer);
 
@@ -120,28 +122,12 @@ private:
   void record_scope(jint pc_offset, oop code_pos, GrowableArray<ScopeValue*>* objects);
 
   void process_exception_handlers();
-
+  int estimateStubSpace(int static_call_stubs);
 };
 
 /**
  * Gets the Method metaspace object from a HotSpotResolvedJavaMethod Java object.
  */
 Method* getMethodFromHotSpotMethod(oop hotspot_method);
-
-#ifdef TARGET_ARCH_x86
-# include "graalCodeInstaller_x86.hpp"
-#endif
-#ifdef TARGET_ARCH_sparc
-# include "graalCodeInstaller_sparc.hpp"
-#endif
-#ifdef TARGET_ARCH_zero
-# error
-#endif
-#ifdef TARGET_ARCH_arm
-# error
-#endif
-#ifdef TARGET_ARCH_ppc
-# error
-#endif
 
 #endif // SHARE_VM_GRAAL_GRAAL_CODE_INSTALLER_HPP

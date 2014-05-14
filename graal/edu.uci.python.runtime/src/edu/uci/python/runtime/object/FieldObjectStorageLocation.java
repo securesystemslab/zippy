@@ -28,9 +28,9 @@ import com.oracle.truffle.api.*;
 
 public final class FieldObjectStorageLocation extends FieldStorageLocation {
 
-    private final Class storedClass;
+    private final Class<?> storedClass;
 
-    protected FieldObjectStorageLocation(ObjectLayout objectLayout, int index, long offset, Class storedClass) {
+    protected FieldObjectStorageLocation(ObjectLayout objectLayout, int index, long offset, Class<?> storedClass) {
         super(objectLayout, index, offset);
         this.storedClass = storedClass;
     }
@@ -47,7 +47,7 @@ public final class FieldObjectStorageLocation extends FieldStorageLocation {
     }
 
     @Override
-    public Class getStoredClass() {
+    public Class<?> getStoredClass() {
         return storedClass;
     }
 

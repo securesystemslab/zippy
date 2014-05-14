@@ -50,7 +50,20 @@ public interface TruffleRuntime {
      */
     RootCallTarget createCallTarget(RootNode rootNode);
 
-    CallNode createCallNode(CallTarget target);
+    /**
+     * Creates a new runtime specific version of {@link DirectCallNode}.
+     *
+     * @param target the direct {@link CallTarget} to call
+     * @return the new call node
+     */
+    DirectCallNode createDirectCallNode(CallTarget target);
+
+    /**
+     * Creates a new runtime specific version of {@link IndirectCallNode}.
+     *
+     * @return the new call node
+     */
+    IndirectCallNode createIndirectCallNode();
 
     /**
      * Creates a new assumption object that can be checked and invalidated.
@@ -90,4 +103,19 @@ public interface TruffleRuntime {
      * @return the newly created materialized frame object
      */
     MaterializedFrame createMaterializedFrame(Object[] arguments, FrameDescriptor frameDescriptor);
+
+    /**
+     * Accesses the current stack, i.e., the contents of the {@link Frame}s and the associated
+     * {@link CallTarget}s.
+     *
+     * @return a lazy collection of {@link FrameInstance}.
+     */
+    Iterable<FrameInstance> getStackTrace();
+
+    /**
+     * Accesses the current frame, i.e., the frame of the closest {@link CallTarget}. It is
+     * important to note that this {@link FrameInstance} supports only slow path access.
+     */
+    FrameInstance getCurrentFrame();
+
 }

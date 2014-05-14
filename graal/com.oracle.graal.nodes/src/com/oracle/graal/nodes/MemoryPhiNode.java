@@ -30,13 +30,14 @@ import com.oracle.graal.nodes.type.*;
 /**
  * The {@code PhiNode} represents the merging of dataflow in the memory graph.
  */
+@NodeInfo(nameTemplate = "MemoryPhi({i#values}) {p#locationIdentity/s}", allowedUsageTypes = {InputType.Memory})
 public class MemoryPhiNode extends PhiNode implements MemoryNode {
 
-    @Input final NodeInputList<ValueNode> values = new NodeInputList<>(this);
+    @Input(InputType.Memory) final NodeInputList<ValueNode> values = new NodeInputList<>(this);
     private final LocationIdentity locationIdentity;
 
     public MemoryPhiNode(MergeNode merge, LocationIdentity locationIdentity) {
-        super(StampFactory.dependency(), merge);
+        super(StampFactory.forVoid(), merge);
         this.locationIdentity = locationIdentity;
     }
 

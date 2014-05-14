@@ -23,6 +23,7 @@
 package com.oracle.graal.compiler.target;
 
 import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.code.stack.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.compiler.gen.*;
@@ -64,7 +65,11 @@ public abstract class Backend {
         return providers.getCodeCache().getTarget();
     }
 
-    public abstract FrameMap newFrameMap();
+    /**
+     * The given registerConfig is optional, in case null is passed the default RegisterConfig from
+     * the CodeCacheProvider will be used.
+     */
+    public abstract FrameMap newFrameMap(RegisterConfig registerConfig);
 
     public abstract LIRGenerator newLIRGenerator(CallingConvention cc, LIRGenerationResult lirGenRes);
 
@@ -92,12 +97,13 @@ public abstract class Backend {
 
     public abstract boolean shouldAllocateRegisters();
 
+    public abstract StackIntrospection getStackIntrospection();
+
     /**
      * Emits the code for a given graph.
      *
-     * @param installedCodeOwner the method the compiled code will be
-     *            {@linkplain InstalledCode#getMethod() associated} with once installed. This
-     *            argument can be null.
+     * @param installedCodeOwner the method the compiled code will be associated with once
+     *            installed. This argument can be null.
      */
     public abstract void emitCode(CompilationResultBuilder crb, LIR lir, ResolvedJavaMethod installedCodeOwner);
 

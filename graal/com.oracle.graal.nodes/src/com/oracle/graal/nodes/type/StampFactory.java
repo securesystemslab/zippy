@@ -24,7 +24,6 @@ package com.oracle.graal.nodes.type;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.nodes.type.GenericStamp.GenericStampType;
 
 public class StampFactory {
 
@@ -35,9 +34,6 @@ public class StampFactory {
     private static final Stamp objectStamp = new ObjectStamp(null, false, false, false);
     private static final Stamp objectNonNullStamp = new ObjectStamp(null, false, true, false);
     private static final Stamp objectAlwaysNullStamp = new ObjectStamp(null, false, false, true);
-    private static final Stamp dependencyStamp = new GenericStamp(GenericStampType.Dependency);
-    private static final Stamp extensionStamp = new GenericStamp(GenericStampType.Extension);
-    private static final Stamp conditionStamp = new GenericStamp(GenericStampType.Condition);
     private static final Stamp nodeIntrinsicStamp = new ObjectStamp(null, false, false, false);
     private static final Stamp positiveInt = forInteger(Kind.Int, 0, Integer.MAX_VALUE, 0, Integer.MAX_VALUE);
 
@@ -53,7 +49,7 @@ public class StampFactory {
         } else {
             mask = IntegerStamp.defaultMask(bits);
         }
-        setCache(kind, new IntegerStamp(bits, false, kind.getMinValue(), kind.getMaxValue(), 0, mask));
+        setCache(kind, new IntegerStamp(bits, kind.getMinValue(), kind.getMaxValue(), 0, mask));
     }
 
     private static void setFloatCache(Kind kind) {
@@ -73,8 +69,13 @@ public class StampFactory {
 
         setCache(Kind.Object, objectStamp);
         setCache(Kind.Void, VoidStamp.getInstance());
+
         for (Kind k : Kind.values()) {
-            illegalStampCache[k.ordinal()] = new IllegalStamp(k);
+            if (stampCache[k.ordinal()] != null) {
+                illegalStampCache[k.ordinal()] = stampCache[k.ordinal()].illegal();
+            } else {
+                illegalStampCache[k.ordinal()] = IllegalStamp.getInstance();
+            }
         }
     }
 
@@ -106,20 +107,12 @@ public class StampFactory {
         return forKind(Kind.Int);
     }
 
-    public static Stamp dependency() {
-        return dependencyStamp;
-    }
-
-    public static Stamp extension() {
-        return extensionStamp;
-    }
-
-    public static Stamp condition() {
-        return conditionStamp;
-    }
-
     public static Stamp positiveInt() {
         return positiveInt;
+    }
+
+    public static Stamp illegal() {
+        return illegal(Kind.Illegal);
     }
 
     public static Stamp illegal(Kind kind) {
@@ -127,21 +120,21 @@ public class StampFactory {
     }
 
     public static IntegerStamp forInteger(Kind kind, long lowerBound, long upperBound, long downMask, long upMask) {
-        return new IntegerStamp(kind.getBitCount(), kind.isUnsigned(), lowerBound, upperBound, downMask, upMask);
+        return new IntegerStamp(kind.getBitCount(), lowerBound, upperBound, downMask, upMask);
     }
 
     public static IntegerStamp forInteger(Kind kind, long lowerBound, long upperBound) {
-        return forInteger(kind.getBitCount(), kind.isUnsigned(), lowerBound, upperBound);
+        return forInteger(kind.getBitCount(), lowerBound, upperBound);
     }
 
-    public static IntegerStamp forInteger(int bits, boolean unsigned) {
-        return new IntegerStamp(bits, unsigned, IntegerStamp.defaultMinValue(bits, unsigned), IntegerStamp.defaultMaxValue(bits, unsigned), 0, IntegerStamp.defaultMask(bits));
+    public static IntegerStamp forInteger(int bits) {
+        return new IntegerStamp(bits, IntegerStamp.defaultMinValue(bits), IntegerStamp.defaultMaxValue(bits), 0, IntegerStamp.defaultMask(bits));
     }
 
-    public static IntegerStamp forInteger(int bits, boolean unsigned, long lowerBound, long upperBound) {
+    public static IntegerStamp forInteger(int bits, long lowerBound, long upperBound) {
         long defaultMask = IntegerStamp.defaultMask(bits);
         if (lowerBound == upperBound) {
-            return new IntegerStamp(bits, unsigned, lowerBound, lowerBound, lowerBound & defaultMask, lowerBound & defaultMask);
+            return new IntegerStamp(bits, lowerBound, lowerBound, lowerBound & defaultMask, lowerBound & defaultMask);
         }
         final long downMask;
         final long upMask;
@@ -165,7 +158,7 @@ public class StampFactory {
                 downMask = lowerBound & ~(-1L >>> (lowerBoundLeadingOnes + sameBitCount)) | ~(-1L >>> lowerBoundLeadingOnes);
             }
         }
-        return new IntegerStamp(bits, unsigned, lowerBound, upperBound, downMask & defaultMask, upMask & defaultMask);
+        return new IntegerStamp(bits, lowerBound, upperBound, downMask & defaultMask, upMask & defaultMask);
     }
 
     public static FloatStamp forFloat(Kind kind, double lowerBound, double upperBound, boolean nonNaN) {
