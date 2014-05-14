@@ -1,11 +1,8 @@
 package edu.uci.python.nodes.profiler;
 
-import java.util.*;
-
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.instrument.*;
-//import com.oracle.truffle.api.instrument.*;
-import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
@@ -23,7 +20,8 @@ public class PythonWrapperNode extends PNode implements Wrapper {
         this.child = child;
         // this.child = insert(child);
         // context.getInstrumentation().getProbe will generate a probe
-        this.probe = context.getInstrumentation().getProbe(child.getSourceSection(), null);
+        // this.probe = context.getInstrumentation().getProbe(child.getSourceSection(), null);
+        this.probe = context.getProbe(child.getSourceSection());
     }
 
     @Override
@@ -45,20 +43,27 @@ public class PythonWrapperNode extends PNode implements Wrapper {
         return result;
     }
 
-    public boolean isTaggedAs(PhylumTag tag) {
-        return probe.isTaggedAs(tag);
-    }
-
-    public Set<PhylumTag> getPhylumTags() {
-        return probe.getPhylumTags();
-    }
-
-    public Node getChild() {
+    public PNode getChild() {
         return child;
     }
 
     public Probe getProbe() {
         return probe;
+    }
+
+    @SlowPath
+    public boolean isTaggedAs(PhylumTag tag) {
+        return probe.isTaggedAs(tag);
+    }
+
+    @SlowPath
+    public Iterable<PhylumTag> getPhylumTags() {
+        return probe.getPhylumTags();
+    }
+
+    @SlowPath
+    public void tagAs(PhylumTag tag) {
+        probe.tagAs(tag);
     }
 
 }

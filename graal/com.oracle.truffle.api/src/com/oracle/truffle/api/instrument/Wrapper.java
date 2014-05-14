@@ -59,7 +59,6 @@ import com.oracle.truffle.api.nodes.*;
  * <p>
  * <strong>Disclaimer:</strong> experimental interface under development.
  *
- * @see Instrumentation
  * @see Probe
  * @see ExecutionEvents
  */

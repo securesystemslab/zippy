@@ -31,6 +31,7 @@ import java.util.concurrent.*;
 
 import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.instrument.*;
+import com.oracle.truffle.api.instrument.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.builtin.*;
@@ -201,16 +202,21 @@ public class PythonContext extends AbstractExecutionContext {
         return "PYTHON";
     }
 
-    @Override
-    public void setInstrumentEventListener(InstrumentEventListener listener) {
+    public void addNodeProber(ASTNodeProber nodeProber) throws IllegalStateException, IllegalArgumentException {
         // TODO Auto-generated method stub
 
     }
 
     @Override
-    public InstrumentEventListener getInstrumentEventListener() {
+    public void setASTProber(ASTProber astProber) {
         // TODO Auto-generated method stub
-        return null;
+
+    }
+
+    @Override
+    protected void setSourceCallback(SourceCallback sourceCallback) {
+        // TODO Auto-generated method stub
+
     }
 
 }

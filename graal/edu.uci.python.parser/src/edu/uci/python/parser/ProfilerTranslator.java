@@ -5,8 +5,6 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.generator.ComprehensionNode.ListComprehensionNode;
 import edu.uci.python.nodes.literal.*;
-import edu.uci.python.nodes.object.GetAttributeNode.UnboxedGetMethodNode;
-import edu.uci.python.nodes.object.GetAttributeNode.UninitializedGetAttributeNode;
 import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.nodes.subscript.*;
 import edu.uci.python.runtime.*;

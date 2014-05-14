@@ -51,7 +51,6 @@ import com.oracle.truffle.api.nodes.*;
  * <strong>Disclaimer:</strong> experimental interface under development. In particular, the
  * <em>notify</em> methods must be migrated to another interface.
  *
- * @see Instrumentation
  * @see Instrument
  * @see Wrapper
  */
@@ -77,18 +76,6 @@ public interface Probe extends PhylumTagged {
      * Removes an instrument from this probe.
      */
     void removeInstrument(Instrument oldInstrument);
-
-    /**
-     * Change <em>stepping mode</em>, which is used in association with nodes tagged as
-     * {@linkplain PhylumTag#STATEMENT statements}.
-     */
-    void setStepping(boolean stepping);
-
-    /**
-     * Value of <em>stepping mode</em>, which is used in association with nodes tagged as
-     * {@linkplain PhylumTag#STATEMENT statements}.
-     */
-    boolean isStepping();
 
     // TODO (mlvdv) migrate the remaining methods to another interface.
 

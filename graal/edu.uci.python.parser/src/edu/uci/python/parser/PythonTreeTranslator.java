@@ -37,7 +37,6 @@ import org.python.google.common.collect.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -104,7 +103,9 @@ public class PythonTreeTranslator extends Visitor {
 
         // System.out.println("ASSIGN SOURCE SECTION line " + startLine + " startColumn " +
 // startColumn + " for " + truffleNode);
-        SourceSection sourceSection = new DefaultSourceSection(source, identifier, startLine, startColumn, charIndex, charLength);
+        SourceSection sourceSection = source.createSection(identifier, startLine, startColumn, charIndex, charLength);
+        // SourceSection sourceSection = new DefaultSourceSection(source, identifier, startLine,
+// startColumn, charIndex, charLength);
         truffleNode.assignSourceSection(sourceSection);
         return truffleNode;
     }

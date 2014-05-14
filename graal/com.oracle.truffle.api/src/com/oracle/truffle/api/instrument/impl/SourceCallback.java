@@ -22,35 +22,16 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.instrument;
+package com.oracle.truffle.api.instrument.impl;
+
+import com.oracle.truffle.api.*;
 
 /**
- * Program element "tags", presumed to be singletons (best implemented as enums) that define
- * user-visible behavior for debugging and other simple tools. These categories (<em>phyla</em>)
- * should correspond to program structures that are meaningful to a guest language programmer.
- * <p>
- * An untagged Truffle node should be understood as an artifact of the guest language implementation
- * and should not be visible to the user of a guest language programming tool. Nodes may also have
- * more than one tag, for example a variable assignment that is also a statement. Finally, the
- * assignment of tags to nodes could depending on the use-case of whatever tool is using them.
- * <p>
- * <strong>Disclaimer:</strong> experimental interface under development.
- *
- * @see Probe
- * @see Wrapper
- * @see StandardTag
+ * Instrumentation callback for guest language source-related events.
  */
-public interface PhylumTag {
+public interface SourceCallback {
 
-    /**
-     * Human-friendly name of guest language program elements belonging to the category, e.g.
-     * "statement".
-     */
-    String name();
+    public void startLoading(Source source);
 
-    /**
-     * Criteria and example uses for the tag.
-     */
-    String getDescription();
-
+    public void endLoading(Source source);
 }

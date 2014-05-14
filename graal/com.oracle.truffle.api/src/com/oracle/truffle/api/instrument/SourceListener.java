@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,36 +22,30 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.instrument.impl;
+package com.oracle.truffle.api.instrument;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.instrument.*;
-import com.oracle.truffle.api.nodes.*;
 
 /**
- * Minimal, mostly no-op implementation of instrumentation services.
+ * A client of the instrumentation framework that requests event notifications from the language
+ * engine when sources are loaded.
+ * <p>
+ * <strong>Disclaimer:</strong> experimental interface under development.
  */
-public final class NullInstrumentEventListener implements InstrumentEventListener {
+public interface SourceListener {
 
-    public static final InstrumentEventListener INSTANCE = new NullInstrumentEventListener();
+    /**
+     * The guest language runtime is starting to load a source. Care should be taken to ensure that
+     * under any circumstance there is always a following call to {@link #loadEnding(Source)} with
+     * the same argument.
+     */
+    void loadStarting(Source source);
 
-    private NullInstrumentEventListener() {
-    }
-
-    public void callEntering(Node astNode, String name) {
-    }
-
-    public void callReturned(Node astNode, String name) {
-    }
-
-    public void haltedAt(Node astNode, MaterializedFrame frame) {
-    }
-
-    public void loadStarting(Source source) {
-    }
-
-    public void loadEnding(Source source) {
-    }
+    /**
+     * The guest language runtime has finished loading a source. Care should be taken to ensure that
+     * under any circumstance there is always a prior call to {@link #loadStarting(Source)} with the
+     * same argument.
+     */
+    void loadEnding(Source source);
 
 }

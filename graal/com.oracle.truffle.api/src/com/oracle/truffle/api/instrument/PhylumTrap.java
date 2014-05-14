@@ -24,21 +24,26 @@
  */
 package com.oracle.truffle.api.instrument;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.instrument.impl.*;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 /**
- * Factory for the instance of {@link Instrumentation} that must be attached to each runtime
- * {@linkplain ExecutionContext context} for a Truffle-implemented guest language.
- *
- * @see Instrumentation
- * @see Probe
- * @see Wrapper
+ * A trap that can be set to interrupt execution at probed nodes carrying a specific tag.
  */
-public class InstrumentationFactory {
+public abstract class PhylumTrap {
 
-    public static Instrumentation create(ExecutionContext context) {
-        return new InstrumentationImpl(context);
+    private final PhylumTag tag;
+
+    protected PhylumTrap(PhylumTag tag) {
+        this.tag = tag;
     }
 
+    public final PhylumTag getTag() {
+        return tag;
+    }
+
+    /**
+     * Callback that will be received whenever execution enters a node with the specified tag.
+     */
+    public abstract void phylumTrappedAt(Node node, MaterializedFrame frame);
 }
