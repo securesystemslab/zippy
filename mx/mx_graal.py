@@ -957,7 +957,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
         f_testfile.close()
         harness(projectscp, vmArgs)
 
-def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, enable_timing=False, regex=None):
+def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, enable_timing=False, regex=None, color=False):
     mxdir = dirname(__file__)
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
@@ -976,6 +976,8 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
         coreArgs.append('-JUnitVerbose')
     if enable_timing:
         coreArgs.append('-JUnitEnableTiming')
+    if color:
+        coreArgs.append('-JUnitColor')
 
 
     def harness(projectscp, vmArgs):
@@ -1006,6 +1008,7 @@ _unittestHelpSuffix = """
       --verbose              enable verbose JUnit output
       --enable-timing        enable JUnit test timing
       --regex <regex>        run only testcases matching a regular expression
+      --color                enable colors output
 
     To avoid conflicts with VM options '--' can be used as delimiter.
 
@@ -1046,6 +1049,7 @@ def unittest(args):
     parser.add_argument('--verbose', help='enable verbose JUnit output', action='store_true')
     parser.add_argument('--enable-timing', help='enable JUnit test timing', action='store_true')
     parser.add_argument('--regex', help='run only testcases matching a regular expression', metavar='<regex>')
+    parser.add_argument('--color', help='enable color output', action='store_true')
 
     ut_args = []
     delimiter = False
@@ -1072,7 +1076,7 @@ def unittest(args):
         except IOError:
             mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
 
-    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist, verbose=parsed_args.verbose, enable_timing=parsed_args.enable_timing, regex=parsed_args.regex)
+    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist, verbose=parsed_args.verbose, enable_timing=parsed_args.enable_timing, regex=parsed_args.regex, color=parsed_args.color)
 
 def shortunittest(args):
     """alias for 'unittest --whitelist test/whitelist_shortunittest.txt'{0}"""

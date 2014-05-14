@@ -568,7 +568,7 @@ project@com.oracle.graal.printer@workingSets=Graal,Graph
 # graal.test
 project@com.oracle.graal.test@subDir=graal
 project@com.oracle.graal.test@sourceDirs=src
-project@com.oracle.graal.test@dependencies=JUNIT
+project@com.oracle.graal.test@dependencies=JUNIT,com.oracle.graal.debug
 project@com.oracle.graal.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.test@javaCompliance=1.8
 project@com.oracle.graal.test@workingSets=Graal,Test
