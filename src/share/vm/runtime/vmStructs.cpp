@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -90,6 +90,7 @@
 #include "runtime/deoptimization.hpp"
 #include "runtime/vframeArray.hpp"
 #include "runtime/globals.hpp"
+#include "runtime/gpu.hpp"
 #include "runtime/java.hpp"
 #include "runtime/javaCalls.hpp"
 #include "runtime/perfMemory.hpp"
@@ -145,15 +146,15 @@
 #ifdef TARGET_OS_ARCH_linux_ppc
 # include "vmStructs_linux_ppc.hpp"
 #endif
-#ifdef TARGET_OS_ARCH_aix_ppc
-# include "vmStructs_aix_ppc.hpp"
-#endif
 #ifdef TARGET_OS_ARCH_bsd_x86
 # include "vmStructs_bsd_x86.hpp"
 #endif
 #ifdef TARGET_OS_ARCH_bsd_zero
 # include "vmStructs_bsd_zero.hpp"
 #endif
+
+#include "hsail/vm/vmStructs_hsail.hpp"
+
 #if INCLUDE_ALL_GCS
 #include "gc_implementation/concurrentMarkSweep/compactibleFreeListSpace.hpp"
 #include "gc_implementation/concurrentMarkSweep/concurrentMarkSweepGeneration.hpp"
@@ -204,13 +205,10 @@
 #ifdef TARGET_ARCH_MODEL_arm
 # include "adfiles/adGlobals_arm.hpp"
 #endif
-#ifdef TARGET_ARCH_MODEL_ppc_32
-# include "adfiles/adGlobals_ppc_32.hpp"
+#ifdef TARGET_ARCH_MODEL_ppc
+# include "adfiles/adGlobals_ppc.hpp"
 #endif
-#ifdef TARGET_ARCH_MODEL_ppc_64
-# include "adfiles/adGlobals_ppc_64.hpp"
 #endif
-#endif // COMPILER2
 
 // Note: the cross-product of (c1, c2, product, nonproduct, ...),
 // (nonstatic, static), and (unchecked, checked) has not been taken.
@@ -251,6 +249,7 @@ typedef TwoOopHashtable<Klass*, mtClass>      KlassTwoOopHashtable;
 typedef Hashtable<Klass*, mtClass>            KlassHashtable;
 typedef HashtableEntry<Klass*, mtClass>       KlassHashtableEntry;
 typedef TwoOopHashtable<Symbol*, mtClass>     SymbolTwoOopHashtable;
+typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
 
 //--------------------------------------------------------------------------------
 // VM_STRUCTS
@@ -1220,9 +1219,9 @@ typedef TwoOopHashtable<Symbol*, mtClass>     SymbolTwoOopHashtable;
   c2_nonstatic_field(Block,              _pre_order,               uint)                                                             \
   c2_nonstatic_field(Block,              _dom_depth,               uint)                                                             \
   c2_nonstatic_field(Block,              _idom,                    Block*)                                                           \
-  c2_nonstatic_field(Block,              _freq,                    jdouble)                                                          \
+  c2_nonstatic_field(Block,              _freq,                    jfloat)                                                           \
                                                                                                                                      \
-  c2_nonstatic_field(CFGElement,         _freq,                    jdouble)                                                          \
+  c2_nonstatic_field(CFGElement,         _freq,                    jfloat)                                                           \
                                                                                                                                      \
   c2_nonstatic_field(Block_List,         _cnt,                     uint)                                                             \
                                                                                                                                      \
@@ -1330,8 +1329,11 @@ typedef TwoOopHashtable<Symbol*, mtClass>     SymbolTwoOopHashtable;
   volatile_nonstatic_field(FreeChunk,          _size,                                        size_t)                                 \
   nonstatic_field(FreeChunk,                   _next,                                        FreeChunk*)                             \
   nonstatic_field(FreeChunk,                   _prev,                                        FreeChunk*)                             \
-  nonstatic_field(AdaptiveFreeList<FreeChunk>, _size,                                        size_t)                                 \
-  nonstatic_field(AdaptiveFreeList<FreeChunk>, _count,                                       ssize_t)
+  nonstatic_field(FreeList<FreeChunk>,         _size,                                        size_t)                                 \
+  nonstatic_field(FreeList<Metablock>,         _size,                                        size_t)                                 \
+  nonstatic_field(FreeList<FreeChunk>,         _count,                                       ssize_t)                                \
+  nonstatic_field(FreeList<Metablock>,         _count,                                       ssize_t)                                \
+  nonstatic_field(MetablockTreeDictionary,     _total_size,                                  size_t)
 
 //--------------------------------------------------------------------------------
 // VM_TYPES
@@ -1860,8 +1862,6 @@ typedef TwoOopHashtable<Symbol*, mtClass>     SymbolTwoOopHashtable;
   declare_c2_type(MemBarNode, MultiNode)                                  \
   declare_c2_type(MemBarAcquireNode, MemBarNode)                          \
   declare_c2_type(MemBarReleaseNode, MemBarNode)                          \
-  declare_c2_type(LoadFenceNode, MemBarNode)                              \
-  declare_c2_type(StoreFenceNode, MemBarNode)                             \
   declare_c2_type(MemBarVolatileNode, MemBarNode)                         \
   declare_c2_type(MemBarCPUOrderNode, MemBarNode)                         \
   declare_c2_type(InitializeNode, MemBarNode)                             \
@@ -1986,6 +1986,15 @@ typedef TwoOopHashtable<Symbol*, mtClass>     SymbolTwoOopHashtable;
   declare_c2_type(CmpF3Node, CmpFNode)                                    \
   declare_c2_type(CmpDNode, CmpNode)                                      \
   declare_c2_type(CmpD3Node, CmpDNode)                                    \
+  declare_c2_type(MathExactNode, MultiNode)                               \
+  declare_c2_type(MathExactINode, MathExactNode)                          \
+  declare_c2_type(AddExactINode, MathExactINode)                          \
+  declare_c2_type(AddExactLNode, MathExactLNode)                          \
+  declare_c2_type(SubExactINode, MathExactINode)                          \
+  declare_c2_type(SubExactLNode, MathExactLNode)                          \
+  declare_c2_type(NegExactINode, MathExactINode)                          \
+  declare_c2_type(MulExactINode, MathExactINode)                          \
+  declare_c2_type(FlagsProjNode, ProjNode)                                \
   declare_c2_type(BoolNode, Node)                                         \
   declare_c2_type(AbsNode, Node)                                          \
   declare_c2_type(AbsINode, AbsNode)                                      \
@@ -2066,15 +2075,6 @@ typedef TwoOopHashtable<Symbol*, mtClass>     SymbolTwoOopHashtable;
   declare_c2_type(ExtractLNode, ExtractNode)                              \
   declare_c2_type(ExtractFNode, ExtractNode)                              \
   declare_c2_type(ExtractDNode, ExtractNode)                              \
-  declare_c2_type(OverflowNode, CmpNode)                                  \
-  declare_c2_type(OverflowINode, OverflowNode)                            \
-  declare_c2_type(OverflowAddINode, OverflowINode)                        \
-  declare_c2_type(OverflowSubINode, OverflowINode)                        \
-  declare_c2_type(OverflowMulINode, OverflowINode)                        \
-  declare_c2_type(OverflowLNode, OverflowNode)                            \
-  declare_c2_type(OverflowAddLNode, OverflowLNode)                        \
-  declare_c2_type(OverflowSubLNode, OverflowLNode)                        \
-  declare_c2_type(OverflowMulLNode, OverflowLNode)                        \
                                                                           \
   /*********************/                                                 \
   /* Adapter Blob Entries */                                              \
@@ -2203,8 +2203,14 @@ typedef TwoOopHashtable<Symbol*, mtClass>     SymbolTwoOopHashtable;
                                                                           \
   /* freelist */                                                          \
   declare_toplevel_type(FreeChunk*)                                       \
-  declare_toplevel_type(AdaptiveFreeList<FreeChunk>*)                     \
-  declare_toplevel_type(AdaptiveFreeList<FreeChunk>)
+  declare_toplevel_type(Metablock*)                                       \
+  declare_toplevel_type(FreeBlockDictionary<FreeChunk>*)                  \
+  declare_toplevel_type(FreeList<FreeChunk>*)                             \
+  declare_toplevel_type(FreeList<FreeChunk>)                              \
+  declare_toplevel_type(FreeBlockDictionary<Metablock>*)                  \
+  declare_toplevel_type(FreeList<Metablock>*)                             \
+  declare_toplevel_type(FreeList<Metablock>)                              \
+  declare_type(MetablockTreeDictionary, FreeBlockDictionary<Metablock>)
 
 
 //--------------------------------------------------------------------------------
@@ -2446,7 +2452,6 @@ typedef TwoOopHashtable<Symbol*, mtClass>     SymbolTwoOopHashtable;
   declare_constant(DataLayout::call_type_data_tag)                        \
   declare_constant(DataLayout::virtual_call_type_data_tag)                \
   declare_constant(DataLayout::parameters_type_data_tag)                  \
-  declare_constant(DataLayout::speculative_trap_data_tag)                 \
                                                                           \
   /*************************************/                                 \
   /* InstanceKlass enum                */                                 \
@@ -2641,7 +2646,6 @@ typedef TwoOopHashtable<Symbol*, mtClass>     SymbolTwoOopHashtable;
   declare_constant(OopMapValue::register_mask_in_place)                   \
   declare_constant(OopMapValue::unused_value)                             \
   declare_constant(OopMapValue::oop_value)                                \
-  declare_constant(OopMapValue::value_value)                              \
   declare_constant(OopMapValue::narrowoop_value)                          \
   declare_constant(OopMapValue::callee_saved_value)                       \
   declare_constant(OopMapValue::derived_oop_value)                        \
@@ -3035,6 +3039,8 @@ VMStructEntry VMStructs::localHotSpotVMStructs[] = {
                  GENERATE_C1_UNCHECKED_STATIC_VM_STRUCT_ENTRY,
                  GENERATE_C2_UNCHECKED_STATIC_VM_STRUCT_ENTRY)
 
+  VM_STRUCTS_GPU_HSAIL(GENERATE_NONSTATIC_VM_STRUCT_ENTRY)
+          
   VM_STRUCTS_OS_CPU(GENERATE_NONSTATIC_VM_STRUCT_ENTRY,
                     GENERATE_STATIC_VM_STRUCT_ENTRY,
                     GENERATE_UNCHECKED_NONSTATIC_VM_STRUCT_ENTRY,
@@ -3084,6 +3090,9 @@ VMTypeEntry VMStructs::localHotSpotVMTypes[] = {
                GENERATE_C1_TOPLEVEL_VM_TYPE_ENTRY,
                GENERATE_C2_VM_TYPE_ENTRY,
                GENERATE_C2_TOPLEVEL_VM_TYPE_ENTRY)
+
+  VM_TYPES_GPU_HSAIL(GENERATE_VM_TYPE_ENTRY,
+               GENERATE_TOPLEVEL_VM_TYPE_ENTRY)
 
   VM_TYPES_OS_CPU(GENERATE_VM_TYPE_ENTRY,
                   GENERATE_TOPLEVEL_VM_TYPE_ENTRY,
@@ -3189,6 +3198,8 @@ VMStructs::init() {
                  CHECK_NO_OP,
                  CHECK_NO_OP);
 
+  VM_STRUCTS_GPU_HSAIL(CHECK_NONSTATIC_VM_STRUCT_ENTRY);
+
   VM_STRUCTS_OS_CPU(CHECK_NONSTATIC_VM_STRUCT_ENTRY,
                     CHECK_STATIC_VM_STRUCT_ENTRY,
                     CHECK_NO_OP,
@@ -3228,6 +3239,9 @@ VMStructs::init() {
                CHECK_C1_TOPLEVEL_VM_TYPE_ENTRY,
                CHECK_C2_VM_TYPE_ENTRY,
                CHECK_C2_TOPLEVEL_VM_TYPE_ENTRY);
+
+  VM_TYPES_GPU_HSAIL(CHECK_VM_TYPE_ENTRY,
+               CHECK_SINGLE_ARG_VM_TYPE_NO_OP);
 
   VM_TYPES_OS_CPU(CHECK_VM_TYPE_ENTRY,
                   CHECK_SINGLE_ARG_VM_TYPE_NO_OP,

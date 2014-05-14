@@ -53,9 +53,10 @@ public final class ReadNode extends FloatableAccessNode implements LIRLowerable,
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         Value address = location().generateAddress(gen, gen.operand(object()));
-        gen.setResult(this, gen.emitLoad(location().getValueKind(), address, this));
+        PlatformKind readKind = gen.getLIRGeneratorTool().getPlatformKind(stamp());
+        gen.setResult(this, gen.getLIRGeneratorTool().emitLoad(readKind, address, this));
     }
 
     @Override
@@ -162,5 +163,9 @@ public final class ReadNode extends FloatableAccessNode implements LIRLowerable,
                 }
             }
         }
+    }
+
+    public boolean canNullCheck() {
+        return true;
     }
 }

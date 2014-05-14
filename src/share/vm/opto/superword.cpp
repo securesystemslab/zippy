@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -441,7 +441,6 @@ bool SuperWord::ref_is_alignable(SWPointer& p) {
     return true;   // no induction variable
   }
   CountedLoopEndNode* pre_end = get_pre_loop_end(lp()->as_CountedLoop());
-  assert(pre_end != NULL, "we must have a correct pre-loop");
   assert(pre_end->stride_is_con(), "pre loop stride is constant");
   int preloop_stride = pre_end->stride_con();
 
@@ -1982,7 +1981,7 @@ void SuperWord::align_initial_loop_index(MemNode* align_to_ref) {
   CountedLoopNode *main_head = lp()->as_CountedLoop();
   assert(main_head->is_main_loop(), "");
   CountedLoopEndNode* pre_end = get_pre_loop_end(main_head);
-  assert(pre_end != NULL, "we must have a correct pre-loop");
+  assert(pre_end != NULL, "");
   Node *pre_opaq1 = pre_end->limit();
   assert(pre_opaq1->Opcode() == Op_Opaque1, "");
   Opaque1Node *pre_opaq = (Opaque1Node*)pre_opaq1;
@@ -2146,8 +2145,7 @@ CountedLoopEndNode* SuperWord::get_pre_loop_end(CountedLoopNode *cl) {
   if (!p_f->is_IfFalse()) return NULL;
   if (!p_f->in(0)->is_CountedLoopEnd()) return NULL;
   CountedLoopEndNode *pre_end = p_f->in(0)->as_CountedLoopEnd();
-  CountedLoopNode* loop_node = pre_end->loopnode();
-  if (loop_node == NULL || !loop_node->is_pre_loop()) return NULL;
+  if (!pre_end->loopnode()->is_pre_loop()) return NULL;
   return pre_end;
 }
 

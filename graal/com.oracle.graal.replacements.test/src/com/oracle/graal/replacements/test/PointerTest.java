@@ -36,7 +36,7 @@ import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.replacements.*;
-import com.oracle.graal.replacements.ReplacementsImpl.*;
+import com.oracle.graal.replacements.ReplacementsImpl.FrameStateProcessing;
 import com.oracle.graal.replacements.Snippet.SnippetInliningPolicy;
 import com.oracle.graal.word.*;
 import com.oracle.graal.word.nodes.*;
@@ -109,7 +109,7 @@ public class PointerTest extends GraalCompilerTest implements Snippets {
     private void assertRead(StructuredGraph graph, Kind kind, boolean indexConvert, LocationIdentity locationIdentity) {
         WordCastNode cast = (WordCastNode) graph.start().next();
 
-        ReadNode read = (ReadNode) cast.next();
+        JavaReadNode read = (JavaReadNode) cast.next();
         Assert.assertEquals(kind.getStackKind(), read.stamp().getStackKind());
 
         Assert.assertEquals(cast, read.object());
@@ -137,7 +137,7 @@ public class PointerTest extends GraalCompilerTest implements Snippets {
     private void assertWrite(StructuredGraph graph, Kind kind, boolean indexConvert, LocationIdentity locationIdentity) {
         WordCastNode cast = (WordCastNode) graph.start().next();
 
-        WriteNode write = (WriteNode) cast.next();
+        JavaWriteNode write = (JavaWriteNode) cast.next();
         Assert.assertEquals(graph.getParameter(2), write.value());
         Assert.assertEquals(FrameState.AFTER_BCI, write.stateAfter().bci);
 

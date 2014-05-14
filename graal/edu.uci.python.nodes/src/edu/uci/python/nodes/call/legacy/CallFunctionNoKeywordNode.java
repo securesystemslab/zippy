@@ -141,7 +141,7 @@ public class CallFunctionNoKeywordNode extends PNode {
 
     public Object executeCall(VirtualFrame frame, PythonCallable callable) {
         final Object[] args = PythonCallUtil.executeArguments(frame, arguments);
-        return callable.call(frame.pack(), args);
+        return callable.call(args);
     }
 
     @SlowPath

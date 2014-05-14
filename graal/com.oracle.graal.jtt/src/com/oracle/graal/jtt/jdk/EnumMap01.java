@@ -24,8 +24,9 @@ package com.oracle.graal.jtt.jdk;
 
 import java.util.*;
 
-import com.oracle.graal.jtt.*;
 import org.junit.*;
+
+import com.oracle.graal.jtt.*;
 
 /*
  */
@@ -44,7 +45,9 @@ public class EnumMap01 extends JTTTest {
     }
 
     private enum Enum {
-        A, B, C
+        A,
+        B,
+        C
     }
 
     @Test

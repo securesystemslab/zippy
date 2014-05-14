@@ -103,7 +103,7 @@ public abstract class GraalCompilerTest extends GraalTest {
     /**
      * Set up a test for a non-default backend. The test should check (via {@link #getBackend()} )
      * whether the desired backend is available.
-     * 
+     *
      * @param arch the name of the desired backend architecture
      */
     public GraalCompilerTest(Class<? extends Architecture> arch) {
@@ -142,7 +142,7 @@ public abstract class GraalCompilerTest extends GraalTest {
     }
 
     protected void assertEquals(StructuredGraph expected, StructuredGraph graph) {
-        assertEquals(expected, graph, false);
+        assertEquals(expected, graph, false, true);
     }
 
     protected int countUnusedConstants(StructuredGraph graph) {
@@ -165,9 +165,9 @@ public abstract class GraalCompilerTest extends GraalTest {
         return graph.getNodeCount() - countUnusedConstants(graph);
     }
 
-    protected void assertEquals(StructuredGraph expected, StructuredGraph graph, boolean excludeVirtual) {
-        String expectedString = getCanonicalGraphString(expected, excludeVirtual);
-        String actualString = getCanonicalGraphString(graph, excludeVirtual);
+    protected void assertEquals(StructuredGraph expected, StructuredGraph graph, boolean excludeVirtual, boolean checkConstants) {
+        String expectedString = getCanonicalGraphString(expected, excludeVirtual, checkConstants);
+        String actualString = getCanonicalGraphString(graph, excludeVirtual, checkConstants);
         String mismatchString = "mismatch in graphs:\n========= expected =========\n" + expectedString + "\n\n========= actual =========\n" + actualString;
 
         if (!excludeVirtual && getNodeCountExcludingUnusedConstants(expected) != getNodeCountExcludingUnusedConstants(graph)) {
@@ -183,7 +183,7 @@ public abstract class GraalCompilerTest extends GraalTest {
     }
 
     protected void assertConstantReturn(StructuredGraph graph, int value) {
-        String graphString = getCanonicalGraphString(graph, false);
+        String graphString = getCanonicalGraphString(graph, false, true);
         Assert.assertEquals("unexpected number of ReturnNodes: " + graphString, graph.getNodes(ReturnNode.class).count(), 1);
         ValueNode result = graph.getNodes(ReturnNode.class).first().result();
         Assert.assertTrue("unexpected ReturnNode result node: " + graphString, result.isConstant());
@@ -191,7 +191,7 @@ public abstract class GraalCompilerTest extends GraalTest {
         Assert.assertEquals("unexpected ReturnNode result: " + graphString, result.asConstant().asInt(), value);
     }
 
-    protected static String getCanonicalGraphString(StructuredGraph graph, boolean excludeVirtual) {
+    protected static String getCanonicalGraphString(StructuredGraph graph, boolean excludeVirtual, boolean checkConstants) {
         SchedulePhase schedule = new SchedulePhase();
         schedule.apply(graph);
 
@@ -219,7 +219,7 @@ public abstract class GraalCompilerTest extends GraalTest {
                             id = nextId++;
                             canonicalId.set(node, id);
                         }
-                        String name = node instanceof ConstantNode ? node.toString(Verbosity.Name) : node.getClass().getSimpleName();
+                        String name = node instanceof ConstantNode && checkConstants ? node.toString(Verbosity.Name) : node.getClass().getSimpleName();
                         result.append("  " + id + "|" + name + (excludeVirtual ? "\n" : "    (" + node.usages().count() + ")\n"));
                     }
                 }
@@ -262,7 +262,7 @@ public abstract class GraalCompilerTest extends GraalTest {
 
     /**
      * Parses a Java method to produce a graph.
-     * 
+     *
      * @param methodName the name of the method in {@code this.getClass()} to be parsed
      */
     protected StructuredGraph parse(String methodName) {
@@ -498,10 +498,10 @@ public abstract class GraalCompilerTest extends GraalTest {
     }
 
     private CompilationResult compileBaseline(ResolvedJavaMethod javaMethod) {
-        try (Scope bds = Debug.scope("CompileBaseline")) {
+        try (Scope bds = Debug.scope("CompileBaseline", javaMethod, providers.getCodeCache())) {
             BaselineCompiler baselineCompiler = new BaselineCompiler(GraphBuilderConfiguration.getDefault(), providers.getMetaAccess());
-            baselineCompiler.generate(javaMethod, -1);
-            return null;
+            OptimisticOptimizations optimisticOpts = OptimisticOptimizations.ALL;
+            return baselineCompiler.generate(javaMethod, -1, getBackend(), new CompilationResult(), javaMethod, CompilationResultBuilderFactory.Default, optimisticOpts);
         } catch (Throwable e) {
             throw Debug.handle(e);
         }
@@ -528,7 +528,7 @@ public abstract class GraalCompilerTest extends GraalTest {
 
     /**
      * Prepends a non-null receiver argument to a given list or args.
-     * 
+     *
      * @param receiver the receiver argument to prepend if it is non-null
      */
     protected Object[] argsWithReceiver(Object receiver, Object... args) {
@@ -613,7 +613,7 @@ public abstract class GraalCompilerTest extends GraalTest {
 
     /**
      * Gets installed code for a given method and graph, compiling it first if necessary.
-     * 
+     *
      * @param forceCompile specifies whether to ignore any previous code cached for the (method,
      *            key) pair
      */
@@ -675,7 +675,7 @@ public abstract class GraalCompilerTest extends GraalTest {
 
     /**
      * Parses a Java method to produce a graph.
-     * 
+     *
      * @param methodName the name of the method in {@code this.getClass()} to be parsed
      */
     protected StructuredGraph parseProfiled(String methodName) {
@@ -730,7 +730,7 @@ public abstract class GraalCompilerTest extends GraalTest {
 
     /**
      * Inject a probability for a branch condition into the profiling information of this test case.
-     * 
+     *
      * @param p the probability that cond is true
      * @param cond the condition of the branch
      * @return cond
@@ -742,7 +742,7 @@ public abstract class GraalCompilerTest extends GraalTest {
     /**
      * Inject an iteration count for a loop condition into the profiling information of this test
      * case.
-     * 
+     *
      * @param i the iteration count of the loop
      * @param cond the condition of the loop
      * @return cond

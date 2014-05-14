@@ -389,21 +389,28 @@ class CollectedHeap : public CHeapObj<mtInternal> {
   // allocation from them and necessitating allocation of new TLABs.
   virtual void ensure_parsability(bool retire_tlabs);
 
+  // Return an estimate of the maximum allocation that could be performed
+  // without triggering any collection or expansion activity.  In a
+  // generational collector, for example, this is probably the largest
+  // allocation that could be supported (without expansion) in the youngest
+  // generation.  It is "unsafe" because no locks are taken; the result
+  // should be treated as an approximation, not a guarantee, for use in
+  // heuristic resizing decisions.
+  virtual size_t unsafe_max_alloc() = 0;
+
   // Section on thread-local allocation buffers (TLABs)
   // If the heap supports thread-local allocation buffers, it should override
   // the following methods:
   // Returns "true" iff the heap supports thread-local allocation buffers.
   // The default is "no".
-  virtual bool supports_tlab_allocation() const = 0;
-
+  virtual bool supports_tlab_allocation() const {
+    return false;
+  }
   // The amount of space available for thread-local allocation buffers.
-  virtual size_t tlab_capacity(Thread *thr) const = 0;
-
-  // The amount of used space for thread-local allocation buffers for the given thread.
-  virtual size_t tlab_used(Thread *thr) const = 0;
-
-  virtual size_t max_tlab_size() const;
-
+  virtual size_t tlab_capacity(Thread *thr) const {
+    guarantee(false, "thread-local allocation buffers not supported");
+    return 0;
+  }
   // An estimate of the maximum allocation that could be performed
   // for thread-local allocation buffers without triggering any
   // collection or expansion activity.

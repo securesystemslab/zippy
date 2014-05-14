@@ -36,7 +36,13 @@ public class MathIntrinsicNode extends FloatingNode implements Canonicalizable, 
     private final Operation operation;
 
     public enum Operation {
-        ABS, SQRT, LOG, LOG10, SIN, COS, TAN
+        ABS,
+        SQRT,
+        LOG,
+        LOG10,
+        SIN,
+        COS,
+        TAN
     }
 
     public ValueNode x() {
@@ -55,30 +61,30 @@ public class MathIntrinsicNode extends FloatingNode implements Canonicalizable, 
     }
 
     @Override
-    public void generate(ArithmeticLIRGenerator gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         Value input = gen.operand(x());
         Value result;
         switch (operation()) {
             case ABS:
-                result = gen.emitMathAbs(input);
+                result = gen.getLIRGeneratorTool().emitMathAbs(input);
                 break;
             case SQRT:
-                result = gen.emitMathSqrt(input);
+                result = gen.getLIRGeneratorTool().emitMathSqrt(input);
                 break;
             case LOG:
-                result = gen.emitMathLog(input, false);
+                result = gen.getLIRGeneratorTool().emitMathLog(input, false);
                 break;
             case LOG10:
-                result = gen.emitMathLog(input, true);
+                result = gen.getLIRGeneratorTool().emitMathLog(input, true);
                 break;
             case SIN:
-                result = gen.emitMathSin(input);
+                result = gen.getLIRGeneratorTool().emitMathSin(input);
                 break;
             case COS:
-                result = gen.emitMathCos(input);
+                result = gen.getLIRGeneratorTool().emitMathCos(input);
                 break;
             case TAN:
-                result = gen.emitMathTan(input);
+                result = gen.getLIRGeneratorTool().emitMathTan(input);
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();

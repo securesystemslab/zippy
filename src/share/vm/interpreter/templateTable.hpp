@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,11 +40,8 @@
 #ifdef TARGET_ARCH_MODEL_arm
 # include "interp_masm_arm.hpp"
 #endif
-#ifdef TARGET_ARCH_MODEL_ppc_32
-# include "interp_masm_ppc_32.hpp"
-#endif
-#ifdef TARGET_ARCH_MODEL_ppc_64
-# include "interp_masm_ppc_64.hpp"
+#ifdef TARGET_ARCH_MODEL_ppc
+# include "interp_masm_ppc.hpp"
 #endif
 
 #ifndef CC_INTERP
@@ -373,8 +370,8 @@ class TemplateTable: AllStatic {
 #ifdef TARGET_ARCH_MODEL_arm
 # include "templateTable_arm.hpp"
 #endif
-#ifdef TARGET_ARCH_MODEL_ppc_32
-# include "templateTable_ppc_32.hpp"
+#ifdef TARGET_ARCH_MODEL_ppc
+# include "templateTable_ppc.hpp"
 #endif
 
 };

@@ -37,7 +37,7 @@ public final class ReturnNode extends ControlSinkNode implements LIRLowerable, I
 
     /**
      * Constructs a new Return instruction.
-     * 
+     *
      * @param result the instruction producing the result for this return; {@code null} if this is a
      *            void return
      */
@@ -57,8 +57,12 @@ public final class ReturnNode extends ControlSinkNode implements LIRLowerable, I
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
-        gen.visitReturn(this);
+    public void generate(NodeLIRBuilderTool gen) {
+        if (this.result() == null) {
+            gen.getLIRGeneratorTool().emitReturn(null);
+        } else {
+            gen.getLIRGeneratorTool().emitReturn(gen.operand(this.result()));
+        }
     }
 
     public void setMemoryMap(MemoryMapNode memoryMap) {

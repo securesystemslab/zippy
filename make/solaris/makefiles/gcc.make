@@ -1,5 +1,5 @@
 #
-# Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -118,7 +118,7 @@ endif
 # Compiler warnings are treated as errors 
 WARNINGS_ARE_ERRORS = -Werror 
 # Enable these warnings. See 'info gcc' about details on these options
-WARNING_FLAGS = -Wpointer-arith -Wconversion -Wsign-compare -Wundef -Wformat=2 -Wno-error=format-nonliteral
+WARNING_FLAGS = -Wpointer-arith -Wconversion -Wsign-compare -Wundef
 CFLAGS_WARN/DEFAULT = $(WARNINGS_ARE_ERRORS) $(WARNING_FLAGS)
 # Special cases 
 CFLAGS_WARN/BYFILE = $(CFLAGS_WARN/$@)$(CFLAGS_WARN/DEFAULT$(CFLAGS_WARN/$@))  

@@ -22,20 +22,15 @@
  */
 package com.oracle.graal.replacements.hsail;
 
-import com.oracle.graal.api.meta.Constant;
-import com.oracle.graal.api.meta.Value;
-import com.oracle.graal.compiler.hsail.HSAILLIRGenerator;
-import com.oracle.graal.graph.GraalInternalError;
-import com.oracle.graal.graph.Node;
-import com.oracle.graal.graph.spi.Canonicalizable;
-import com.oracle.graal.graph.spi.CanonicalizerTool;
-import com.oracle.graal.lir.hsail.HSAILArithmetic;
-import com.oracle.graal.nodes.calc.FloatingNode;
-import com.oracle.graal.nodes.ConstantNode;
-import com.oracle.graal.nodes.ValueNode;
-import com.oracle.graal.nodes.spi.ArithmeticLIRGenerator;
-import com.oracle.graal.nodes.spi.ArithmeticLIRLowerable;
-import com.oracle.graal.nodes.type.StampFactory;
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.hsail.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.lir.hsail.*;
+import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 
 /**
  * This node implements HSAIL intrinsics for specific {@link Math} routines.
@@ -86,24 +81,24 @@ public class HSAILMathIntrinsicsNode extends FloatingNode implements Canonicaliz
      * Generates the LIR instructions for the math operation represented by this node.
      */
     @Override
-    public void generate(ArithmeticLIRGenerator gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         Value input = gen.operand(getParameter());
         Value result;
         switch (operation()) {
             case ABS:
-                result = gen.emitMathAbs(input);
+                result = gen.getLIRGeneratorTool().emitMathAbs(input);
                 break;
             case CEIL:
-                result = ((HSAILLIRGenerator) (gen)).emitMathCeil(input);
+                result = ((HSAILLIRGenerator) (gen.getLIRGeneratorTool())).emitMathCeil(input);
                 break;
             case FLOOR:
-                result = ((HSAILLIRGenerator) (gen)).emitMathFloor(input);
+                result = ((HSAILLIRGenerator) (gen.getLIRGeneratorTool())).emitMathFloor(input);
                 break;
             case RINT:
-                result = ((HSAILLIRGenerator) (gen)).emitMathRint(input);
+                result = ((HSAILLIRGenerator) (gen.getLIRGeneratorTool())).emitMathRint(input);
                 break;
             case SQRT:
-                result = gen.emitMathSqrt(input);
+                result = gen.getLIRGeneratorTool().emitMathSqrt(input);
                 break;
 
             default:
@@ -175,4 +170,5 @@ public class HSAILMathIntrinsicsNode extends FloatingNode implements Canonicaliz
      */
     @NodeIntrinsic
     public static native double compute(double value, @ConstantNodeParameter HSAILArithmetic op);
+
 }

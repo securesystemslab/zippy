@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -448,7 +448,7 @@ HeapWord* G1BlockOffsetArray::block_start_careful(const void* addr) const {
 
   // Otherwise, find the block start using the table, but taking
   // care (cf block_start_unsafe() above) not to parse any objects/blocks
-  // on the cards themselves.
+  // on the cards themsleves.
   size_t index = _array->index_for(addr);
   assert(_array->address_for_index(index) == addr,
          "arg should be start of card");

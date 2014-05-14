@@ -46,7 +46,7 @@ public abstract class PythonBuiltinNode extends PNode {
     public abstract PythonContext getContext();
 
     protected boolean emptyArguments(VirtualFrame frame) {
-        PArguments args = frame.getArguments(PArguments.class);
+        PArguments args = PArguments.get(frame);
         return args.getArgumentsLength() == 0;
     }
 
@@ -63,7 +63,7 @@ public abstract class PythonBuiltinNode extends PNode {
             throw new IllegalStateException();
         }
 
-        return callable.call(null, new Object[]{obj}).toString();
+        return callable.call(new Object[]{obj}).toString();
     }
 
 }

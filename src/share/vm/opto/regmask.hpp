@@ -43,11 +43,8 @@
 #ifdef TARGET_ARCH_MODEL_arm
 # include "adfiles/adGlobals_arm.hpp"
 #endif
-#ifdef TARGET_ARCH_MODEL_ppc_32
-# include "adfiles/adGlobals_ppc_32.hpp"
-#endif
-#ifdef TARGET_ARCH_MODEL_ppc_64
-# include "adfiles/adGlobals_ppc_64.hpp"
+#ifdef TARGET_ARCH_MODEL_ppc
+# include "adfiles/adGlobals_ppc.hpp"
 #endif
 
 // Some fun naming (textual) substitutions:

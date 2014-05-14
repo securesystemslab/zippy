@@ -105,7 +105,7 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
                 throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
             }
 
-            return callee.call(frame.pack(), arguments);
+            return callee.call(arguments);
         }
     }
 

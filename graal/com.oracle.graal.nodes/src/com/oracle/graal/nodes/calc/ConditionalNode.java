@@ -109,7 +109,7 @@ public final class ConditionalNode extends BinaryNode implements Canonicalizable
     }
 
     @Override
-    public void generate(LIRGeneratorTool generator) {
+    public void generate(NodeLIRBuilderTool generator) {
         generator.emitConditional(this);
     }
 

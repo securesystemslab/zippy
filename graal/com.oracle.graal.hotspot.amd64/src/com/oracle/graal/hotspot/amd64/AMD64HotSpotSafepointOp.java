@@ -30,7 +30,7 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.amd64.*;
 import com.oracle.graal.hotspot.*;
-import com.oracle.graal.hotspot.meta.HotSpotCodeCacheProvider.*;
+import com.oracle.graal.hotspot.meta.HotSpotCodeCacheProvider.MarkId;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.amd64.*;
 import com.oracle.graal.lir.asm.*;
@@ -47,11 +47,11 @@ public class AMD64HotSpotSafepointOp extends AMD64LIRInstruction {
 
     private final HotSpotVMConfig config;
 
-    public AMD64HotSpotSafepointOp(LIRFrameState state, HotSpotVMConfig config, LIRGeneratorTool tool) {
+    public AMD64HotSpotSafepointOp(LIRFrameState state, HotSpotVMConfig config, NodeLIRBuilderTool tool) {
         this.state = state;
         this.config = config;
         if (isPollingPageFar(config) || ImmutableCode.getValue()) {
-            temp = tool.newVariable(tool.target().wordKind);
+            temp = tool.getLIRGeneratorTool().newVariable(tool.getLIRGeneratorTool().target().wordKind);
         } else {
             // Don't waste a register if it's unneeded
             temp = Value.ILLEGAL;

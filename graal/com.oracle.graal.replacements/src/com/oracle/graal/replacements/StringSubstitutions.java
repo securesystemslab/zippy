@@ -30,6 +30,8 @@ import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.replacements.nodes.*;
 
+import edu.umd.cs.findbugs.annotations.*;
+
 /**
  * Substitutions for {@link java.lang.String} methods.
  */
@@ -39,7 +41,7 @@ public class StringSubstitutions {
     /**
      * Offset of the {@link String#value} field.
      */
-    @SuppressWarnings("javadoc") private static final long valueOffset;
+    @java.lang.SuppressWarnings("javadoc") private static final long valueOffset;
 
     static {
         try {
@@ -51,6 +53,7 @@ public class StringSubstitutions {
     }
 
     @MethodSubstitution(isStatic = false)
+    @SuppressFBWarnings(value = "ES_COMPARING_PARAMETER_STRING_WITH_EQ", justification = "reference equality on the receiver is what we want")
     public static boolean equals(final String thisString, Object obj) {
         if (thisString == obj) {
             return true;

@@ -33,7 +33,7 @@ import com.oracle.graal.hotspot.meta.*;
 
 /**
  * Used to access native configuration details.
- * 
+ *
  * All non-static, public fields in this class are so that they can be compiled as constants.
  */
 public class HotSpotVMConfig extends CompilerObject {
@@ -42,7 +42,7 @@ public class HotSpotVMConfig extends CompilerObject {
 
     /**
      * Determines if the current architecture is included in a given architecture set specification.
-     * 
+     *
      * @param currentArch
      * @param archsSpecification specifies a set of architectures. A zero length value implies all
      *            architectures.
@@ -58,6 +58,11 @@ public class HotSpotVMConfig extends CompilerObject {
         }
         return false;
     }
+
+    /**
+     * Maximum allowed size of allocated area for a frame.
+     */
+    public final int maxFrameSize = 16 * 1024;
 
     HotSpotVMConfig(CompilerToVM compilerToVm) {
         /** These fields are set in {@link CompilerToVM#initializeConfiguration}. */
@@ -611,10 +616,9 @@ public class HotSpotVMConfig extends CompilerObject {
             nameOffset = vmStructs.get("Flag::_name").getOffset();
             addrOffset = vmStructs.get("Flag::_addr").getOffset();
 
-            // TODO use the following after we switched to JDK 8
-            assert vmTypes.get("bool").getSize() == Byte.SIZE / Byte.SIZE; // TODO Byte.BYTES;
-            assert vmTypes.get("intx").getSize() == Long.SIZE / Byte.SIZE; // TODO Long.BYTES;
-            assert vmTypes.get("uintx").getSize() == Long.SIZE / Byte.SIZE; // TODO Long.BYTES;
+            assert vmTypes.get("bool").getSize() == Byte.BYTES;
+            assert vmTypes.get("intx").getSize() == Long.BYTES;
+            assert vmTypes.get("uintx").getSize() == Long.BYTES;
         }
 
         public Iterator<Flags.Flag> iterator() {
@@ -895,7 +899,7 @@ public class HotSpotVMConfig extends CompilerObject {
 
     /**
      * Address of the library lookup routine. The C signature of this routine is:
-     * 
+     *
      * <pre>
      *     void* (const char *filename, char *ebuf, int ebuflen)
      * </pre>
@@ -904,7 +908,7 @@ public class HotSpotVMConfig extends CompilerObject {
 
     /**
      * Address of the library lookup routine. The C signature of this routine is:
-     * 
+     *
      * <pre>
      *     void* (void* handle, const char* name)
      * </pre>
@@ -1004,6 +1008,26 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMField(name = "ThreadShadow::_pending_deoptimization", type = "int", get = HotSpotVMField.Type.OFFSET) @Stable public int pendingDeoptimizationOffset;
     @HotSpotVMField(name = "ThreadShadow::_pending_failed_speculation", type = "oop", get = HotSpotVMField.Type.OFFSET) @Stable public int pendingFailedSpeculationOffset;
 
+    @HotSpotVMFlag(name = "UseHSAILDeoptimization") @Stable public boolean useHSAILDeoptimization;
+
+    /**
+     * Offsets of Hsail deoptimization fields (defined in gpu_hsail.hpp). Used to propagate
+     * exceptions from Hsail back to C++ runtime.
+     */
+    @HotSpotVMField(name = "Hsail::HSAILDeoptimizationInfo::_deopt_save_states[0]", type = "Hsail::HSAILKernelDeoptimization", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailSaveStatesOffset0;
+    @HotSpotVMField(name = "Hsail::HSAILDeoptimizationInfo::_deopt_save_states[1]", type = "Hsail::HSAILKernelDeoptimization", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailSaveStatesOffset1;
+    @HotSpotVMField(name = "Hsail::HSAILDeoptimizationInfo::_deopt_occurred", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailDeoptOffset;
+    @HotSpotVMField(name = "Hsail::HSAILDeoptimizationInfo::_never_ran_array", type = "jboolean *", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailNeverRanArrayOffset;
+    @HotSpotVMField(name = "Hsail::HSAILDeoptimizationInfo::_deopt_next_index", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailDeoptNextIndexOffset;
+
+    @HotSpotVMField(name = "Hsail::HSAILKernelDeoptimization::_workitemid", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailDeoptimizationWorkItem;
+    @HotSpotVMField(name = "Hsail::HSAILKernelDeoptimization::_actionAndReason", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailDeoptimizationReason;
+    @HotSpotVMField(name = "Hsail::HSAILKernelDeoptimization::_first_frame", type = "HSAILFrame", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailDeoptimizationFrame;
+
+    @HotSpotVMField(name = "HSAILFrame::_pc_offset", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailFramePcOffset;
+    @HotSpotVMField(name = "HSAILFrame::_num_s_regs", type = "jbyte", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailFrameNumSRegOffset;
+    @HotSpotVMField(name = "HSAILFrame::_save_area[0]", type = "jlong", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailFrameSaveAreaOffset;
+
     /**
      * Mark word right shift to get identity hash code.
      */
@@ -1089,6 +1113,7 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMConstant(name = "JVM_CONSTANT_MethodHandleInError") @Stable public int jvmConstantMethodHandleInError;
     @HotSpotVMConstant(name = "JVM_CONSTANT_MethodType") @Stable public int jvmConstantMethodType;
     @HotSpotVMConstant(name = "JVM_CONSTANT_MethodTypeInError") @Stable public int jvmConstantMethodTypeInError;
+    @HotSpotVMConstant(name = "JVM_CONSTANT_InvokeDynamic") @Stable public int jvmConstantInvokeDynamic;
 
     @HotSpotVMConstant(name = "HeapWordSize") @Stable public int heapWordSize;
 
@@ -1283,7 +1308,6 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMConstant(name = "DataLayout::call_type_data_tag") @Stable public int dataLayoutCallTypeDataTag;
     @HotSpotVMConstant(name = "DataLayout::virtual_call_type_data_tag") @Stable public int dataLayoutVirtualCallTypeDataTag;
     @HotSpotVMConstant(name = "DataLayout::parameters_type_data_tag") @Stable public int dataLayoutParametersTypeDataTag;
-    @HotSpotVMConstant(name = "DataLayout::speculative_trap_data_tag") @Stable public int dataLayoutSpeculativeTrapDataTag;
 
     @HotSpotVMFlag(name = "BciProfileWidth") @Stable public int bciProfileWidth;
     @HotSpotVMFlag(name = "TypeProfileWidth") @Stable public int typeProfileWidth;
@@ -1302,14 +1326,14 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMField(name = "VirtualSpace::_high_boundary", type = "char*", get = HotSpotVMField.Type.OFFSET) @Stable private int virtualSpaceHighBoundaryOffset;
 
     /**
-     * @return CodeCache::_heap->_memory._low_boundary
+     * @return CodeCache::_heap-&gt;_memory._low_boundary
      */
     public long codeCacheLowBoundary() {
         return unsafe.getAddress(codeCacheHeap + codeHeapMemoryOffset + virtualSpaceLowBoundaryOffset);
     }
 
     /**
-     * @return CodeCache::_heap->_memory._high_boundary
+     * @return CodeCache::_heap-&gt;_memory._high_boundary
      */
     public long codeCacheHighBoundary() {
         return unsafe.getAddress(codeCacheHeap + codeHeapMemoryOffset + virtualSpaceHighBoundaryOffset);
@@ -1478,6 +1502,26 @@ public class HotSpotVMConfig extends CompilerObject {
         @Override
         public String toString() {
             return "base: " + base + " shift: " + shift + " alignment: " + alignment;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + alignment;
+            result = prime * result + (int) (base ^ (base >>> 32));
+            result = prime * result + shift;
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof CompressEncoding) {
+                CompressEncoding other = (CompressEncoding) obj;
+                return alignment == other.alignment && base == other.base && shift == other.shift;
+            } else {
+                return false;
+            }
         }
     }
 }

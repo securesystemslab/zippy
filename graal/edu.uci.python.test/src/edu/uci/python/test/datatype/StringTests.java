@@ -42,7 +42,7 @@ public class StringTests {
     public void staticMakeTrans() {
         String source = "t = str.maketrans('abc', '123')\n" + //
                         "print(t)\n";
-        assertPrints("{98: 50, 99: 51, 97: 49}\n", source);
+        assertPrints("{97: 49, 98: 50, 99: 51}\n", source);
     }
 
     @Test
@@ -71,7 +71,7 @@ public class StringTests {
     public void join1() {
         String source = "s = set(str(i) for i in range(3))\n" + //
                         "print(''.join(s))\n";
-        assertPrints("210\n", source);
+        assertPrints("012\n", source);
     }
 
     @Test

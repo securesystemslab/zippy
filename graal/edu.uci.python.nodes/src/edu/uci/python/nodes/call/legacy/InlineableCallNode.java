@@ -179,7 +179,7 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
         @Override
         public Object executeCall(VirtualFrame frame, PythonCallable callable) {
             final Object[] args = PythonCallUtil.executeArguments(frame, arguments);
-            return function.call(frame.pack(), args);
+            return function.call(args);
         }
     }
 

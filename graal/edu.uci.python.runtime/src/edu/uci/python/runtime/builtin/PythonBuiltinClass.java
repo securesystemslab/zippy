@@ -58,15 +58,15 @@ public class PythonBuiltinClass extends PythonClass implements PythonCallable {
     }
 
     @Override
-    public Object call(PackedFrame caller, Object[] args) {
+    public Object call(Object[] args) {
         PythonCallable init = (PythonCallable) getAttribute("__init__");
-        return init.call(caller, args);
+        return init.call(args);
     }
 
     @Override
-    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+    public Object call(Object[] args, PKeyword[] keywords) {
         PythonCallable init = (PythonCallable) getAttribute("__init__");
-        return init.call(caller, args, keywords);
+        return init.call(args, keywords);
     }
 
     @Override

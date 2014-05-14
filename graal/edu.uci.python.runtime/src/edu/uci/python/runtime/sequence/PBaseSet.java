@@ -24,11 +24,7 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
@@ -40,7 +36,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements PIterable 
     protected final Set<Object> set;
 
     public PBaseSet() {
-        this.set = new HashSet<>();
+        this.set = new TreeSet<>();
     }
 
     public PBaseSet(Set<Object> elements) {

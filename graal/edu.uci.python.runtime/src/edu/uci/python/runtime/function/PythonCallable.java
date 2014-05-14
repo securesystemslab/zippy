@@ -31,9 +31,9 @@ public interface PythonCallable {
 
     String getName();
 
-    Object call(PackedFrame caller, Object[] args);
+    Object call(Object[] args);
 
-    Object call(PackedFrame caller, Object[] args, PKeyword[] keywords);
+    Object call(Object[] args, PKeyword[] keywords);
 
     Arity getArity();
 

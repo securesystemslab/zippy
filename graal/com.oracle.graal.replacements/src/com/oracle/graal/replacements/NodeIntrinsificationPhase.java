@@ -32,9 +32,10 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.graph.Node.*;
+import com.oracle.graal.graph.Node.ConstantNodeParameter;
+import com.oracle.graal.graph.Node.InjectedNodeParameter;
+import com.oracle.graal.graph.Node.NodeIntrinsic;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.PhiNode.PhiType;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
@@ -70,9 +71,10 @@ public class NodeIntrinsificationPhase extends Phase {
 
     protected boolean tryIntrinsify(MethodCallTargetNode methodCallTargetNode, List<Node> cleanUpReturnList) {
         ResolvedJavaMethod target = methodCallTargetNode.targetMethod();
-        NodeIntrinsic intrinsic = target.getAnnotation(Node.NodeIntrinsic.class);
         ResolvedJavaType declaringClass = target.getDeclaringClass();
         StructuredGraph graph = methodCallTargetNode.graph();
+
+        NodeIntrinsic intrinsic = getIntrinsic(target);
         if (intrinsic != null) {
             assert target.getAnnotation(Fold.class) == null;
             assert Modifier.isStatic(target.getModifiers()) : "node intrinsic must be static: " + target;
@@ -129,6 +131,13 @@ public class NodeIntrinsificationPhase extends Phase {
     }
 
     /**
+     * Permits a subclass to override the default definition of "intrinsic".
+     */
+    protected NodeIntrinsic getIntrinsic(ResolvedJavaMethod method) {
+        return method.getAnnotation(Node.NodeIntrinsic.class);
+    }
+
+    /**
      * Permits a subclass to override the default definition of "foldable".
      */
     protected boolean isFoldable(ResolvedJavaMethod method) {
@@ -138,7 +147,7 @@ public class NodeIntrinsificationPhase extends Phase {
     /**
      * Converts the arguments of an invoke node to object values suitable for use as the arguments
      * to a reflective invocation of a Java constructor or method.
-     * 
+     *
      * @param folding specifies if the invocation is for handling a {@link Fold} annotation
      * @return the arguments for the reflective invocation or null if an argument of {@code invoke}
      *         that is expected to be constant isn't
@@ -379,8 +388,8 @@ public class NodeIntrinsificationPhase extends Phase {
             }
         } else if (usage instanceof ProxyNode) {
             ProxyNode proxy = (ProxyNode) usage;
-            assert proxy.type() == PhiType.Value;
-            ProxyNode newProxy = graph.unique(new ProxyNode((ValueNode) intrinsifiedNode, proxy.proxyPoint(), PhiType.Value));
+            assert proxy instanceof ValueProxyNode;
+            ProxyNode newProxy = ProxyNode.forValue((ValueNode) intrinsifiedNode, proxy.proxyPoint(), graph);
             for (Node proxyUsage : usage.usages().snapshot()) {
                 checkCheckCastUsage(graph, newProxy, proxy, proxyUsage);
             }
@@ -395,7 +404,7 @@ public class NodeIntrinsificationPhase extends Phase {
             }
             graph.removeFixed(pi);
         } else {
-            DebugScope.dump(graph, "exception");
+            DebugScope.forceDump(graph, "exception");
             assert false : sourceLocation(usage) + " has unexpected usage " + usage + " of checkcast " + input + " at " + sourceLocation(input);
         }
     }

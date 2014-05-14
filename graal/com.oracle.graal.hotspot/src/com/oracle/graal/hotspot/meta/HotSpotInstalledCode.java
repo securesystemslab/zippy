@@ -23,11 +23,10 @@
 package com.oracle.graal.hotspot.meta;
 
 import static com.oracle.graal.graph.UnsafeAccess.*;
+import sun.misc.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.hotspot.*;
-
-import sun.misc.*;
 
 /**
  * Implementation of {@link InstalledCode} for HotSpot.
@@ -71,7 +70,7 @@ public abstract class HotSpotInstalledCode extends CompilerObject implements Ins
     }
 
     /**
-     * @returns a copy of this code blob if it is {@linkplain #isValid() valid}, null otherwise.
+     * @return a copy of this code blob if it is {@linkplain #isValid() valid}, null otherwise.
      */
     public byte[] getBlob() {
         if (!isValid()) {

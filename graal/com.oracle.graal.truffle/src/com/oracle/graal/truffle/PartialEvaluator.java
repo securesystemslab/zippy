@@ -37,7 +37,6 @@ import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Graph.Mark;
 import com.oracle.graal.graph.Node;
 import com.oracle.graal.graph.spi.*;
-import com.oracle.graal.java.*;
 import com.oracle.graal.loop.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
@@ -57,7 +56,6 @@ import com.oracle.graal.truffle.nodes.frame.NewFrameNode.VirtualOnlyInstanceNode
 import com.oracle.graal.truffle.phases.*;
 import com.oracle.graal.virtual.phases.ea.*;
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 /**
@@ -66,25 +64,17 @@ import com.oracle.truffle.api.nodes.*;
 public class PartialEvaluator {
 
     private final Providers providers;
-    private final ResolvedJavaMethod executeHelperMethod;
     private final CanonicalizerPhase canonicalizer;
-    private final GraphBuilderConfiguration config;
     private Set<Constant> constantReceivers;
     private final TruffleCache truffleCache;
     private final ResolvedJavaType frameType;
 
-    public PartialEvaluator(Providers providers, TruffleCache truffleCache, GraphBuilderConfiguration config) {
+    public PartialEvaluator(Providers providers, TruffleCache truffleCache) {
         this.providers = providers;
         CustomCanonicalizer customCanonicalizer = new PartialEvaluatorCanonicalizer(providers.getMetaAccess(), providers.getConstantReflection());
         this.canonicalizer = new CanonicalizerPhase(!ImmutableCode.getValue(), customCanonicalizer);
-        this.config = config;
         this.truffleCache = truffleCache;
         this.frameType = providers.getMetaAccess().lookupJavaType(FrameWithoutBoxing.class);
-        try {
-            executeHelperMethod = providers.getMetaAccess().lookupJavaMethod(OptimizedCallTarget.class.getDeclaredMethod("executeHelper", PackedFrame.class, Arguments.class));
-        } catch (NoSuchMethodException ex) {
-            throw new RuntimeException(ex);
-        }
     }
 
     public StructuredGraph createGraph(final OptimizedCallTarget callTarget, final Assumptions assumptions) {
@@ -98,10 +88,10 @@ public class PartialEvaluator {
             constantReceivers = new HashSet<>();
         }
 
-        final StructuredGraph graph = new StructuredGraph(executeHelperMethod);
+        final StructuredGraph graph = truffleCache.createRootGraph();
+        assert graph != null : "no graph for root method";
 
-        try (Scope s = Debug.scope("CreateGraph", graph)) {
-            new GraphBuilderPhase.Instance(providers.getMetaAccess(), config, TruffleCompilerImpl.Optimizations).apply(graph);
+        try (Scope s = Debug.scope("CreateGraph", graph); Indent indent = Debug.logAndIndent("createGraph %s", graph.method())) {
 
             // Replace thisNode with constant.
             ParameterNode thisNode = graph.getParameter(0);
@@ -122,10 +112,10 @@ public class PartialEvaluator {
             Debug.dump(graph, "Before inlining");
 
             // Make sure frame does not escape.
-            expandTree(graph, assumptions);
+            expandTree(callTarget, graph, assumptions);
 
-            if (Thread.interrupted()) {
-                return graph;
+            if (Thread.currentThread().isInterrupted()) {
+                return null;
             }
 
             new VerifyFrameDoesNotEscapePhase().apply(graph, false);
@@ -176,58 +166,77 @@ public class PartialEvaluator {
         return graph;
     }
 
-    private void expandTree(StructuredGraph graph, Assumptions assumptions) {
+    private void expandTree(OptimizedCallTarget target, StructuredGraph graph, Assumptions assumptions) {
         PhaseContext phaseContext = new PhaseContext(providers, assumptions);
         TruffleExpansionLogger expansionLogger = null;
         if (TraceTruffleExpansion.getValue()) {
             expansionLogger = new TruffleExpansionLogger(graph);
         }
+        boolean inliningEnabled = target.getInliningResult() != null && target.getInliningResult().size() > 0;
+        Map<Node, TruffleCallPath> methodTargetToStack = new HashMap<>();
         boolean changed;
         do {
             changed = false;
             for (MethodCallTargetNode methodCallTargetNode : graph.getNodes(MethodCallTargetNode.class)) {
                 InvokeKind kind = methodCallTargetNode.invokeKind();
-                if (kind == InvokeKind.Static || (kind == InvokeKind.Special && (methodCallTargetNode.receiver().isConstant() || isFrame(methodCallTargetNode.receiver())))) {
-                    if (TraceTruffleCompilationHistogram.getValue() && kind == InvokeKind.Special) {
-                        ConstantNode constantNode = (ConstantNode) methodCallTargetNode.arguments().first();
-                        constantReceivers.add(constantNode.asConstant());
-                    }
-                    Replacements replacements = providers.getReplacements();
-                    Class<? extends FixedWithNextNode> macroSubstitution = replacements.getMacroSubstitution(methodCallTargetNode.targetMethod());
-                    if (macroSubstitution != null) {
-                        InliningUtil.inlineMacroNode(methodCallTargetNode.invoke(), methodCallTargetNode.targetMethod(), macroSubstitution);
-                        changed = true;
-                        continue;
-                    }
-
-                    StructuredGraph inlineGraph = replacements.getMethodSubstitution(methodCallTargetNode.targetMethod());
-                    if (inlineGraph == null && !Modifier.isNative(methodCallTargetNode.targetMethod().getModifiers()) &&
-                                    methodCallTargetNode.targetMethod().getAnnotation(CompilerDirectives.SlowPath.class) == null) {
-                        inlineGraph = parseGraph(methodCallTargetNode.targetMethod(), methodCallTargetNode.arguments(), assumptions, phaseContext);
-                    }
-
-                    if (inlineGraph != null) {
-                        int nodeCountBefore = graph.getNodeCount();
-                        Mark mark = graph.getMark();
-                        if (TraceTruffleExpansion.getValue()) {
-                            expansionLogger.preExpand(methodCallTargetNode, inlineGraph);
+                try (Indent id1 = Debug.logAndIndent("try inlining %s, kind = %s", methodCallTargetNode.targetMethod(), kind)) {
+                    if (kind == InvokeKind.Static || (kind == InvokeKind.Special && (methodCallTargetNode.receiver().isConstant() || isFrame(methodCallTargetNode.receiver())))) {
+                        if (TraceTruffleCompilationHistogram.getValue() && kind == InvokeKind.Special) {
+                            ConstantNode constantNode = (ConstantNode) methodCallTargetNode.arguments().first();
+                            constantReceivers.add(constantNode.asConstant());
                         }
-                        List<Node> invokeUsages = methodCallTargetNode.invoke().asNode().usages().snapshot();
-                        Map<Node, Node> inlined = InliningUtil.inline(methodCallTargetNode.invoke(), inlineGraph, false);
-                        if (TraceTruffleExpansion.getValue()) {
-                            expansionLogger.postExpand(inlined);
+                        Replacements replacements = providers.getReplacements();
+                        Class<? extends FixedWithNextNode> macroSubstitution = replacements.getMacroSubstitution(methodCallTargetNode.targetMethod());
+                        if (macroSubstitution != null) {
+                            InliningUtil.inlineMacroNode(methodCallTargetNode.invoke(), methodCallTargetNode.targetMethod(), macroSubstitution);
+                            changed = true;
+                            continue;
                         }
-                        if (Debug.isDumpEnabled()) {
-                            int nodeCountAfter = graph.getNodeCount();
-                            Debug.dump(graph, "After inlining %s %+d (%d)", methodCallTargetNode.targetMethod().toString(), nodeCountAfter - nodeCountBefore, nodeCountAfter);
-                        }
-                        canonicalizer.applyIncremental(graph, phaseContext, invokeUsages, mark);
-                        changed = true;
-                    }
-                }
 
-                if (Thread.interrupted()) {
-                    return;
+                        if (TraceTruffleCompilationDetails.getValue() && kind == InvokeKind.Special) {
+                            ConstantNode constantNode = (ConstantNode) methodCallTargetNode.arguments().first();
+                            constantReceivers.add(constantNode.asConstant());
+                        }
+
+                        StructuredGraph inlineGraph = replacements.getMethodSubstitution(methodCallTargetNode.targetMethod());
+                        if (inliningEnabled && inlineGraph == null) {
+                            inlineGraph = expandInlinableCallNode(target, methodTargetToStack, assumptions, phaseContext, methodCallTargetNode);
+                        }
+
+                        if (inlineGraph == null && !Modifier.isNative(methodCallTargetNode.targetMethod().getModifiers())) {
+                            inlineGraph = parseGraph(methodCallTargetNode.targetMethod(), methodCallTargetNode.arguments(), assumptions, phaseContext, false);
+                        }
+
+                        if (inlineGraph != null) {
+                            try (Indent indent = Debug.logAndIndent("inline graph %s", methodCallTargetNode.targetMethod())) {
+                                if (inliningEnabled) {
+                                    preExpandTruffleCallPath(inlineGraph, methodTargetToStack, methodTargetToStack.get(methodCallTargetNode));
+                                }
+                                int nodeCountBefore = graph.getNodeCount();
+                                Mark mark = graph.getMark();
+                                if (TraceTruffleExpansion.getValue()) {
+                                    expansionLogger.preExpand(methodCallTargetNode, inlineGraph);
+                                }
+                                List<Node> invokeUsages = methodCallTargetNode.invoke().asNode().usages().snapshot();
+                                // try (Indent in2 = Debug.logAndIndent(false, "do inlining")) {
+                                Map<Node, Node> inlined = InliningUtil.inline(methodCallTargetNode.invoke(), inlineGraph, false);
+                                if (TraceTruffleExpansion.getValue()) {
+                                    expansionLogger.postExpand(inlined);
+                                }
+                                if (inliningEnabled) {
+                                    postExpandTruffleCallPath(methodTargetToStack, inlined);
+                                }
+                                if (Debug.isDumpEnabled()) {
+                                    Debug.log("dump enabled");
+                                    int nodeCountAfter = graph.getNodeCount();
+                                    Debug.dump(graph, "After inlining %s %+d (%d)", methodCallTargetNode.targetMethod().toString(), nodeCountAfter - nodeCountBefore, nodeCountAfter);
+                                }
+                                canonicalizer.applyIncremental(graph, phaseContext, invokeUsages, mark);
+
+                                changed = true;
+                            }
+                        }
+                    }
                 }
 
                 if (graph.getNodeCount() > TruffleCompilerOptions.TruffleGraphMaxNodes.getValue()) {
@@ -241,15 +250,79 @@ public class PartialEvaluator {
         }
     }
 
+    private static void preExpandTruffleCallPath(StructuredGraph inlineGraph, Map<Node, TruffleCallPath> methodTargetToCallPath, TruffleCallPath truffleCallPath) {
+        for (MethodCallTargetNode methodTargetNode : inlineGraph.getNodes(MethodCallTargetNode.class)) {
+            methodTargetToCallPath.put(methodTargetNode, truffleCallPath);
+        }
+    }
+
+    private static void postExpandTruffleCallPath(Map<Node, TruffleCallPath> methodCallTargetToCallPath, Map<Node, Node> nodeUpdates) {
+        for (Object key : methodCallTargetToCallPath.keySet().toArray()) {
+            if (nodeUpdates.containsKey(key)) {
+                methodCallTargetToCallPath.put(nodeUpdates.get(key), methodCallTargetToCallPath.get(key));
+                methodCallTargetToCallPath.remove(key);
+            }
+        }
+    }
+
+    private StructuredGraph expandInlinableCallNode(OptimizedCallTarget target, Map<Node, TruffleCallPath> methodCallToCallPath, Assumptions assumptions, PhaseContext phaseContext,
+                    MethodCallTargetNode methodCallTargetNode) {
+
+        ValueNode receiverNode = methodCallTargetNode.receiver();
+        if (receiverNode == null || !receiverNode.isConstant() || !receiverNode.asConstant().getKind().isObject()) {
+            return null;
+        }
+
+        ResolvedJavaMethod method = methodCallTargetNode.targetMethod();
+        if (!method.getName().equals("call") || method.getSignature().getParameterCount(false) != 1) {
+            return null;
+        }
+
+        Object receiverValue = receiverNode.asConstant().asObject();
+        if (receiverValue instanceof OptimizedCallNode) {
+            OptimizedCallNode callNode = (OptimizedCallNode) receiverValue;
+            TruffleCallPath callPath = methodCallToCallPath.get(methodCallTargetNode);
+            if (callPath == null) {
+                callPath = new TruffleCallPath(target);
+            }
+            callPath = new TruffleCallPath(callPath, callNode);
+            methodCallToCallPath.put(methodCallTargetNode, callPath);
+            // let the normal expansion do the work
+            return null;
+        } else if (receiverValue instanceof OptimizedCallTarget) {
+            TruffleCallPath path = methodCallToCallPath.get(methodCallTargetNode);
+            // path unknown. direct call to OptimizedCallTarget without OptimizedCallNode?
+            if (path == null) {
+                return null;
+            }
+
+            TruffleInliningResult decision = target.getInliningResult();
+            if (decision == null) { // no inlining decision. inlining disabled?
+                return null;
+            }
+
+            if (!decision.isInlined(path)) {
+                // the OptimizedCallTarget has decided not to inline this call path
+                return null;
+            }
+
+            // inline truffle call
+            return parseGraph(methodCallTargetNode.targetMethod(), methodCallTargetNode.arguments(), assumptions, phaseContext, true);
+        }
+
+        return null;
+    }
+
     private boolean isFrame(ValueNode receiver) {
         return receiver instanceof NewFrameNode || Objects.equals(ObjectStamp.typeOrNull(receiver.stamp()), frameType);
     }
 
-    private StructuredGraph parseGraph(final ResolvedJavaMethod targetMethod, final NodeInputList<ValueNode> arguments, final Assumptions assumptions, final PhaseContext phaseContext) {
+    private StructuredGraph parseGraph(final ResolvedJavaMethod targetMethod, final NodeInputList<ValueNode> arguments, final Assumptions assumptions, final PhaseContext phaseContext,
+                    boolean ignoreSlowPath) {
 
-        StructuredGraph graph = truffleCache.lookup(targetMethod, arguments, assumptions, canonicalizer);
+        StructuredGraph graph = truffleCache.lookup(targetMethod, arguments, assumptions, canonicalizer, ignoreSlowPath);
 
-        if (targetMethod.getAnnotation(ExplodeLoop.class) != null) {
+        if (graph != null && targetMethod.getAnnotation(ExplodeLoop.class) != null) {
             assert graph.hasLoops() : graph + " does not contain a loop";
             final StructuredGraph graphCopy = graph.copy();
             final List<Node> modifiedNodes = new ArrayList<>();

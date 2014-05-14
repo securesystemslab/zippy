@@ -34,6 +34,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.nodes.type.*;
+import com.oracle.graal.phases.*;
 
 public class AMD64HotSpotRegisterConfig implements RegisterConfig {
 
@@ -41,10 +42,12 @@ public class AMD64HotSpotRegisterConfig implements RegisterConfig {
 
     private final Register[] allocatable;
 
+    private final int maxFrameSize;
+
     /**
      * The same as {@link #allocatable}, except if parameter registers are removed with the
-     * {@link #RegisterPressure} option. The caller saved registers always include all parameter
-     * registers.
+     * {@link GraalOptions#RegisterPressure} option. The caller saved registers always include all
+     * parameter registers.
      */
     private final Register[] callerSaved;
 
@@ -53,6 +56,10 @@ public class AMD64HotSpotRegisterConfig implements RegisterConfig {
     private final HashMap<PlatformKind, Register[]> categorized = new HashMap<>();
 
     private final RegisterAttributes[] attributesMap;
+
+    public int getMaximumFrameSize() {
+        return maxFrameSize;
+    }
 
     @Override
     public Register[] getAllocatableRegisters() {
@@ -135,6 +142,7 @@ public class AMD64HotSpotRegisterConfig implements RegisterConfig {
 
     public AMD64HotSpotRegisterConfig(Architecture architecture, HotSpotVMConfig config) {
         this.architecture = architecture;
+        this.maxFrameSize = config.maxFrameSize;
 
         if (config.windowsOs) {
             javaGeneralParameterRegisters = new Register[]{rdx, r8, r9, rdi, rsi, rcx};

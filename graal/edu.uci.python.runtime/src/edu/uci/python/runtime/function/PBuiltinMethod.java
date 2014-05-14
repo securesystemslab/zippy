@@ -52,11 +52,11 @@ public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallabl
     /**
      * There is no declaration frame for built-in methods.
      */
-    public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(null, args));
+    public Object call(Object[] args) {
+        return callTarget.call(new PArguments(null, args).packAsObjectArray());
     }
 
-    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+    public Object call(Object[] args, PKeyword[] keywords) {
         throw new UnsupportedOperationException();
     }
 

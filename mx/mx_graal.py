@@ -79,7 +79,8 @@ _vm_prefix = None
 
 _make_eclipse_launch = False
 
-_minVersion = mx.VersionSpec('1.7.0_04')
+# @CallerSensitive introduced in 7u25
+_minVersion = mx.VersionSpec('1.7.0_25')
 
 JDK_UNIX_PERMISSIONS = 0755
 
@@ -402,17 +403,24 @@ def _updateInstalledGraalOptionsFile(jdk):
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
     jdks = _jdksDir()
+
     if exists(jdks):
         for e in os.listdir(jdks):
             jreLibDir = join(jdks, e, 'jre', 'lib')
             if exists(jreLibDir):
-                # do a copy and then a move to get atomic updating (on Unix) of graal.jar in the JRE
-                fd, tmp = tempfile.mkstemp(suffix='', prefix='graal.jar', dir=jreLibDir)
-                shutil.copyfile(graalJar, tmp)
-                os.close(fd)
-                graalJar = join(jreLibDir, 'graal.jar')
-                shutil.move(tmp, graalJar)
-                os.chmod(graalJar, JDK_UNIX_PERMISSIONS)
+                def install(srcJar, dstDir):
+                    # do a copy and then a move to get atomic updating (on Unix)
+                    name = os.path.basename(srcJar)
+                    fd, tmp = tempfile.mkstemp(suffix='', prefix=name, dir=dstDir)
+                    shutil.copyfile(srcJar, tmp)
+                    os.close(fd)
+                    dstJar = join(dstDir, name)
+                    shutil.move(tmp, dstJar)
+                    os.chmod(dstJar, JDK_UNIX_PERMISSIONS)
+
+                install(graalJar, jreLibDir)
+                if graalDist.sourcesPath:
+                    install(graalDist.sourcesPath, join(jdks, e))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo=None):
@@ -583,7 +591,7 @@ def build(args, vm=None):
         if not exists(vmDir):
             if mx.get_os() != 'windows':
                 chmodRecursive(jdk, JDK_UNIX_PERMISSIONS)
-            mx.log('Creating VM directory in JDK7: ' + vmDir)
+            mx.log('Creating VM directory in JDK: ' + vmDir)
             os.makedirs(vmDir)
 
         def filterXusage(line):
@@ -1000,34 +1008,34 @@ def _basic_gate_body(args, tasks):
 
     with VM('graal', 'fastdebug'):
         t = Task('BootstrapWithSystemAssertions:fastdebug')
-        vm(['-esa', '-version'])
+        vm(['-esa', '-XX:-TieredCompilation', '-version'])
         tasks.append(t.stop())
 
     with VM('graal', 'fastdebug'):
-        t = Task('NoTieredBootstrapWithSystemAssertions:fastdebug')
-        vm(['-esa', '-XX:-TieredCompilation', '-version'])
+        t = Task('BootstrapWithSystemAssertionsNoCoop:fastdebug')
+        vm(['-esa', '-XX:-TieredCompilation', '-XX:-UseCompressedOops', '-version'])
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithGCVerification:product')
         out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
-        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
+        vm(['-XX:-TieredCompilation', '-XX:+UnlockDiagnosticVMOptions', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithG1GCVerification:product')
         out = mx.DuplicateSuppressingStream(['VerifyAfterGC:', 'VerifyBeforeGC:']).write
-        vm(['-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
+        vm(['-XX:-TieredCompilation', '-XX:+UnlockDiagnosticVMOptions', '-XX:-UseSerialGC', '-XX:+UseG1GC', '-XX:+VerifyBeforeGC', '-XX:+VerifyAfterGC', '-version'], out=out)
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithRegisterPressure:product')
-        vm(['-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
+        vm(['-XX:-TieredCompilation', '-G:RegisterPressure=rbx,r11,r10,r14,xmm3,xmm11,xmm14', '-esa', '-version'])
         tasks.append(t.stop())
 
     with VM('graal', 'product'):
         t = Task('BootstrapWithImmutableCode:product')
-        vm(['-G:+ImmutableCode', '-G:+VerifyPhases', '-esa', '-version'])
+        vm(['-XX:-TieredCompilation', '-G:+ImmutableCode', '-G:+VerifyPhases', '-esa', '-version'])
         tasks.append(t.stop())
 
     with VM('server', 'product'):  # hosted mode
@@ -1036,11 +1044,7 @@ def _basic_gate_body(args, tasks):
         tasks.append(t.stop())
 
     for vmbuild in ['fastdebug', 'product']:
-        for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
-            if 'eclipse' in str(test) and mx.java().version >= mx.VersionSpec('1.8'):
-                # DaCapo eclipse doesn't run under JDK8
-                continue
-
+        for test in sanitycheck.getDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild) + sanitycheck.getScalaDacapos(level=sanitycheck.SanityCheckLevel.Gate, gateBuildLevel=vmbuild):
             t = Task(str(test) + ':' + vmbuild)
             if not test.test('graal'):
                 t.abort(test.name + ' Failed')
@@ -1143,9 +1147,14 @@ def gate(args, gate_body=_basic_gate_body):
         build(['--no-native', '--force-javac'])
         tasks.append(t.stop())
 
-        t = Task('Checkstyle')
-        if mx.checkstyle([]) != 0:
-            t.abort('Checkstyle warnings were found')
+        t = Task('Checkheaders')
+        if checkheaders([]) != 0:
+            t.abort('Checkheaders warnings were found')
+        tasks.append(t.stop())
+
+        t = Task('FindBugs')
+        if findbugs([]) != 0:
+            t.abort('FindBugs warnings were found')
         tasks.append(t.stop())
 
         if exists('jacoco.exec'):
@@ -1387,10 +1396,22 @@ def jmh(args):
     vmArgs, benchmarks = _extract_VM_args(args)
     jmhPath = mx.get_env('JMH_BENCHMARKS', None)
     if not jmhPath or not exists(jmhPath):
-        mx.abort("$JMH_BENCHMARKS not properly definied")
+        mx.abort("$JMH_BENCHMARKS not properly defined: " + str(jmhPath))
 
     def _blackhole(x):
         mx.logv(x[:-1])
+
+
+    # (Re)install graal.jar into the local m2 repository since the micros-graal
+    # benchmarks have it as a dependency
+    graalDist = mx.distribution('GRAAL')
+    cmd = ['mvn', 'install:install-file', '-q',
+           '-Dfile=' + graalDist.path, '-DgroupId=com.oracle.graal', '-DartifactId=graal',
+           '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar']
+    if graalDist.sourcesPath:
+        cmd = cmd + ['-Dsources=' + graalDist.sourcesPath]
+    mx.run(cmd)
+
     mx.log("Building benchmarks...")
     mx.run(['mvn', 'package'], cwd=jmhPath, out=_blackhole)
 
@@ -1751,13 +1772,45 @@ def findbugs(args):
     nonTestProjects = [p for p in mx.projects() if not p.name.endswith('.test') and not p.name.endswith('.jtt')]
     outputDirs = [p.output_dir() for p in nonTestProjects]
     findbugsResults = join(_graal_home, 'findbugs.results')
-    exitcode = mx.run_java(['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15', '-exclude', join(_graal_home, 'graal', 'findbugsExcludeFilter.xml'),
-                 '-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-progress', '-exitcode'] + args + outputDirs, nonZeroIsFatal=False)
+
+    cmd = ['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15']
+    if sys.stdout.isatty():
+        cmd.append('-progress')
+    cmd = cmd + ['-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-exitcode'] + args + outputDirs
+    exitcode = mx.run_java(cmd, nonZeroIsFatal=False)
     if exitcode != 0:
         with open(findbugsResults) as fp:
             mx.log(fp.read())
     os.unlink(findbugsResults)
     return exitcode
+
+def checkheaders(args):
+    """check Java source headers against any required pattern"""
+    failures = {}
+    for p in mx.projects():
+        if p.native:
+            continue
+
+        csConfig = join(mx.project(p.checkstyleProj).dir, '.checkstyle_checks.xml.disabled')
+        dom = xml.dom.minidom.parse(csConfig)
+        for module in dom.getElementsByTagName('module'):
+            if module.getAttribute('name') == 'RegexpHeader':
+                for prop in module.getElementsByTagName('property'):
+                    if prop.getAttribute('name') == 'header':
+                        value = prop.getAttribute('value')
+                        matcher = re.compile(value, re.MULTILINE)
+                        for sourceDir in p.source_dirs():
+                            for root, _, files in os.walk(sourceDir):
+                                for name in files:
+                                    if name.endswith('.java') and name != 'package-info.java':
+                                        f = join(root, name)
+                                        with open(f) as fp:
+                                            content = fp.read()
+                                        if not matcher.match(content):
+                                            failures[f] = csConfig
+    for n, v in failures.iteritems():
+        mx.log('{}: header does not match RegexpHeader defined in {}'.format(n, v))
+    return len(failures)
 
 def mx_init(suite):
     commands = {
@@ -1765,6 +1818,7 @@ def mx_init(suite):
         'buildvars': [buildvars, ''],
         'buildvms': [buildvms, '[-options]'],
         'c1visualizer' : [c1visualizer, ''],
+        'checkheaders': [checkheaders, ''],
         'clean': [clean, ''],
         'findbugs': [findbugs, ''],
         'generateZshCompletion' : [generateZshCompletion, ''],

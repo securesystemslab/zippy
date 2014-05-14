@@ -67,12 +67,12 @@ public final class WordCastNode extends FixedWithNextNode implements LIRLowerabl
     }
 
     @Override
-    public void generate(LIRGeneratorTool generator) {
+    public void generate(NodeLIRBuilderTool generator) {
         assert getKind() != input.getKind();
-        assert generator.target().getSizeInBytes(getKind()) == generator.target().getSizeInBytes(input.getKind());
+        assert generator.getLIRGeneratorTool().target().getSizeInBytes(getKind()) == generator.getLIRGeneratorTool().target().getSizeInBytes(input.getKind());
 
-        AllocatableValue result = generator.newVariable(getKind());
-        generator.emitMove(result, generator.operand(input));
+        AllocatableValue result = generator.getLIRGeneratorTool().newVariable(getKind());
+        generator.getLIRGeneratorTool().emitMove(result, generator.operand(input));
         generator.setResult(this, result);
     }
 }

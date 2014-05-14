@@ -29,8 +29,8 @@ import java.lang.annotation.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.HeapAccess.BarrierType;
+import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 
 public abstract class Word implements Signed, Unsigned, Pointer {
@@ -909,7 +909,7 @@ public abstract class Word implements Signed, Unsigned, Pointer {
     public native Object readObject(WordBase offset);
 
     @Operation(opcode = Opcode.READ_HEAP)
-    public native Object readObject(WordBase offset, BarrierType barrierType, boolean compressible);
+    public native Object readObject(WordBase offset, BarrierType barrierType);
 
     @Override
     @Operation(opcode = Opcode.READ)
@@ -966,8 +966,8 @@ public abstract class Word implements Signed, Unsigned, Pointer {
     }
 
     @Operation(opcode = Opcode.READ_HEAP)
-    public Object readObject(int offset, BarrierType barrierType, boolean compressible) {
-        return readObject(signed(offset), barrierType, compressible);
+    public Object readObject(int offset, BarrierType barrierType) {
+        return readObject(signed(offset), barrierType);
     }
 
     @Override

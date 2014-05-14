@@ -29,11 +29,12 @@ import com.sun.hotspot.igv.graph.Connection;
 import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.InputSlot;
+import com.sun.hotspot.igv.graph.OutputSlot;
 import java.util.HashSet;
 import java.util.Set;
 
 public class GraalCFGFilter extends AbstractFilter {
-    
+
     @Override
     public String getName() {
         return "Graal CFG Filter";
@@ -41,16 +42,8 @@ public class GraalCFGFilter extends AbstractFilter {
 
     @Override
     public void apply(Diagram d) {
-        Set<Figure> figuresToRemove = new HashSet<>();
         Set<Connection> connectionsToRemove = new HashSet<>();
-        for (Figure f : d.getFigures()) {
-            final String prop = f.getProperties().get("probability");
-            if (prop == null) {
-                figuresToRemove.add(f);
-            }
-        }
-        d.removeAllFigures(figuresToRemove);
-        
+
         for (Figure f : d.getFigures()) {
             Properties p = f.getProperties();
             int predCount;
@@ -72,10 +65,25 @@ public class GraalCFGFilter extends AbstractFilter {
                 }
             }
         }
-        
+
         for (Connection c : connectionsToRemove) {
             c.remove();
-            System.out.println("rm " + c);
         }
+
+        Set<Figure> figuresToRemove = new HashSet<>();
+        next: for (Figure f : d.getFigures()) {
+            for (InputSlot is : f.getInputSlots()) {
+                if (!is.getConnections().isEmpty()) {
+                    continue next;
+                }
+            }
+            for (OutputSlot os : f.getOutputSlots()) {
+                if (!os.getConnections().isEmpty()) {
+                    continue next;
+                }
+            }
+            figuresToRemove.add(f);
+        }
+        d.removeAllFigures(figuresToRemove);
     }
 }

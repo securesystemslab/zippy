@@ -44,7 +44,7 @@ import com.oracle.graal.word.*;
 public abstract class HotSpotBackend extends Backend {
 
     /**
-     * Descriptor for SharedRuntime::deopt_blob()->uncommon_trap().
+     * Descriptor for SharedRuntime::deopt_blob()-&gt;uncommon_trap().
      */
     public static final ForeignCallDescriptor UNCOMMON_TRAP = new ForeignCallDescriptor("deoptimize", void.class);
 
@@ -56,7 +56,7 @@ public abstract class HotSpotBackend extends Backend {
     public static final ForeignCallDescriptor EXCEPTION_HANDLER = new ForeignCallDescriptor("exceptionHandler", void.class, Object.class, Word.class);
 
     /**
-     * Descriptor for SharedRuntime::deopt_blob()->unpack().
+     * Descriptor for SharedRuntime::deopt_blob()-&gt;unpack().
      */
     public static final ForeignCallDescriptor DEOPT_HANDLER = new ForeignCallDescriptor("deoptHandler", void.class);
 
@@ -113,8 +113,8 @@ public abstract class HotSpotBackend extends Backend {
                 return value;
             }
         };
-        for (Block block : lir.codeEmittingOrder()) {
-            for (LIRInstruction op : lir.lir(block)) {
+        for (AbstractBlock<?> block : lir.codeEmittingOrder()) {
+            for (LIRInstruction op : lir.getLIRforBlock(block)) {
                 if (op instanceof LabelOp) {
                     // Don't consider this as a definition
                 } else {

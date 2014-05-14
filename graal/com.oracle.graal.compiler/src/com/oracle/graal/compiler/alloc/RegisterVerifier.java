@@ -31,7 +31,9 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.LIRInstruction.*;
+import com.oracle.graal.lir.LIRInstruction.OperandFlag;
+import com.oracle.graal.lir.LIRInstruction.OperandMode;
+import com.oracle.graal.lir.LIRInstruction.ValueProcedure;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.phases.util.*;
 
@@ -106,7 +108,7 @@ final class RegisterVerifier {
             }
 
             // process all operations of the block
-            processOperations(allocator.ir.lir(block), inputState);
+            processOperations(allocator.ir.getLIRforBlock(block), inputState);
 
             // iterate all successors
             for (AbstractBlock<?> succ : block.getSuccessors()) {

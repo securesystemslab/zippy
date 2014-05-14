@@ -81,14 +81,14 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
     }
 
     @Override
-    public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(declarationFrame, args));
+    public Object call(Object[] args) {
+        return callTarget.call(new PArguments(declarationFrame, args).packAsObjectArray());
     }
 
     @Override
-    public Object call(PackedFrame caller, Object[] arguments, PKeyword[] keywords) {
+    public Object call(Object[] arguments, PKeyword[] keywords) {
         Object[] combined = applyKeywordArgs(arity, arguments, keywords);
-        return callTarget.call(caller, new PArguments(declarationFrame, combined));
+        return callTarget.call(new PArguments(declarationFrame, combined).packAsObjectArray());
     }
 
     @Override

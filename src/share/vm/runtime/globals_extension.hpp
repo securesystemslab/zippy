@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,7 +31,7 @@
 
 // Construct enum of Flag_<cmdline-arg> constants.
 
-// Parenthesis left off in the following for the enum decl below.
+// Parens left off in the following for the enum decl below.
 #define FLAG_MEMBER(flag) Flag_##flag
 
 #define RUNTIME_PRODUCT_FLAG_MEMBER(type, name, value, doc)      FLAG_MEMBER(name),
@@ -85,6 +85,9 @@ typedef enum {
 #endif // INCLUDE_ALL_GCS
 #ifdef COMPILER1
  C1_FLAGS(C1_DEVELOP_FLAG_MEMBER, C1_PD_DEVELOP_FLAG_MEMBER, C1_PRODUCT_FLAG_MEMBER, C1_PD_PRODUCT_FLAG_MEMBER, C1_DIAGNOSTIC_FLAG_MEMBER, C1_NOTPRODUCT_FLAG_MEMBER)
+#endif
+#ifdef GRAAL
+ GRAAL_FLAGS(GRAAL_DEVELOP_FLAG_MEMBER, GRAAL_PD_DEVELOP_FLAG_MEMBER, GRAAL_PRODUCT_FLAG_MEMBER, GRAAL_PD_PRODUCT_FLAG_MEMBER, GRAAL_NOTPRODUCT_FLAG_MEMBER)
 #endif
 #ifdef COMPILER2
  C2_FLAGS(C2_DEVELOP_FLAG_MEMBER, C2_PD_DEVELOP_FLAG_MEMBER, C2_PRODUCT_FLAG_MEMBER, C2_PD_PRODUCT_FLAG_MEMBER, C2_DIAGNOSTIC_FLAG_MEMBER, C2_EXPERIMENTAL_FLAG_MEMBER, C2_NOTPRODUCT_FLAG_MEMBER)
@@ -220,7 +223,6 @@ class CommandLineFlagsEx : CommandLineFlags {
   static void uintxAtPut(CommandLineFlagWithType flag, uintx value, Flag::Flags origin);
   static void uint64_tAtPut(CommandLineFlagWithType flag, uint64_t value, Flag::Flags origin);
   static void doubleAtPut(CommandLineFlagWithType flag, double value, Flag::Flags origin);
-  // Contract:  Flag will make private copy of the incoming value
   static void ccstrAtPut(CommandLineFlagWithType flag, ccstr value, Flag::Flags origin);
 
   static bool is_default(CommandLineFlag flag);

@@ -39,6 +39,8 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.object.*;
+import edu.uci.python.nodes.object.AttributeReadNode.ReadArrayObjectAttributeNode;
+import edu.uci.python.nodes.object.AttributeReadNode.ReadFieldObjectAttributeNode;
 import edu.uci.python.nodes.object.DispatchBoxedNode.*;
 import edu.uci.python.nodes.object.DispatchUnboxedNode.*;
 import edu.uci.python.nodes.object.GetAttributeNode.*;
@@ -80,7 +82,7 @@ public class GetAttributeNodeTests {
         // check rewrite of UninitializedCachedAttributeNode
         UnboxedGetMethodNode getMethod = (UnboxedGetMethodNode) getAttr;
         LinkedDispatchUnboxedNode cache = NodeUtil.findFirstNodeInstance(getMethod, LinkedDispatchUnboxedNode.class);
-        assertTrue(cache.extractReadNode() instanceof AttributeReadNode.ReadFieldObjectAttributeNode);
+        assertTrue(cache.extractReadNode() instanceof ReadFieldObjectAttributeNode || cache.extractReadNode() instanceof ReadArrayObjectAttributeNode);
 
         // 3rd execute
         frame = PythonTests.createVirtualFrame();
@@ -88,7 +90,7 @@ public class GetAttributeNodeTests {
 
         // make sure cache node stay unchanged
         cache = NodeUtil.findFirstNodeInstance(getMethod, LinkedDispatchUnboxedNode.class);
-        assertTrue(cache.extractReadNode() instanceof AttributeReadNode.ReadFieldObjectAttributeNode);
+        assertTrue(cache.extractReadNode() instanceof ReadFieldObjectAttributeNode || cache.extractReadNode() instanceof ReadArrayObjectAttributeNode);
 
         /**
          * test fall back.

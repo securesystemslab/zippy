@@ -25,7 +25,7 @@ package com.oracle.graal.nodes.java;
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.api.meta.ResolvedJavaType.*;
+import com.oracle.graal.api.meta.ResolvedJavaType.Representation;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
@@ -92,7 +92,7 @@ public final class TypeSwitchNode extends SwitchNode implements LIRLowerable, Si
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         gen.emitSwitch(this);
     }
 

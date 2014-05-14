@@ -181,18 +181,18 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
      * The following are slow paths.
      */
     @Override
-    public Object call(PackedFrame caller, Object[] args) {
+    public Object call(Object[] args) {
         PythonObject newInstance = PythonContext.newPythonObjectInstance(this);
         PythonCallable ctor = lookUpMethod("__init__");
-        ctor.call(caller, packSelfWithArguments(newInstance, args));
+        ctor.call(packSelfWithArguments(newInstance, args));
         return newInstance;
     }
 
     @Override
-    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+    public Object call(Object[] args, PKeyword[] keywords) {
         PythonObject newInstance = PythonContext.newPythonObjectInstance(this);
         PythonCallable ctor = lookUpMethod("__init__");
-        ctor.call(caller, packSelfWithArguments(newInstance, args), keywords);
+        ctor.call(packSelfWithArguments(newInstance, args), keywords);
         return newInstance;
     }
 

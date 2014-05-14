@@ -742,13 +742,10 @@ void Method::print_made_not_compilable(int comp_level, bool is_osr, bool report,
 
 bool Method::is_always_compilable() const {
   // Generated adapters must be compiled
-  if (is_method_handle_intrinsic()) {
-    bool is_executeCompiled = intrinsic_id() == vmIntrinsics::_CompilerToVMImpl_executeCompiledMethod;
-    if (is_synthetic() || is_executeCompiled) {
-      assert(!is_not_c1_compilable() || is_executeCompiled, "sanity check");
-      assert(!is_not_c2_compilable() || is_executeCompiled, "sanity check");
-      return true;
-    }
+  if (is_method_handle_intrinsic() && is_synthetic()) {
+    assert(!is_not_c1_compilable(), "sanity check");
+    assert(!is_not_c2_compilable(), "sanity check");
+    return true;
   }
 
   return false;
@@ -892,14 +889,6 @@ void Method::link_method(methodHandle h_method, TRAPS) {
 
   // ONLY USE the h_method now as make_adapter may have blocked
 
-#ifdef GRAAL
-  // Check for special intrinsic that executes a compiled method.
-  if (h_method->intrinsic_id() == vmIntrinsics::_CompilerToVMImpl_executeCompiledMethod) {
-    // Actively install the stub for calling the intrinsic from compiled code.
-    CompileBroker::compile_method(h_method, InvocationEntryBci, CompLevel_highest_tier,
-                                  methodHandle(), CompileThreshold, "executeCompiledMethod", CHECK);
-  }
-#endif
 }
 
 address Method::make_adapters(methodHandle mh, TRAPS) {
@@ -1053,7 +1042,7 @@ bool Method::is_compiled_lambda_form() const {
 bool Method::is_method_handle_intrinsic() const {
   vmIntrinsics::ID iid = intrinsic_id();
   return (MethodHandles::is_signature_polymorphic(iid) &&
-          MethodHandles::is_signature_polymorphic_intrinsic(iid)) || iid == vmIntrinsics::_CompilerToVMImpl_executeCompiledMethod;
+          MethodHandles::is_signature_polymorphic_intrinsic(iid));
 }
 
 bool Method::has_member_arg() const {

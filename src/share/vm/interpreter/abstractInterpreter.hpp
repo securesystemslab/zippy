@@ -42,11 +42,8 @@
 #ifdef TARGET_ARCH_MODEL_arm
 # include "interp_masm_arm.hpp"
 #endif
-#ifdef TARGET_ARCH_MODEL_ppc_32
-# include "interp_masm_ppc_32.hpp"
-#endif
-#ifdef TARGET_ARCH_MODEL_ppc_64
-# include "interp_masm_ppc_64.hpp"
+#ifdef TARGET_ARCH_MODEL_ppc
+# include "interp_masm_ppc.hpp"
 #endif
 
 // This file contains the platform-independent parts
@@ -85,9 +82,6 @@ class AbstractInterpreter: AllStatic {
     zerolocals_synchronized,                                    // method needs locals initialization & is synchronized
     native,                                                     // native method
     native_synchronized,                                        // native method & is synchronized
-#ifdef GRAAL
-    execute_compiled_method,                                    // direct call to compiled method address
-#endif
     empty,                                                      // empty method (code: _return)
     accessor,                                                   // accessor method (code: _aload_0, _getfield, _(a|i)return)
     abstract,                                                   // abstract method (throws an AbstractMethodException)

@@ -85,6 +85,9 @@
   develop(bool, TraceUncollectedSpeculations, false,                        \
           "Print message when a failed speculation was not collected")      \
                                                                             \
+  product(bool, UseHSAILDeoptimization, true,                               \
+          "Code gen and runtime support for deoptimizing HSAIL kernels")    \
+                                                                            \
   product(bool, GPUOffload, false,                                          \
           "Offload execution to GPU whenever possible")                     \
                                                                             \

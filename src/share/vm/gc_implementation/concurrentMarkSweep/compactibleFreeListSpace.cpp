@@ -407,8 +407,8 @@ size_t CompactibleFreeListSpace::max_alloc_in_words() const {
   res = MAX2(res, MIN2(_smallLinearAllocBlock._word_size,
                        (size_t) SmallForLinearAlloc - 1));
   // XXX the following could potentially be pretty slow;
-  // should one, pessimistically for the rare cases when res
-  // calculated above is less than IndexSetSize,
+  // should one, pesimally for the rare cases when res
+  // caclulated above is less than IndexSetSize,
   // just return res calculated above? My reasoning was that
   // those cases will be so rare that the extra time spent doesn't
   // really matter....
@@ -759,7 +759,7 @@ CompactibleFreeListSpace::new_dcto_cl(ExtendedOopClosure* cl,
 // Note on locking for the space iteration functions:
 // since the collector's iteration activities are concurrent with
 // allocation activities by mutators, absent a suitable mutual exclusion
-// mechanism the iterators may go awry. For instance a block being iterated
+// mechanism the iterators may go awry. For instace a block being iterated
 // may suddenly be allocated or divided up and part of it allocated and
 // so on.
 
@@ -997,13 +997,6 @@ size_t CompactibleFreeListSpace::block_size(const HeapWord* p) const {
     if (FreeChunk::indicatesFreeChunk(p)) {
       volatile FreeChunk* fc = (volatile FreeChunk*)p;
       size_t res = fc->size();
-
-      // Bugfix for systems with weak memory model (PPC64/IA64). The
-      // block's free bit was set and we have read the size of the
-      // block. Acquire and check the free bit again. If the block is
-      // still free, the read size is correct.
-      OrderAccess::acquire();
-
       // If the object is still a free chunk, return the size, else it
       // has been allocated so try again.
       if (FreeChunk::indicatesFreeChunk(p)) {
@@ -1017,12 +1010,6 @@ size_t CompactibleFreeListSpace::block_size(const HeapWord* p) const {
         assert(k->is_klass(), "Should really be klass oop.");
         oop o = (oop)p;
         assert(o->is_oop(true /* ignore mark word */), "Should be an oop.");
-
-        // Bugfix for systems with weak memory model (PPC64/IA64).
-        // The object o may be an array. Acquire to make sure that the array
-        // size (third word) is consistent.
-        OrderAccess::acquire();
-
         size_t res = o->size_given_klass(k);
         res = adjustObjectSize(res);
         assert(res != 0, "Block size should not be 0");
@@ -1053,13 +1040,6 @@ const {
     if (FreeChunk::indicatesFreeChunk(p)) {
       volatile FreeChunk* fc = (volatile FreeChunk*)p;
       size_t res = fc->size();
-
-      // Bugfix for systems with weak memory model (PPC64/IA64). The
-      // free bit of the block was set and we have read the size of
-      // the block. Acquire and check the free bit again. If the
-      // block is still free, the read size is correct.
-      OrderAccess::acquire();
-
       if (FreeChunk::indicatesFreeChunk(p)) {
         assert(res != 0, "Block size should not be 0");
         assert(loops == 0, "Should be 0");
@@ -1075,12 +1055,6 @@ const {
         assert(k->is_klass(), "Should really be klass oop.");
         oop o = (oop)p;
         assert(o->is_oop(), "Should be an oop");
-
-        // Bugfix for systems with weak memory model (PPC64/IA64).
-        // The object o may be an array. Acquire to make sure that the array
-        // size (third word) is consistent.
-        OrderAccess::acquire();
-
         size_t res = o->size_given_klass(k);
         res = adjustObjectSize(res);
         assert(res != 0, "Block size should not be 0");
@@ -1730,8 +1704,8 @@ CompactibleFreeListSpace::returnChunkToDictionary(FreeChunk* chunk) {
   _dictionary->return_chunk(chunk);
 #ifndef PRODUCT
   if (CMSCollector::abstract_state() != CMSCollector::Sweeping) {
-    TreeChunk<FreeChunk, AdaptiveFreeList<FreeChunk> >* tc = TreeChunk<FreeChunk, AdaptiveFreeList<FreeChunk> >::as_TreeChunk(chunk);
-    TreeList<FreeChunk, AdaptiveFreeList<FreeChunk> >* tl = tc->list();
+    TreeChunk<FreeChunk, AdaptiveFreeList>* tc = TreeChunk<FreeChunk, AdaptiveFreeList>::as_TreeChunk(chunk);
+    TreeList<FreeChunk, AdaptiveFreeList>* tl = tc->list();
     tl->verify_stats();
   }
 #endif // PRODUCT
@@ -2116,7 +2090,7 @@ CompactibleFreeListSpace::refillLinearAllocBlock(LinearAllocBlock* blk) {
 
 // Support for concurrent collection policy decisions.
 bool CompactibleFreeListSpace::should_concurrent_collect() const {
-  // In the future we might want to add in fragmentation stats --
+  // In the future we might want to add in frgamentation stats --
   // including erosion of the "mountain" into this decision as well.
   return !adaptive_freelists() && linearAllocationWouldFail();
 }
@@ -2125,7 +2099,7 @@ bool CompactibleFreeListSpace::should_concurrent_collect() const {
 
 void CompactibleFreeListSpace::prepare_for_compaction(CompactPoint* cp) {
   SCAN_AND_FORWARD(cp,end,block_is_obj,block_size);
-  // Prepare_for_compaction() uses the space between live objects
+  // prepare_for_compaction() uses the space between live objects
   // so that later phase can skip dead space quickly.  So verification
   // of the free lists doesn't work after.
 }
@@ -2148,7 +2122,7 @@ void CompactibleFreeListSpace::compact() {
   SCAN_AND_COMPACT(obj_size);
 }
 
-// Fragmentation metric = 1 - [sum of (fbs**2) / (sum of fbs)**2]
+// fragmentation_metric = 1 - [sum of (fbs**2) / (sum of fbs)**2]
 // where fbs is free block sizes
 double CompactibleFreeListSpace::flsFrag() const {
   size_t itabFree = totalSizeInIndexedFreeLists();
@@ -2541,10 +2515,10 @@ void CompactibleFreeListSpace::verifyIndexedFreeList(size_t size) const {
 
 #ifndef PRODUCT
 void CompactibleFreeListSpace::check_free_list_consistency() const {
-  assert((TreeChunk<FreeChunk, AdaptiveFreeList<FreeChunk> >::min_size() <= IndexSetSize),
+  assert((TreeChunk<FreeChunk, AdaptiveFreeList>::min_size() <= IndexSetSize),
     "Some sizes can't be allocated without recourse to"
     " linear allocation buffers");
-  assert((TreeChunk<FreeChunk, AdaptiveFreeList<FreeChunk> >::min_size()*HeapWordSize == sizeof(TreeChunk<FreeChunk, AdaptiveFreeList<FreeChunk> >)),
+  assert((TreeChunk<FreeChunk, AdaptiveFreeList>::min_size()*HeapWordSize == sizeof(TreeChunk<FreeChunk, AdaptiveFreeList>)),
     "else MIN_TREE_CHUNK_SIZE is wrong");
   assert(IndexSetStart != 0, "IndexSetStart not initialized");
   assert(IndexSetStride != 0, "IndexSetStride not initialized");
@@ -2677,7 +2651,7 @@ void CFLS_LAB::get_from_global_pool(size_t word_sz, AdaptiveFreeList<FreeChunk>*
   // changes on-the-fly during a scavenge and avoid such a phase-change
   // pothole. The following code is a heuristic attempt to do that.
   // It is protected by a product flag until we have gained
-  // enough experience with this heuristic and fine-tuned its behavior.
+  // enough experience with this heuristic and fine-tuned its behaviour.
   // WARNING: This might increase fragmentation if we overreact to
   // small spikes, so some kind of historical smoothing based on
   // previous experience with the greater reactivity might be useful.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -222,7 +222,7 @@ class Ticks;
   do_klass(CompilationResult_Mark_klass,          com_oracle_graal_api_code_CompilationResult_Mark,             Opt) \
   do_klass(CompilationResult_Infopoint_klass,     com_oracle_graal_api_code_CompilationResult_Infopoint,        Opt) \
   do_klass(CompilationResult_Site_klass,          com_oracle_graal_api_code_CompilationResult_Site,             Opt) \
-  do_klass(ExternalCompilationResult_klass,       com_oracle_graal_api_code_ExternalCompilationResult,          Opt) \
+  do_klass(ExternalCompilationResult_klass,       com_oracle_graal_gpu_ExternalCompilationResult,               Opt) \
   do_klass(InfopointReason_klass,                 com_oracle_graal_api_code_InfopointReason,                    Opt) \
   do_klass(code_Register_klass,                   com_oracle_graal_api_code_Register,                           Opt) \
   do_klass(RegisterValue_klass,                   com_oracle_graal_api_code_RegisterValue,                      Opt) \
@@ -429,6 +429,10 @@ public:
 #ifdef ASSERT
   static bool is_internal_format(Symbol* class_name);
 #endif
+
+  // Verify class is in dictionary
+  static void verify_obj_klass_present(Symbol* class_name,
+                                       ClassLoaderData* loader_data);
 
   // Initialization
   static void initialize(TRAPS);

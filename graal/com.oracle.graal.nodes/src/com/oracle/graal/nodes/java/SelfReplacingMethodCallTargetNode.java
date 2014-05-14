@@ -22,16 +22,12 @@
  */
 package com.oracle.graal.nodes.java;
 
-import java.lang.reflect.Modifier;
+import java.lang.reflect.*;
 
-import com.oracle.graal.api.meta.JavaType;
-import com.oracle.graal.api.meta.ResolvedJavaMethod;
-import com.oracle.graal.graph.GraalInternalError;
-import com.oracle.graal.graph.NodeInputList;
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.spi.LIRGeneratorTool;
-import com.oracle.graal.nodes.spi.Lowerable;
-import com.oracle.graal.nodes.spi.LoweringTool;
+import com.oracle.graal.nodes.spi.*;
 
 /**
  * A SelfReplacingMethodCallTargetNode replaces itself in the graph when being lowered with a
@@ -78,7 +74,7 @@ public class SelfReplacingMethodCallTargetNode extends MethodCallTargetNode impl
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         throw GraalInternalError.shouldNotReachHere("should have replaced itself");
     }
 }

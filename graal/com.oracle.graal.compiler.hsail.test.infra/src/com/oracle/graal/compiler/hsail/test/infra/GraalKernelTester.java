@@ -29,6 +29,7 @@ package com.oracle.graal.compiler.hsail.test.infra;
  */
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 import static com.oracle.graal.phases.GraalOptions.*;
+import static org.junit.Assume.*;
 
 import java.io.*;
 import java.lang.reflect.*;
@@ -39,6 +40,7 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.debug.*;
+import com.oracle.graal.gpu.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.hsail.*;
 import com.oracle.graal.hotspot.meta.*;
@@ -53,7 +55,7 @@ public abstract class GraalKernelTester extends KernelTester {
         super(getHSAILBackend().isDeviceInitialized());
     }
 
-    private static HSAILHotSpotBackend getHSAILBackend() {
+    protected static HSAILHotSpotBackend getHSAILBackend() {
         Backend backend = runtime().getBackend(HSAIL.class);
         Assume.assumeTrue(backend instanceof HSAILHotSpotBackend);
         return (HSAILHotSpotBackend) backend;
@@ -101,6 +103,13 @@ public abstract class GraalKernelTester extends KernelTester {
         return (canGenerateCalls && canExecuteCalls);
     }
 
+    /**
+     * Determines if the runtime has the capabilities required by this test.
+     */
+    protected boolean supportsRequiredCapabilities() {
+        return true;
+    }
+
     @Override
     protected void dispatchKernelOkra(int range, Object... args) {
         HSAILHotSpotBackend backend = getHSAILBackend();
@@ -131,16 +140,22 @@ public abstract class GraalKernelTester extends KernelTester {
 
     // Special overrides for the testGeneratedxxx routines which set
     // required graal options that we need to run any junit test
+
+    private OverrideScope getOverrideScope() {
+        return OptionValue.override(GraalOptions.InlineEverything, true, accessibleRemoveNeverExecutedCode, false);
+    }
+
     @Override
     public void testGeneratedHsail() {
-        try (OverrideScope s = OptionValue.override(GraalOptions.InlineEverything, true, accessibleRemoveNeverExecutedCode, false)) {
+        try (OverrideScope s = getOverrideScope()) {
+            assumeTrue(supportsRequiredCapabilities());
             super.testGeneratedHsail();
         }
     }
 
     @Override
     public void testGeneratedHsailUsingLambdaMethod() {
-        try (OverrideScope s = OptionValue.override(GraalOptions.InlineEverything, true, accessibleRemoveNeverExecutedCode, false)) {
+        try (OverrideScope s = getOverrideScope()) {
             super.testGeneratedHsailUsingLambdaMethod();
         }
     }

@@ -24,8 +24,6 @@
  */
 package edu.uci.python.runtime.standardtype;
 
-import com.oracle.truffle.api.frame.*;
-
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
@@ -43,12 +41,12 @@ public class PythonObjectClass extends PythonBuiltinClass {
     }
 
     @Override
-    public Object call(PackedFrame caller, Object[] args) {
+    public Object call(Object[] args) {
         return PythonContext.newPythonObjectInstance(this);
     }
 
     @Override
-    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+    public Object call(Object[] args, PKeyword[] keywords) {
         return PythonContext.newPythonObjectInstance(this);
     }
 

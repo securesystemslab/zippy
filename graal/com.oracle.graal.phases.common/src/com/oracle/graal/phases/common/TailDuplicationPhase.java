@@ -28,8 +28,8 @@ import java.util.*;
 
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.Graph.DuplicationReplacement;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Graph.Mark;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.VirtualState.NodeClosure;
 import com.oracle.graal.nodes.extended.*;
@@ -486,7 +486,7 @@ public class TailDuplicationPhase extends BasePhase<PhaseContext> {
                             // introduce a new phi
                             PhiNode newPhi = bottomPhis.get(node);
                             if (newPhi == null) {
-                                newPhi = graph.addWithoutUnique(new PhiNode(node.stamp().unrestricted(), newBottomMerge));
+                                newPhi = graph.addWithoutUnique(new ValuePhiNode(node.stamp().unrestricted(), newBottomMerge));
                                 bottomPhis.put(node, newPhi);
                                 newPhi.addInput(node);
                             }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -286,9 +286,6 @@ public:
   // CPU supports misaligned vectors store/load.
   static const bool misaligned_vectors_ok();
 
-  // Should original key array reference be passed to AES stubs
-  static const bool pass_original_key_for_aes();
-
   // Used to determine a "low complexity" 64-bit constant.  (Zero is simple.)
   // The standard of comparison is one (StoreL ConL) vs. two (StoreI ConI).
   // Depends on the details of 64-bit constant generation on the CPU.
@@ -339,6 +336,10 @@ public:
   static RegMask divL_proj_mask();
   // Register for MODL projection of divmodL
   static RegMask modL_proj_mask();
+
+  static const RegMask mathExactI_result_proj_mask();
+  static const RegMask mathExactL_result_proj_mask();
+  static const RegMask mathExactI_flags_proj_mask();
 
   // Use hardware DIV instruction when it is faster than
   // a code which use multiply for division by constant.
@@ -448,10 +449,6 @@ public:
   // aligned.
   static const bool misaligned_doubles_ok;
 
-  // Does the CPU require postalloc expand (see block.cpp for description of
-  // postalloc expand)?
-  static const bool require_postalloc_expand;
-
   // Perform a platform dependent implicit null fixup.  This is needed
   // on windows95 to take care of some unusual register constraints.
   void pd_implicit_null_fixup(MachNode *load, uint idx);
@@ -484,8 +481,6 @@ public:
   // retain the Node to act as a compiler ordering barrier.
   static bool post_store_load_barrier(const Node* mb);
 
-  // Does n lead to an uncommon trap that can cause deoptimization?
-  static bool branches_to_uncommon_trap(const Node *n);
 
 #ifdef ASSERT
   void dump_old2new_map();      // machine-independent to machine-dependent

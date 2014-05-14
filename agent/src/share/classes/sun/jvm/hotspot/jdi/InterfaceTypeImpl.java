@@ -24,22 +24,15 @@
 
 package sun.jvm.hotspot.jdi;
 
-import java.lang.ref.SoftReference;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.sun.jdi.*;
 import sun.jvm.hotspot.oops.InstanceKlass;
 
-import com.sun.jdi.ClassNotPreparedException;
-import com.sun.jdi.ClassType;
-import com.sun.jdi.InterfaceType;
-import com.sun.jdi.Method;
-import com.sun.jdi.ReferenceType;
-import com.sun.jdi.VirtualMachine;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.Iterator;
+import java.util.Collections;
+import java.lang.ref.SoftReference;
 
 public class InterfaceTypeImpl extends ReferenceTypeImpl
                                implements InterfaceType {
@@ -103,20 +96,16 @@ public class InterfaceTypeImpl extends ReferenceTypeImpl
         return implementors;
     }
 
-    @Override
-    void addVisibleMethods(Map<String, Method> methodMap, Set<InterfaceType> seenInterfaces) {
+    void addVisibleMethods(Map methodMap) {
         /*
          * Add methods from
          * parent types first, so that the methods in this class will
          * overwrite them in the hash table
          */
-        Iterator<InterfaceType> iter = superinterfaces().iterator();
+        Iterator iter = superinterfaces().iterator();
         while (iter.hasNext()) {
             InterfaceTypeImpl interfaze = (InterfaceTypeImpl)iter.next();
-            if (!seenInterfaces.contains(interfaze)) {
-                interfaze.addVisibleMethods(methodMap, seenInterfaces);
-                seenInterfaces.add(interfaze);
-            }
+            interfaze.addVisibleMethods(methodMap);
         }
 
         addToMethodMap(methodMap, methods());

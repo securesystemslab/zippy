@@ -147,12 +147,12 @@ public class GeneratorExpressionNode extends PNode {
         }
 
         @Override
-        public Object call(PackedFrame caller, Object[] args) {
+        public Object call(Object[] args) {
             return PGenerator.create(getName(), context, getCallTarget(), getFrameDescriptor(), null, args, getNumOfActiveFlags(), getNumOfGeneratorBlockNode(), getNumOfGeneratorForNode());
         }
 
         @Override
-        public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+        public Object call(Object[] args, PKeyword[] keywords) {
             throw new UnsupportedOperationException();
         }
 

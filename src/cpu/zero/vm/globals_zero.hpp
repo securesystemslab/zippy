@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
  * Copyright 2007, 2008, 2009, 2010, 2011 Red Hat, Inc.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -38,13 +38,11 @@ define_pd_global(bool,  CountInterpCalls,     true);
 define_pd_global(bool,  NeedsDeoptSuspend,    false);
 
 define_pd_global(bool,  ImplicitNullChecks,   true);
-define_pd_global(bool,  TrapBasedNullChecks,  false);
 define_pd_global(bool,  UncommonNullCast,     true);
 
 define_pd_global(intx,  CodeEntryAlignment,   32);
 define_pd_global(intx,  OptoLoopAlignment,    16);
 define_pd_global(intx,  InlineFrequencyCount, 100);
-define_pd_global(intx,  InlineSmallCode,      1000 );
 define_pd_global(intx,  PreInflateSpin,       10);
 
 define_pd_global(intx,  StackYellowPages,     2);

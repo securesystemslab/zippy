@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -195,10 +195,8 @@ private:
   int _count;
 public:
   CountHandleClosure(): _count(0) {}
-  virtual void do_oop(oop* ooph) {
-    if (*ooph != JNIHandles::deleted_handle()) {
-      _count++;
-    }
+  virtual void do_oop(oop* unused) {
+    _count++;
   }
   virtual void do_oop(narrowOop* unused) { ShouldNotReachHere(); }
   int count() { return _count; }
@@ -463,7 +461,7 @@ jobject JNIHandleBlock::allocate_handle(oop obj) {
     // Append new block
     Thread* thread = Thread::current();
     Handle obj_handle(thread, obj);
-    // This can block, so we need to preserve obj across call.
+    // This can block, so we need to preserve obj accross call.
     _last->_next = JNIHandleBlock::allocate_block(thread);
     _last = _last->_next;
     _allocate_before_rebuild--;
@@ -530,7 +528,7 @@ int JNIHandleBlock::length() const {
   return result;
 }
 
-// This method is not thread-safe, i.e., must be called while holding a lock on the
+// This method is not thread-safe, i.e., must be called whule holding a lock on the
 // structure.
 long JNIHandleBlock::memory_usage() const {
   return length() * sizeof(JNIHandleBlock);

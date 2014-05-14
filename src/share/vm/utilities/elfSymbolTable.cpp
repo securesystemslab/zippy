@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,6 @@
 #if !defined(_WINDOWS) && !defined(__APPLE__)
 
 #include "memory/allocation.inline.hpp"
-#include "utilities/elfFuncDescTable.hpp"
 #include "utilities/elfSymbolTable.hpp"
 
 ElfSymbolTable::ElfSymbolTable(FILE* file, Elf_Shdr shdr) {
@@ -69,7 +68,7 @@ ElfSymbolTable::~ElfSymbolTable() {
   }
 }
 
-bool ElfSymbolTable::lookup(address addr, int* stringtableIndex, int* posIndex, int* offset, ElfFuncDescTable* funcDescTable) {
+bool ElfSymbolTable::lookup(address addr, int* stringtableIndex, int* posIndex, int* offset) {
   assert(stringtableIndex, "null string table index pointer");
   assert(posIndex, "null string table offset pointer");
   assert(offset, "null offset pointer");
@@ -78,25 +77,19 @@ bool ElfSymbolTable::lookup(address addr, int* stringtableIndex, int* posIndex, 
     return false;
   }
 
+  address pc = 0;
   size_t  sym_size = sizeof(Elf_Sym);
   assert((m_shdr.sh_size % sym_size) == 0, "check size");
   int count = m_shdr.sh_size / sym_size;
   if (m_symbols != NULL) {
     for (int index = 0; index < count; index ++) {
       if (STT_FUNC == ELF_ST_TYPE(m_symbols[index].st_info)) {
-        Elf_Word st_size = m_symbols[index].st_size;
-        address sym_addr;
-        if (funcDescTable != NULL && funcDescTable->get_index() == m_symbols[index].st_shndx) {
-          // We need to go another step trough the function descriptor table (currently PPC64 only)
-          sym_addr = funcDescTable->lookup(m_symbols[index].st_value);
-        } else {
-          sym_addr = (address)m_symbols[index].st_value;
-        }
-        if (sym_addr <= addr && (Elf_Word)(addr - sym_addr) < st_size) {
-          *offset = (int)(addr - sym_addr);
+        address sym_addr = (address)m_symbols[index].st_value;
+        if (sym_addr < addr && (addr - sym_addr) < *offset) {
+          pc = (address)m_symbols[index].st_value;
+          *offset = (int)(addr - pc);
           *posIndex = m_symbols[index].st_name;
           *stringtableIndex = m_shdr.sh_link;
-          return true;
         }
       }
     }
@@ -112,19 +105,12 @@ bool ElfSymbolTable::lookup(address addr, int* stringtableIndex, int* posIndex, 
     for (int index = 0; index < count; index ++) {
       if (fread(&sym, sym_size, 1, m_file) == 1) {
         if (STT_FUNC == ELF_ST_TYPE(sym.st_info)) {
-          Elf_Word st_size = sym.st_size;
-          address sym_addr;
-          if (funcDescTable != NULL && funcDescTable->get_index() == sym.st_shndx) {
-            // We need to go another step trough the function descriptor table (currently PPC64 only)
-            sym_addr = funcDescTable->lookup(sym.st_value);
-          } else {
-            sym_addr = (address)sym.st_value;
-          }
-          if (sym_addr <= addr && (Elf_Word)(addr - sym_addr) < st_size) {
-            *offset = (int)(addr - sym_addr);
+          address sym_addr = (address)sym.st_value;
+          if (sym_addr < addr && (addr - sym_addr) < *offset) {
+            pc = (address)sym.st_value;
+            *offset = (int)(addr - pc);
             *posIndex = sym.st_name;
             *stringtableIndex = m_shdr.sh_link;
-            return true;
           }
         }
       } else {
@@ -137,4 +123,4 @@ bool ElfSymbolTable::lookup(address addr, int* stringtableIndex, int* posIndex, 
   return true;
 }
 
-#endif // !_WINDOWS && !__APPLE__
+#endif // _WINDOWS

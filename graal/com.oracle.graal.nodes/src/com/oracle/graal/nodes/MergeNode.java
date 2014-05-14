@@ -41,7 +41,7 @@ public class MergeNode extends BeginStateSplitNode implements IterableNodeType, 
     @Input(notDataflow = true) private final NodeInputList<AbstractEndNode> ends = new NodeInputList<>(this);
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         gen.visitMerge(this);
     }
 
@@ -210,7 +210,7 @@ public class MergeNode extends BeginStateSplitNode implements IterableNodeType, 
                 }
             }
 
-            PhiNode returnValuePhi = returnNode.result() == null || !isPhiAtMerge(returnNode.result()) ? null : (PhiNode) returnNode.result();
+            ValuePhiNode returnValuePhi = returnNode.result() == null || !isPhiAtMerge(returnNode.result()) ? null : (ValuePhiNode) returnNode.result();
             List<AbstractEndNode> endNodes = forwardEnds().snapshot();
             for (AbstractEndNode end : endNodes) {
                 ReturnNode newReturn = graph().add(new ReturnNode(returnValuePhi == null ? returnNode.result() : returnValuePhi.valueAt(end)));

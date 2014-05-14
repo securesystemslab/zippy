@@ -25,7 +25,60 @@
 #ifndef GPU_HSAIL_HPP
 #define GPU_HSAIL_HPP
 
+#include "utilities/exceptions.hpp"
+#include "graal/graalEnv.hpp"
+// #include "graal/graalCodeInstaller.hpp"
+#include "gpu_hsail_Frame.hpp"
+
 class Hsail {
+  friend class gpu;
+
+  public:
+  class HSAILKernelDeoptimization {
+    friend class VMStructs;
+   private:
+    // TODO: separate workitemid and actionAndReason out
+    // since they are there only once even if there are multiple frames
+    // for now, though we only ever have one hsail fram
+    jint  _workitemid;
+    jint  _actionAndReason;
+    // the first (innermost) "hsail frame" starts here
+    HSAILFrame _first_frame;
+
+   public:
+    inline jint workitem() { return _workitemid; }
+    inline jint reason() { return _actionAndReason; }
+    inline jint pc_offset() { return _first_frame.pc_offset(); }
+    inline HSAILFrame *first_frame() { return &_first_frame; }
+  };
+
+// 8 compute units * 40 waves per cu * wavesize 64
+#define MAX_DEOPT_SAVE_STATES_SIZE    (8 * 40 * 64)
+
+  class HSAILDeoptimizationInfo : public ResourceObj {
+    friend class VMStructs;
+   private:
+    jint _deopt_occurred;
+    jint _deopt_next_index;
+    jboolean * _never_ran_array;
+
+   public:
+    HSAILKernelDeoptimization _deopt_save_states[MAX_DEOPT_SAVE_STATES_SIZE];
+
+    inline HSAILDeoptimizationInfo() {
+      _deopt_occurred = 0;
+      _deopt_next_index = 0;
+    }
+
+    inline jint deopt_occurred() {
+      // Check that hsail did not write in the wrong place
+      return _deopt_occurred;
+    }
+    inline jint num_deopts() { return _deopt_next_index; }
+    inline jboolean *never_ran_array() { return _never_ran_array; }
+    inline void  set_never_ran_array(jboolean *p) { _never_ran_array = p; }
+  };
+
 
 private:
 
@@ -38,9 +91,17 @@ private:
   JNIEXPORT static jlong generate_kernel(JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle);
 
   // static native boolean executeKernel0(HotSpotInstalledCode kernel, int jobSize, Object[] args);
-  JNIEXPORT static jboolean execute_kernel_void_1d(JNIEnv *env, jclass, jobject hotspotInstalledCode, jint dimX, jobject args);
+  JNIEXPORT static jboolean execute_kernel_void_1d(JNIEnv *env, jclass, jobject hotspotInstalledCode, jint dimX, jobject args, jobject oopsSave);
+
+  // static native void setSimulatorSingleThreaded0();
+  JNIEXPORT static void setSimulatorSingleThreaded0(JNIEnv *env, jclass);
+
+
+  static jboolean execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod *nm, jobject oopsSave, TRAPS);
 
   static void register_heap();
+
+  static GraalEnv::CodeInstallResult install_code(Handle& compiled_code, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations);
 
 public:
 

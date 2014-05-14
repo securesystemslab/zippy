@@ -32,7 +32,7 @@ gc = 'UseSerialGC'
 dacapoSanityWarmup = {
     'avrora':     [0, 0, 3, 6, 13],
     'batik':      [0, 0, 5, 5, 20],
-    'eclipse':    [2, 4, 5, 10, 16],
+    'eclipse':    [0, 0, 0, 0, 0],
     'fop':        [4, 8, 10, 20, 30],
     'h2':         [0, 0, 5, 5, 8],
     'jython':     [0, 0, 5, 10, 13],
@@ -42,17 +42,15 @@ dacapoSanityWarmup = {
     'sunflow':    [0, 2, 5, 10, 15],
     'tomcat':     [0, 0, 5, 10, 15],
     'tradebeans': [0, 0, 5, 10, 13],
-    'tradesoap':  [2, 4, 5, 10, 15],
+    'tradesoap':  [0, 0, 5, 10, 15],
     'xalan':      [0, 0, 5, 10, 18],
 }
 
 dacapoScalaSanityWarmup = {
-# (tw) actors sometimes fails verification; hardly reproducible
-    'actors':     [0, 0, 0, 0, 0],
-# (lstadler) apparat was disabled due to a deadlock which I think is the benchmarks fault.
-    'apparat':    [0, 0, 0, 0, 0],
+    'actors':     [0, 0, 2, 5, 5],
+    'apparat':    [0, 0, 2, 5, 5],
     'factorie':   [0, 0, 2, 5, 5],
-    'kiama':      [0, 0, 3, 13, 15],
+    'kiama':      [0, 4, 3, 13, 15],
     'scalac':     [0, 0, 5, 15, 20],
     'scaladoc':   [0, 0, 5, 15, 15],
     'scalap':     [0, 0, 5, 15, 20],
@@ -67,7 +65,8 @@ dacapoScalaSanityWarmup = {
 dacapoGateBuildLevels = {
     'avrora':     ['product', 'fastdebug', 'debug'],
     'batik':      ['product', 'fastdebug', 'debug'],
-    'eclipse':    ['product'],
+    # (lewurm): does not work with JDK8
+    'eclipse':    [],
     'fop':        ['fastdebug', 'debug'],
     'h2':         ['product', 'fastdebug', 'debug'],
     'jython':     ['product', 'fastdebug', 'debug'],
@@ -77,7 +76,8 @@ dacapoGateBuildLevels = {
     'sunflow':    ['fastdebug', 'debug'],
     'tomcat':     ['product', 'fastdebug', 'debug'],
     'tradebeans': ['product', 'fastdebug', 'debug'],
-    # tradesoap is too unreliable for the gate, often crashing with "java.net.BindException: Address already in use"
+    # tradesoap is too unreliable for the gate, often crashing with concurrency problems:
+    # http://sourceforge.net/p/dacapobench/bugs/99/
     'tradesoap':  [],
     'xalan':      ['product', 'fastdebug', 'debug'],
 }
@@ -86,7 +86,7 @@ dacapoScalaGateBuildLevels = {
     'actors':     ['product', 'fastdebug', 'debug'],
     'apparat':    ['product', 'fastdebug', 'debug'],
     'factorie':   ['product', 'fastdebug', 'debug'],
-    'kiama':      ['product', 'fastdebug', 'debug'],
+    'kiama':      ['fastdebug', 'debug'],
     'scalac':     ['product', 'fastdebug', 'debug'],
     'scaladoc':   ['product', 'fastdebug', 'debug'],
     'scalap':     ['product', 'fastdebug', 'debug'],

@@ -595,11 +595,21 @@ void CodeCache::clear_inline_caches() {
   }
 }
 
-// Keeps track of time spent for checking dependencies
-NOT_PRODUCT(static elapsedTimer dependentCheckTime;)
+#ifndef PRODUCT
+// used to keep track of how much time is spent in mark_for_deoptimization
+static elapsedTimer dependentCheckTime;
+static int dependentCheckCount = 0;
+#endif // PRODUCT
+
 
 int CodeCache::mark_for_deoptimization(DepChange& changes) {
   MutexLockerEx mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
+
+#ifndef PRODUCT
+  dependentCheckTime.start();
+  dependentCheckCount++;
+#endif // PRODUCT
+
   int number_of_marked_CodeBlobs = 0;
 
   // search the hierarchy looking for nmethods which are affected by the loading of this class
@@ -607,23 +617,32 @@ int CodeCache::mark_for_deoptimization(DepChange& changes) {
   // then search the interfaces this class implements looking for nmethods
   // which might be dependent of the fact that an interface only had one
   // implementor.
-  // nmethod::check_all_dependencies works only correctly, if no safepoint
-  // can happen
-  No_Safepoint_Verifier nsv;
-  for (DepChange::ContextStream str(changes, nsv); str.next(); ) {
-    Klass* d = str.klass();
-    number_of_marked_CodeBlobs += InstanceKlass::cast(d)->mark_dependent_nmethods(changes);
+
+  { No_Safepoint_Verifier nsv;
+    for (DepChange::ContextStream str(changes, nsv); str.next(); ) {
+      Klass* d = str.klass();
+      number_of_marked_CodeBlobs += InstanceKlass::cast(d)->mark_dependent_nmethods(changes);
+    }
+  }
+
+  if (VerifyDependencies) {
+    // Turn off dependency tracing while actually testing deps.
+    NOT_PRODUCT( FlagSetting fs(TraceDependencies, false) );
+    FOR_ALL_ALIVE_NMETHODS(nm) {
+      if (!nm->is_marked_for_deoptimization() &&
+          nm->check_all_dependencies()) {
+        ResourceMark rm;
+        tty->print_cr("Should have been marked for deoptimization:");
+        changes.print();
+        nm->print();
+        nm->print_dependencies();
+      }
+    }
   }
 
 #ifndef PRODUCT
-  if (VerifyDependencies) {
-    // Object pointers are used as unique identifiers for dependency arguments. This
-    // is only possible if no safepoint, i.e., GC occurs during the verification code.
-    dependentCheckTime.start();
-    nmethod::check_all_dependencies(changes);
-    dependentCheckTime.stop();
-  }
-#endif
+  dependentCheckTime.stop();
+#endif // PRODUCT
 
   return number_of_marked_CodeBlobs;
 }
@@ -880,7 +899,9 @@ void CodeCache::print() {
   }
 
   tty->print_cr("CodeCache:");
-  tty->print_cr("nmethod dependency checking time %fs", dependentCheckTime.seconds());
+
+  tty->print_cr("nmethod dependency checking time %f", dependentCheckTime.seconds(),
+                dependentCheckTime.seconds() / dependentCheckCount);
 
   if (!live.is_empty()) {
     live.print("live");

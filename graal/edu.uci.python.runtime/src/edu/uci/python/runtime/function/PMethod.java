@@ -52,23 +52,22 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
         return self;
     }
 
-    public Object call(PackedFrame caller, Object[] args) {
-        return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), packSelfWithArguments(self, args)));
+    public Object call(Object[] args) {
+        return callTarget.call(new PArguments(function.getDeclarationFrame(), packSelfWithArguments(self, args)).packAsObjectArray());
     }
 
     /**
-     * Calls that go through {@link PMethod#call(PackedFrame, Object[])} are treated as slow path.
-     * They suffer from an arguments array copy that packs the self object into the flat arguments
-     * array.
+     * Calls that go through {@link PMethod#call(Object[])} are treated as slow path. They suffer
+     * from an arguments array copy that packs the self object into the flat arguments array.
      *
      */
-    public Object call(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+    public Object call(Object[] args, PKeyword[] keywords) {
         if (PythonOptions.CatchZippyExceptionForUnitTesting) {
-            return slowPathCallForUnitTest(caller, args, keywords);
+            return slowPathCallForUnitTest(args, keywords);
         }
 
         Object[] combined = PFunction.applyKeywordArgs(getArity(), packSelfWithArguments(self, args), keywords);
-        return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), combined));
+        return callTarget.call(new PArguments(function.getDeclarationFrame(), combined).packAsObjectArray());
     }
 
     protected static Object[] packSelfWithArguments(Object self, Object[] arguments) {
@@ -85,11 +84,11 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
      * failed in the unit test.
      */
     @SlowPath
-    private Object slowPathCallForUnitTest(PackedFrame caller, Object[] args, PKeyword[] keywords) {
+    private Object slowPathCallForUnitTest(Object[] args, PKeyword[] keywords) {
         if (function.getName().equals("_executeTestPart")) {
             try {
                 Object[] combined = PFunction.applyKeywordArgs(getArity(), packSelfWithArguments(self, args), keywords);
-                Object returnValue = callTarget.call(caller, new PArguments(function.getDeclarationFrame(), combined));
+                Object returnValue = callTarget.call(new PArguments(function.getDeclarationFrame(), combined).packAsObjectArray());
                 return returnValue;
             } catch (Exception e) {
                 return "ZippyExecutionError: " + e;
@@ -97,7 +96,7 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
         }
 
         Object[] combined = PFunction.applyKeywordArgs(getArity(), packSelfWithArguments(self, args), keywords);
-        return callTarget.call(caller, new PArguments(function.getDeclarationFrame(), combined));
+        return callTarget.call(new PArguments(function.getDeclarationFrame(), combined).packAsObjectArray());
     }
 
     @Override

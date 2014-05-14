@@ -176,8 +176,6 @@ void OopMap::set_oop(VMReg reg) {
 
 void OopMap::set_value(VMReg reg) {
   // At this time, we only need value entries in our OopMap when ZapDeadCompiledLocals is active.
-  if (ZapDeadCompiledLocals)
-    set_xxx(reg, OopMapValue::value_value, VMRegImpl::Bad());
 }
 
 
@@ -409,7 +407,7 @@ void OopMapSet::all_do(const frame *fr, const RegisterMap *reg_map,
   }
 
   // We want coop, value and oop oop_types
-  int mask = OopMapValue::oop_value | OopMapValue::value_value | OopMapValue::narrowoop_value;
+  int mask = OopMapValue::oop_value | OopMapValue::narrowoop_value;
   {
     for (OopMapStream oms(map,mask); !oms.is_done(); oms.next()) {
       omv = oms.current();
@@ -440,10 +438,6 @@ void OopMapSet::all_do(const frame *fr, const RegisterMap *reg_map,
           }
 #endif // ASSERT
           oop_fn->do_oop(loc);
-        } else if ( omv.type() == OopMapValue::value_value ) {
-          assert((*loc) == (oop)NULL || !Universe::is_narrow_oop_base(*loc),
-                 "found invalid value pointer");
-          value_fn->do_oop(loc);
         } else if ( omv.type() == OopMapValue::narrowoop_value ) {
           narrowOop *nl = (narrowOop*)loc;
 #ifndef VM_LITTLE_ENDIAN
@@ -543,9 +537,6 @@ void print_register_type(OopMapValue::oop_types x, VMReg optional,
   switch( x ) {
   case OopMapValue::oop_value:
     st->print("Oop");
-    break;
-  case OopMapValue::value_value:
-    st->print("Value");
     break;
   case OopMapValue::narrowoop_value:
     st->print("NarrowOop");

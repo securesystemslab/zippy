@@ -115,7 +115,7 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
             if (PrintBinaryGraphs.getValue()) {
                 printer = new BinaryGraphPrinter(FileChannel.open(file.toPath(), StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW));
             } else {
-                printer = new IdealGraphPrinter(new FileOutputStream(file));
+                printer = new IdealGraphPrinter(new FileOutputStream(file), true);
             }
             TTY.println("Dumping IGV graphs to %s", file.getName());
         } catch (IOException e) {
@@ -132,10 +132,17 @@ public class GraphPrinterDumpHandler implements DebugDumpHandler {
             if (PrintBinaryGraphs.getValue()) {
                 printer = new BinaryGraphPrinter(SocketChannel.open(new InetSocketAddress(host, port)));
             } else {
-                IdealGraphPrinter xmlPrinter = new IdealGraphPrinter(new Socket(host, port).getOutputStream());
+                IdealGraphPrinter xmlPrinter = new IdealGraphPrinter(new Socket(host, port).getOutputStream(), true);
                 printer = xmlPrinter;
             }
             TTY.println("Connected to the IGV on %s:%d", host, port);
+        } catch (ClosedByInterruptException | InterruptedIOException e) {
+            /*
+             * Interrupts should not count as errors because they may be caused by a cancelled Graal
+             * compilation. ClosedByInterruptException occurs if the SocketChannel could not be
+             * opened. InterruptedIOException occurs if new Socket(..) was interrupted.
+             */
+            printer = null;
         } catch (IOException e) {
             TTY.println("Could not connect to the IGV on %s:%d : %s", host, port, e);
             failuresCount++;

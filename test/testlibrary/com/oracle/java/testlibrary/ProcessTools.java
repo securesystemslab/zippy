@@ -142,23 +142,11 @@ public final class ProcessTools {
    * with any platform specific arguments prepended
    */
   public static ProcessBuilder createJavaProcessBuilder(String... command) throws Exception {
-    return createJavaProcessBuilder(false, command);
-  }
-
-  public static ProcessBuilder createJavaProcessBuilder(boolean addTestVmOptions, String... command) throws Exception {
     String javapath = JDKToolFinder.getJDKTool("java");
 
     ArrayList<String> args = new ArrayList<>();
     args.add(javapath);
     Collections.addAll(args, getPlatformSpecificVMArgs());
-
-    if (addTestVmOptions) {
-      String vmopts = System.getProperty("test.vm.opts");
-      if (vmopts != null && vmopts.length() > 0) {
-        Collections.addAll(args, vmopts.split("\\s"));
-      }
-    }
-
     Collections.addAll(args, command);
 
     // Reporting
@@ -169,4 +157,5 @@ public final class ProcessTools {
 
     return new ProcessBuilder(args.toArray(new String[args.size()]));
   }
+
 }

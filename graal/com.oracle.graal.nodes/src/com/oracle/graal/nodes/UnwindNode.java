@@ -49,7 +49,7 @@ public final class UnwindNode extends ControlSinkNode implements Lowerable, LIRL
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
-        gen.emitUnwind(gen.operand(exception()));
+    public void generate(NodeLIRBuilderTool gen) {
+        gen.getLIRGeneratorTool().emitUnwind(gen.operand(exception()));
     }
 }

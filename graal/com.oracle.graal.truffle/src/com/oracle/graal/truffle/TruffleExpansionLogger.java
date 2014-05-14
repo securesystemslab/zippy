@@ -48,24 +48,17 @@ public class TruffleExpansionLogger {
         int sourceMethodBci = callTarget.invoke().bci();
         ResolvedJavaMethod targetMethod = callTarget.targetMethod();
         Object targetReceiver = null;
-        if (!Modifier.isStatic(sourceMethod.getModifiers())) {
-            /**
-             * zwei: This is a work around to avoid {@link NullPointException} when {@link firstArg}
-             * is not a constant.
-             */
-            // targetReceiver = callTarget.arguments().first().asConstant().asObject();
-            NodeInputList<ValueNode> args = callTarget.arguments();
-            ValueNode firstArg = args.first();
-            Constant cst = firstArg.asConstant();
-            targetReceiver = cst == null ? cst : cst.asObject();
-
+        if (!Modifier.isStatic(sourceMethod.getModifiers()) && callTarget.receiver().isConstant()) {
+            targetReceiver = callTarget.receiver().asConstant().asObject();
         }
 
-        ExpansionTree parent = callToParentTree.get(callTarget);
-        assert parent != null;
-        callToParentTree.remove(callTarget);
-        ExpansionTree tree = new ExpansionTree(parent, targetReceiver, targetMethod, sourceMethodBci);
-        registerParentInCalls(tree, inliningGraph);
+        if (targetReceiver != null) {
+            ExpansionTree parent = callToParentTree.get(callTarget);
+            assert parent != null;
+            callToParentTree.remove(callTarget);
+            ExpansionTree tree = new ExpansionTree(parent, targetReceiver, targetMethod, sourceMethodBci);
+            registerParentInCalls(tree, inliningGraph);
+        }
     }
 
     @SuppressWarnings("unchecked")

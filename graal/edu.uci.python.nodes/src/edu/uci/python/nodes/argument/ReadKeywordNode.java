@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -32,7 +32,7 @@ import edu.uci.python.runtime.function.*;
 
 /**
  * @author Gulfem
- * 
+ *
  *         Only used in the builtin functions because only certain arguments can be keywords
  *         arguments in the builtin functions. You can't use a keyword argument for each parameter
  *         as in regular functions.
@@ -47,7 +47,7 @@ public class ReadKeywordNode extends PNode {
 
     @Override
     public final Object execute(VirtualFrame frame) {
-        PArguments arguments = frame.getArguments(PArguments.class);
+        PArguments arguments = PArguments.get(frame);
         PKeyword keyword = arguments.getKeyword(name);
         if (keyword == null) {
             return PNone.NONE;

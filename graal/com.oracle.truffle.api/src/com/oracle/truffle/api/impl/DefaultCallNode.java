@@ -25,7 +25,6 @@
 package com.oracle.truffle.api.impl;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 public class DefaultCallNode extends CallNode {
@@ -35,8 +34,8 @@ public class DefaultCallNode extends CallNode {
     }
 
     @Override
-    public Object call(PackedFrame caller, Arguments arguments) {
-        return getCallTarget().call(caller, arguments);
+    public Object call(Object[] arguments) {
+        return getCurrentCallTarget().call(arguments);
     }
 
     @Override
@@ -70,6 +69,6 @@ public class DefaultCallNode extends CallNode {
 
     @Override
     public String toString() {
-        return getParent() != null ? getParent().toString() : super.toString();
+        return (getParent() != null ? getParent().toString() : super.toString()) + " call " + getCurrentCallTarget().toString();
     }
 }

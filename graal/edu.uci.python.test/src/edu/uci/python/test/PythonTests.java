@@ -122,7 +122,7 @@ public class PythonTests {
     }
 
     public static VirtualFrame createVirtualFrame() {
-        return Truffle.getRuntime().createVirtualFrame(null, null, new FrameDescriptor());
+        return Truffle.getRuntime().createVirtualFrame(null, new FrameDescriptor());
     }
 
 }

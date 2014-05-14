@@ -508,7 +508,7 @@ public class InliningUtil {
     }
 
     /**
-     * Polymorphic inlining of m methods with n type checks (n >= m) in case that the profiling
+     * Polymorphic inlining of m methods with n type checks (n &ge; m) in case that the profiling
      * information suggests a reasonable amount of different receiver types and different methods.
      * If an unknown type is encountered a deoptimization is triggered.
      */
@@ -628,7 +628,7 @@ public class InliningUtil {
 
             PhiNode returnValuePhi = null;
             if (invoke.asNode().getKind() != Kind.Void) {
-                returnValuePhi = graph.addWithoutUnique(new PhiNode(invoke.asNode().stamp().unrestricted(), returnMerge));
+                returnValuePhi = graph.addWithoutUnique(new ValuePhiNode(invoke.asNode().stamp().unrestricted(), returnMerge));
             }
 
             MergeNode exceptionMerge = null;
@@ -641,7 +641,7 @@ public class InliningUtil {
 
                 FixedNode exceptionSux = exceptionEdge.next();
                 graph.addBeforeFixed(exceptionSux, exceptionMerge);
-                exceptionObjectPhi = graph.addWithoutUnique(new PhiNode(StampFactory.forKind(Kind.Object), exceptionMerge));
+                exceptionObjectPhi = graph.addWithoutUnique(new ValuePhiNode(StampFactory.forKind(Kind.Object), exceptionMerge));
                 exceptionMerge.setStateAfter(exceptionEdge.stateAfter().duplicateModified(invoke.stateAfter().bci, true, Kind.Object, exceptionObjectPhi));
             }
 
@@ -1040,7 +1040,7 @@ public class InliningUtil {
 
     /**
      * Determines if inlining is possible at the given invoke node.
-     * 
+     *
      * @param invoke the invoke that should be inlined
      * @return an instance of InlineInfo, or null if no inlining is possible at the given invoke
      */
@@ -1304,7 +1304,7 @@ public class InliningUtil {
 
     /**
      * Performs an actual inlining, thereby replacing the given invoke with the given inlineGraph.
-     * 
+     *
      * @param invoke the invoke that will be replaced
      * @param inlineGraph the graph that the invoke will be replaced with
      * @param receiverNullCheck true if a null check needs to be generated for non-static inlinings,
@@ -1489,7 +1489,7 @@ public class InliningUtil {
 
             if (returnNode.result() != null) {
                 if (returnValuePhi == null) {
-                    returnValuePhi = merge.graph().addWithoutUnique(new PhiNode(returnNode.result().stamp().unrestricted(), merge));
+                    returnValuePhi = merge.graph().addWithoutUnique(new ValuePhiNode(returnNode.result().stamp().unrestricted(), merge));
                 }
                 returnValuePhi.addInput(returnNode.result());
             }

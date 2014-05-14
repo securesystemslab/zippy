@@ -27,7 +27,6 @@ import java.util.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.meta.*;
-import com.oracle.graal.hsail.*;
 
 public class HSAILHotSpotCodeCacheProvider extends HotSpotCodeCacheProvider {
 
@@ -44,6 +43,6 @@ public class HSAILHotSpotCodeCacheProvider extends HotSpotCodeCacheProvider {
 
     @Override
     protected RegisterConfig createRegisterConfig() {
-        return new HSAILRegisterConfig();
+        return new HSAILHotSpotRegisterConfig();
     }
 }

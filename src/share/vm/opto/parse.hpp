@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -141,13 +141,6 @@ public:
   GrowableArray<InlineTree*> subtrees() { return _subtrees; }
 
   void print_value_on(outputStream* st) const PRODUCT_RETURN;
-
-  bool        _forced_inline;     // Inlining was forced by CompilerOracle or ciReplay
-  bool        forced_inline()     const { return _forced_inline; }
-  // Count number of nodes in this subtree
-  int         count() const;
-  // Dump inlining replay data to the stream.
-  void dump_replay_data(outputStream* out);
 };
 
 
@@ -337,8 +330,7 @@ class Parse : public GraphKit {
 
   GraphKit      _exits;         // Record all normal returns and throws here.
   bool          _wrote_final;   // Did we write a final field?
-  bool          _wrote_volatile;     // Did we write a volatile field?
-  bool          _count_invocations;  // update and test invocation counter
+  bool          _count_invocations; // update and test invocation counter
   bool          _method_data_update; // update method data oop
   Node*         _alloc_with_final;   // An allocation node with final field
 
@@ -381,8 +373,6 @@ class Parse : public GraphKit {
   GraphKit&     exits()               { return _exits; }
   bool          wrote_final() const   { return _wrote_final; }
   void      set_wrote_final(bool z)   { _wrote_final = z; }
-  bool          wrote_volatile() const { return _wrote_volatile; }
-  void      set_wrote_volatile(bool z) { _wrote_volatile = z; }
   bool          count_invocations() const  { return _count_invocations; }
   bool          method_data_update() const { return _method_data_update; }
   Node*    alloc_with_final() const   { return _alloc_with_final; }

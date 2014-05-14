@@ -81,7 +81,7 @@ public class WithNode extends StatementNode {
         RuntimeException exception = null;
         PythonObject pythonObj = (PythonObject) this.withContext.execute(frame);
         PythonCallable enterCall = (PythonCallable) pythonObj.getAttribute("__enter__");
-        Object asNameValue = enterCall.call(frame.pack(), new Object[]{pythonObj});
+        Object asNameValue = enterCall.call(new Object[]{pythonObj});
         applyValues(frame, asNameValue);
 
         try {
@@ -101,9 +101,9 @@ public class WithNode extends StatementNode {
                 Object type = ((PyException) exception).type;
                 Object value = ((PyException) exception).value;
                 Object trace = ((PyException) exception).traceback;
-                returnValue = exitCall.call(frame.pack(), new Object[]{pythonObj, type, value, trace});
+                returnValue = exitCall.call(new Object[]{pythonObj, type, value, trace});
             } else if (exception == null) {
-                return exitCall.call(frame.pack(), new Object[]{pythonObj});
+                return exitCall.call(new Object[]{pythonObj});
             } else {
                 throw exception;
             }

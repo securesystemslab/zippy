@@ -24,17 +24,12 @@ package com.oracle.graal.asm.ptx;
 
 import static com.oracle.graal.api.code.ValueUtil.*;
 
-import com.oracle.graal.asm.Label;
-import com.oracle.graal.api.code.Register;
-import com.oracle.graal.api.code.RegisterConfig;
-import com.oracle.graal.api.code.TargetDescription;
-import com.oracle.graal.api.meta.Constant;
-import com.oracle.graal.api.meta.Kind;
-import com.oracle.graal.api.meta.Value;
-import com.oracle.graal.nodes.calc.Condition;
-import com.oracle.graal.graph.GraalInternalError;
-import com.oracle.graal.lir.LabelRef;
-import com.oracle.graal.lir.Variable;
+import com.oracle.graal.api.code.*;
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.asm.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.lir.*;
+import com.oracle.graal.nodes.calc.*;
 
 public class PTXAssembler extends AbstractPTXAssembler {
 
@@ -480,7 +475,9 @@ public class PTXAssembler extends AbstractPTXAssembler {
     }
 
     public enum BooleanOperator {
-        AND("and"), OR("or"), XOR("xor");
+        AND("and"),
+        OR("or"),
+        XOR("xor");
 
         private final String output;
 
@@ -693,6 +690,11 @@ public class PTXAssembler extends AbstractPTXAssembler {
     @Override
     public PTXAddress getPlaceholder() {
         return null;
+    }
+
+    @Override
+    public final void ensureUniquePC() {
+        throw GraalInternalError.unimplemented();
     }
 
     @Override

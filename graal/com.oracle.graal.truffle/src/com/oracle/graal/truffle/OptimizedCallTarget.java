@@ -26,57 +26,65 @@ import static com.oracle.graal.truffle.TruffleCompilerOptions.*;
 
 import java.io.*;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.atomic.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.debug.*;
+import com.oracle.graal.truffle.OptimizedCallUtils.InlinedNodeCountFilter;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.nodes.NodeUtil.NodeCountFilter;
 
 /**
  * Call target that is optimized by Graal upon surpassing a specific invocation threshold.
  */
-public final class OptimizedCallTarget extends DefaultCallTarget implements LoopCountReceiver, ReplaceObserver {
+public abstract class OptimizedCallTarget extends DefaultCallTarget implements LoopCountReceiver, ReplaceObserver {
 
-    private static final PrintStream OUT = TTY.out().out();
+    protected static final PrintStream OUT = TTY.out().out();
 
-    private InstalledCode installedCode;
-    private Future<InstalledCode> installedCodeTask;
-    private boolean compilationEnabled;
-    private boolean inlined;
-    private int callCount;
-
-    private final TruffleCompiler compiler;
-    private final CompilationProfile compilationProfile;
-    private final CompilationPolicy compilationPolicy;
+    protected InstalledCode installedCode;
+    protected boolean compilationEnabled;
+    protected int callCount;
+    protected TruffleInliningResult inliningResult;
+    protected final CompilationProfile compilationProfile;
+    protected final CompilationPolicy compilationPolicy;
     private final SpeculationLog speculationLog = new SpeculationLog();
     private OptimizedCallTarget splitSource;
 
-    OptimizedCallTarget(RootNode rootNode, TruffleCompiler compiler, int invokeCounter, int compilationThreshold, boolean compilationEnabled) {
+    private final AtomicInteger callSitesKnown = new AtomicInteger(0);
+
+    public OptimizedCallTarget(RootNode rootNode, int invokeCounter, int compilationThreshold, boolean compilationEnabled, CompilationPolicy compilationPolicy) {
         super(rootNode);
-        this.compiler = compiler;
-        this.compilationProfile = new CompilationProfile(compilationThreshold, invokeCounter, rootNode.toString());
-
-        if (TruffleUseTimeForCompilationDecision.getValue()) {
-            compilationPolicy = new TimedCompilationPolicy();
-        } else {
-            compilationPolicy = new DefaultCompilationPolicy();
-        }
         this.compilationEnabled = compilationEnabled;
-
+        this.compilationPolicy = compilationPolicy;
+        this.compilationProfile = new CompilationProfile(compilationThreshold, invokeCounter, rootNode.toString());
         if (TruffleCallTargetProfiling.getValue()) {
             registerCallTarget(this);
         }
     }
 
-    public OptimizedCallTarget getSplitSource() {
+    public final int getKnownCallSiteCount() {
+        return callSitesKnown.get();
+    }
+
+    public final void incrementKnownCallSite() {
+        callSitesKnown.incrementAndGet();
+    }
+
+    public final void decrementKnownCallSite() {
+        callSitesKnown.decrementAndGet();
+    }
+
+    public final TruffleInliningResult getInliningResult() {
+        return inliningResult;
+    }
+
+    public final OptimizedCallTarget getSplitSource() {
         return splitSource;
     }
 
-    public void setSplitSource(OptimizedCallTarget splitSource) {
+    public final void setSplitSource(OptimizedCallTarget splitSource) {
         this.splitSource = splitSource;
     }
 
@@ -92,242 +100,85 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
         return superString;
     }
 
-    public boolean isOptimized() {
-        return installedCode != null || installedCodeTask != null;
-    }
-
-    @CompilerDirectives.SlowPath
-    @Override
-    public Object call(PackedFrame caller, Arguments args) {
-        return callHelper(caller, args);
-    }
-
-    public Object callInlined(PackedFrame caller, Arguments arguments) {
-        if (CompilerDirectives.inInterpreter()) {
-            compilationProfile.reportInlinedCall();
-        }
-        return executeHelper(caller, arguments);
-    }
-
-    private Object callHelper(PackedFrame caller, Arguments args) {
-        if (installedCode != null && installedCode.isValid()) {
-            reinstallCallMethodShortcut();
-        }
-        if (TruffleCallTargetProfiling.getValue()) {
-            callCount++;
-        }
-        if (CompilerDirectives.injectBranchProbability(CompilerDirectives.FASTPATH_PROBABILITY, installedCode != null)) {
-            try {
-                return installedCode.execute(this, caller, args);
-            } catch (InvalidInstalledCodeException ex) {
-                return compiledCodeInvalidated(caller, args);
-            }
-        } else {
-            return interpreterCall(caller, args);
-        }
-    }
-
-    private static void reinstallCallMethodShortcut() {
-        if (TraceTruffleCompilation.getValue()) {
-            OUT.println("[truffle] reinstall OptimizedCallTarget.call code with frame prolog shortcut.");
-        }
-        GraalTruffleRuntime.installOptimizedCallTargetCallMethod();
-    }
-
     public CompilationProfile getCompilationProfile() {
         return compilationProfile;
     }
 
-    private Object compiledCodeInvalidated(PackedFrame caller, Arguments args) {
-        invalidate(null, null, "Compiled code invalidated");
-        return call(caller, args);
-    }
+    @Override
+    public abstract Object call(Object[] args);
 
-    private void invalidate(Node oldNode, Node newNode, CharSequence reason) {
-        InstalledCode m = this.installedCode;
-        if (m != null) {
-            CompilerAsserts.neverPartOfCompilation();
-            installedCode = null;
-            compilationProfile.reportInvalidated();
-            logOptimizedInvalidated(this, oldNode, newNode, reason);
+    public abstract InstalledCode compile();
+
+    public final Object callInlined(Object[] arguments) {
+        if (CompilerDirectives.inInterpreter()) {
+            compilationProfile.reportInlinedCall();
         }
-        cancelInstalledTask(oldNode, newNode, reason);
+        return executeHelper(arguments);
     }
 
-    private void cancelInstalledTask(Node oldNode, Node newNode, CharSequence reason) {
-        Future<InstalledCode> task = this.installedCodeTask;
-        if (task != null) {
-            task.cancel(true);
-            this.installedCodeTask = null;
-            logOptimizingUnqueued(this, oldNode, newNode, reason);
-            compilationProfile.reportInvalidated();
-        }
-    }
-
-    private Object interpreterCall(PackedFrame caller, Arguments args) {
-        CompilerAsserts.neverPartOfCompilation();
-        compilationProfile.reportInterpreterCall();
-
-        if (compilationEnabled && compilationPolicy.shouldCompile(compilationProfile)) {
-            InstalledCode code = compile();
-            if (code != null && code.isValid()) {
-                this.installedCode = code;
-                try {
-                    return code.execute(this, caller, args);
-                } catch (InvalidInstalledCodeException ex) {
-                    return compiledCodeInvalidated(caller, args);
-                }
-            }
-        }
-        return executeHelper(caller, args);
-    }
-
-    public void performInlining() {
-        if (!TruffleCompilerOptions.TruffleFunctionInlining.getValue()) {
+    public final void performInlining() {
+        if (!shouldInline()) {
             return;
         }
-        if (inlined) {
+
+        if (inliningResult != null) {
             return;
         }
-        inlined = true;
 
-        logInliningStart(this);
-        PriorityQueue<TruffleInliningProfile> queue = new PriorityQueue<>();
-
-        // Used to avoid running in cycles or inline nodes in Truffle trees
-        // which do not suffice the tree property.
-        Set<CallNode> visitedCallNodes = new HashSet<>();
-
-        queueCallSitesForInlining(this, getRootNode(), visitedCallNodes, queue);
-        TruffleInliningProfile callSite = queue.poll();
-        while (callSite != null) {
-            if (callSite.isInliningAllowed()) {
-                OptimizedCallNode callNode = callSite.getCallNode();
-                RootNode inlinedRoot = callNode.inlineImpl().getCurrentRootNode();
-                logInlined(this, callSite);
-                assert inlinedRoot != null;
-                queueCallSitesForInlining(this, inlinedRoot, visitedCallNodes, queue);
-            } else {
-                logInliningFailed(callSite);
-            }
-            callSite = queue.poll();
-        }
-        logInliningDone(this);
+        TruffleInliningHandler handler = new TruffleInliningHandler(this, new DefaultInliningPolicy(), new HashMap<OptimizedCallTarget, TruffleInliningResult>());
+        int startNodeCount = OptimizedCallUtils.countNonTrivialNodes(null, new TruffleCallPath(this));
+        this.inliningResult = handler.inline(startNodeCount);
+        logInliningDecision(this, inliningResult, handler);
     }
 
-    private static void queueCallSitesForInlining(final OptimizedCallTarget target, RootNode rootNode, final Set<CallNode> visitedCallSites, final PriorityQueue<TruffleInliningProfile> queue) {
-        rootNode.accept(new NodeVisitor() {
-            public boolean visit(Node node) {
-                if (node instanceof OptimizedCallNode) {
-                    OptimizedCallNode call = ((OptimizedCallNode) node);
-                    if (!call.isInlined() && !visitedCallSites.contains(call)) {
-                        queue.add(call.createInliningProfile(target));
-                        visitedCallSites.add(call);
-                    }
-                    RootNode root = call.getCurrentRootNode();
-                    if (root != null && call.isInlined()) {
-                        root.accept(this);
-                    }
-                }
-                return true;
-            }
-        });
+    protected boolean shouldCompile() {
+        return compilationPolicy.shouldCompile(compilationProfile);
     }
 
-    private boolean isCompiling() {
-        Future<InstalledCode> codeTask = this.installedCodeTask;
-        if (codeTask != null) {
-            if (codeTask.isCancelled()) {
-                installedCodeTask = null;
-                return false;
-            }
-            return true;
-        }
-        return false;
+    protected static boolean shouldInline() {
+        return TruffleFunctionInlining.getValue();
     }
 
-    public InstalledCode compile() {
-        if (isCompiling()) {
-            if (installedCodeTask.isDone()) {
-                return receiveInstalledCode();
+    protected final void cancelInlinedCallOptimization() {
+        if (getInliningResult() != null) {
+            for (TruffleCallPath path : getInliningResult()) {
+                OptimizedCallNode top = path.getCallNode();
+                top.notifyInlining();
+                top.getCurrentCallTarget().cancelInstalledTask(top, top, "Inlined");
             }
-            return null;
-        } else {
-            performInlining();
-
-            // zwei
-            if (TrufflePrintCompilingAST.getValue()) {
-                OUT.println(" ------------- " + getRootNode() + " ------------- ");
-                NodeUtil.printCompactTree(OUT, getRootNode());
-            }
-
-            logOptimizingQueued(this);
-            this.installedCodeTask = compiler.compile(this);
-            if (!TruffleBackgroundCompilation.getValue()) {
-                return receiveInstalledCode();
-            }
-        }
-        return null;
-    }
-
-    private InstalledCode receiveInstalledCode() {
-        try {
-            return installedCodeTask.get();
-        } catch (InterruptedException | ExecutionException e) {
-            compilationEnabled = false;
-            logOptimizingFailed(this, e.getMessage());
-            if (e.getCause() instanceof BailoutException) {
-                // Bailout => move on.
-            } else {
-                if (TraceTruffleCompilationExceptions.getValue()) {
-                    e.printStackTrace(OUT);
-                }
-                if (TruffleCompilationExceptionsAreFatal.getValue()) {
-                    System.exit(-1);
-                }
-            }
-            return null;
         }
     }
 
-    public Object executeHelper(PackedFrame caller, Arguments args) {
-        VirtualFrame frame = createFrame(getRootNode().getFrameDescriptor(), caller, args);
+    protected final void onCompilationDone() {
+        if (inliningResult != null) {
+            for (TruffleCallPath path : inliningResult) {
+                path.getCallNode().notifyInliningDone();
+            }
+        }
+    }
+
+    protected abstract void cancelInstalledTask(Node oldNode, Node newNode, CharSequence reason);
+
+    protected abstract void invalidate(Node oldNode, Node newNode, CharSequence reason);
+
+    public final Object executeHelper(Object[] args) {
+        VirtualFrame frame = createFrame(getRootNode().getFrameDescriptor(), args);
         return getRootNode().execute(frame);
     }
 
-    protected static FrameWithoutBoxing createFrame(FrameDescriptor descriptor, PackedFrame caller, Arguments args) {
-        return new FrameWithoutBoxing(descriptor, caller, args);
+    public static FrameWithoutBoxing createFrame(FrameDescriptor descriptor, Object[] args) {
+        return new FrameWithoutBoxing(descriptor, args);
     }
 
     @Override
     public void reportLoopCount(int count) {
         compilationProfile.reportLoopCount(count);
-
-        // delegate to inlined call sites
-        for (CallNode callNode : getRootNode().getCachedCallNodes()) {
-            if (callNode.isInlined()) {
-                callNode.getRootNode().reportLoopCount(count);
-            }
-        }
     }
 
     @Override
     public void nodeReplaced(Node oldNode, Node newNode, CharSequence reason) {
         compilationProfile.reportNodeReplaced();
         invalidate(oldNode, newNode, reason);
-
-        // delegate to inlined call sites
-        for (CallNode callNode : getRootNode().getCachedCallNodes()) {
-            if (callNode.isInlined()) {
-                CallTarget target = callNode.getRootNode().getCallTarget();
-                if (target instanceof ReplaceObserver) {
-                    ((ReplaceObserver) target).nodeReplaced(oldNode, newNode, reason);
-                }
-            }
-            if (callNode instanceof OptimizedCallNode) {
-                ((OptimizedCallNode) callNode).nodeReplaced(oldNode, newNode, reason);
-            }
-        }
     }
 
     public SpeculationLog getSpeculationLog() {
@@ -336,77 +187,60 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
 
     public Map<String, Object> getDebugProperties() {
         Map<String, Object> properties = new LinkedHashMap<>();
-        addASTSizeProperty(getRootNode(), properties);
+        addASTSizeProperty(getInliningResult(), new TruffleCallPath(this), properties);
         properties.putAll(getCompilationProfile().getDebugProperties());
         return properties;
 
     }
 
-    private static void logInliningFailed(TruffleInliningProfile callSite) {
-        if (TraceTruffleInliningDetails.getValue()) {
-            log(2, "inline failed", callSite.getCallNode().getCurrentCallTarget().toString(), callSite.getDebugProperties());
+    private static void logInliningDecision(OptimizedCallTarget target, TruffleInliningResult result, TruffleInliningHandler handler) {
+        if (!TraceTruffleInlining.getValue()) {
+            return;
         }
-    }
 
-    private static void logInlined(final OptimizedCallTarget target, TruffleInliningProfile callSite) {
-        if (TraceTruffleInliningDetails.getValue() || TraceTruffleInlining.getValue()) {
-            log(2, "inline success", callSite.getCallNode().getCurrentCallTarget().toString(), callSite.getDebugProperties());
+        List<TruffleInliningProfile> profiles = handler.lookupProfiles(result, new TruffleCallPath(target));
 
-            if (TraceTruffleInliningDetails.getValue()) {
-                RootNode root = callSite.getCallNode().getCurrentCallTarget().getRootNode();
-                root.accept(new NodeVisitor() {
-                    int depth = 1;
+        Collections.sort(profiles); // sorts by hierarchy and source section
 
-                    public boolean visit(Node node) {
-                        if (node instanceof OptimizedCallNode) {
-                            OptimizedCallNode callNode = ((OptimizedCallNode) node);
-                            RootNode inlinedRoot = callNode.getCurrentRootNode();
-
-                            if (inlinedRoot != null) {
-                                Map<String, Object> properties = new LinkedHashMap<>();
-                                addASTSizeProperty(callNode.getCurrentRootNode(), properties);
-                                properties.putAll(callNode.createInliningProfile(target).getDebugProperties());
-                                String message;
-                                if (callNode.isInlined()) {
-                                    message = "inline success";
-                                } else {
-                                    message = "inline dispatch";
-                                }
-                                log(2 + (depth * 2), message, callNode.getCurrentCallTarget().toString(), properties);
-
-                                if (callNode.isInlined()) {
-                                    depth++;
-                                    inlinedRoot.accept(this);
-                                    depth--;
-                                }
-                            }
-                        }
-                        return true;
-                    }
-                });
+        logInliningStart(target);
+        for (TruffleInliningProfile profile : profiles) {
+            TruffleCallPath path = profile.getCallPath();
+            if (path.getRootCallTarget() == target) {
+                String msg = result.isInlined(path) ? "inline success" : "inline failed";
+                logInlinedImpl(msg, result, handler.getProfiles().get(path), path);
             }
         }
+        logInliningDone(target);
+    }
+
+    private static void logInlinedImpl(String status, TruffleInliningResult result, TruffleInliningProfile profile, TruffleCallPath path) {
+        Map<String, Object> properties = new LinkedHashMap<>();
+        addASTSizeProperty(result, path, properties);
+        if (profile != null) {
+            properties.putAll(profile.getDebugProperties());
+        }
+        log((path.getDepth() * 2), status, path.getCallTarget().toString(), properties);
     }
 
     private static void logInliningStart(OptimizedCallTarget target) {
-        if (TraceTruffleInliningDetails.getValue()) {
+        if (TraceTruffleInlining.getValue()) {
             log(0, "inline start", target.toString(), target.getDebugProperties());
         }
     }
 
     private static void logInliningDone(OptimizedCallTarget target) {
-        if (TraceTruffleInliningDetails.getValue()) {
+        if (TraceTruffleInlining.getValue()) {
             log(0, "inline done", target.toString(), target.getDebugProperties());
         }
     }
 
-    private static void logOptimizingQueued(OptimizedCallTarget target) {
+    protected static void logOptimizingQueued(OptimizedCallTarget target) {
         if (TraceTruffleCompilationDetails.getValue()) {
             log(0, "opt queued", target.toString(), target.getDebugProperties());
         }
     }
 
-    private static void logOptimizingUnqueued(OptimizedCallTarget target, Node oldNode, Node newNode, CharSequence reason) {
+    protected static void logOptimizingUnqueued(OptimizedCallTarget target, Node oldNode, Node newNode, CharSequence reason) {
         if (TraceTruffleCompilationDetails.getValue()) {
             Map<String, Object> properties = new LinkedHashMap<>();
             addReplaceProperties(properties, oldNode, newNode);
@@ -429,7 +263,7 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
         }
     }
 
-    private static void logOptimizedInvalidated(OptimizedCallTarget target, Node oldNode, Node newNode, CharSequence reason) {
+    protected static void logOptimizedInvalidated(OptimizedCallTarget target, Node oldNode, Node newNode, CharSequence reason) {
         if (TraceTruffleCompilation.getValue()) {
             Map<String, Object> properties = new LinkedHashMap<>();
             addReplaceProperties(properties, oldNode, newNode);
@@ -438,7 +272,7 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
         }
     }
 
-    private static void logOptimizingFailed(OptimizedCallTarget callSite, CharSequence reason) {
+    protected static void logOptimizingFailed(OptimizedCallTarget callSite, CharSequence reason) {
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("Reason", reason);
         log(0, "opt fail", callSite.toString(), properties);
@@ -477,29 +311,27 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
     static void logSplit(OptimizedCallNode callNode, OptimizedCallTarget target, OptimizedCallTarget newTarget) {
         if (TraceTruffleSplitting.getValue()) {
             Map<String, Object> properties = new LinkedHashMap<>();
-            addASTSizeProperty(target.getRootNode(), properties);
+            addASTSizeProperty(target.getInliningResult(), new TruffleCallPath(target), properties);
             properties.put("Split#", ++splitCount);
             properties.put("Source", callNode.getEncapsulatingSourceSection());
             log(0, "split", newTarget.toString(), properties);
         }
     }
 
-    static void addASTSizeProperty(RootNode target, Map<String, Object> properties) {
-        int polymorphicCount = NodeUtil.countNodes(target.getRootNode(), new NodeCountFilter() {
-            public boolean isCounted(Node node) {
+    static void addASTSizeProperty(TruffleInliningResult inliningResult, TruffleCallPath countedPath, Map<String, Object> properties) {
+        int polymorphicCount = OptimizedCallUtils.countNodes(inliningResult, countedPath, new InlinedNodeCountFilter() {
+            public boolean isCounted(TruffleCallPath path, Node node) {
                 return node.getCost() == NodeCost.POLYMORPHIC;
             }
-        }, true);
+        });
 
-        int megamorphicCount = NodeUtil.countNodes(target.getRootNode(), new NodeCountFilter() {
-            public boolean isCounted(Node node) {
+        int megamorphicCount = OptimizedCallUtils.countNodes(inliningResult, countedPath, new InlinedNodeCountFilter() {
+            public boolean isCounted(TruffleCallPath path, Node node) {
                 return node.getCost() == NodeCost.MEGAMORPHIC;
             }
-        }, true);
+        });
 
-        String value = String.format("%4d (%d/%d)", NodeUtil.countNodes(target.getRootNode(), OptimizedCallNodeProfile.COUNT_FILTER, true), //
-                        polymorphicCount, megamorphicCount); //
-
+        String value = String.format("%4d (%d/%d)", OptimizedCallUtils.countNonTrivialNodes(inliningResult, countedPath), polymorphicCount, megamorphicCount);
         properties.put("ASTSize", value);
     }
 
@@ -557,15 +389,13 @@ public final class OptimizedCallTarget extends DefaultCallTarget implements Loop
                 continue;
             }
 
-            int nodeCount = NodeUtil.countNodes(callTarget.getRootNode(), OptimizedCallNodeProfile.COUNT_FILTER, false);
-            int inlinedCallSiteCount = NodeUtil.countNodes(callTarget.getRootNode(), OptimizedCallNodeProfile.COUNT_FILTER, true);
+            int nodeCount = OptimizedCallUtils.countNonTrivialNodes(callTarget.getInliningResult(), new TruffleCallPath(callTarget));
             String comment = callTarget.installedCode == null ? " int" : "";
             comment += callTarget.compilationEnabled ? "" : " fail";
-            OUT.printf("%-50s | %10d | %15d | %10d | %3d%s\n", callTarget.getRootNode(), callTarget.callCount, inlinedCallSiteCount, nodeCount,
-                            callTarget.getCompilationProfile().getInvalidationCount(), comment);
+            OUT.printf("%-50s | %10d | %15d | %10d | %3d%s\n", callTarget.getRootNode(), callTarget.callCount, nodeCount, nodeCount, callTarget.getCompilationProfile().getInvalidationCount(), comment);
 
             totalCallCount += callTarget.callCount;
-            totalInlinedCallSiteCount += inlinedCallSiteCount;
+            totalInlinedCallSiteCount += nodeCount;
             totalNodeCount += nodeCount;
             totalInvalidationCount += callTarget.getCompilationProfile().getInvalidationCount();
         }

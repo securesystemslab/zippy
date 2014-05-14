@@ -103,7 +103,7 @@ public final class ConstantNode extends FloatingNode implements LIRLowerable {
     }
 
     /**
-     * Replaces this node at its usages with another node. If {@value #ConstantNodeRecordsUsages} is
+     * Replaces this node at its usages with another node. If {@link #ConstantNodeRecordsUsages} is
      * false, this is an expensive operation that should only be used in test/verification/AOT code.
      */
     public void replace(StructuredGraph graph, Node replacement) {
@@ -120,12 +120,12 @@ public final class ConstantNode extends FloatingNode implements LIRLowerable {
     }
 
     @Override
-    public void generate(LIRGeneratorTool gen) {
+    public void generate(NodeLIRBuilderTool gen) {
         assert ConstantNodeRecordsUsages : "LIR generator should generate constants per-usage";
-        if (gen.canInlineConstant(value) || onlyUsedInVirtualState()) {
+        if (gen.getLIRGeneratorTool().canInlineConstant(value) || onlyUsedInVirtualState()) {
             gen.setResult(this, value);
         } else {
-            gen.setResult(this, gen.emitMove(value));
+            gen.setResult(this, gen.getLIRGeneratorTool().emitMove(value));
         }
     }
 

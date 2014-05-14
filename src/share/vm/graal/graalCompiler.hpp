@@ -35,7 +35,7 @@ private:
   bool                  _initialized;
 
   static GraalCompiler* _instance;
-
+  address               _external_deopt_i2c_entry;
 public:
 
   GraalCompiler();
@@ -67,9 +67,13 @@ public:
 
   void exit();
 
+  address get_external_deopt_i2c_entry() {return _external_deopt_i2c_entry;}
+
   static BasicType kindToBasicType(jchar ch);
 
   static BufferBlob* initialize_buffer_blob();
+
+  static address create_external_deopt_i2c();
 };
 
 // Tracing macros

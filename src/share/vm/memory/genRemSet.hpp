@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,7 @@
 
 #include "oops/oop.hpp"
 
-// A GenRemSet provides ways of iterating over pointers across generations.
+// A GenRemSet provides ways of iterating over pointers accross generations.
 // (This is especially useful for older-to-younger.)
 
 class Generation;
@@ -53,12 +53,19 @@ class GenRemSet: public CHeapObj<mtGC> {
   KlassRemSet _klass_rem_set;
 
 public:
+  enum Name {
+    CardTable,
+    Other
+  };
+
   GenRemSet(BarrierSet * bs) : _bs(bs) {}
   GenRemSet() : _bs(NULL) {}
 
+  virtual Name rs_kind() = 0;
+
   // These are for dynamic downcasts.  Unfortunately that it names the
   // possible subtypes (but not that they are subtypes!)  Return NULL if
-  // the cast is invalid.
+  // the cast is invalide.
   virtual CardTableRS* as_CardTableRS() { return NULL; }
 
   // Return the barrier set associated with "this."
@@ -99,9 +106,10 @@ public:
   // within the heap, this function tells whether they are met.
   virtual bool is_aligned(HeapWord* addr) = 0;
 
-  // Returns any alignment constraint that the remembered set imposes upon the
-  // heap.
-  static uintx max_alignment_constraint();
+  // If the RS (or BS) imposes an aligment constraint on maximum heap size.
+  // (This must be static, and dispatch on "nm", because it is called
+  // before an RS is created.)
+  static uintx max_alignment_constraint(Name nm);
 
   virtual void verify() = 0;
 

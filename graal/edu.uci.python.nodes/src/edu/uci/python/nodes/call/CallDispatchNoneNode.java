@@ -113,7 +113,7 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object[] arguments, PKeyword[] keywords) {
-            return callee.call(frame.pack(), arguments);
+            return callee.call(arguments);
         }
     }
 

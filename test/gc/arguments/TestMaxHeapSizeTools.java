@@ -41,8 +41,8 @@ final class MinInitialMaxValues {
   public long initialHeapSize;
   public long maxHeapSize;
 
-  public long spaceAlignment;
-  public long heapAlignment;
+  public long minAlignment;
+  public long maxAlignment;
 }
 
 class TestMaxHeapSizeTools {
@@ -192,7 +192,7 @@ class TestMaxHeapSizeTools {
     // Unfortunately there is no other way to retrieve the minimum heap size and
     // the alignments.
 
-    Matcher m = Pattern.compile("Minimum heap \\d+ Initial heap \\d+ Maximum heap \\d+ Space alignment \\d+ Heap alignment \\d+").
+    Matcher m = Pattern.compile("Minimum heap \\d+ Initial heap \\d+ Maximum heap \\d+ Min alignment \\d+ Max alignment \\d+").
       matcher(output.getStdout());
     if (!m.find()) {
       throw new RuntimeException("Could not find heap size string.");
@@ -204,8 +204,8 @@ class TestMaxHeapSizeTools {
     val.minHeapSize = valueAfter(match, "Minimum heap ");
     val.initialHeapSize = valueAfter(match, "Initial heap ");
     val.maxHeapSize = valueAfter(match, "Maximum heap ");
-    val.spaceAlignment = valueAfter(match, "Space alignment ");
-    val.heapAlignment = valueAfter(match, "Heap alignment ");
+    val.minAlignment = valueAfter(match, "Min alignment ");
+    val.maxAlignment = valueAfter(match, "Max alignment ");
   }
 
   /**
@@ -218,12 +218,12 @@ class TestMaxHeapSizeTools {
     MinInitialMaxValues v = new MinInitialMaxValues();
     getMinInitialMaxHeap(args, v);
 
-    if ((expectedMin != -1) && (align_up(expectedMin, v.heapAlignment) != v.minHeapSize)) {
+    if ((expectedMin != -1) && (align_up(expectedMin, v.minAlignment) != v.minHeapSize)) {
       throw new RuntimeException("Actual minimum heap size of " + v.minHeapSize +
         " differs from expected minimum heap size of " + expectedMin);
     }
 
-    if ((expectedInitial != -1) && (align_up(expectedInitial, v.heapAlignment) != v.initialHeapSize)) {
+    if ((expectedInitial != -1) && (align_up(expectedInitial, v.minAlignment) != v.initialHeapSize)) {
       throw new RuntimeException("Actual initial heap size of " + v.initialHeapSize +
         " differs from expected initial heap size of " + expectedInitial);
     }
@@ -247,7 +247,7 @@ class TestMaxHeapSizeTools {
     MinInitialMaxValues v = new MinInitialMaxValues();
     getMinInitialMaxHeap(new String[] { gcflag, "-XX:MaxHeapSize=" + maxHeapsize + "M" }, v);
 
-    long expectedHeapSize = align_up(maxHeapsize * K * K, v.heapAlignment);
+    long expectedHeapSize = align_up(maxHeapsize * K * K, v.maxAlignment);
     long actualHeapSize = v.maxHeapSize;
 
     if (actualHeapSize > expectedHeapSize) {

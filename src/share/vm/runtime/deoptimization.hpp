@@ -72,7 +72,6 @@ class Deoptimization : AllStatic {
     Reason_age,                   // nmethod too old; tier threshold reached
     Reason_predicate,             // compiler generated predicate failed
     Reason_loop_limit_check,      // compiler generated loop limits check failed
-    Reason_speculate_class_check, // saw unexpected object class from type speculation
 #ifdef GRAAL
     Reason_aliasing,              // optimistic assumption about aliasing failed
 #endif
@@ -234,7 +233,7 @@ class Deoptimization : AllStatic {
   // Called by assembly stub after execution has returned to
   // deoptimized frame and after the stack unrolling.
   // @argument thread.     Thread where stub_frame resides.
-  // @argument exec_mode.  Determines how execution should be continued in top frame.
+  // @argument exec_mode.  Determines how execution should be continuted in top frame.
   //                       0 means continue after current byte code
   //                       1 means exception has happened, handle exception
   //                       2 means reexecute current bytecode (for uncommon traps).
@@ -351,21 +350,8 @@ class Deoptimization : AllStatic {
       return reason;
     else if (reason == Reason_div0_check) // null check due to divide-by-zero?
       return Reason_null_check;           // recorded per BCI as a null check
-    else if (reason == Reason_speculate_class_check)
-      return Reason_class_check;
     else
       return Reason_none;
-  }
-
-  static bool reason_is_speculate(int reason) {
-    if (reason == Reason_speculate_class_check) {
-      return true;
-    }
-    return false;
-  }
-
-  static uint per_method_trap_limit(int reason) {
-    return reason_is_speculate(reason) ? (uint)PerMethodSpecTrapLimit : (uint)PerMethodTrapLimit;
   }
 
   static const char* trap_reason_name(int reason);
@@ -394,7 +380,6 @@ class Deoptimization : AllStatic {
 #ifdef GRAAL
                                                bool is_osr,
 #endif
-                                               Method* compiled_method,
                                                //outputs:
                                                uint& ret_this_trap_count,
                                                bool& ret_maybe_prior_trap,

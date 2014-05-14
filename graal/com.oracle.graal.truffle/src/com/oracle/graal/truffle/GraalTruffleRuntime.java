@@ -77,7 +77,7 @@ public final class GraalTruffleRuntime implements TruffleRuntime {
         if (truffleCompiler == null) {
             truffleCompiler = new TruffleCompilerImpl();
         }
-        return new OptimizedCallTarget(rootNode, truffleCompiler, TruffleMinInvokeThreshold.getValue(), TruffleCompilationThreshold.getValue(), acceptForCompilation(rootNode));
+        return new OptimizedCallTargetImpl(rootNode, truffleCompiler, TruffleMinInvokeThreshold.getValue(), TruffleCompilationThreshold.getValue(), acceptForCompilation(rootNode));
     }
 
     public CallNode createCallNode(CallTarget target) {
@@ -89,18 +89,18 @@ public final class GraalTruffleRuntime implements TruffleRuntime {
     }
 
     @Override
-    public VirtualFrame createVirtualFrame(PackedFrame caller, Arguments arguments, FrameDescriptor frameDescriptor) {
-        return OptimizedCallTarget.createFrame(frameDescriptor, caller, arguments);
+    public VirtualFrame createVirtualFrame(Object[] arguments, FrameDescriptor frameDescriptor) {
+        return OptimizedCallTargetImpl.createFrame(frameDescriptor, arguments);
     }
 
     @Override
-    public MaterializedFrame createMaterializedFrame(Arguments arguments) {
+    public MaterializedFrame createMaterializedFrame(Object[] arguments) {
         return createMaterializedFrame(arguments, new FrameDescriptor());
     }
 
     @Override
-    public MaterializedFrame createMaterializedFrame(Arguments arguments, FrameDescriptor frameDescriptor) {
-        return new FrameWithoutBoxing(frameDescriptor, null, arguments);
+    public MaterializedFrame createMaterializedFrame(Object[] arguments, FrameDescriptor frameDescriptor) {
+        return new FrameWithoutBoxing(frameDescriptor, arguments);
     }
 
     @Override
@@ -173,7 +173,7 @@ public final class GraalTruffleRuntime implements TruffleRuntime {
     private static Method getCallMethod() {
         Method method;
         try {
-            method = OptimizedCallTarget.class.getDeclaredMethod("call", new Class[]{PackedFrame.class, Arguments.class});
+            method = OptimizedCallTargetImpl.class.getDeclaredMethod("call", new Class[]{Object[].class});
         } catch (NoSuchMethodException | SecurityException e) {
             throw GraalInternalError.shouldNotReachHere();
         }

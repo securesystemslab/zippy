@@ -26,6 +26,7 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.compiler.gen.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.nodes.*;
@@ -65,7 +66,19 @@ public abstract class Backend {
 
     public abstract FrameMap newFrameMap();
 
-    public abstract LIRGenerator newLIRGenerator(StructuredGraph graph, Object stub, FrameMap frameMap, CallingConvention cc, LIR lir);
+    public abstract LIRGenerator newLIRGenerator(CallingConvention cc, LIRGenerationResult lirGenRes);
+
+    public abstract LIRGenerationResult newLIRGenerationResult(LIR lir, FrameMap frameMap, Object stub);
+
+    public abstract NodeLIRBuilder newNodeLIRGenerator(StructuredGraph graph, LIRGenerator lirGen);
+
+    /**
+     * @param gen the LIRGenerator the BytecodeLIRBuilder should use
+     * @param parser the bytecode parser the BytecodeLIRBuilder should use
+     */
+    public BytecodeLIRBuilder newBytecodeLIRBuilder(LIRGenerator gen, BytecodeParserTool parser) {
+        throw GraalInternalError.unimplemented("Baseline compilation is not available for this Backend!");
+    }
 
     /**
      * Creates the assembler used to emit the machine code.
@@ -75,16 +88,17 @@ public abstract class Backend {
     /**
      * Creates the object used to fill in the details of a given compilation result.
      */
-    public abstract CompilationResultBuilder newCompilationResultBuilder(LIRGenerator lirGen, CompilationResult compilationResult, CompilationResultBuilderFactory factory);
+    public abstract CompilationResultBuilder newCompilationResultBuilder(LIRGenerationResult lirGenResult, CompilationResult compilationResult, CompilationResultBuilderFactory factory);
 
     public abstract boolean shouldAllocateRegisters();
 
     /**
      * Emits the code for a given graph.
-     * 
+     *
      * @param installedCodeOwner the method the compiled code will be
      *            {@linkplain InstalledCode#getMethod() associated} with once installed. This
      *            argument can be null.
      */
     public abstract void emitCode(CompilationResultBuilder crb, LIR lir, ResolvedJavaMethod installedCodeOwner);
+
 }

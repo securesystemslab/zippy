@@ -77,8 +77,8 @@ public class DirectCompareAndSwapNode extends FixedWithNextNode implements LIRGe
     }
 
     @Override
-    public void generate(LIRGenerator gen) {
-        ((HotSpotLIRGenerator) gen).visitDirectCompareAndSwap(this);
+    public void generate(NodeLIRBuilder gen) {
+        ((HotSpotNodeLIRBuilder) gen).visitDirectCompareAndSwap(this);
     }
 
     /**
