@@ -603,7 +603,7 @@ class Library(BaseLibrary):
         if includedInJDK and java().javaCompliance >= JavaCompliance(includedInJDK):
             return None
 
-        return _download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, self.optional)
+        return _download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, not self.optional)
 
     def get_source_path(self, resolve):
         if self.sourcePath is None:
