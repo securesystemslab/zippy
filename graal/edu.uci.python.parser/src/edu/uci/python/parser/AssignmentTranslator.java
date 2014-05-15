@@ -153,7 +153,7 @@ public class AssignmentTranslator {
 
         for (int i = 0; i < lhs.size(); i++) {
             expr target = lhs.get(i);
-            PNode splitRhs = factory.createSubscriptLoadIndex(rightHandSide, factory.createIntegerLiteral(i));
+            PNode splitRhs = factory.createSubscriptLoadIndex(factory.duplicate(rightHandSide, PNode.class), factory.createIntegerLiteral(i));
 
             if (isDecomposable(target)) {
                 PNode tempVar = (PNode) environment.makeTempLocalVariable();
