@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.truffle;
 
+import java.lang.reflect.*;
+
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.Node;
 import com.oracle.graal.nodes.*;
@@ -45,7 +47,7 @@ final class PartialEvaluatorCanonicalizer implements CanonicalizerPhase.CustomCa
         if (node instanceof LoadFieldNode) {
             LoadFieldNode loadFieldNode = (LoadFieldNode) node;
             if (!loadFieldNode.isStatic() && loadFieldNode.object().isConstant() && !loadFieldNode.object().isNullConstant()) {
-                if (loadFieldNode.field().isFinal() || (loadFieldNode.getKind() == Kind.Object && loadFieldNode.field().getAnnotation(Child.class) != null) ||
+                if (Modifier.isFinal(loadFieldNode.field().getModifiers()) || (loadFieldNode.getKind() == Kind.Object && loadFieldNode.field().getAnnotation(Child.class) != null) ||
                                 loadFieldNode.field().getAnnotation(CompilerDirectives.CompilationFinal.class) != null) {
                     Constant constant = loadFieldNode.field().readValue(loadFieldNode.object().asConstant());
                     assert verifyFieldValue(loadFieldNode.field(), constant);

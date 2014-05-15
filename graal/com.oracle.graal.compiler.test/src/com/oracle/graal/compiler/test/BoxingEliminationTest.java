@@ -29,7 +29,6 @@ import com.oracle.graal.loop.phases.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
-import com.oracle.graal.phases.common.inlining.*;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.virtual.phases.ea.*;
 
@@ -300,7 +299,7 @@ public class BoxingEliminationTest extends GraalCompilerTest {
 
     final ValueNode getResult(String snippet) {
         processMethod(snippet);
-        assertDeepEquals(1, graph.getNodes(ReturnNode.class).count());
+        assertEquals(1, graph.getNodes(ReturnNode.class).count());
         return graph.getNodes(ReturnNode.class).first().result();
     }
 

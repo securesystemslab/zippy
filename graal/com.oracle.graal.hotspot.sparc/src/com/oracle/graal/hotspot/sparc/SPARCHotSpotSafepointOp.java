@@ -33,10 +33,8 @@ import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.meta.HotSpotCodeCacheProvider.MarkId;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
-import com.oracle.graal.lir.gen.*;
 import com.oracle.graal.lir.sparc.*;
-
-import edu.umd.cs.findbugs.annotations.*;
+import com.oracle.graal.nodes.spi.*;
 
 /**
  * Emits a safepoint poll.
@@ -45,7 +43,7 @@ import edu.umd.cs.findbugs.annotations.*;
 public class SPARCHotSpotSafepointOp extends SPARCLIRInstruction {
 
     @State protected LIRFrameState state;
-    @SuppressFBWarnings(value = "BC_IMPOSSIBLE_CAST", justification = "changed by the register allocator") @Temp({OperandFlag.REG}) private AllocatableValue temp;
+    @Temp({OperandFlag.REG}) private AllocatableValue temp;
 
     private final HotSpotVMConfig config;
 

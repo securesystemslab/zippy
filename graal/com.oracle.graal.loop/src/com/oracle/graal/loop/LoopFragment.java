@@ -24,14 +24,13 @@ package com.oracle.graal.loop;
 
 import java.util.*;
 
-import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Graph.DuplicationReplacement;
 import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.VirtualState.VirtualClosure;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.virtual.*;
 
 public abstract class LoopFragment {
@@ -165,9 +164,11 @@ public abstract class LoopFragment {
                 if (n instanceof Invoke) {
                     nodes.mark(((Invoke) n).callTarget());
                 }
-                if (n instanceof NodeWithState) {
-                    NodeWithState withState = (NodeWithState) n;
-                    withState.states().forEach(state -> state.applyToVirtual(node -> nodes.mark(node)));
+                if (n instanceof StateSplit) {
+                    FrameState stateAfter = ((StateSplit) n).stateAfter();
+                    if (stateAfter != null) {
+                        nodes.mark(stateAfter);
+                    }
                 }
                 nodes.mark(n);
             }
@@ -179,7 +180,14 @@ public abstract class LoopFragment {
 
             FrameState stateAfter = earlyExit.stateAfter();
             if (stateAfter != null) {
-                stateAfter.applyToVirtual(node -> nodes.mark(node));
+                nodes.mark(stateAfter);
+                stateAfter.applyToVirtual(new VirtualClosure() {
+
+                    @Override
+                    public void apply(VirtualState node) {
+                        nodes.mark(node);
+                    }
+                });
             }
             nodes.mark(earlyExit);
             for (ProxyNode proxy : earlyExit.proxies()) {
@@ -302,7 +310,7 @@ public abstract class LoopFragment {
     protected void mergeEarlyExits() {
         assert isDuplicate();
         StructuredGraph graph = graph();
-        for (BeginNode earlyExit : LoopFragment.toHirBlocks(original().loop().lirLoop().getExits())) {
+        for (BeginNode earlyExit : LoopFragment.toHirBlocks(original().loop().lirLoop().exits)) {
             LoopExitNode loopEarlyExit = (LoopExitNode) earlyExit;
             FixedNode next = loopEarlyExit.next();
             if (loopEarlyExit.isDeleted() || !this.original().contains(loopEarlyExit)) {
@@ -336,8 +344,16 @@ public abstract class LoopFragment {
                  *
                  * We now update the original fragment's nodes accordingly:
                  */
-                state.applyToVirtual(node -> original.nodes.clear(node));
-                exitState.applyToVirtual(node -> original.nodes.mark(node));
+                state.applyToVirtual(new VirtualClosure() {
+                    public void apply(VirtualState node) {
+                        original.nodes.clear(node);
+                    }
+                });
+                exitState.applyToVirtual(new VirtualClosure() {
+                    public void apply(VirtualState node) {
+                        original.nodes.mark(node);
+                    }
+                });
             }
             FrameState finalExitState = exitState;
 

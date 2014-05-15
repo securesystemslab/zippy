@@ -23,8 +23,6 @@
 package com.oracle.graal.hotspot.nodes;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.*;
-import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.hotspot.*;
@@ -90,15 +88,7 @@ public final class CompressionNode extends FloatingNode implements LIRLowerable,
                 }
                 break;
         }
-        throw GraalInternalError.shouldNotReachHere(String.format("Unexpected input stamp %s", input));
-    }
-
-    public ValueNode getInput() {
-        return input;
-    }
-
-    public CompressEncoding getEncoding() {
-        return encoding;
+        throw GraalInternalError.shouldNotReachHere();
     }
 
     @Override
@@ -117,7 +107,7 @@ public final class CompressionNode extends FloatingNode implements LIRLowerable,
         HotSpotLIRGenerator hsGen = (HotSpotLIRGenerator) gen.getLIRGeneratorTool();
         boolean nonNull;
         if (input.stamp() instanceof ObjectStamp) {
-            nonNull = StampTool.isObjectNonNull(input.stamp());
+            nonNull = ObjectStamp.isObjectNonNull(input.stamp());
         } else {
             // metaspace pointers are never null
             nonNull = true;

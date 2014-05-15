@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.hotspot.stubs;
 
+import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 import static com.oracle.graal.hotspot.nodes.DirectCompareAndSwapNode.*;
 import static com.oracle.graal.hotspot.replacements.HotSpotReplacementsUtil.*;
 import static com.oracle.graal.hotspot.stubs.StubUtil.*;
@@ -60,9 +61,15 @@ public class NewInstanceStub extends SnippetStub {
     protected Arguments makeArguments(SnippetInfo stub) {
         HotSpotResolvedObjectType intArrayType = (HotSpotResolvedObjectType) providers.getMetaAccess().lookupJavaType(int[].class);
 
+        // RuntimeStub cannot (currently) support oops or metadata embedded in the code so we
+        // convert the hub (i.e., Klass*) for int[] to be a naked word. This should be safe since
+        // the int[] class will never be unloaded.
+        Constant intArrayHub = intArrayType.klass();
+        intArrayHub = Constant.forIntegerKind(runtime().getTarget().wordKind, intArrayHub.asLong());
+
         Arguments args = new Arguments(stub, GuardsStage.FLOATING_GUARDS, LoweringTool.StandardLoweringStage.HIGH_TIER);
         args.add("hub", null);
-        args.addConst("intArrayHub", intArrayType.klass());
+        args.addConst("intArrayHub", intArrayHub);
         args.addConst("threadRegister", providers.getRegisters().getThreadRegister());
         return args;
     }

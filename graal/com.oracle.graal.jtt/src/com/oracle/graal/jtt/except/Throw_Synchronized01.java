@@ -24,9 +24,8 @@
  */
 package com.oracle.graal.jtt.except;
 
-import org.junit.*;
-
 import com.oracle.graal.jtt.*;
+import com.oracle.graal.test.*;
 
 public class Throw_Synchronized01 extends JTTTest {
 
@@ -39,12 +38,12 @@ public class Throw_Synchronized01 extends JTTTest {
         throw new Exception();
     }
 
-    @Test
+    @LongTest
     public void run0() throws Throwable {
         runTest("test", 0);
     }
 
-    @Test
+    @LongTest
     public void run1() throws Throwable {
         runTest("test", 1);
     }

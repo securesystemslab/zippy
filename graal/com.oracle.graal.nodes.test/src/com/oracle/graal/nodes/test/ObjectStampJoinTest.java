@@ -25,7 +25,6 @@ package com.oracle.graal.nodes.test;
 import org.junit.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.compiler.test.*;
 import com.oracle.graal.nodes.type.*;
 
@@ -81,7 +80,7 @@ public class ObjectStampJoinTest extends GraalCompilerTest {
     public void testJoin3() {
         Stamp d = StampFactory.declared(getType(D.class));
         Stamp c = StampFactory.declared(getType(C.class));
-        Assert.assertTrue(StampTool.isObjectAlwaysNull(join(c, d)));
+        Assert.assertTrue(ObjectStamp.isObjectAlwaysNull(join(c, d)));
     }
 
     @Test
@@ -96,9 +95,9 @@ public class ObjectStampJoinTest extends GraalCompilerTest {
         Stamp dExact = StampFactory.exact(getType(D.class));
         Stamp c = StampFactory.declared(getType(C.class));
         Stamp join = join(c, dExact);
-        Assert.assertTrue(StampTool.isObjectAlwaysNull(join));
-        Assert.assertNull(StampTool.typeOrNull(join));
-        Assert.assertFalse(StampTool.isExactType(join));
+        Assert.assertTrue(ObjectStamp.isObjectAlwaysNull(join));
+        Assert.assertNull(ObjectStamp.typeOrNull(join));
+        Assert.assertFalse(ObjectStamp.isExactType(join));
     }
 
     @Test
@@ -107,8 +106,8 @@ public class ObjectStampJoinTest extends GraalCompilerTest {
         Stamp alwaysNull = StampFactory.alwaysNull();
         Stamp join = join(alwaysNull, dExactNonNull);
         Assert.assertFalse(join.isLegal());
-        Assert.assertFalse(StampTool.isObjectNonNull(join));
-        Assert.assertFalse(StampTool.isObjectAlwaysNull(join));
+        Assert.assertFalse(ObjectStamp.isObjectNonNull(join));
+        Assert.assertFalse(ObjectStamp.isObjectAlwaysNull(join));
     }
 
     @Test
@@ -116,27 +115,9 @@ public class ObjectStampJoinTest extends GraalCompilerTest {
         Stamp aExact = StampFactory.exact(getType(A.class));
         Stamp e = StampFactory.declared(getType(E.class));
         Stamp join = join(aExact, e);
-        Assert.assertTrue(StampTool.isObjectAlwaysNull(join));
-        Assert.assertNull(StampTool.typeOrNull(join));
-        Assert.assertFalse(StampTool.isExactType(join));
-    }
-
-    @Test
-    public void testJoin8() {
-        Stamp bExact = StampFactory.exactNonNull(getType(B.class));
-        Stamp dExact = StampFactory.exact(getType(D.class));
-        Stamp join = join(bExact, dExact);
-        Assert.assertFalse(join.isLegal());
-    }
-
-    @Test
-    public void testJoin9() {
-        Stamp bExact = StampFactory.exact(getType(B.class));
-        Stamp dExact = StampFactory.exact(getType(D.class));
-        Stamp join = join(bExact, dExact);
-        Assert.assertTrue(StampTool.isObjectAlwaysNull(join));
-        Assert.assertNull(StampTool.typeOrNull(join));
-        Assert.assertNull(StampTool.typeOrNull(join));
+        Assert.assertTrue(ObjectStamp.isObjectAlwaysNull(join));
+        Assert.assertNull(ObjectStamp.typeOrNull(join));
+        Assert.assertFalse(ObjectStamp.isExactType(join));
     }
 
     @Test

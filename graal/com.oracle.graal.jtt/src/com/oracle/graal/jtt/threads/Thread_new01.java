@@ -24,9 +24,8 @@
  */
 package com.oracle.graal.jtt.threads;
 
-import org.junit.*;
-
 import com.oracle.graal.jtt.*;
+import com.oracle.graal.test.*;
 
 public final class Thread_new01 extends JTTTest {
 
@@ -46,27 +45,27 @@ public final class Thread_new01 extends JTTTest {
         return false;
     }
 
-    @Test
+    @LongTest
     public void run0() throws Throwable {
         runTest("test", 0);
     }
 
-    @Test
+    @LongTest
     public void run1() throws Throwable {
         runTest("test", 1);
     }
 
-    @Test
+    @LongTest
     public void run2() throws Throwable {
         runTest("test", 2);
     }
 
-    @Test
+    @LongTest
     public void run3() throws Throwable {
         runTest("test", 3);
     }
 
-    @Test
+    @LongTest
     public void run4() throws Throwable {
         runTest("test", 4);
     }

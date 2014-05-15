@@ -25,7 +25,7 @@ package com.oracle.graal.hotspot.bridge;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.meta.*;
 
@@ -351,6 +351,4 @@ public interface CompilerToVM {
      *            invalidated.
      */
     void materializeVirtualObjects(HotSpotStackFrameReference stackFrame, boolean invalidate);
-
-    void resolveInvokeDynamic(long metaspaceConstantPool, int index);
 }

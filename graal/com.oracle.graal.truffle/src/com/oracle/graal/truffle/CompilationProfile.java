@@ -40,6 +40,8 @@ public class CompilationProfile {
 
     private long previousTimestamp;
 
+    private final String name;
+
     private int callCount;
     private int callAndLoopCount;
     private int compilationCallThreshold;
@@ -48,12 +50,13 @@ public class CompilationProfile {
     private final int originalInvokeCounter;
     private final int originalCompilationThreshold;
 
-    public CompilationProfile(final int compilationThreshold, final int initialInvokeCounter) {
+    public CompilationProfile(final int compilationThreshold, final int initialInvokeCounter, final String name) {
         this.previousTimestamp = System.nanoTime();
         this.compilationCallThreshold = initialInvokeCounter;
         this.compilationCallAndLoopThreshold = compilationThreshold;
         this.originalInvokeCounter = initialInvokeCounter;
         this.originalCompilationThreshold = compilationThreshold;
+        this.name = name;
     }
 
     @Override
@@ -81,6 +84,10 @@ public class CompilationProfile {
 
     public long getPreviousTimestamp() {
         return previousTimestamp;
+    }
+
+    public String getName() {
+        return this.name;
     }
 
     public int getInvalidationCount() {

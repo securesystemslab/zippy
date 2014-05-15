@@ -28,21 +28,8 @@
 #include "memory/allocation.hpp"
 #include "runtime/deoptimization.hpp"
 
-class GraalRuntime: public CHeapObj<mtCompiler> {
- private:
-
-  static address   _external_deopt_i2c_entry;
-
+class GraalRuntime: public AllStatic {
  public:
-
-  static void initialize_natives(JNIEnv *env, jclass c2vmClass);
-  static BufferBlob* initialize_buffer_blob();
-  static BasicType kindToBasicType(jchar ch);
-  static address create_external_deopt_i2c();
-  static address get_external_deopt_i2c_entry() {return _external_deopt_i2c_entry;}
-
-  // The following routines are all called from compiled Graal code
-
   static void new_instance(JavaThread* thread, Klass* klass);
   static void new_array(JavaThread* thread, Klass* klass, jint length);
   static void new_multi_array(JavaThread* thread, Klass* klass, int rank, jint* dims);
@@ -72,21 +59,5 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
   static jboolean validate_object(JavaThread* thread, oopDesc* parent, oopDesc* child);
   static void new_store_pre_barrier(JavaThread* thread);
 };
-
-// Tracing macros
-
-#define IF_TRACE_graal_1 if (!(TraceGraal >= 1)) ; else
-#define IF_TRACE_graal_2 if (!(TraceGraal >= 2)) ; else
-#define IF_TRACE_graal_3 if (!(TraceGraal >= 3)) ; else
-#define IF_TRACE_graal_4 if (!(TraceGraal >= 4)) ; else
-#define IF_TRACE_graal_5 if (!(TraceGraal >= 5)) ; else
-
-// using commas and else to keep one-instruction semantics
-
-#define TRACE_graal_1 if (!(TraceGraal >= 1 && (tty->print("TraceGraal-1: "), true))) ; else tty->print_cr
-#define TRACE_graal_2 if (!(TraceGraal >= 2 && (tty->print("   TraceGraal-2: "), true))) ; else tty->print_cr
-#define TRACE_graal_3 if (!(TraceGraal >= 3 && (tty->print("      TraceGraal-3: "), true))) ; else tty->print_cr
-#define TRACE_graal_4 if (!(TraceGraal >= 4 && (tty->print("         TraceGraal-4: "), true))) ; else tty->print_cr
-#define TRACE_graal_5 if (!(TraceGraal >= 5 && (tty->print("            TraceGraal-5: "), true))) ; else tty->print_cr
 
 #endif // SHARE_VM_GRAAL_GRAAL_RUNTIME_HPP

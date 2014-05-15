@@ -24,8 +24,6 @@ package com.oracle.graal.virtual.phases.ea;
 
 import static com.oracle.graal.debug.Debug.*;
 
-import java.util.*;
-
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.graph.*;
@@ -48,7 +46,7 @@ public abstract class EffectsPhase<PhaseContextT extends PhaseContext> extends B
     }
 
     private final int maxIterations;
-    protected final CanonicalizerPhase canonicalizer;
+    private final CanonicalizerPhase canonicalizer;
 
     public EffectsPhase(int maxIterations, CanonicalizerPhase canonicalizer) {
         this.maxIterations = maxIterations;
@@ -87,23 +85,18 @@ public abstract class EffectsPhase<PhaseContextT extends PhaseContext> extends B
 
                 new DeadCodeEliminationPhase().apply(graph);
 
-                Set<Node> changedNodes = listener.getChangedNodes();
                 for (Node node : graph.getNodes()) {
                     if (node instanceof Simplifiable) {
-                        changedNodes.add(node);
+                        listener.getChangedNodes().add(node);
                     }
                 }
-                postIteration(graph, context, changedNodes);
+                if (canonicalizer != null) {
+                    canonicalizer.applyIncremental(graph, context, listener.getChangedNodes());
+                }
             }
             changed = true;
         }
         return changed;
-    }
-
-    protected void postIteration(final StructuredGraph graph, final PhaseContextT context, Set<Node> changedNodes) {
-        if (canonicalizer != null) {
-            canonicalizer.applyIncremental(graph, context, changedNodes);
-        }
     }
 
     protected abstract Closure<?> createEffectsClosure(PhaseContextT context, SchedulePhase schedule);

@@ -23,8 +23,6 @@
 package com.oracle.graal.nodes.calc;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.api.meta.ProfilingInfo.TriState;
-import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
@@ -34,15 +32,21 @@ import com.oracle.graal.nodes.type.*;
 /**
  * An IsNullNode will be true if the supplied value is null, and false if it is non-null.
  */
-public final class IsNullNode extends UnaryOpLogicNode implements Canonicalizable, LIRLowerable, Virtualizable, PiPushable {
+public final class IsNullNode extends LogicNode implements Canonicalizable, LIRLowerable, Virtualizable, PiPushable {
+
+    @Input private ValueNode object;
+
+    public ValueNode object() {
+        return object;
+    }
 
     /**
      * Constructs a new IsNullNode instruction.
-     *
+     * 
      * @param object the instruction producing the object to check against null
      */
     public IsNullNode(ValueNode object) {
-        super(object);
+        this.object = object;
     }
 
     @Override
@@ -59,31 +63,20 @@ public final class IsNullNode extends UnaryOpLogicNode implements Canonicalizabl
 
     @Override
     public Node canonical(CanonicalizerTool tool) {
-        switch (evaluate(object())) {
-            case FALSE:
-                return LogicConstantNode.contradiction(graph());
-            case TRUE:
-                return LogicConstantNode.tautology(graph());
+        Constant constant = object().asConstant();
+        if (constant != null) {
+            assert constant.getKind() == Kind.Object;
+            return LogicConstantNode.forBoolean(constant.isNull(), graph());
+        }
+        if (ObjectStamp.isObjectNonNull(object.stamp())) {
+            return LogicConstantNode.contradiction(graph());
         }
         return this;
     }
 
     @Override
-    public TriState evaluate(ValueNode forObject) {
-        Constant constant = forObject.asConstant();
-        if (constant != null) {
-            assert constant.getKind() == Kind.Object;
-            return TriState.get(constant.isNull());
-        }
-        if (StampTool.isObjectNonNull(forObject.stamp())) {
-            return TriState.FALSE;
-        }
-        return TriState.UNKNOWN;
-    }
-
-    @Override
     public void virtualize(VirtualizerTool tool) {
-        if (tool.getObjectState(object()) != null) {
+        if (tool.getObjectState(object) != null) {
             tool.replaceWithValue(LogicConstantNode.contradiction(graph()));
         }
     }

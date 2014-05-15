@@ -26,12 +26,13 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.amd64.*;
-import com.oracle.graal.compiler.common.type.*;
+import com.oracle.graal.compiler.gen.*;
+import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 
-public class AMD64RawNativeCallNode extends FixedWithNextNode implements LIRLowerable {
+public class AMD64RawNativeCallNode extends FixedWithNextNode implements LIRGenLowerable {
 
     private final Constant functionPointer;
     @Input private final NodeInputList<ValueNode> args;
@@ -43,7 +44,7 @@ public class AMD64RawNativeCallNode extends FixedWithNextNode implements LIRLowe
     }
 
     @Override
-    public void generate(NodeLIRBuilderTool generator) {
+    public void generate(NodeLIRBuilder generator) {
         AMD64NodeLIRBuilder gen = (AMD64NodeLIRBuilder) generator;
         Value[] parameter = new Value[args.count()];
         JavaType[] parameterTypes = new JavaType[args.count()];
@@ -54,7 +55,7 @@ public class AMD64RawNativeCallNode extends FixedWithNextNode implements LIRLowe
         ResolvedJavaType returnType = stamp().javaType(gen.getLIRGeneratorTool().getMetaAccess());
         CallingConvention cc = generator.getLIRGeneratorTool().getCodeCache().getRegisterConfig().getCallingConvention(Type.NativeCall, returnType, parameterTypes,
                         generator.getLIRGeneratorTool().target(), false);
-        gen.getLIRGeneratorTool().emitCCall(functionPointer.asLong(), cc, parameter, countFloatingTypeArguments(args));
+        ((AMD64LIRGenerator) gen.getLIRGeneratorTool()).emitCCall(functionPointer.asLong(), cc, parameter, countFloatingTypeArguments(args));
         if (this.getKind() != Kind.Void) {
             generator.setResult(this, gen.getLIRGeneratorTool().emitMove(cc.getReturn()));
         }

@@ -61,6 +61,6 @@ public class MergeCanonicalizerTest extends GraalCompilerTest {
         new CanonicalizerPhase(true).apply(graph, new PhaseContext(getProviders(), new Assumptions(false)));
         new CanonicalizerPhase(true).apply(graph, new PhaseContext(getProviders(), new Assumptions(false)));
         Debug.dump(graph, "Graph");
-        assertDeepEquals(returnCount, graph.getNodes(ReturnNode.class).count());
+        assertEquals(returnCount, graph.getNodes(ReturnNode.class).count());
     }
 }

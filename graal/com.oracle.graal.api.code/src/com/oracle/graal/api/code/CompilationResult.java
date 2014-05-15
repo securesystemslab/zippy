@@ -432,20 +432,22 @@ public class CompilationResult implements Serializable {
 
         private static final long serialVersionUID = 3612943150662354844L;
         public final Object id;
+        public final Mark[] references;
 
-        public Mark(int pcOffset, Object id) {
+        public Mark(int pcOffset, Object id, Mark[] references) {
             super(pcOffset);
             this.id = id;
+            this.references = references;
         }
 
         @Override
         public String toString() {
             if (id == null) {
-                return String.format("%d[<mar>]", pcOffset);
+                return String.format("%d[<mark with %d references>]", pcOffset, references.length);
             } else if (id instanceof Integer) {
-                return String.format("%d[<mark with id %s>]", pcOffset, Integer.toHexString((Integer) id));
+                return String.format("%d[<mark with %d references and id %s>]", pcOffset, references.length, Integer.toHexString((Integer) id));
             } else {
-                return String.format("%d[<mark with id %s>]", pcOffset, id.toString());
+                return String.format("%d[<mark with %d references and id %s>]", pcOffset, references.length, id.toString());
             }
         }
     }
@@ -633,9 +635,10 @@ public class CompilationResult implements Serializable {
      *
      * @param codePos the position in the code that is covered by the handler
      * @param markId the identifier for this mark
+     * @param references an array of other marks that this mark references
      */
-    public Mark recordMark(int codePos, Object markId) {
-        Mark mark = new Mark(codePos, markId);
+    public Mark recordMark(int codePos, Object markId, Mark[] references) {
+        Mark mark = new Mark(codePos, markId, references);
         marks.add(mark);
         return mark;
     }

@@ -24,14 +24,13 @@ package com.oracle.graal.phases.util;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.spi.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.tiers.*;
 
 /**
  * A set of providers, some of which may not be present (i.e., null).
  */
-public class Providers implements CodeGenProviders {
+public class Providers {
 
     private final MetaAccessProvider metaAccess;
     private final CodeCacheProvider codeCache;

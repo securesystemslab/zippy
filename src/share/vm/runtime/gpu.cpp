@@ -32,10 +32,10 @@ Gpu* Gpu::_initialized_gpus[MAX_GPUS];
 void Gpu::initialized_gpu(Gpu* gpu) {
   // GPUs are always initialized on the same thread so no need for locking
   guarantee(_initialized_gpus_count < MAX_GPUS, "oob");
-  _initialized_gpus[_initialized_gpus_count++] = gpu;
   if (TraceGPUInteraction) {
-    tty->print_cr("[GPU] registered initialization of %s (total initialized: %d)", gpu->name(), _initialized_gpus_count);
+    tty->print_cr("[GPU] registered initialization of %s (total initialized: %d)", gpu->name(), _initialized_gpus);
   }
+  _initialized_gpus[_initialized_gpus_count++] = gpu;
 }
 
 void Gpu::safepoint_event(SafepointEvent event) {

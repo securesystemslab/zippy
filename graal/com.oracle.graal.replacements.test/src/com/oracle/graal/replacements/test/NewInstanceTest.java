@@ -27,6 +27,7 @@ import java.util.*;
 import org.junit.*;
 
 import com.oracle.graal.compiler.test.*;
+import com.oracle.graal.test.*;
 
 /**
  * Tests the implementation of {@code NEW}.
@@ -34,10 +35,10 @@ import com.oracle.graal.compiler.test.*;
 public class NewInstanceTest extends GraalCompilerTest {
 
     @Override
-    protected void assertDeepEquals(Object expected, Object actual) {
+    protected void assertEquals(Object expected, Object actual) {
         Assert.assertTrue(expected != null);
         Assert.assertTrue(actual != null);
-        super.assertDeepEquals(expected.getClass(), actual.getClass());
+        super.assertEquals(expected.getClass(), actual.getClass());
 
         if (expected instanceof Object[]) {
             Assert.assertTrue(actual instanceof Object[]);
@@ -45,23 +46,23 @@ public class NewInstanceTest extends GraalCompilerTest {
             Object[] aArr = (Object[]) actual;
             Assert.assertTrue(eArr.length == aArr.length);
             for (int i = 0; i < eArr.length; i++) {
-                assertDeepEquals(eArr[i], aArr[i]);
+                assertEquals(eArr[i], aArr[i]);
             }
         } else if (expected.getClass() != Object.class) {
             try {
                 expected.getClass().getDeclaredMethod("equals", Object.class);
-                super.assertDeepEquals(expected, actual);
+                super.assertEquals(expected, actual);
             } catch (Exception e) {
             }
         }
     }
 
-    @Test
+    @LongTest
     public void test1() {
         test("newObject");
     }
 
-    @Test
+    @LongTest
     public void test2() {
         test("newObjectTwice");
     }
@@ -70,37 +71,37 @@ public class NewInstanceTest extends GraalCompilerTest {
         return new Object();
     }
 
-    @Test
+    @LongTest
     public void test3() {
         test("newObjectLoop", 100);
     }
 
-    @Test
+    @LongTest
     public void test4() {
         test("newBigObject");
     }
 
-    @Test
+    @LongTest
     public void test5() {
         test("newSomeObject");
     }
 
-    @Test
+    @LongTest
     public void test6() {
         test("newEmptyString");
     }
 
-    @Test
+    @LongTest
     public void test7() {
         test("newString", "value");
     }
 
-    @Test
+    @LongTest
     public void test8() {
         test("newHashMap", 31);
     }
 
-    @Test
+    @LongTest
     public void test9() {
         test("newRegression", true);
     }

@@ -24,8 +24,7 @@ package com.oracle.graal.nodes.cfg;
 
 import java.util.*;
 
-import com.oracle.graal.compiler.common.*;
-import com.oracle.graal.compiler.common.cfg.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
@@ -35,7 +34,7 @@ public class ControlFlowGraph implements AbstractControlFlowGraph<Block> {
     public final StructuredGraph graph;
 
     private final NodeMap<Block> nodeToBlock;
-    private List<Block> reversePostOrder;
+    private Block[] reversePostOrder;
     private List<Loop<Block>> loops;
 
     public static ControlFlowGraph compute(StructuredGraph graph, boolean connectBlocks, boolean computeLoops, boolean computeDominators, boolean computePostdominators) {
@@ -64,12 +63,12 @@ public class ControlFlowGraph implements AbstractControlFlowGraph<Block> {
         this.nodeToBlock = graph.createNodeMap(true);
     }
 
-    public List<Block> getBlocks() {
+    public Block[] getBlocks() {
         return reversePostOrder;
     }
 
     public Block getStartBlock() {
-        return reversePostOrder.get(0);
+        return reversePostOrder[0];
     }
 
     public Iterable<Block> postOrder() {
@@ -79,16 +78,16 @@ public class ControlFlowGraph implements AbstractControlFlowGraph<Block> {
             public Iterator<Block> iterator() {
                 return new Iterator<Block>() {
 
-                    private ListIterator<Block> it = reversePostOrder.listIterator(reversePostOrder.size());
+                    private int nextIndex = reversePostOrder.length - 1;
 
                     @Override
                     public boolean hasNext() {
-                        return it.hasPrevious();
+                        return nextIndex >= 0;
                     }
 
                     @Override
                     public Block next() {
-                        return it.previous();
+                        return reversePostOrder[nextIndex--];
                     }
 
                     @Override
@@ -188,11 +187,11 @@ public class ControlFlowGraph implements AbstractControlFlowGraph<Block> {
         // Compute reverse postorder and number blocks.
         assert postOrder.size() <= numBlocks : "some blocks originally created can be unreachable, so actual block list can be shorter";
         numBlocks = postOrder.size();
-        reversePostOrder = new ArrayList<>(numBlocks);
+        reversePostOrder = new Block[numBlocks];
         for (int i = 0; i < numBlocks; i++) {
             Block block = postOrder.get(numBlocks - i - 1);
             block.setId(i);
-            reversePostOrder.add(block);
+            reversePostOrder[i] = block;
         }
     }
 
@@ -200,21 +199,14 @@ public class ControlFlowGraph implements AbstractControlFlowGraph<Block> {
     private void connectBlocks() {
         for (Block block : reversePostOrder) {
             List<Block> predecessors = new ArrayList<>(4);
-            double probability = block.getBeginNode() instanceof StartNode ? 1D : 0D;
             for (Node predNode : block.getBeginNode().cfgPredecessors()) {
                 Block predBlock = nodeToBlock.get(predNode);
                 if (predBlock.getId() >= 0) {
                     predecessors.add(predBlock);
-                    probability += predBlock.probability;
                 }
             }
-            if (predecessors.size() == 1 && predecessors.get(0).getEndNode() instanceof ControlSplitNode) {
-                probability *= ((ControlSplitNode) predecessors.get(0).getEndNode()).probability(block.getBeginNode());
-            }
             if (block.getBeginNode() instanceof LoopBeginNode) {
-                LoopBeginNode loopBegin = (LoopBeginNode) block.getBeginNode();
-                probability *= loopBegin.loopFrequency();
-                for (LoopEndNode predNode : loopBegin.orderedLoopEnds()) {
+                for (LoopEndNode predNode : ((LoopBeginNode) block.getBeginNode()).orderedLoopEnds()) {
                     Block predBlock = nodeToBlock.get(predNode);
                     if (predBlock.getId() >= 0) {
                         predecessors.add(predBlock);
@@ -222,7 +214,6 @@ public class ControlFlowGraph implements AbstractControlFlowGraph<Block> {
                 }
             }
             block.setPredecessors(predecessors);
-            block.setProbability(probability);
 
             List<Block> successors = new ArrayList<>(4);
             for (Node suxNode : block.getEndNode().cfgSuccessors()) {
@@ -257,10 +248,10 @@ public class ControlFlowGraph implements AbstractControlFlowGraph<Block> {
                     Block exitBlock = nodeToBlock.get(exit);
                     assert exitBlock.getPredecessorCount() == 1;
                     computeLoopBlocks(exitBlock.getFirstPredecessor(), loop);
-                    loop.getExits().add(exitBlock);
+                    loop.exits.add(exitBlock);
                 }
                 List<Block> unexpected = new LinkedList<>();
-                for (Block b : loop.getBlocks()) {
+                for (Block b : loop.blocks) {
                     for (Block sux : b.getSuccessors()) {
                         if (sux.loop != loop) {
                             BeginNode begin = sux.getBeginNode();
@@ -279,10 +270,10 @@ public class ControlFlowGraph implements AbstractControlFlowGraph<Block> {
     }
 
     private static void addBranchToLoop(Loop<Block> l, Block b) {
-        if (l.getBlocks().contains(b)) {
+        if (l.blocks.contains(b)) {
             return;
         }
-        l.getBlocks().add(b);
+        l.blocks.add(b);
         b.loop = l;
         for (Block sux : b.getSuccessors()) {
             addBranchToLoop(l, sux);
@@ -293,13 +284,13 @@ public class ControlFlowGraph implements AbstractControlFlowGraph<Block> {
         if (block.getLoop() == loop) {
             return;
         }
-        assert block.loop == loop.getParent();
+        assert block.loop == loop.parent;
         block.loop = loop;
 
-        assert !loop.getBlocks().contains(block);
-        loop.getBlocks().add(block);
+        assert !loop.blocks.contains(block);
+        loop.blocks.add(block);
 
-        if (block != loop.getHeader()) {
+        if (block != loop.header) {
             for (Block pred : block.getPredecessors()) {
                 computeLoopBlocks(pred, loop);
             }
@@ -307,9 +298,9 @@ public class ControlFlowGraph implements AbstractControlFlowGraph<Block> {
     }
 
     private void computeDominators() {
-        assert reversePostOrder.get(0).getPredecessorCount() == 0 : "start block has no predecessor and therefore no dominator";
-        for (int i = 1; i < reversePostOrder.size(); i++) {
-            Block block = reversePostOrder.get(i);
+        assert reversePostOrder[0].getPredecessorCount() == 0 : "start block has no predecessor and therefore no dominator";
+        for (int i = 1; i < reversePostOrder.length; i++) {
+            Block block = reversePostOrder[i];
             assert block.getPredecessorCount() > 0;
             Block dominator = null;
             for (Block pred : block.getPredecessors()) {
@@ -329,15 +320,15 @@ public class ControlFlowGraph implements AbstractControlFlowGraph<Block> {
         dominator.dominated.add(block);
     }
 
-    public static <T extends AbstractBlock<T>> T commonDominator(T a, T b) {
+    public static Block commonDominator(Block a, Block b) {
         if (a == null) {
             return b;
         }
         if (b == null) {
             return a;
         }
-        T iterA = a;
-        T iterB = b;
+        Block iterA = a;
+        Block iterB = b;
         while (iterA != iterB) {
             if (iterA.getId() > iterB.getId()) {
                 iterA = iterA.getDominator();

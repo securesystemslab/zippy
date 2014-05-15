@@ -24,8 +24,6 @@
 
 package com.oracle.graal.jtt.hotpath;
 
-import org.junit.*;
-
 import com.oracle.graal.jtt.*;
 
 /*
@@ -106,8 +104,7 @@ public class HP_series extends JTTTest {
      * different implementation may return different results. The 11 ulp delta allowed for test(100)
      * tries to account for that but is not guaranteed to work forever.
      */
-    @Ignore("failure-prone because of the variabiliy of pow/cos/sin")
-    @Test
+    // @Test
     public void run0() throws Throwable {
         double expected = 0.6248571921291398d;
         runTestWithDelta(11 * Math.ulp(expected), "test", 100);

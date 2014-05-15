@@ -22,7 +22,7 @@
  */
 package com.oracle.graal.hotspot;
 
-import static com.oracle.graal.hotspot.HotSpotHostBackend.*;
+import static com.oracle.graal.hotspot.HotSpotBackend.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CompilationResult.Call;

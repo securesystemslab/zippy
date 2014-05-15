@@ -22,7 +22,7 @@
  */
 package com.oracle.graal.hotspot.replacements;
 
-import static com.oracle.graal.compiler.common.GraalOptions.*;
+import static com.oracle.graal.phases.GraalOptions.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.meta.ResolvedJavaType.Representation;
@@ -67,10 +67,13 @@ public class ObjectGetClassNode extends MacroNode implements Virtualizable, Cano
         if (usages().isEmpty()) {
             return null;
         } else {
-            if (StampTool.isExactType(getObject())) {
-                ResolvedJavaType type = StampTool.typeOrNull(getObject());
-                Constant clazz = type.getEncoding(Representation.JavaClass);
-                return ConstantNode.forConstant(clazz, tool.getMetaAccess(), graph());
+            Stamp stamp = getObject().stamp();
+            if (stamp instanceof ObjectStamp) {
+                ObjectStamp objectStamp = (ObjectStamp) stamp;
+                if (objectStamp.isExactType()) {
+                    Constant clazz = objectStamp.type().getEncoding(Representation.JavaClass);
+                    return ConstantNode.forConstant(clazz, tool.getMetaAccess(), graph());
+                }
             }
             return this;
         }

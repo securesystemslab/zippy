@@ -33,6 +33,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.function.PArguments.ParallelGeneratorArguments;
 
 public class PParallelGenerator extends PGenerator {
 
@@ -50,31 +51,36 @@ public class PParallelGenerator extends PGenerator {
     public static final int BLOCKING_QUEUE_CHOICE = 1;
 
     public static PParallelGenerator create(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments) {
-        PArguments parallelArgs;
+        PArguments.setDeclarationFrame(arguments, declarationFrame);
+        ParallelGeneratorArguments parallelArgs;
 
         switch (QUEUE_CHOICE) {
             case 0:
                 SingleProducerCircularBuffer buffer = new SingleProducerCircularBuffer();
-                parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, buffer, arguments);
-                return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, buffer);
+                parallelArgs = new PArguments.ParallelGeneratorArguments(buffer);
+                PArguments.setParallelGeneratorArguments(arguments, parallelArgs);
+                return new PParallelGenerator(name, context, callTarget, frameDescriptor, arguments, buffer);
             case 1:
                 BlockingQueue<Object> blockingQueue = createBlockingQueue();
-                parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, blockingQueue, arguments);
-                return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, blockingQueue);
+                parallelArgs = new PArguments.ParallelGeneratorArguments(blockingQueue);
+                PArguments.setParallelGeneratorArguments(arguments, parallelArgs);
+                return new PParallelGenerator(name, context, callTarget, frameDescriptor, arguments, blockingQueue);
             case 2:
                 Queue<Object> queue = new ConcurrentLinkedQueue<>();
-                parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, queue, arguments);
-                return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, queue);
+                parallelArgs = new PArguments.ParallelGeneratorArguments(queue);
+                PArguments.setParallelGeneratorArguments(arguments, parallelArgs);
+                return new PParallelGenerator(name, context, callTarget, frameDescriptor, arguments, queue);
             case 3:
                 DisruptorRingBufferHandler ringBuffer = DisruptorRingBufferHandler.create(name);
-                parallelArgs = new PArguments.ParallelGeneratorArguments(declarationFrame, ringBuffer, arguments);
-                return new PParallelGenerator(name, context, callTarget, frameDescriptor, parallelArgs, ringBuffer);
+                parallelArgs = new PArguments.ParallelGeneratorArguments(ringBuffer);
+                PArguments.setParallelGeneratorArguments(arguments, parallelArgs);
+                return new PParallelGenerator(name, context, callTarget, frameDescriptor, arguments, ringBuffer);
             default:
                 throw new IllegalStateException();
         }
     }
 
-    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, BlockingQueue<Object> blockingQueue) {
+    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, Object[] arguments, BlockingQueue<Object> blockingQueue) {
         super(name, callTarget, frameDescriptor, arguments);
         this.context = context;
         this.blockingQueue = blockingQueue;
@@ -83,7 +89,7 @@ public class PParallelGenerator extends PGenerator {
         this.ringBuffer = null;
     }
 
-    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, SingleProducerCircularBuffer buffer) {
+    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, Object[] arguments, SingleProducerCircularBuffer buffer) {
         super(name, callTarget, frameDescriptor, arguments);
         this.context = context;
         this.blockingQueue = null;
@@ -92,7 +98,7 @@ public class PParallelGenerator extends PGenerator {
         this.ringBuffer = null;
     }
 
-    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, Queue<Object> queue) {
+    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, Object[] arguments, Queue<Object> queue) {
         super(name, callTarget, frameDescriptor, arguments);
         this.context = context;
         this.blockingQueue = null;
@@ -101,7 +107,7 @@ public class PParallelGenerator extends PGenerator {
         this.ringBuffer = null;
     }
 
-    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, DisruptorRingBufferHandler ringBuffer) {
+    protected PParallelGenerator(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, Object[] arguments, DisruptorRingBufferHandler ringBuffer) {
         super(name, callTarget, frameDescriptor, arguments);
         this.context = context;
         this.blockingQueue = null;
@@ -119,7 +125,7 @@ public class PParallelGenerator extends PGenerator {
 
             public void run() {
                 try {
-                    callTarget.call(arguments.packAsObjectArray());
+                    callTarget.call(arguments);
                     blockingQueue.put(StopIterationException.INSTANCE);
                 } catch (InterruptedException e) {
                     CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -165,7 +171,7 @@ public class PParallelGenerator extends PGenerator {
             context.submitParallelTask(new Runnable() {
 
                 public void run() {
-                    callTarget.call(arguments.packAsObjectArray());
+                    callTarget.call(arguments);
                     while (!queue.offer(StopIterationException.INSTANCE)) {
                         // spin
                     }
@@ -193,7 +199,7 @@ public class PParallelGenerator extends PGenerator {
 
                 public void run() {
                     try {
-                        callTarget.call(arguments.packAsObjectArray());
+                        callTarget.call(arguments);
                         blockingQueue.put(StopIterationException.INSTANCE);
                     } catch (InterruptedException e) {
                         CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -225,7 +231,7 @@ public class PParallelGenerator extends PGenerator {
             context.submitParallelTask(new Runnable() {
 
                 public void run() {
-                    callTarget.call(arguments.packAsObjectArray());
+                    callTarget.call(arguments);
                     buffer.put(StopIterationException.INSTANCE);
                 }
 
@@ -246,7 +252,7 @@ public class PParallelGenerator extends PGenerator {
             context.submitParallelTask(new Runnable() {
 
                 public void run() {
-                    callTarget.call(arguments.packAsObjectArray());
+                    callTarget.call(arguments);
                     ringBuffer.putAndDrain(StopIterationException.INSTANCE);
                 }
 

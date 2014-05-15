@@ -22,13 +22,12 @@
  */
 package com.oracle.graal.nodes.extended;
 
-import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 
 /**
  * This interface marks nodes that are part of the memory graph.
  */
-public interface MemoryNode extends NodeInterface {
+public interface MemoryNode {
 
     ValueNode asNode();
 

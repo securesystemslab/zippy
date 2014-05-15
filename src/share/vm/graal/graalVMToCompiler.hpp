@@ -35,24 +35,20 @@
 class VMToCompiler : public AllStatic {
 
 private:
-  static jobject _HotSpotGraalRuntime_instance;
-  static jobject _VMToCompiler_instance;
+  static jobject _graalRuntimePermObject;
+  static jobject _vmToCompilerPermObject;
+  static Klass* _vmToCompilerPermKlass;
 
-  static Klass* _VMToCompiler_klass;
-
-  static KlassHandle VMToCompiler_klass();
-  static Handle VMToCompiler_instance();
+  static KlassHandle vmToCompilerKlass();
+  static Handle instance();
 
 public:
-  // Gets the singleton HotSpotGraalRuntime instance, initializing it if necessary
-  static Handle get_HotSpotGraalRuntime();
+  static Handle graalRuntime();
+  static Handle truffleRuntime();
 
-  // Creates a new HotSpotTruffleRuntime object
-  static Handle create_HotSpotTruffleRuntime();
-
-  static jobject get_HotSpotGraalRuntime_jobject() {
-    get_HotSpotGraalRuntime();
-    return _HotSpotGraalRuntime_instance;
+  static jobject graalRuntimePermObject() {
+    graalRuntime();
+    return _graalRuntimePermObject;
   }
 
   // public static boolean HotSpotOptions.<clinit>();
@@ -64,30 +60,20 @@ public:
   // public static void HotSpotOptions.finalizeOptions(boolean ciTime);
   static void finalizeOptions(jboolean ciTime);
 
-  // public abstract void startRuntime();
-  static void startRuntime();
-
-#ifdef COMPILERGRAAL
-  // public abstract void startCompiler(boolean bootstrapEnabled);
-  static void startCompiler(jboolean bootstrap_enabled);
-
-  // public abstract void bootstrap();
-  static void bootstrap();
-
-  // public abstract boolean compileMethod(long metaspaceMethod, int entryBCI, long ctask, boolean blocking);
-  static void compileMethod(Method* method, int entry_bci, jlong ctask, jboolean blocking);
+  // public abstract boolean compileMethod(long vmId, int entry_bci, boolean blocking);
+  static void compileMethod(Method* method, int entry_bci, jboolean blocking);
 
   // public abstract void shutdownCompiler();
   static void shutdownCompiler();
-#endif
   
-  // public abstract void shutdownRuntime();
-  static void shutdownRuntime();
+  // public abstract void startCompiler(boolean bootstrapEnabled);
+  static void startCompiler(jboolean bootstrap_enabled);
   
-#ifndef PRODUCT
+  // public abstract void bootstrap();
+  static void bootstrap();
+
   // public abstract void compileTheWorld();
   static void compileTheWorld();
-#endif
 };
 
 inline void check_pending_exception(const char* message, bool dump_core = false) {

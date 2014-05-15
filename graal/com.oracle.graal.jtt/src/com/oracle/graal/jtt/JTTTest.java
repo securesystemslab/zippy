@@ -80,11 +80,11 @@ public class JTTTest extends GraalCompilerTest {
     Double delta;
 
     @Override
-    protected void assertDeepEquals(Object expected, Object actual) {
+    protected void assertEquals(Object expected, Object actual) {
         if (delta != null) {
             Assert.assertEquals(((Number) expected).doubleValue(), ((Number) actual).doubleValue(), delta);
         } else {
-            super.assertDeepEquals(expected, actual);
+            super.assertEquals(expected, actual);
         }
     }
 

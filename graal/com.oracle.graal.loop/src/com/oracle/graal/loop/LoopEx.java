@@ -25,9 +25,7 @@ package com.oracle.graal.loop;
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.*;
-import com.oracle.graal.compiler.common.calc.*;
-import com.oracle.graal.compiler.common.cfg.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
@@ -91,7 +89,7 @@ public class LoopEx {
     }
 
     public LoopBeginNode loopBegin() {
-        return (LoopBeginNode) lirLoop().getHeader().getBeginNode();
+        return (LoopBeginNode) lirLoop().header.getBeginNode();
     }
 
     public FixedNode predecessor() {
@@ -111,10 +109,10 @@ public class LoopEx {
     }
 
     public LoopEx parent() {
-        if (lirLoop.getParent() == null) {
+        if (lirLoop.parent == null) {
             return null;
         }
-        return data.loop(lirLoop.getParent());
+        return data.loop(lirLoop.parent);
     }
 
     public int size() {
@@ -123,7 +121,7 @@ public class LoopEx {
 
     @Override
     public String toString() {
-        return (isCounted() ? "CountedLoop [" + counted() + "] " : "Loop ") + "(depth=" + lirLoop().getDepth() + ") " + loopBegin();
+        return (isCounted() ? "CountedLoop [" + counted() + "] " : "Loop ") + "(depth=" + lirLoop().depth + ") " + loopBegin();
     }
 
     private class InvariantPredicate implements NodePredicate {
@@ -237,9 +235,9 @@ public class LoopEx {
             if (b == untilBlock) {
                 continue;
             }
-            if (lirLoop().getExits().contains(b)) {
+            if (lirLoop().exits.contains(b)) {
                 exits.add((LoopExitNode) b.getBeginNode());
-            } else if (lirLoop().getBlocks().contains(b)) {
+            } else if (lirLoop().blocks.contains(b)) {
                 blocks.add(b.getBeginNode());
                 work.addAll(b.getDominated());
             }

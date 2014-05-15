@@ -24,8 +24,7 @@
 package com.oracle.graal.compiler.hsail.test.lambda;
 
 import com.oracle.graal.compiler.hsail.test.infra.GraalKernelTester;
-
-import org.junit.*;
+import org.junit.Test;
 
 /**
  * Tests calling a method on an object when there are no derived types of that object.
@@ -54,13 +53,11 @@ public class ObjectArrayInstanceTest extends GraalKernelTester {
         });
     }
 
-    @Ignore
     @Test
     public void test() {
         testGeneratedHsail();
     }
 
-    @Ignore
     @Test
     public void testUsingLambdaMethod() {
         testGeneratedHsailUsingLambdaMethod();

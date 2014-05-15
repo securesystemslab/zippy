@@ -43,7 +43,7 @@ public class HotSpotNmethodTest extends GraalCompilerTest {
         Object result;
         try {
             result = nmethod.executeVarargs(null, "b", "c");
-            assertDeepEquals(43, result);
+            assertEquals(43, result);
         } catch (InvalidInstalledCodeException e) {
             Assert.fail("Code was invalidated");
         }
@@ -66,7 +66,7 @@ public class HotSpotNmethodTest extends GraalCompilerTest {
         Object result;
         try {
             result = nmethod.executeVarargs(nmethod, null, null);
-            assertDeepEquals(43, result);
+            assertEquals(43, result);
         } catch (InvalidInstalledCodeException e) {
             Assert.fail("Code was invalidated");
         }

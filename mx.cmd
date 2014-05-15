@@ -1,1 +1,1 @@
-python %~dp0/mxtool/mx.py %*
+python mxtool/mx.py %*

@@ -43,8 +43,6 @@ public class ExternalCompilationResult extends CompilationResult {
     private long entryPoint;
     private StructuredGraph hostGraph;
 
-    private int[] oopMapArray;
-
     /**
      * Set the address for the point of entry to the external compilation result.
      * 
@@ -77,13 +75,4 @@ public class ExternalCompilationResult extends CompilationResult {
     public StructuredGraph getHostGraph() {
         return hostGraph;
     }
-
-    public void setOopMapArray(int[] arr) {
-        oopMapArray = arr;
-    }
-
-    public int[] getOopMapArray() {
-        return oopMapArray;
-    }
-
 }

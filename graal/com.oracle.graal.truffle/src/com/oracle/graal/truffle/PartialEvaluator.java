@@ -22,9 +22,10 @@
  */
 package com.oracle.graal.truffle;
 
-import static com.oracle.graal.compiler.common.GraalOptions.*;
+import static com.oracle.graal.phases.GraalOptions.*;
 import static com.oracle.graal.truffle.TruffleCompilerOptions.*;
 
+import java.lang.reflect.*;
 import java.util.*;
 
 import com.oracle.graal.api.code.*;
@@ -34,8 +35,8 @@ import com.oracle.graal.api.runtime.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.debug.internal.*;
-import com.oracle.graal.graph.Graph.Mark;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.Graph.Mark;
 import com.oracle.graal.graph.Node;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.loop.*;
@@ -43,12 +44,12 @@ import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.nodes.virtual.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.common.CanonicalizerPhase.CustomCanonicalizer;
-import com.oracle.graal.phases.common.inlining.*;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.phases.util.*;
 import com.oracle.graal.truffle.nodes.asserts.*;
@@ -68,12 +69,14 @@ public class PartialEvaluator {
     private final CanonicalizerPhase canonicalizer;
     private Set<Constant> constantReceivers;
     private final TruffleCache truffleCache;
+    private final ResolvedJavaType frameType;
 
     public PartialEvaluator(Providers providers, TruffleCache truffleCache) {
         this.providers = providers;
         CustomCanonicalizer customCanonicalizer = new PartialEvaluatorCanonicalizer(providers.getMetaAccess(), providers.getConstantReflection());
         this.canonicalizer = new CanonicalizerPhase(!ImmutableCode.getValue(), customCanonicalizer);
         this.truffleCache = truffleCache;
+        this.frameType = providers.getMetaAccess().lookupJavaType(FrameWithoutBoxing.class);
     }
 
     public StructuredGraph createGraph(final OptimizedCallTarget callTarget, final Assumptions assumptions) {
@@ -87,7 +90,7 @@ public class PartialEvaluator {
             constantReceivers = new HashSet<>();
         }
 
-        final StructuredGraph graph = truffleCache.createRootGraph(callTarget.toString());
+        final StructuredGraph graph = truffleCache.createRootGraph();
         assert graph != null : "no graph for root method";
 
         try (Scope s = Debug.scope("CreateGraph", graph); Indent indent = Debug.logAndIndent("createGraph %s", graph.method())) {
@@ -110,6 +113,11 @@ public class PartialEvaluator {
             // Intrinsify methods.
             new ReplaceIntrinsicsPhase(providers.getReplacements()).apply(graph);
 
+            NewFrameNode newFrameNode = graph.getNodes(NewFrameNode.class).first();
+            if (newFrameNode == null) {
+                throw GraalInternalError.shouldNotReachHere("frame not found");
+            }
+
             Debug.dump(graph, "Before inlining");
 
             // Make sure frame does not escape.
@@ -124,16 +132,7 @@ public class PartialEvaluator {
             if (TraceTruffleCompilationHistogram.getValue() && constantReceivers != null) {
                 DebugHistogram histogram = Debug.createHistogram("Expanded Truffle Nodes");
                 for (Constant c : constantReceivers) {
-                    String javaName = MetaUtil.toJavaName(providers.getMetaAccess().lookupJavaType(c), false);
-
-                    // The DSL uses nested classes with redundant names - only show the inner class
-                    int index = javaName.indexOf('$');
-                    if (index != -1) {
-                        javaName = javaName.substring(index + 1);
-                    }
-
-                    histogram.add(javaName);
-
+                    histogram.add(providers.getMetaAccess().lookupJavaType(c).getName());
                 }
                 new DebugHistogramAsciiPrinter(TTY.out().out()).print(histogram);
             }
@@ -188,7 +187,7 @@ public class PartialEvaluator {
             for (MethodCallTargetNode methodCallTargetNode : graph.getNodes(MethodCallTargetNode.class)) {
                 InvokeKind kind = methodCallTargetNode.invokeKind();
                 try (Indent id1 = Debug.logAndIndent("try inlining %s, kind = %s", methodCallTargetNode.targetMethod(), kind)) {
-                    if (kind == InvokeKind.Static || kind == InvokeKind.Special) {
+                    if (kind == InvokeKind.Static || (kind == InvokeKind.Special && (methodCallTargetNode.receiver().isConstant() || isFrame(methodCallTargetNode.receiver())))) {
                         if ((TraceTruffleCompilationHistogram.getValue() || TraceTruffleCompilationDetails.getValue()) && kind == InvokeKind.Special && methodCallTargetNode.receiver().isConstant()) {
                             constantReceivers.add(methodCallTargetNode.receiver().asConstant());
                         }
@@ -202,7 +201,7 @@ public class PartialEvaluator {
                         }
 
                         StructuredGraph inlineGraph = replacements.getMethodSubstitution(methodCallTargetNode.targetMethod());
-                        if (inlineGraph == null && !methodCallTargetNode.targetMethod().isNative() && methodCallTargetNode.targetMethod().canBeInlined()) {
+                        if (inlineGraph == null && !Modifier.isNative(methodCallTargetNode.targetMethod().getModifiers()) && methodCallTargetNode.targetMethod().canBeInlined()) {
                             inlineGraph = parseGraph(methodCallTargetNode.targetMethod(), methodCallTargetNode.arguments(), assumptions, phaseContext, false);
                         }
 
@@ -220,6 +219,7 @@ public class PartialEvaluator {
                                     expansionLogger.postExpand(inlined);
                                 }
                                 if (Debug.isDumpEnabled()) {
+                                    Debug.log("dump enabled");
                                     int nodeCountAfter = graph.getNodeCount();
                                     Debug.dump(graph, "After inlining %s %+d (%d)", methodCallTargetNode.targetMethod().toString(), nodeCountAfter - nodeCountBefore, nodeCountAfter);
                                 }
@@ -240,6 +240,10 @@ public class PartialEvaluator {
         if (TraceTruffleExpansion.getValue()) {
             expansionLogger.print();
         }
+    }
+
+    private boolean isFrame(ValueNode receiver) {
+        return receiver instanceof NewFrameNode || Objects.equals(ObjectStamp.typeOrNull(receiver.stamp()), frameType);
     }
 
     private StructuredGraph parseGraph(final ResolvedJavaMethod targetMethod, final NodeInputList<ValueNode> arguments, final Assumptions assumptions, final PhaseContext phaseContext,
@@ -297,7 +301,7 @@ public class PartialEvaluator {
 
             @Override
             public int compare(LoopEx o1, LoopEx o2) {
-                return o2.lirLoop().getDepth() - o1.lirLoop().getDepth();
+                return o2.lirLoop().depth - o1.lirLoop().depth;
             }
         });
         return sortedLoops;

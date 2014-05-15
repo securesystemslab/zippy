@@ -47,8 +47,7 @@ public class PTXHotSpotBackendFactory implements HotSpotBackendFactory {
         HotSpotDisassemblerProvider disassembler = host.getDisassembler();
         SuitesProvider suites = new DefaultSuitesProvider();
         HotSpotRegistersProvider registers = new HotSpotRegisters(PTX.tid, Register.None, Register.None);
-        HotSpotProviders providers = new HotSpotProviders(metaAccess, codeCache, constantReflection, foreignCalls, lowerer, replacements, disassembler, suites, registers, host.getSnippetReflection(),
-                        host.getMethodHandleAccess());
+        HotSpotProviders providers = new HotSpotProviders(metaAccess, codeCache, constantReflection, foreignCalls, lowerer, replacements, disassembler, suites, registers, host.getSnippetReflection());
         return new PTXHotSpotBackend(runtime, providers);
     }
 

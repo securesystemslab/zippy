@@ -202,7 +202,7 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
     return new LocationValue(Location::new_stk_loc(Location::invalid, 0));
   }
 
-  BasicType type = GraalRuntime::kindToBasicType(Kind::typeChar(Value::kind(value)));
+  BasicType type = GraalCompiler::kindToBasicType(Kind::typeChar(Value::kind(value)));
   Location::Type locationType = Location::normal;
   if (type == T_OBJECT || type == T_ARRAY) locationType = Location::oop;
 
@@ -382,7 +382,7 @@ void CodeInstaller::initialize_assumptions(oop compiled_code) {
 
 // constructor used to create a method
 GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBlob*& cb, Handle installed_code, Handle speculation_log) {
-  BufferBlob* buffer_blob = GraalRuntime::initialize_buffer_blob();
+  BufferBlob* buffer_blob = GraalCompiler::initialize_buffer_blob();
   if (buffer_blob == NULL) {
     return GraalEnv::cache_full;
   }
@@ -422,13 +422,12 @@ GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBl
     methodHandle method = getMethodFromHotSpotMethod(HotSpotCompiledNmethod::method(compiled_code));
     jint entry_bci = HotSpotCompiledNmethod::entryBCI(compiled_code);
     jint id = HotSpotCompiledNmethod::id(compiled_code);
-    CompileTask* task = (CompileTask*) (address) HotSpotCompiledNmethod::ctask(compiled_code);
     if (id == -1) {
       // Make sure a valid compile_id is associated with every compile
       id = CompileBroker::assign_compile_id_unlocked(Thread::current(), method, entry_bci);
     }
     result = GraalEnv::register_method(method, nm, entry_bci, &_offsets, _custom_stack_area_offset, &buffer, stack_slots, _debug_recorder->_oopmaps, &_exception_handler_table,
-        GraalCompiler::instance(), _debug_recorder, _dependencies, task, id, false, installed_code, speculation_log);
+        GraalCompiler::instance(), _debug_recorder, _dependencies, NULL, id, false, installed_code, speculation_log);
     cb = nm;
   }
 
@@ -677,11 +676,8 @@ void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeV
   oop hotspot_method = BytecodePosition::method(frame);
   Method* method = getMethodFromHotSpotMethod(hotspot_method);
   jint bci = BytecodePosition::bci(frame);
-  if (bci == BytecodeFrame::BEFORE_BCI()) {
-    bci = SynchronizationEntryBCI;
-  }
   bool reexecute;
-  if (bci == SynchronizationEntryBCI){
+  if (bci == -1 || bci == -2){
      reexecute = false;
   } else {
     Bytecodes::Code code = Bytecodes::java_code_at(method, method->bcp_from(bci));

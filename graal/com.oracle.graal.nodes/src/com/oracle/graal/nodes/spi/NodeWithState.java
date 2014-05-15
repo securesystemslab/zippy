@@ -23,15 +23,12 @@
 package com.oracle.graal.nodes.spi;
 
 import com.oracle.graal.graph.*;
-import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.nodes.*;
 
 /**
  * Interface for nodes which have {@link FrameState} nodes as input.
  */
-public interface NodeWithState extends NodeInterface {
+public interface NodeWithState {
 
-    default NodeIterable<FrameState> states() {
-        return asNode().inputs().filter(FrameState.class);
-    }
+    Node asNode();
 }

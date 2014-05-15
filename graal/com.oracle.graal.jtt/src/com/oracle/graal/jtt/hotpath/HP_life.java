@@ -25,9 +25,8 @@ package com.oracle.graal.jtt.hotpath;
 
 import java.util.*;
 
-import org.junit.*;
-
 import com.oracle.graal.jtt.*;
+import com.oracle.graal.test.*;
 
 /*
  */
@@ -107,7 +106,7 @@ public class HP_life extends JTTTest {
         }
     }
 
-    @Test
+    @LongTest
     public void run0() throws Throwable {
         runTest("test", 5);
     }

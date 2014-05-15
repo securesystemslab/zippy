@@ -235,13 +235,16 @@ struct dir_stats_struct {
 
 
 int DebugInformationRecorder::find_sharable_decode_offset(int stream_offset) {
-  if (FLAG_IS_DEFAULT(ShareDebugInfo)) {
-    if (!ShareDebugInfo && !recording_non_safepoints()) {
-      return serialized_null;
-    }
-  } else if (!ShareDebugInfo) {
+  // It's always a space win to share and Graal generates quite a bit
+  // of scopes data so always enable the sharing logic with Graal.
+  // Presumably this is disabled in regular HotSpot because it makes
+  // recording more expensive?
+#ifndef GRAAL
+  // Only pull this trick if non-safepoint recording
+  // is enabled, for now.
+  if (!recording_non_safepoints())
     return serialized_null;
-  }
+#endif
 
   NOT_PRODUCT(++dir_stats.chunks_queried);
   int stream_length = stream()->position() - stream_offset;

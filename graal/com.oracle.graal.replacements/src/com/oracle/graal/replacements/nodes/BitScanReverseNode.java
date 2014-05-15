@@ -23,15 +23,16 @@
 package com.oracle.graal.replacements.nodes;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.type.*;
+import com.oracle.graal.compiler.gen.*;
+import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
-import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 
-public class BitScanReverseNode extends FloatingNode implements LIRLowerable, Canonicalizable {
+public class BitScanReverseNode extends FloatingNode implements LIRGenLowerable, Canonicalizable {
 
     @Input private ValueNode value;
 
@@ -78,7 +79,7 @@ public class BitScanReverseNode extends FloatingNode implements LIRLowerable, Ca
     }
 
     @Override
-    public void generate(NodeLIRBuilderTool gen) {
+    public void generate(NodeLIRBuilder gen) {
         Variable result = gen.newVariable(Kind.Int);
         gen.getLIRGeneratorTool().emitBitScanReverse(result, gen.operand(value));
         gen.setResult(this, result);

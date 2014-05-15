@@ -79,14 +79,6 @@ public class AMD64MacroAssembler extends AMD64Assembler {
         }
     }
 
-    public final void movptr(Register dst, AMD64Address src) {
-        movq(dst, src);
-    }
-
-    public final void movptr(AMD64Address dst, Register src) {
-        movq(dst, src);
-    }
-
     public final void movptr(AMD64Address dst, int src) {
         movslq(dst, src);
     }
@@ -285,7 +277,7 @@ public class AMD64MacroAssembler extends AMD64Assembler {
     /**
      * Emit code to save a given set of callee save registers in the {@linkplain CalleeSaveLayout
      * CSA} within the frame.
-     *
+     * 
      * @param csl the description of the CSA
      * @param frameToCSA offset from the frame pointer to the CSA
      */

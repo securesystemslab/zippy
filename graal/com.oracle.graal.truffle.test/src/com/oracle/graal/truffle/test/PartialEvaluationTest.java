@@ -37,7 +37,6 @@ import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
-import com.oracle.graal.phases.common.inlining.*;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.printer.*;
 import com.oracle.graal.truffle.*;
@@ -65,8 +64,7 @@ public class PartialEvaluationTest extends GraalCompilerTest {
     protected InstalledCode assertPartialEvalEquals(String methodName, RootNode root, Object[] arguments) {
         Assumptions assumptions = new Assumptions(true);
         StructuredGraph actual = partialEval(root, arguments, assumptions, true);
-        InstalledCode result = new InstalledCode();
-        truffleCompiler.compileMethodHelper(actual, assumptions, root.toString(), getSpeculationLog(), result);
+        InstalledCode result = truffleCompiler.compileMethodHelper(actual, assumptions, root.toString(), getSpeculationLog(), null);
         StructuredGraph expected = parseForComparison(methodName);
         removeFrameStates(actual);
         Assert.assertEquals(getCanonicalGraphString(expected, true, true), getCanonicalGraphString(actual, true, true));
@@ -138,7 +136,7 @@ public class PartialEvaluationTest extends GraalCompilerTest {
 
             @Override
             public int compare(LoopEx o1, LoopEx o2) {
-                return o2.lirLoop().getDepth() - o1.lirLoop().getDepth();
+                return o2.lirLoop().depth - o1.lirLoop().depth;
             }
         });
         return sortedLoops;

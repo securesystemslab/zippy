@@ -40,11 +40,6 @@ public class IncrementalCanonicalizerPhase<C extends PhaseContext> extends Phase
         this.canonicalizer = canonicalizer;
     }
 
-    public IncrementalCanonicalizerPhase(CanonicalizerPhase canonicalizer, BasePhase<? super C> phase) {
-        this.canonicalizer = canonicalizer;
-        appendPhase(phase);
-    }
-
     @Override
     protected void run(StructuredGraph graph, C context) {
         Mark newNodesMark = graph.getMark();

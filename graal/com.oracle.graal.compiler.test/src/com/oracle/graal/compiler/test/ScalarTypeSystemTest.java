@@ -22,7 +22,6 @@
  */
 package com.oracle.graal.compiler.test;
 
-import com.oracle.graal.phases.common.cfs.FlowSensitiveReductionPhase;
 import org.junit.*;
 
 import com.oracle.graal.api.code.*;
@@ -168,9 +167,8 @@ public class ScalarTypeSystemTest extends GraalCompilerTest {
         StructuredGraph graph = parse(snippet);
         Debug.dump(graph, "Graph");
         Assumptions assumptions = new Assumptions(false);
-        PhaseContext context = new PhaseContext(getProviders(), assumptions);
-        new FlowSensitiveReductionPhase(getMetaAccess()).apply(graph, context);
-        new CanonicalizerPhase(true).apply(graph, context);
+        new ConditionalEliminationPhase(getMetaAccess()).apply(graph);
+        new CanonicalizerPhase(true).apply(graph, new PhaseContext(getProviders(), assumptions));
         StructuredGraph referenceGraph = parse(referenceSnippet);
         assertEquals(referenceGraph, graph);
     }

@@ -97,7 +97,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
         public Object executeCall(VirtualFrame frame, Object left, Object right) {
             try {
                 if (accept(left)) {
-                    return invoke.invoke(frame, left, new Object[]{left, right}, PKeyword.EMPTY_KEYWORDS);
+                    return invoke.invoke(frame, left, PArguments.createWithUserArguments(left, right), PKeyword.EMPTY_KEYWORDS);
                 } else {
                     return next.executeCall(frame, left, right);
                 }
@@ -117,7 +117,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
         public Object executeCall(VirtualFrame frame, Object left, Object right) {
             try {
                 if (accept(right)) {
-                    return invoke.invoke(frame, right, new Object[]{right, left}, PKeyword.EMPTY_KEYWORDS);
+                    return invoke.invoke(frame, right, PArguments.createWithUserArguments(right, left), PKeyword.EMPTY_KEYWORDS);
                 } else {
                     return next.executeCall(frame, left, right);
                 }

@@ -33,12 +33,11 @@ import java.nio.charset.*;
 import java.nio.file.*;
 import java.util.*;
 
-import com.oracle.graal.api.runtime.*;
-import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.logging.*;
 import com.oracle.graal.options.*;
-import com.oracle.graal.phases.common.inlining.*;
+import com.oracle.graal.phases.common.*;
 
 /**
  * Called from {@code graalCompiler.cpp} to parse any Graal specific options. Such options are
@@ -87,7 +86,7 @@ public class HotSpotOptions {
             try {
                 for (String line : Files.readAllLines(graalDotOptions, Charset.defaultCharset())) {
                     if (!line.startsWith("#")) {
-                        if (!parseOption(line, null)) {
+                        if (!setOption(line)) {
                             throw new InternalError("Invalid option \"" + line + "\" specified in " + graalDotOptions);
                         }
                     }
@@ -98,39 +97,14 @@ public class HotSpotOptions {
         }
     }
 
-    /**
-     * Gets the Graal specific options specified to HotSpot (e.g., on the command line).
-     *
-     * @param timeCompilations (out) true if the CITime or CITimeEach HotSpot VM options are set
-     */
-    private static native String[] getVMOptions(boolean[] timeCompilations);
-
     static {
         initializeOptions();
         loadOptionOverrides();
-
-        boolean[] timeCompilations = {false};
-        for (String option : getVMOptions(timeCompilations)) {
-            if (!parseOption(option, null)) {
-                throw new InternalError("Invalid Graal option \"-G:" + option + "\"");
-            }
-        }
-
-        if (timeCompilations[0] || PrintCompRate.getValue() != 0) {
-            unconditionallyEnableTimerOrMetric(InliningUtil.class, "InlinedBytecodes");
-            unconditionallyEnableTimerOrMetric(CompilationTask.class, "CompilationTime");
-        }
-        assert !Debug.Initialization.isDebugInitialized() : "The class " + Debug.class.getName() + " must not be initialized before the Graal runtime has been initialized. " +
-                        "This can be fixed by placing a call to " + Graal.class.getName() + ".runtime() on the path that triggers initialization of " + Debug.class.getName();
-        if (areDebugScopePatternsEnabled()) {
-            System.setProperty(Debug.Initialization.INITIALIZER_PROPERTY_NAME, "true");
-        }
     }
 
-    /**
-     * Ensures {@link HotSpotOptions} is initialized.
-     */
-    public static void initialize() {
+    // Called from VM code
+    public static boolean setOption(String option) {
+        return parseOption(option, null);
     }
 
     interface OptionConsumer {
@@ -139,7 +113,7 @@ public class HotSpotOptions {
 
     /**
      * Parses a given option value specification.
-     *
+     * 
      * @param option the specification of an option and its value
      * @param setter the object to notify of the parsed option and value. If null, the
      *            {@link OptionValue#setValue(Object)} method of the specified option is called
@@ -239,7 +213,7 @@ public class HotSpotOptions {
      * <p>
      * This method verifies that the named field exists and is of an expected type. However, it does
      * not verify that the timer or metric created has the same name of the field.
-     *
+     * 
      * @param c the class in which the field is declared
      * @param name the name of the field
      */
@@ -263,8 +237,25 @@ public class HotSpotOptions {
     }
 
     /**
+     * Called from VM code once all Graal command line options have been processed by
+     * {@link #setOption(String)}.
+     * 
+     * @param timeCompilations true if the CITime or CITimeEach HotSpot VM options are set
+     */
+    public static void finalizeOptions(boolean timeCompilations) {
+        if (timeCompilations || PrintCompRate.getValue() != 0) {
+            unconditionallyEnableTimerOrMetric(InliningUtil.class, "InlinedBytecodes");
+            unconditionallyEnableTimerOrMetric(CompilationTask.class, "CompilationTime");
+        }
+        if (areDebugScopePatternsEnabled()) {
+            assert !Debug.Initialization.isDebugInitialized();
+            System.setProperty(Debug.Initialization.INITIALIZER_PROPERTY_NAME, "true");
+        }
+    }
+
+    /**
      * Wraps some given text to one or more lines of a given maximum width.
-     *
+     * 
      * @param text text to wrap
      * @param width maximum width of an output line, exception for words in {@code text} longer than
      *            this value
@@ -323,7 +314,7 @@ public class HotSpotOptions {
 
     /**
      * Compute string similarity based on Dice's coefficient.
-     *
+     * 
      * Ported from str_similar() in globals.cpp.
      */
     static float stringSimiliarity(String str1, String str2) {

@@ -33,8 +33,8 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CompilationResult.Call;
 import com.oracle.graal.api.code.CompilationResult.Infopoint;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.test.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.meta.*;
 
 public class HotSpotMonitorValueTest extends GraalCompilerTest {
@@ -51,8 +51,8 @@ public class HotSpotMonitorValueTest extends GraalCompilerTest {
                         BytecodeFrame caller = frame.caller();
                         assertNotNull(caller);
                         assertNull(caller.caller());
-                        assertDeepEquals(2, frame.numLocks);
-                        assertDeepEquals(2, caller.numLocks);
+                        assertEquals(2, frame.numLocks);
+                        assertEquals(2, caller.numLocks);
                         HotSpotMonitorValue lock1 = (HotSpotMonitorValue) frame.getLockValue(0);
                         HotSpotMonitorValue lock2 = (HotSpotMonitorValue) frame.getLockValue(1);
                         HotSpotMonitorValue lock3 = (HotSpotMonitorValue) caller.getLockValue(0);
@@ -67,7 +67,7 @@ public class HotSpotMonitorValueTest extends GraalCompilerTest {
                                 }
                             }
                         }
-                        assertDeepEquals(lock3.getOwner(), lock4.getOwner());
+                        assertEquals(lock3.getOwner(), lock4.getOwner());
                         assertThat(lock1.getOwner(), not(lock2.getOwner()));
                         return super.addMethod(method, compResult);
                     }

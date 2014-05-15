@@ -25,7 +25,7 @@ package com.oracle.graal.truffle.hotspot;
 import java.lang.reflect.*;
 
 import com.oracle.graal.api.code.stack.*;
-import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.truffle.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
@@ -41,6 +41,8 @@ public abstract class HotSpotFrameInstance implements FrameInstance {
     }
 
     protected abstract int getNotifyIndex();
+
+    protected abstract int getCallTargetIndex();
 
     protected abstract int getFrameIndex();
 
@@ -84,23 +86,33 @@ public abstract class HotSpotFrameInstance implements FrameInstance {
 
     public abstract CallTarget getCallTarget();
 
-    public abstract Node getCallNode();
+    public abstract CallTarget getTargetCallTarget();
+
+    public DirectCallNode getCallNode() {
+        Object receiver = stackFrame.getLocal(getNotifyIndex());
+        if (receiver instanceof DirectCallNode) {
+            return (DirectCallNode) receiver;
+        } else {
+            return null;
+        }
+    }
 
     /**
      * This class represents a frame that is taken from the
-     * {@link OptimizedDirectCallNode#callProxy(MaterializedFrameNotify, CallTarget, VirtualFrame, Object[], boolean, boolean)}
+     * {@link OptimizedDirectCallNode#callProxy(MaterializedFrameNotify, CallTarget, VirtualFrame, Object[], boolean)}
      * method.
      */
     public static final class CallNodeFrame extends HotSpotFrameInstance {
         public static final Method METHOD;
         static {
             try {
-                METHOD = OptimizedDirectCallNode.class.getDeclaredMethod("callProxy", MaterializedFrameNotify.class, CallTarget.class, VirtualFrame.class, Object[].class, boolean.class, boolean.class);
+                METHOD = OptimizedDirectCallNode.class.getDeclaredMethod("callProxy", MaterializedFrameNotify.class, CallTarget.class, VirtualFrame.class, Object[].class, boolean.class);
             } catch (NoSuchMethodException | SecurityException e) {
                 throw new GraalInternalError(e);
             }
         }
         private static final int NOTIFY_INDEX = 0;
+        private static final int CALL_TARGET_INDEX = 1;
         private static final int FRAME_INDEX = 2;
 
         public CallNodeFrame(InspectedFrame stackFrame) {
@@ -110,6 +122,11 @@ public abstract class HotSpotFrameInstance implements FrameInstance {
         @Override
         protected int getNotifyIndex() {
             return NOTIFY_INDEX;
+        }
+
+        @Override
+        protected int getCallTargetIndex() {
+            return CALL_TARGET_INDEX;
         }
 
         @Override
@@ -123,19 +140,16 @@ public abstract class HotSpotFrameInstance implements FrameInstance {
         }
 
         @Override
-        public Node getCallNode() {
-            Object receiver = stackFrame.getLocal(getNotifyIndex());
-            if (receiver instanceof DirectCallNode || receiver instanceof IndirectCallNode) {
-                return (Node) receiver;
-            }
-            return null;
+        public CallTarget getTargetCallTarget() {
+            return (CallTarget) stackFrame.getLocal(getCallTargetIndex());
         }
     }
 
     /**
-     * This class represents a frame that is taken from the {@link OptimizedCallTarget#callProxy}
-     * method.
+     * This class represents a frame that is taken from the
+     * {@link RootCallTarget#callProxy(VirtualFrame)} method.
      */
+    @SuppressWarnings("javadoc")
     public static final class CallTargetFrame extends HotSpotFrameInstance {
         public static final Method METHOD;
         static {
@@ -169,17 +183,22 @@ public abstract class HotSpotFrameInstance implements FrameInstance {
         }
 
         @Override
+        protected int getCallTargetIndex() {
+            return CALL_TARGET_INDEX;
+        }
+
+        @Override
         protected int getFrameIndex() {
             return FRAME_INDEX;
         }
 
         @Override
         public CallTarget getCallTarget() {
-            return (CallTarget) stackFrame.getLocal(CALL_TARGET_INDEX);
+            return (CallTarget) stackFrame.getLocal(getCallTargetIndex());
         }
 
         @Override
-        public Node getCallNode() {
+        public CallTarget getTargetCallTarget() {
             return null;
         }
     }

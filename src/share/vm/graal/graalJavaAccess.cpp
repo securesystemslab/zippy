@@ -59,11 +59,10 @@ void compute_offset(int &dest_offset, Klass* klass, const char* name, const char
 #define FLOAT_FIELD(klass, name) FIELD(klass, name, "F", false)
 #define OOP_FIELD(klass, name, signature) FIELD(klass, name, signature, false)
 #define STATIC_OOP_FIELD(klass, name, signature) FIELD(klass, name, signature, true)
-#define STATIC_INT_FIELD(klass, name) FIELD(klass, name, "I", true)
 
 
 void graal_compute_offsets() {
-  COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD, LONG_FIELD, FLOAT_FIELD, OOP_FIELD, STATIC_OOP_FIELD, STATIC_INT_FIELD)
+  COMPILER_CLASSES_DO(START_CLASS, END_CLASS, CHAR_FIELD, INT_FIELD, BOOLEAN_FIELD, LONG_FIELD, FLOAT_FIELD, OOP_FIELD, STATIC_OOP_FIELD)
   guarantee(InstalledCode::_address_offset == sizeof(oopDesc), "codeBlob must be first field!");
 }
 
@@ -73,7 +72,7 @@ void graal_compute_offsets() {
 #define FIELD2(klass, name) int klass::_##name##_offset = 0;
 #define FIELD3(klass, name, sig) FIELD2(klass, name)
 
-COMPILER_CLASSES_DO(EMPTY1, EMPTY0, FIELD2, FIELD2, FIELD2, FIELD2, FIELD2, FIELD3, FIELD3, FIELD2)
+COMPILER_CLASSES_DO(EMPTY1, EMPTY0, FIELD2, FIELD2, FIELD2, FIELD2, FIELD2, FIELD3, FIELD3)
 
 
 

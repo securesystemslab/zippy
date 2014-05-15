@@ -26,22 +26,22 @@
 
 #include "compiler/abstractCompiler.hpp"
 
+#define LEAF_GRAPH_ARRAY_SIZE (8192)
+
 class GraalCompiler : public AbstractCompiler {
 
 private:
 
-#ifdef COMPILERGRAAL
-  // Set to true once VMToCompiler.startCompiler() returns
-  bool _started;
-#endif
+  bool                  _initialized;
 
   static GraalCompiler* _instance;
- 
+  address               _external_deopt_i2c_entry;
 public:
 
   GraalCompiler();
 
   static GraalCompiler* instance() { return _instance; }
+
 
   virtual const char* name() { return "Graal"; }
 
@@ -57,17 +57,39 @@ public:
   // Initialization
   virtual void initialize();
 
-#ifdef COMPILERGRAAL
   // Compilation entry point for methods
   virtual void compile_method(ciEnv* env, ciMethod* target, int entry_bci);
 
-  void compile_method(methodHandle target, int entry_bci, CompileTask* task, jboolean blocking);
+  void compile_method(methodHandle target, int entry_bci, jboolean blocking);
 
   // Print compilation timers and statistics
   virtual void print_timers();
 
-  void shutdown();
-#endif
+  void exit();
+
+  address get_external_deopt_i2c_entry() {return _external_deopt_i2c_entry;}
+
+  static BasicType kindToBasicType(jchar ch);
+
+  static BufferBlob* initialize_buffer_blob();
+
+  static address create_external_deopt_i2c();
 };
+
+// Tracing macros
+
+#define IF_TRACE_graal_1 if (!(TraceGraal >= 1)) ; else
+#define IF_TRACE_graal_2 if (!(TraceGraal >= 2)) ; else
+#define IF_TRACE_graal_3 if (!(TraceGraal >= 3)) ; else
+#define IF_TRACE_graal_4 if (!(TraceGraal >= 4)) ; else
+#define IF_TRACE_graal_5 if (!(TraceGraal >= 5)) ; else
+
+// using commas and else to keep one-instruction semantics
+
+#define TRACE_graal_1 if (!(TraceGraal >= 1 && (tty->print("TraceGraal-1: "), true))) ; else tty->print_cr
+#define TRACE_graal_2 if (!(TraceGraal >= 2 && (tty->print("   TraceGraal-2: "), true))) ; else tty->print_cr
+#define TRACE_graal_3 if (!(TraceGraal >= 3 && (tty->print("      TraceGraal-3: "), true))) ; else tty->print_cr
+#define TRACE_graal_4 if (!(TraceGraal >= 4 && (tty->print("         TraceGraal-4: "), true))) ; else tty->print_cr
+#define TRACE_graal_5 if (!(TraceGraal >= 5 && (tty->print("            TraceGraal-5: "), true))) ; else tty->print_cr
 
 #endif // SHARE_VM_GRAAL_GRAAL_COMPILER_HPP

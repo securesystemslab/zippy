@@ -26,6 +26,4 @@ public interface CompilationPolicy {
 
     boolean shouldCompile(CompilationProfile profile);
 
-    void recordCompilationFailure(Throwable t);
-
 }

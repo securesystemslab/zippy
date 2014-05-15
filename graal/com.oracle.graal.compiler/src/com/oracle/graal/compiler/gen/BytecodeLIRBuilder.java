@@ -22,15 +22,16 @@
  */
 package com.oracle.graal.compiler.gen;
 
+import java.lang.reflect.*;
+
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.lir.gen.*;
 
-public abstract class BytecodeLIRBuilder {
-    protected final LIRGeneratorTool gen;
+public class BytecodeLIRBuilder {
+    protected final LIRGenerator gen;
     protected final BytecodeParserTool parser;
 
-    public BytecodeLIRBuilder(LIRGeneratorTool gen, BytecodeParserTool parser) {
+    public BytecodeLIRBuilder(LIRGenerator gen, BytecodeParserTool parser) {
         this.gen = gen;
         this.parser = parser;
     }
@@ -52,7 +53,7 @@ public abstract class BytecodeLIRBuilder {
         gen.emitIncomingValues(params);
 
         Signature sig = method.getSignature();
-        boolean isStatic = method.isStatic();
+        boolean isStatic = Modifier.isStatic(method.getModifiers());
         for (int i = 0; i < sig.getParameterCount(!isStatic); i++) {
             Value paramValue = params[i];
             assert paramValue.getKind() == sig.getParameterKind(i).getStackKind();
@@ -60,11 +61,5 @@ public abstract class BytecodeLIRBuilder {
         }
 
     }
-
-    public abstract int getArrayLengthOffset();
-
-    public abstract Constant getClassConstant(ResolvedJavaType declaringClass);
-
-    public abstract int getFieldOffset(ResolvedJavaField field);
 
 }

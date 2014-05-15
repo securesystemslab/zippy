@@ -27,7 +27,6 @@ import java.util.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
-import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.java.*;
@@ -43,12 +42,12 @@ public class GraphUtil {
         }
     };
 
-    public static void killCFG(Node node, SimplifierTool tool) {
+    public static void killCFG(Node node) {
         assert node.isAlive();
         if (node instanceof AbstractEndNode) {
             // We reached a control flow end.
             AbstractEndNode end = (AbstractEndNode) node;
-            killEnd(end, tool);
+            killEnd(end);
         } else {
             // Normal control flow node.
             /*
@@ -58,23 +57,18 @@ public class GraphUtil {
              * while processing one branch.
              */
             for (Node successor : node.successors()) {
-                killCFG(successor, tool);
+                killCFG(successor);
             }
         }
         propagateKill(node);
     }
 
-    public static void killCFG(Node node) {
-        killCFG(node, null);
-    }
-
-    private static void killEnd(AbstractEndNode end, SimplifierTool tool) {
+    private static void killEnd(AbstractEndNode end) {
         MergeNode merge = end.merge();
         if (merge != null) {
             merge.removeEnd(end);
             StructuredGraph graph = end.graph();
-            if (merge instanceof LoopBeginNode && merge.forwardEndCount() == 0) {
-                // dead loop
+            if (merge instanceof LoopBeginNode && merge.forwardEndCount() == 0) { // dead loop
                 for (PhiNode phi : merge.phis().snapshot()) {
                     propagateKill(phi);
                 }
@@ -91,17 +85,12 @@ public class GraphUtil {
                     killCFG(loopBody);
                 }
                 begin.safeDelete();
-            } else if (merge instanceof LoopBeginNode && ((LoopBeginNode) merge).loopEnds().isEmpty()) {
-                // not a loop anymore
-                if (tool != null) {
-                    merge.phis().forEach(phi -> phi.usages().forEach(tool::addToWorkList));
-                }
+            } else if (merge instanceof LoopBeginNode && ((LoopBeginNode) merge).loopEnds().isEmpty()) { // not
+                                                                                                         // a
+                                                                                                         // loop
+                                                                                                         // anymore
                 graph.reduceDegenerateLoopBegin((LoopBeginNode) merge);
-            } else if (merge.phiPredecessorCount() == 1) {
-                // not a merge anymore
-                if (tool != null) {
-                    merge.phis().forEach(phi -> phi.usages().forEach(tool::addToWorkList));
-                }
+            } else if (merge.phiPredecessorCount() == 1) { // not a merge anymore
                 graph.reduceTrivialMerge(merge);
             }
         }
@@ -148,13 +137,6 @@ public class GraphUtil {
     }
 
     public static void removeFixedWithUnusedInputs(FixedWithNextNode fixed) {
-        if (fixed instanceof StateSplit) {
-            FrameState stateAfter = ((StateSplit) fixed).stateAfter();
-            ((StateSplit) fixed).setStateAfter(null);
-            if (stateAfter.usages().isEmpty()) {
-                killWithUnusedFloatingInputs(stateAfter);
-            }
-        }
         FixedNode next = fixed.next();
         fixed.setNext(null);
         fixed.replaceAtPredecessor(next);
@@ -344,14 +326,6 @@ public class GraphUtil {
         return v;
     }
 
-    public static boolean tryKillUnused(Node node) {
-        if (node.isAlive() && isFloatingNode().apply(node) && node.recordsUsages() && node.usages().isEmpty()) {
-            killWithUnusedFloatingInputs(node);
-            return true;
-        }
-        return false;
-    }
-
     /**
      * Exhaustive search for {@link GraphUtil#originalValue(ValueNode)} when a simple search fails.
      * This can happen in the presence of complicated phi/proxy/phi constructs.
@@ -408,33 +382,5 @@ public class GraphUtil {
             }
             return true;
         }
-    }
-
-    /**
-     * Returns an iterator that will return the given node followed by all its predecessors, up
-     * until the point where {@link Node#predecessor()} returns null;
-     *
-     * @param start the node at which to start iterating
-     */
-    public static NodeIterable<FixedNode> predecessorIterable(final FixedNode start) {
-        return new NodeIterable<FixedNode>() {
-            public Iterator<FixedNode> iterator() {
-                return new Iterator<FixedNode>() {
-                    public FixedNode current = start;
-
-                    public boolean hasNext() {
-                        return current != null;
-                    }
-
-                    public FixedNode next() {
-                        try {
-                            return current;
-                        } finally {
-                            current = (FixedNode) current.predecessor();
-                        }
-                    }
-                };
-            }
-        };
     }
 }

@@ -297,6 +297,8 @@
   template(com_oracle_graal_graph_NodeClass,                         "com/oracle/graal/graph/NodeClass")                              \
   /* graal.hotspot */                                                                                                                 \
   template(com_oracle_graal_hotspot_HotSpotGraalRuntime,             "com/oracle/graal/hotspot/HotSpotGraalRuntime")                  \
+  template(com_oracle_graal_hotspot_HotSpotKlassOop,                 "com/oracle/graal/hotspot/HotSpotKlassOop")                      \
+  template(com_oracle_graal_hotspot_HotSpotOptions,                  "com/oracle/graal/hotspot/HotSpotOptions")                       \
   template(com_oracle_graal_hotspot_HotSpotCompiledCode,             "com/oracle/graal/hotspot/HotSpotCompiledCode")                  \
   template(com_oracle_graal_hotspot_HotSpotCompiledCode_Comment,     "com/oracle/graal/hotspot/HotSpotCompiledCode$Comment")          \
   template(com_oracle_graal_hotspot_HotSpotCompiledNmethod,          "com/oracle/graal/hotspot/HotSpotCompiledNmethod")               \
@@ -312,6 +314,7 @@
   template(com_oracle_graal_hotspot_meta_HotSpotCodeInfo,            "com/oracle/graal/hotspot/meta/HotSpotCodeInfo")                 \
   template(com_oracle_graal_hotspot_meta_HotSpotInstalledCode,       "com/oracle/graal/hotspot/meta/HotSpotInstalledCode")            \
   template(com_oracle_graal_hotspot_meta_HotSpotNmethod,             "com/oracle/graal/hotspot/meta/HotSpotNmethod")                  \
+  template(com_oracle_graal_hotspot_meta_HotSpotJavaType,            "com/oracle/graal/hotspot/meta/HotSpotJavaType")                 \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,  "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod")       \
   template(com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,  "com/oracle/graal/hotspot/meta/HotSpotResolvedObjectType")       \
   template(com_oracle_graal_hotspot_meta_HotSpotMonitorValue,        "com/oracle/graal/hotspot/meta/HotSpotMonitorValue")             \
@@ -322,10 +325,12 @@
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
   template(com_oracle_graal_api_meta_PrimitiveConstant,              "com/oracle/graal/api/meta/PrimitiveConstant")                   \
   template(com_oracle_graal_api_meta_NullConstant,                   "com/oracle/graal/api/meta/NullConstant")                        \
+  template(com_oracle_graal_api_meta_ConstantPool,                   "com/oracle/graal/api/meta/ConstantPool")                        \
   template(com_oracle_graal_api_meta_ExceptionHandler,               "com/oracle/graal/api/meta/ExceptionHandler")                    \
   template(com_oracle_graal_api_meta_JavaMethod,                     "com/oracle/graal/api/meta/JavaMethod")                          \
   template(com_oracle_graal_api_meta_JavaType,                       "com/oracle/graal/api/meta/JavaType")                            \
   template(com_oracle_graal_api_meta_Kind,                           "com/oracle/graal/api/meta/Kind")                                \
+  template(com_oracle_graal_api_meta_ResolvedJavaField,              "com/oracle/graal/api/meta/ResolvedJavaField")                   \
   template(com_oracle_graal_api_meta_Value,                          "com/oracle/graal/api/meta/Value")                               \
   /* graal.api.code */                                                                                                                \
   template(com_oracle_graal_api_code_Assumptions,                    "com/oracle/graal/api/code/Assumptions")                         \
@@ -355,13 +360,27 @@
   template(com_oracle_graal_api_code_SpeculationLog,                 "com/oracle/graal/api/code/SpeculationLog")                      \
   /* graal.gpu */                                                                                                                     \
   template(com_oracle_graal_gpu_ExternalCompilationResult,           "com/oracle/graal/gpu/ExternalCompilationResult")                \
-  /* graal method and field names */                                                                                                  \
+  /* graal.truffle */                                                                                                                 \
+  template(com_oracle_graal_truffle_hotspot_HotSpotTruffleRuntime,   "com/oracle/graal/truffle/hotspot/HotSpotTruffleRuntime")        \
+  template(startCompiler_name,                    "startCompiler")                                                                    \
+  template(bootstrap_name,                        "bootstrap")                                                                        \
+  template(compileTheWorld_name,                  "compileTheWorld")                                                                  \
+  template(shutdownCompiler_name,                 "shutdownCompiler")                                                                 \
   template(compileMethod_name,                    "compileMethod")                                                                    \
-  template(compileMethod_signature,               "(JIJZ)V")                                                                          \
+  template(compileMethod_signature,               "(JIZ)V")                                                                           \
   template(setOption_name,                        "setOption")                                                                        \
   template(setOption_signature,                   "(Ljava/lang/String;)Z")                                                            \
+  template(finalizeOptions_name,                  "finalizeOptions")                                                                  \
   template(getVMToCompiler_name,                  "getVMToCompiler")                                                                  \
   template(getVMToCompiler_signature,             "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")                                 \
+  template(runtime_name,                          "runtime")                                                                          \
+  template(runtime_signature,                     "()Lcom/oracle/graal/hotspot/HotSpotGraalRuntime;")                                 \
+  template(makeInstance_name,                     "makeInstance")                                                                     \
+  template(makeInstance_signature,                "()Lcom/oracle/graal/truffle/hotspot/HotSpotTruffleRuntime;")                       \
+  template(initialize_name,                       "initialize")                                                                       \
+  template(forObject_name,                        "forObject")                                                                        \
+  template(callbackInternal_name,                 "callbackInternal")                                                                 \
+  template(callback_signature,                    "(Ljava/lang/Object;)Ljava/lang/Object;")                                           \
                                                                       \
   /* common method and field names */                                                             \
   template(object_initializer_name,                   "<init>")                                   \

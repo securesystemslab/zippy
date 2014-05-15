@@ -22,14 +22,13 @@
  */
 package com.oracle.graal.phases.common;
 
-import static com.oracle.graal.compiler.common.GraalOptions.*;
-import static com.oracle.graal.graph.util.CollectionsAccess.*;
+import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.util.*;
 import java.util.Map.Entry;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.cfg.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
@@ -62,7 +61,7 @@ public class GuardLoweringPhase extends BasePhase<MidTierContext> {
 
     private static class UseImplicitNullChecks extends ScheduledNodeIterator {
 
-        private final Map<ValueNode, GuardNode> nullGuarded = newIdentityMap();
+        private final IdentityHashMap<ValueNode, GuardNode> nullGuarded = new IdentityHashMap<>();
         private final int implicitNullCheckLimit;
 
         UseImplicitNullChecks(int implicitNullCheckLimit) {
@@ -179,9 +178,9 @@ public class GuardLoweringPhase extends BasePhase<MidTierContext> {
             Loop<Block> loop = block.getLoop();
             StructuredGraph graph = deopt.graph();
             while (loop != null) {
-                LoopExitNode exit = graph.add(new LoopExitNode((LoopBeginNode) loop.getHeader().getBeginNode()));
+                LoopExitNode exit = graph.add(new LoopExitNode((LoopBeginNode) loop.header.getBeginNode()));
                 graph.addBeforeFixed(deopt, exit);
-                loop = loop.getParent();
+                loop = loop.parent;
             }
         }
     }

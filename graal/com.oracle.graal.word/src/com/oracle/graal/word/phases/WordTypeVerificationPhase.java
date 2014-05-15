@@ -22,9 +22,10 @@
  */
 package com.oracle.graal.word.phases;
 
+import java.lang.reflect.*;
+
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.replacements.*;
-import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.NodeIntrinsic;
 import com.oracle.graal.nodes.*;
@@ -108,7 +109,7 @@ public class WordTypeVerificationPhase extends Phase {
         if (method.getAnnotation(NodeIntrinsic.class) == null) {
             Invoke invoke = (Invoke) callTarget.usages().first();
             NodeInputList<ValueNode> arguments = callTarget.arguments();
-            boolean isStatic = method.isStatic();
+            boolean isStatic = Modifier.isStatic(method.getModifiers());
             int argc = 0;
             if (!isStatic) {
                 ValueNode receiver = arguments.get(argc);

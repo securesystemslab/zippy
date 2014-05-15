@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,8 +38,8 @@ public interface CodeCacheProvider {
      * @param method a method to which the executable code is begin added
      * @param compResult the compilation result to be added
      * @param speculationLog the speculation log to be used
-     * @return a reference to the compiled and ready-to-run code or throws a
-     *         {@link BailoutException} if the code installation failed
+     * @return a reference to the compiled and ready-to-run code or null if the code installation
+     *         failed
      */
     InstalledCode addMethod(ResolvedJavaMethod method, CompilationResult compResult, SpeculationLog speculationLog, InstalledCode predefinedInstalledCode);
 
@@ -93,9 +93,4 @@ public interface CodeCacheProvider {
      * Gets a description of the target architecture.
      */
     TargetDescription getTarget();
-
-    /**
-     * Create a new speculation log for the target runtime.
-     */
-    SpeculationLog createSpeculationLog();
 }

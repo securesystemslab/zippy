@@ -23,6 +23,8 @@
 package com.oracle.graal.replacements;
 
 import java.lang.annotation.*;
+import java.lang.reflect.*;
+
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.Node.NodeIntrinsic;
 import com.oracle.graal.replacements.nodes.*;
@@ -87,7 +89,7 @@ public @interface Snippet {
 
         @Override
         public boolean shouldInline(ResolvedJavaMethod method, ResolvedJavaMethod caller) {
-            if (method.isNative()) {
+            if (Modifier.isNative(method.getModifiers())) {
                 return false;
             }
             if (method.getAnnotation(Fold.class) != null) {

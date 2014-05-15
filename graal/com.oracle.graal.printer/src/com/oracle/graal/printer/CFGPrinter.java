@@ -29,9 +29,9 @@ import java.util.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.compiler.alloc.*;
 import com.oracle.graal.compiler.alloc.Interval.UsePosList;
-import com.oracle.graal.compiler.common.cfg.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.Verbosity;
@@ -256,8 +256,8 @@ class CFGPrinter extends CompilationPrinter {
         out.println();
 
         if (block.getLoop() != null) {
-            out.print("loop_index ").println(block.getLoop().getIndex());
-            out.print("loop_depth ").println(block.getLoop().getDepth());
+            out.print("loop_index ").println(block.getLoop().index);
+            out.print("loop_depth ").println(block.getLoop().depth);
         }
     }
 
@@ -380,12 +380,12 @@ class CFGPrinter extends CompilationPrinter {
                 continue;
             }
 
-            if (pos.getIndex() != lastIndex) {
+            if (pos.index != lastIndex) {
                 if (lastIndex != -1) {
                     out.print(suffix);
                 }
                 out.print(prefix).print(node.getNodeClass().getName(pos)).print(": ");
-                lastIndex = pos.getIndex();
+                lastIndex = pos.index;
             }
             out.print(nodeToString(node.getNodeClass().get(node, pos))).print(" ");
         }

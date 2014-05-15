@@ -30,6 +30,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.function.PArguments.GeneratorArguments;
 import edu.uci.python.runtime.iterator.*;
 
 public class PGenerator implements PIterator {
@@ -37,24 +38,27 @@ public class PGenerator implements PIterator {
     protected final String name;
     protected final CallTarget callTarget;
     protected final FrameDescriptor frameDescriptor;
-    protected final PArguments arguments;
+    protected final Object[] arguments;
 
     public static PGenerator create(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments,
                     int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         /**
          * Setting up the persistent frame in {@link #arguments}.
          */
-        MaterializedFrame generatorFrame = Truffle.getRuntime().createMaterializedFrame(PArguments.EMPTY_ARGUMENTS_ARRAY, frameDescriptor);
-        PArguments generatorArgs = new PArguments.GeneratorArguments(declarationFrame, generatorFrame, arguments, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        MaterializedFrame generatorFrame = Truffle.getRuntime().createMaterializedFrame(PArguments.empty(), frameDescriptor);
+        GeneratorArguments generatorArgs = new PArguments.GeneratorArguments(numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        PArguments.setDeclarationFrame(arguments, declarationFrame);
+        PArguments.setGeneratorFrame(arguments, generatorFrame);
+        PArguments.setGeneratorArguments(arguments, generatorArgs);
 
         if (PythonOptions.ProfileGeneratorCalls) {
-            return new PProfilingGenerator(name, callTarget, frameDescriptor, generatorArgs, context);
+            return new PProfilingGenerator(name, callTarget, frameDescriptor, arguments, context);
         } else {
-            return new PGenerator(name, callTarget, frameDescriptor, generatorArgs);
+            return new PGenerator(name, callTarget, frameDescriptor, arguments);
         }
     }
 
-    public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments) {
+    public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, Object[] arguments) {
         this.name = name;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
@@ -67,12 +71,12 @@ public class PGenerator implements PIterator {
 
     @Override
     public Object __next__() throws StopIterationException {
-        return callTarget.call(arguments.packAsObjectArray());
+        return callTarget.call(arguments);
     }
 
     @SuppressWarnings("unused")
     public Object send(Object value) throws StopIterationException {
-        return callTarget.call(arguments.packAsObjectArray());
+        return callTarget.call(arguments);
     }
 
     @Override

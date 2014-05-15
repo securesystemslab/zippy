@@ -23,12 +23,10 @@
 package com.oracle.graal.nodes.calc;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.api.meta.ProfilingInfo.*;
-import com.oracle.graal.compiler.common.calc.*;
-import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 
 @NodeInfo(shortName = "==")
@@ -36,7 +34,7 @@ public final class IntegerEqualsNode extends CompareNode {
 
     /**
      * Constructs a new integer equality comparison node.
-     *
+     * 
      * @param x the instruction producing the first input to the instruction
      * @param y the instruction that produces the second input to this instruction
      */
@@ -72,28 +70,24 @@ public final class IntegerEqualsNode extends CompareNode {
     }
 
     @Override
-    public TriState evaluate(ConstantReflectionProvider constantReflection, ValueNode forX, ValueNode forY) {
-        if (GraphUtil.unproxify(forX) == GraphUtil.unproxify(forY)) {
-            return TriState.TRUE;
-        } else if (forX.stamp().alwaysDistinct(forY.stamp())) {
-            return TriState.FALSE;
-        }
-        return super.evaluate(constantReflection, forX, forY);
-    }
-
-    @Override
     public Node canonical(CanonicalizerTool tool) {
-        Node result = super.canonical(tool);
-        if (result != this) {
+        if (GraphUtil.unproxify(x()) == GraphUtil.unproxify(y())) {
+            return LogicConstantNode.tautology(graph());
+        } else if (x().stamp().alwaysDistinct(y().stamp())) {
+            return LogicConstantNode.contradiction(graph());
+        }
+
+        ValueNode result = canonicalizeSymmetric(x(), y());
+        if (result != null) {
             return result;
         }
 
-        result = canonicalizeSymmetric(x(), y());
-        if (result != this) {
+        result = canonicalizeSymmetric(y(), x());
+        if (result != null) {
             return result;
         }
 
-        return canonicalizeSymmetric(y(), x());
+        return super.canonical(tool);
     }
 
     private ValueNode canonicalizeSymmetric(ValueNode x, ValueNode y) {
@@ -138,6 +132,6 @@ public final class IntegerEqualsNode extends CompareNode {
                 }
             }
         }
-        return this;
+        return null;
     }
 }

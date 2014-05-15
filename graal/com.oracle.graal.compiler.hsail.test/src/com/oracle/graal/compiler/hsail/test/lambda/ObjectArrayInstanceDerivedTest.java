@@ -23,8 +23,6 @@
 
 package com.oracle.graal.compiler.hsail.test.lambda;
 
-import org.junit.*;
-
 import com.oracle.graal.compiler.hsail.test.infra.GraalKernelTester;
 
 /**
@@ -71,14 +69,12 @@ public class ObjectArrayInstanceDerivedTest extends GraalKernelTester {
         });
     }
 
-    @Ignore
-    @Test
+    // @Test
     public void test() {
         testGeneratedHsail();
     }
 
-    @Ignore
-    @Test
+    // @Test
     public void testUsingLambdaMethod() {
         testGeneratedHsailUsingLambdaMethod();
     }

@@ -25,6 +25,7 @@
 #include "compiler/disassembler.hpp"
 #include "runtime/javaCalls.hpp"
 #include "graal/graalEnv.hpp"
+#include "graal/graalCompiler.hpp"
 #include "graal/graalCodeInstaller.hpp"
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalCompilerToVM.hpp"

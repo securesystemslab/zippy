@@ -22,9 +22,9 @@
  */
 package com.oracle.graal.replacements.nodes;
 
-import com.oracle.graal.api.code.*;
+import static java.lang.reflect.Modifier.*;
+
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.graph.*;
@@ -35,7 +35,6 @@ import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.common.*;
-import com.oracle.graal.phases.common.inlining.*;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.replacements.*;
 
@@ -89,7 +88,7 @@ public class MacroNode extends AbstractMemoryCheckpoint implements Lowerable, Me
         StructuredGraph methodSubstitution = tool.getReplacements().getMethodSubstitution(getTargetMethod());
         if (methodSubstitution != null) {
             methodSubstitution = methodSubstitution.copy();
-            if (stateAfter() == null || stateAfter().bci == BytecodeFrame.AFTER_BCI) {
+            if (stateAfter() == null || stateAfter().bci == FrameState.AFTER_BCI) {
                 /*
                  * handles the case of a MacroNode inside a snippet used for another MacroNode
                  * lowering
@@ -136,7 +135,7 @@ public class MacroNode extends AbstractMemoryCheckpoint implements Lowerable, Me
         if (replacementGraph != null) {
             // Pull out the receiver null check so that a replaced
             // receiver can be lowered if necessary
-            if (!targetMethod.isStatic()) {
+            if (!isStatic(targetMethod.getModifiers())) {
                 ValueNode nonNullReceiver = InliningUtil.nonNullReceiver(invoke);
                 if (nonNullReceiver instanceof Lowerable) {
                     ((Lowerable) nonNullReceiver).lower(tool);
@@ -173,7 +172,7 @@ public class MacroNode extends AbstractMemoryCheckpoint implements Lowerable, Me
             if (!call.targetMethod().equals(getTargetMethod())) {
                 throw new GraalInternalError("unexpected invoke %s in snippet", getClass().getSimpleName());
             }
-            assert invoke.stateAfter().bci == BytecodeFrame.AFTER_BCI;
+            assert invoke.stateAfter().bci == FrameState.AFTER_BCI;
             // Here we need to fix the bci of the invoke
             InvokeNode newInvoke = snippetGraph.add(new InvokeNode(invoke.callTarget(), getBci()));
             newInvoke.setStateAfter(invoke.stateAfter());

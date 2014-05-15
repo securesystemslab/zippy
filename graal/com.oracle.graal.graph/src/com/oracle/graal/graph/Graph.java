@@ -24,7 +24,6 @@ package com.oracle.graal.graph;
 
 import java.util.*;
 
-import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.GraphEvent.NodeEvent;
 import com.oracle.graal.graph.Node.ValueNumberable;
@@ -840,7 +839,7 @@ public class Graph {
                     throw new GraalInternalError(t);
                 }
             } catch (GraalInternalError e) {
-                throw GraalGraphInternalError.transformAndAddContext(e, node).addContext(this);
+                throw e.addContext(node).addContext(this);
             }
         }
         return true;

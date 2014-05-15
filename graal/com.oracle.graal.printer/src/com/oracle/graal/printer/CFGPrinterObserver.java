@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.alloc.*;
-import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
@@ -174,7 +173,7 @@ public class CFGPrinterObserver implements DebugDumpHandler {
                 StructuredGraph graph = (StructuredGraph) object;
                 cfgPrinter.cfg = ControlFlowGraph.compute(graph, true, true, true, false);
             }
-            cfgPrinter.printCFG(message, cfgPrinter.cfg.getBlocks(), true);
+            cfgPrinter.printCFG(message, Arrays.asList(cfgPrinter.cfg.getBlocks()), true);
 
         } else if (object instanceof CompilationResult) {
             final CompilationResult compResult = (CompilationResult) object;

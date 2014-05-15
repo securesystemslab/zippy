@@ -28,9 +28,6 @@ import java.lang.reflect.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.replacements.*;
-import com.oracle.graal.compiler.common.*;
-import com.oracle.graal.compiler.common.calc.*;
-import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.HeapAccess.BarrierType;
@@ -144,7 +141,7 @@ public class WordTypeRewriterPhase extends Phase {
      * own and not in the stamp, {@link #changeToWord} does not perform all necessary changes.
      */
     protected void rewriteAccessIndexed(StructuredGraph graph, AccessIndexedNode node) {
-        ResolvedJavaType arrayType = StampTool.typeOrNull(node.array());
+        ResolvedJavaType arrayType = ObjectStamp.typeOrNull(node.array());
         /*
          * There are cases where the array does not have a known type yet, i.e., the type is null.
          * In that case we assume it is not a word type.
@@ -234,7 +231,7 @@ public class WordTypeRewriterPhase extends Phase {
             case WRITE:
             case INITIALIZE: {
                 assert arguments.size() == 3 || arguments.size() == 4;
-                Kind writeKind = asKind(targetMethod.getSignature().getParameterType(targetMethod.isStatic() ? 2 : 1, targetMethod.getDeclaringClass()));
+                Kind writeKind = asKind(targetMethod.getSignature().getParameterType(Modifier.isStatic(targetMethod.getModifiers()) ? 2 : 1, targetMethod.getDeclaringClass()));
                 LocationNode location;
                 if (arguments.size() == 3) {
                     location = makeLocation(graph, arguments.get(1), writeKind, LocationIdentity.ANY_LOCATION);
@@ -403,7 +400,7 @@ public class WordTypeRewriterPhase extends Phase {
     }
 
     protected boolean isWord(ValueNode node) {
-        return isWord(StampTool.typeOrNull(node));
+        return isWord(ObjectStamp.typeOrNull(node));
     }
 
     protected boolean isWord(ResolvedJavaType type) {

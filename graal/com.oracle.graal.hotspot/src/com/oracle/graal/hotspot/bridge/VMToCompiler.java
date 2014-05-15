@@ -30,23 +30,17 @@ import java.io.*;
  */
 public interface VMToCompiler {
 
-    void startRuntime();
+    /**
+     * Compiles a method to machine code. This method is called from the VM
+     * (VMToCompiler::compileMethod).
+     */
+    void compileMethod(long metaspaceMethod, int entryBCI, boolean blocking);
+
+    void shutdownCompiler() throws Exception;
 
     void startCompiler(boolean bootstrapEnabled) throws Throwable;
 
     void bootstrap() throws Throwable;
-
-    /**
-     * Compiles a method to machine code. This method is called from the VM
-     * (VMToCompiler::compileMethod).
-     *
-     * @param ctask the CompileTask pointer if this is a request from a HotSpot compiler thread
-     */
-    void compileMethod(long metaspaceMethod, int entryBCI, long ctask, boolean blocking);
-
-    void shutdownCompiler() throws Exception;
-
-    void shutdownRuntime() throws Throwable;
 
     void compileTheWorld() throws Throwable;
 

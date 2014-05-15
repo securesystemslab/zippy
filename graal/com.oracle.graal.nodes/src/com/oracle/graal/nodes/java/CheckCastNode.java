@@ -28,7 +28,6 @@ import static com.oracle.graal.nodes.extended.BranchProbabilityNode.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.meta.ProfilingInfo.TriState;
-import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
@@ -107,7 +106,7 @@ public final class CheckCastNode extends FixedWithNextNode implements Canonicali
             // This is a check cast that will always fail
             condition = LogicConstantNode.contradiction(graph());
             stamp = StampFactory.declared(type);
-        } else if (StampTool.isObjectNonNull(object)) {
+        } else if (ObjectStamp.isObjectNonNull(object)) {
             condition = graph().addWithoutUnique(new InstanceOfNode(type, object, profile));
         } else {
             if (profile != null && profile.getNullSeen() == TriState.FALSE) {
@@ -142,7 +141,7 @@ public final class CheckCastNode extends FixedWithNextNode implements Canonicali
     public Node canonical(CanonicalizerTool tool) {
         assert object() != null : this;
 
-        ResolvedJavaType objectType = StampTool.typeOrNull(object());
+        ResolvedJavaType objectType = ObjectStamp.typeOrNull(object());
         if (objectType != null && type.isAssignableFrom(objectType)) {
             // we don't have to check for null types here because they will also pass the
             // checkcast.
@@ -161,7 +160,7 @@ public final class CheckCastNode extends FixedWithNextNode implements Canonicali
             }
         }
 
-        if (StampTool.isObjectAlwaysNull(object())) {
+        if (ObjectStamp.isObjectAlwaysNull(object())) {
             return object();
         }
         if (tool.assumptions() != null && tool.assumptions().useOptimisticAssumptions()) {

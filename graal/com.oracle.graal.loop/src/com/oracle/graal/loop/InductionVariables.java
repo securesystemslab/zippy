@@ -22,8 +22,6 @@
  */
 package com.oracle.graal.loop;
 
-import static com.oracle.graal.graph.util.CollectionsAccess.*;
-
 import java.util.*;
 
 import com.oracle.graal.graph.*;
@@ -37,7 +35,7 @@ public class InductionVariables {
 
     public InductionVariables(LoopEx loop) {
         this.loop = loop;
-        ivs = newNodeIdentityMap();
+        ivs = new IdentityHashMap<>();
         findDerived(findBasic());
     }
 

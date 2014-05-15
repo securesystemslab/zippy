@@ -27,22 +27,22 @@ import java.util.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.meta.JavaTypeProfile.ProfiledType;
 import com.oracle.graal.api.meta.ProfilingInfo.TriState;
-import com.oracle.graal.compiler.common.calc.*;
-import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 
 /**
  * The {@code IfNode} represents a branch that can go one of two directions depending on the outcome
  * of a comparison.
  */
-public final class IfNode extends ControlSplitNode implements Simplifiable, LIRLowerable {
+public final class IfNode extends ControlSplitNode implements Simplifiable, LIRLowerable, MemoryArithmeticLIRLowerable {
 
     @Successor private BeginNode trueSuccessor;
     @Successor private BeginNode falseSuccessor;
@@ -131,6 +131,11 @@ public final class IfNode extends ControlSplitNode implements Simplifiable, LIRL
     }
 
     @Override
+    public boolean generate(MemoryArithmeticLIRLowerer gen, Access access) {
+        return gen.emitIfMemory(this, access);
+    }
+
+    @Override
     public boolean verify() {
         assertTrue(condition() != null, "missing condition");
         assertTrue(trueSuccessor() != null, "missing trueSuccessor");
@@ -150,41 +155,6 @@ public final class IfNode extends ControlSplitNode implements Simplifiable, LIRL
             predecessor().replaceFirstSuccessor(this, newIfNode);
             this.safeDelete();
             return;
-        }
-        if (trueSuccessor().usages().isEmpty() && falseSuccessor().usages().isEmpty()) {
-            // push similar nodes upwards through the if, thereby deduplicating them
-            do {
-                BeginNode trueSucc = trueSuccessor();
-                BeginNode falseSucc = falseSuccessor();
-                if (trueSucc.getClass() == BeginNode.class && falseSucc.getClass() == BeginNode.class && trueSucc.next() instanceof FixedWithNextNode && falseSucc.next() instanceof FixedWithNextNode) {
-                    FixedWithNextNode trueNext = (FixedWithNextNode) trueSucc.next();
-                    FixedWithNextNode falseNext = (FixedWithNextNode) falseSucc.next();
-                    NodeClass nodeClass = trueNext.getNodeClass();
-                    if (trueNext.getClass() == falseNext.getClass()) {
-                        if (nodeClass.inputsEqual(trueNext, falseNext) && nodeClass.valueEqual(trueNext, falseNext)) {
-                            falseNext.replaceAtUsages(trueNext);
-                            graph().removeFixed(falseNext);
-                            FixedNode next = trueNext.next();
-                            trueNext.setNext(null);
-                            trueNext.replaceAtPredecessor(next);
-                            graph().addBeforeFixed(this, trueNext);
-                            for (Node usage : trueNext.usages().snapshot()) {
-                                if (usage.getNodeClass().valueNumberable() && !usage.getNodeClass().isLeafNode()) {
-                                    Node newNode = graph().findDuplicate(usage);
-                                    if (newNode != null) {
-                                        usage.replaceAtUsages(newNode);
-                                        usage.safeDelete();
-                                    }
-                                }
-                                if (usage.isAlive()) {
-                                    tool.addToWorkList(usage);
-                                }
-                            }
-                            continue;
-                        }
-                    }
-                }
-            } while (false);
         }
 
         if (condition() instanceof LogicConstantNode) {

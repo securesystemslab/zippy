@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.api.code;
 
+import java.lang.reflect.*;
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
@@ -341,7 +342,7 @@ public class CodeUtil {
         int sigCount = sig.getParameterCount(false);
         JavaType[] argTypes;
         int argIndex = 0;
-        if (!method.isStatic()) {
+        if (!Modifier.isStatic(method.getModifiers())) {
             argTypes = new JavaType[sigCount + 1];
             argTypes[argIndex++] = method.getDeclaringClass();
         } else {

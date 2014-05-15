@@ -22,21 +22,21 @@
  */
 package com.oracle.graal.printer;
 
-import static com.oracle.graal.compiler.common.GraalOptions.*;
+import static com.oracle.graal.phases.GraalOptions.*;
 
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.function.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.cfg.*;
+import com.oracle.graal.cfg.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.NodeClass.Position;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.cfg.*;
+import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.graph.*;
 import com.oracle.graal.phases.schedule.*;
 
@@ -137,7 +137,7 @@ public class BinaryGraphPrinter implements GraphPrinter {
         }
         ControlFlowGraph cfg = schedule == null ? null : schedule.getCFG();
         BlockMap<List<ScheduledNode>> blockToNodes = schedule == null ? null : schedule.getBlockToNodesMap();
-        List<Block> blocks = cfg == null ? null : cfg.getBlocks();
+        Block[] blocks = cfg == null ? null : cfg.getBlocks();
         writeNodes(graph);
         writeBlocks(blocks, blockToNodes);
     }
@@ -297,13 +297,13 @@ public class BinaryGraphPrinter implements GraphPrinter {
             Collection<Position> directInputPositions = nodeClass.getFirstLevelInputPositions();
             writeShort((char) directInputPositions.size());
             for (Position pos : directInputPositions) {
-                writeByte(pos.getSubIndex() == NodeClass.NOT_ITERABLE ? 0 : 1);
+                writeByte(pos.subIndex == NodeClass.NOT_ITERABLE ? 0 : 1);
                 writePoolObject(nodeClass.getName(pos));
             }
             Collection<Position> directSuccessorPositions = nodeClass.getFirstLevelSuccessorPositions();
             writeShort((char) directSuccessorPositions.size());
             for (Position pos : directSuccessorPositions) {
-                writeByte(pos.getSubIndex() == NodeClass.NOT_ITERABLE ? 0 : 1);
+                writeByte(pos.subIndex == NodeClass.NOT_ITERABLE ? 0 : 1);
                 writePoolObject(nodeClass.getName(pos));
             }
         } else if (object instanceof ResolvedJavaMethod) {
@@ -394,10 +394,10 @@ public class BinaryGraphPrinter implements GraphPrinter {
     }
 
     private void writeNodes(Graph graph) throws IOException {
-        ToDoubleFunction<FixedNode> probabilities = null;
+        NodesToDoubles probabilities = null;
         if (PrintGraphProbabilities.getValue()) {
             try {
-                probabilities = new FixedNodeProbabilityCache();
+                probabilities = new ComputeProbabilityClosure((StructuredGraph) graph).apply();
             } catch (Throwable t) {
             }
         }
@@ -408,8 +408,8 @@ public class BinaryGraphPrinter implements GraphPrinter {
         for (Node node : graph.getNodes()) {
             NodeClass nodeClass = node.getNodeClass();
             node.getDebugProperties(props);
-            if (probabilities != null && node instanceof FixedNode) {
-                props.put("probability", probabilities.applyAsDouble((FixedNode) node));
+            if (probabilities != null && node instanceof FixedNode && probabilities.contains((FixedNode) node)) {
+                props.put("probability", probabilities.get((FixedNode) node));
             }
             writeInt(getNodeId(node));
             writePoolObject(nodeClass);
@@ -433,7 +433,7 @@ public class BinaryGraphPrinter implements GraphPrinter {
     private void writeEdges(Node node, Collection<Position> positions) throws IOException {
         NodeClass nodeClass = node.getNodeClass();
         for (Position pos : positions) {
-            if (pos.getSubIndex() == NodeClass.NOT_ITERABLE) {
+            if (pos.subIndex == NodeClass.NOT_ITERABLE) {
                 Node edge = nodeClass.get(node, pos);
                 writeNodeRef(edge);
             } else {
@@ -460,9 +460,9 @@ public class BinaryGraphPrinter implements GraphPrinter {
         }
     }
 
-    private void writeBlocks(List<Block> blocks, BlockMap<List<ScheduledNode>> blockToNodes) throws IOException {
+    private void writeBlocks(Block[] blocks, BlockMap<List<ScheduledNode>> blockToNodes) throws IOException {
         if (blocks != null) {
-            writeInt(blocks.size());
+            writeInt(blocks.length);
             for (Block block : blocks) {
                 List<ScheduledNode> nodes = blockToNodes.get(block);
                 writeInt(block.getId());

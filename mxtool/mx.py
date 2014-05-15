@@ -62,7 +62,7 @@ _warn = False
 A distribution is a jar or zip file containing the output from one or more Java projects.
 """
 class Distribution:
-    def __init__(self, suite, name, path, sourcesPath, deps, excludedDependencies, distDependency):
+    def __init__(self, suite, name, path, sourcesPath, deps, excludedLibs):
         self.suite = suite
         self.name = name
         self.path = path.replace('/', os.sep)
@@ -70,14 +70,13 @@ class Distribution:
         self.sourcesPath = _make_absolute(sourcesPath.replace('/', os.sep), suite.dir) if sourcesPath else None
         self.deps = deps
         self.update_listeners = set()
-        self.excludedDependencies = excludedDependencies
-        self.distDependency = distDependency
+        self.excludedLibs = excludedLibs
 
     def sorted_deps(self, includeLibs=False):
         try:
-            excl = [dependency(d) for d in self.excludedDependencies]
+            excl = [library(d) for d in self.excludedLibs]
         except SystemExit as e:
-            abort('invalid excluded dependency for {} distribution: {}'.format(self.name, e))
+            abort('invalid excluded library for {} distribution: {}'.format(self.name, e))
         return [d for d in sorted_deps(self.deps, includeLibs=includeLibs) if d not in excl]
 
     def __str__(self):
@@ -85,94 +84,6 @@ class Distribution:
 
     def add_update_listener(self, listener):
         self.update_listeners.add(listener)
-
-    def make_archive(self):
-        # are sources combined into main archive?
-        unified = self.path == self.sourcesPath
-
-        with Archiver(self.path) as arc, Archiver(None if unified else self.sourcesPath) as srcArcRaw:
-            srcArc = arc if unified else srcArcRaw
-            services = {}
-            def overwriteCheck(zf, arcname, source):
-                if not hasattr(zf, '_provenance'):
-                    zf._provenance = {}
-                existingSource = zf._provenance.get(arcname, None)
-                if existingSource and existingSource != source and not arcname.endswith('/'):
-                    log('warning: ' + self.path + ': overwriting ' + arcname + '\n  new: ' + source + '\n  old: ' + existingSource)
-                zf._provenance[arcname] = source
-
-            for dep in self.sorted_deps(includeLibs=True):
-                if dep.isLibrary():
-                    l = dep
-                    # merge library jar into distribution jar
-                    logv('[' + self.path + ': adding library ' + l.name + ']')
-                    lpath = l.get_path(resolve=True)
-                    libSourcePath = l.get_source_path(resolve=True)
-                    if lpath:
-                        with zipfile.ZipFile(lpath, 'r') as lp:
-                            for arcname in lp.namelist():
-                                if arcname.startswith('META-INF/services/') and not arcname == 'META-INF/services/':
-                                    service = arcname[len('META-INF/services/'):]
-                                    assert '/' not in service
-                                    services.setdefault(service, []).extend(lp.read(arcname).splitlines())
-                                else:
-                                    overwriteCheck(arc.zf, arcname, lpath + '!' + arcname)
-                                    arc.zf.writestr(arcname, lp.read(arcname))
-                    if srcArc.zf and libSourcePath:
-                        with zipfile.ZipFile(libSourcePath, 'r') as lp:
-                            for arcname in lp.namelist():
-                                overwriteCheck(srcArc.zf, arcname, lpath + '!' + arcname)
-                                srcArc.zf.writestr(arcname, lp.read(arcname))
-                else:
-                    p = dep
-
-                    if self.distDependency and p in _dists[self.distDependency].sorted_deps():
-                        logv("Excluding {0} from {1} because it's provided by the dependency {2}".format(p.name, self.path, self.distDependency))
-                        continue
-
-                    # skip a  Java project if its Java compliance level is "higher" than the configured JDK
-                    jdk = java(p.javaCompliance)
-                    if not jdk:
-                        log('Excluding {0} from {2} (Java compliance level {1} required)'.format(p.name, p.javaCompliance, self.path))
-                        continue
-
-                    logv('[' + self.path + ': adding project ' + p.name + ']')
-                    outputDir = p.output_dir()
-                    for root, _, files in os.walk(outputDir):
-                        relpath = root[len(outputDir) + 1:]
-                        if relpath == join('META-INF', 'services'):
-                            for service in files:
-                                with open(join(root, service), 'r') as fp:
-                                    services.setdefault(service, []).extend([provider.strip() for provider in fp.readlines()])
-                        elif relpath == join('META-INF', 'providers'):
-                            for provider in files:
-                                with open(join(root, provider), 'r') as fp:
-                                    for service in fp:
-                                        services.setdefault(service.strip(), []).append(provider)
-                        else:
-                            for f in files:
-                                arcname = join(relpath, f).replace(os.sep, '/')
-                                overwriteCheck(arc.zf, arcname, join(root, f))
-                                arc.zf.write(join(root, f), arcname)
-                    if srcArc.zf:
-                        sourceDirs = p.source_dirs()
-                        if p.source_gen_dir():
-                            sourceDirs.append(p.source_gen_dir())
-                        for srcDir in sourceDirs:
-                            for root, _, files in os.walk(srcDir):
-                                relpath = root[len(srcDir) + 1:]
-                                for f in files:
-                                    if f.endswith('.java'):
-                                        arcname = join(relpath, f).replace(os.sep, '/')
-                                        overwriteCheck(srcArc.zf, arcname, join(root, f))
-                                        srcArc.zf.write(join(root, f), arcname)
-
-            for service, providers in services.iteritems():
-                arcname = 'META-INF/services/' + service
-                arc.zf.writestr(arcname, '\n'.join(providers))
-
-        self.notify_updated()
-
 
     def notify_updated(self):
         for l in self.update_listeners:
@@ -448,18 +359,6 @@ class Project(Dependency):
                     print >> fp, ap
         return outOfDate
 
-    def make_archive(self, path=None):
-        outputDir = self.output_dir()
-        if not path:
-            path = join(self.dir, self.name + '.jar')
-        with Archiver(path) as arc:
-            for root, _, files in os.walk(outputDir):
-                for f in files:
-                    relpath = root[len(outputDir) + 1:]
-                    arcname = join(relpath, f).replace(os.sep, '/')
-                    arc.zf.write(join(root, f), arcname)
-        return path
-
 def _make_absolute(path, prefix):
     """
     Makes 'path' absolute if it isn't already by prefixing 'prefix'
@@ -614,17 +513,6 @@ class HgConfig:
             else:
                 return None
 
-    def isDirty(self, sDir, abortOnError=True):
-        try:
-            return len(subprocess.check_output(['hg', 'status', '-R', sDir])) > 0
-        except OSError:
-            warn(self.missing)
-        except subprocess.CalledProcessError:
-            if abortOnError:
-                abort('failed to get status')
-            else:
-                return None
-
 class Suite:
     def __init__(self, mxDir, primary, load=True):
         self.dir = dirname(mxDir)
@@ -754,9 +642,8 @@ class Suite:
             path = attrs.pop('path')
             sourcesPath = attrs.pop('sourcesPath', None)
             deps = pop_list(attrs, 'dependencies')
-            exclDeps = pop_list(attrs, 'exclude')
-            distDep = attrs.pop('distDependency', None)
-            d = Distribution(self, name, path, sourcesPath, deps, exclDeps, distDep)
+            exclLibs = pop_list(attrs, 'excludeLibs')
+            d = Distribution(self, name, path, sourcesPath, deps, exclLibs)
             d.__dict__.update(attrs)
             self.dists.append(d)
 
@@ -1307,21 +1194,8 @@ def _waitWithTimeout(process, args, timeout):
         time.sleep(delay)
 
 # Makes the current subprocess accessible to the abort() function
-# This is a list of tuples of the subprocess.Popen or
-# multiprocessing.Process object and args.
-_currentSubprocesses = []
-
-def _addSubprocess(p, args):
-    entry = (p, args)
-    _currentSubprocesses.append(entry)
-    return entry
-
-def _removeSubprocess(entry):
-    if entry and entry in _currentSubprocesses:
-        try:
-            _currentSubprocesses.remove(entry)
-        except:
-            pass
+# This is a tuple of the Popen object and args.
+_currentSubprocess = (None, None)
 
 def waitOn(p):
     if get_os() == 'windows':
@@ -1359,7 +1233,8 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
     if timeout is None and _opts.ptimeout != 0:
         timeout = _opts.ptimeout
 
-    sub = None
+    global _currentSubprocess
+
     try:
         # On Unix, the new subprocess should be in a separate group so that a timeout alarm
         # can use os.killpg() to kill the whole subprocess group
@@ -1377,7 +1252,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
         stdout = out if not callable(out) else subprocess.PIPE
         stderr = err if not callable(err) else subprocess.PIPE
         p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn, creationflags=creationflags, env=env)
-        sub = _addSubprocess(p, args)
+        _currentSubprocess = (p, args)
         if callable(out):
             t = Thread(target=redirect, args=(p.stdout, out))
             t.daemon = True  # thread dies with the program
@@ -1400,7 +1275,7 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
     except KeyboardInterrupt:
         abort(1)
     finally:
-        _removeSubprocess(sub)
+        _currentSubprocess = (None, None)
 
     if retcode and nonZeroIsFatal:
         if _opts.verbose:
@@ -1571,13 +1446,9 @@ class JavaConfig:
 
     def _init_classpaths(self):
         myDir = dirname(__file__)
-        outDir = join(dirname(__file__), '.jdk' + str(self.version))
-        if not exists(outDir):
-            os.makedirs(outDir)
         javaSource = join(myDir, 'ClasspathDump.java')
-        if not exists(join(outDir, 'ClasspathDump.class')):
-            subprocess.check_call([self.javac, '-d', outDir, javaSource])
-        self._bootclasspath, self._extdirs, self._endorseddirs = [x if x != 'null' else None for x in subprocess.check_output([self.java, '-cp', outDir, 'ClasspathDump']).split('|')]
+        subprocess.check_call([self.javac, '-d', myDir, javaSource])
+        self._bootclasspath, self._extdirs, self._endorseddirs = [x if x != 'null' else None for x in subprocess.check_output([self.java, '-cp', myDir, 'ClasspathDump']).split('|')]
         if not self._bootclasspath or not self._extdirs or not self._endorseddirs:
             warn("Could not find all classpaths: boot='" + str(self._bootclasspath) + "' extdirs='" + str(self._extdirs) + "' endorseddirs='" + str(self._endorseddirs) + "'")
         self._bootclasspath = _filter_non_existant_paths(self._bootclasspath)
@@ -1681,20 +1552,21 @@ def expandvars_in_property(value):
     return result
 
 def _send_sigquit():
-    for p, args in _currentSubprocesses:
+    p, args = _currentSubprocess
 
-        def _isJava():
-            if args:
-                name = args[0].split(os.sep)[-1]
-                return name == "java"
-            return False
+    def _isJava():
+        if args:
+            name = args[0].split(os.sep)[-1]
+            return name == "java"
+        return False
 
-        if p is not None and _isJava():
-            if get_os() == 'windows':
-                log("mx: implement me! want to send SIGQUIT to my child process")
-            else:
-                _kill_process_group(p.pid, sig=signal.SIGQUIT)
-            time.sleep(0.1)
+    if p is not None and _isJava():
+        if get_os() == 'windows':
+            log("mx: implement me! want to send SIGQUIT to my child process")
+        else:
+            _kill_process_group(p.pid, sig=signal.SIGQUIT)
+        time.sleep(0.1)
+
 
 def abort(codeOrMessage):
     """
@@ -1709,14 +1581,12 @@ def abort(codeOrMessage):
 
     # import traceback
     # traceback.print_stack()
-    for p, args in _currentSubprocesses:
-        try:
-            if get_os() == 'windows':
-                p.terminate()
-            else:
-                _kill_process_group(p.pid, signal.SIGKILL)
-        except BaseException as e:
-            log('error while killing subprocess {} "{}": {}'.format(p.pid, ' '.join(args), e))
+    p, _ = _currentSubprocess
+    if p is not None:
+        if get_os() == 'windows':
+            p.kill()
+        else:
+            _kill_process_group(p.pid, signal.SIGKILL)
 
     raise SystemExit(codeOrMessage)
 
@@ -1813,120 +1683,6 @@ def update_file(path, content):
 
 # Builtin commands
 
-def _defaultEcjPath():
-    return get_env('JDT', join(_primary_suite.mxDir, 'ecj.jar'))
-
-class JavaCompileTask:
-    def __init__(self, args, proj, reason, javafilelist, jdk, outputDir, jdtJar, deps):
-        self.proj = proj
-        self.reason = reason
-        self.javafilelist = javafilelist
-        self.deps = deps
-        self.jdk = jdk
-        self.outputDir = outputDir
-        self.done = False
-        self.jdtJar = jdtJar
-        self.args = args
-
-    def __str__(self):
-        return self.proj.name
-
-    def logCompilation(self, compiler):
-        log('Compiling Java sources for {} with {}... [{}]'.format(self.proj.name, compiler, self.reason))
-
-    def execute(self):
-        argfileName = join(self.proj.dir, 'javafilelist.txt')
-        argfile = open(argfileName, 'wb')
-        argfile.write('\n'.join(self.javafilelist))
-        argfile.close()
-
-        processorArgs = []
-
-        aps = self.proj.annotation_processors()
-        if len(aps) > 0:
-            processorPath = classpath(aps, resolve=True)
-            genDir = self.proj.source_gen_dir()
-            if exists(genDir):
-                shutil.rmtree(genDir)
-            os.mkdir(genDir)
-            processorArgs += ['-processorpath', join(processorPath), '-s', genDir]
-        else:
-            processorArgs += ['-proc:none']
-
-        args = self.args
-        jdk = self.jdk
-        outputDir = self.outputDir
-        compliance = str(jdk.javaCompliance)
-        cp = classpath(self.proj.name, includeSelf=True)
-        toBeDeleted = [argfileName]
-
-        try:
-            if not self.jdtJar:
-                mainJava = java()
-                if not args.error_prone:
-                    self.logCompilation('javac')
-                    javacCmd = [mainJava.javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
-                    if jdk.debug_port is not None:
-                        javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(jdk.debug_port)]
-                    javacCmd += processorArgs
-                    javacCmd += ['@' + argfile.name]
-
-                    if not args.warnAPI:
-                        javacCmd.append('-XDignore.symbol.file')
-                    run(javacCmd)
-                else:
-                    self.logCompilation('javac (with error-prone)')
-                    javaArgs = ['-Xmx1g']
-                    javacArgs = ['-g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
-                    javacArgs += processorArgs
-                    javacArgs += ['@' + argfile.name]
-                    if not args.warnAPI:
-                        javacArgs.append('-XDignore.symbol.file')
-                    run_java(javaArgs + ['-cp', os.pathsep.join([mainJava.toolsjar, args.error_prone]), 'com.google.errorprone.ErrorProneCompiler'] + javacArgs)
-            else:
-                self.logCompilation('JDT')
-
-                jdtVmArgs = ['-Xmx1g', '-jar', self.jdtJar]
-
-                jdtArgs = ['-' + compliance,
-                         '-cp', cp, '-g', '-enableJavadoc',
-                         '-d', outputDir,
-                         '-bootclasspath', jdk.bootclasspath(),
-                         '-endorseddirs', jdk.endorseddirs(),
-                         '-extdirs', jdk.extdirs()]
-                jdtArgs += processorArgs
-
-                jdtProperties = join(self.proj.dir, '.settings', 'org.eclipse.jdt.core.prefs')
-                rootJdtProperties = join(self.proj.suite.mxDir, 'eclipse-settings', 'org.eclipse.jdt.core.prefs')
-                if not exists(jdtProperties) or os.path.getmtime(jdtProperties) < os.path.getmtime(rootJdtProperties):
-                    # Try to fix a missing properties file by running eclipseinit
-                    eclipseinit([], buildProcessorJars=False)
-                if not exists(jdtProperties):
-                    log('JDT properties file {0} not found'.format(jdtProperties))
-                else:
-                    with open(jdtProperties) as fp:
-                        origContent = fp.read()
-                        content = origContent
-                        if args.jdt_warning_as_error:
-                            content = content.replace('=warning', '=error')
-                        if not args.jdt_show_task_tags:
-                            content = content + '\norg.eclipse.jdt.core.compiler.problem.tasks=ignore'
-                    if origContent != content:
-                        jdtPropertiesTmp = jdtProperties + '.tmp'
-                        with open(jdtPropertiesTmp, 'w') as fp:
-                            fp.write(content)
-                        toBeDeleted.append(jdtPropertiesTmp)
-                        jdtArgs += ['-properties', jdtPropertiesTmp]
-                    else:
-                        jdtArgs += ['-properties', jdtProperties]
-                jdtArgs.append('@' + argfile.name)
-
-                run_java(jdtVmArgs + jdtArgs)
-        finally:
-            for n in toBeDeleted:
-                os.remove(n)
-            self.done = True
-
 def build(args, parser=None):
     """compile the Java and C sources, linking the latter
 
@@ -1937,22 +1693,22 @@ def build(args, parser=None):
     if not suppliedParser:
         parser = ArgumentParser(prog='mx build')
 
+    defaultEcjPath = get_env('JDT', join(_primary_suite.mxDir, 'ecj.jar'))
+
     parser = parser if parser is not None else ArgumentParser(prog='mx build')
     parser.add_argument('-f', action='store_true', dest='force', help='force build (disables timestamp checking)')
     parser.add_argument('-c', action='store_true', dest='clean', help='removes existing build output')
-    parser.add_argument('-p', action='store_true', dest='parallelize', help='parallelizes Java compilation')
     parser.add_argument('--source', dest='compliance', help='Java compliance level for projects without an explicit one')
     parser.add_argument('--Wapi', action='store_true', dest='warnAPI', help='show warnings about using internal APIs')
     parser.add_argument('--projects', action='store', help='comma separated projects to build (omit to build all projects)')
     parser.add_argument('--only', action='store', help='comma separated projects to build, without checking their dependencies (omit to build all projects)')
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not build Java projects')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not build native projects')
+    parser.add_argument('--force-javac', action='store_true', dest='javac', help='use javac despite ecj.jar is found or not')
+    parser.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler (default: ' + defaultEcjPath + ')', default=defaultEcjPath, metavar='<path>')
     parser.add_argument('--jdt-warning-as-error', action='store_true', help='convert all Eclipse batch compiler warnings to errors')
     parser.add_argument('--jdt-show-task-tags', action='store_true', help='show task tags as Eclipse batch compiler warnings')
-    compilerSelect = parser.add_mutually_exclusive_group()
-    compilerSelect.add_argument('--error-prone', dest='error_prone', help='path to error-prone.jar', metavar='<path>')
-    compilerSelect.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler', default=_defaultEcjPath(), metavar='<path>')
-    compilerSelect.add_argument('--force-javac', action='store_true', dest='javac', help='use javac despite ecj.jar is found or not')
+    parser.add_argument('--error-prone', dest='error_prone', help='path to error-prone.jar', metavar='<path>')
 
     if suppliedParser:
         parser.add_argument('remainder', nargs=REMAINDER, metavar='...')
@@ -1965,11 +1721,13 @@ def build(args, parser=None):
             abort('Path for Eclipse batch compiler does not look like a jar file: ' + args.jdt)
         jdtJar = args.jdt
         if not exists(jdtJar):
-            if os.path.abspath(jdtJar) == os.path.abspath(_defaultEcjPath()) and get_env('JDT', None) is None:
+            if os.path.abspath(jdtJar) == os.path.abspath(defaultEcjPath) and get_env('JDT', None) is None:
                 # Silently ignore JDT if default location is used but does not exist
                 jdtJar = None
             else:
                 abort('Eclipse batch compiler jar does not exist: ' + args.jdt)
+
+    built = set()
 
     if args.only is not None:
         # N.B. This build will not include dependencies including annotation processor dependencies
@@ -2003,7 +1761,6 @@ def build(args, parser=None):
                 shutil.rmtree(join(genDir, f))
         return outputDir
 
-    tasks = {}
     for p in sortedProjects:
         if p.native:
             if args.native:
@@ -2013,6 +1770,7 @@ def build(args, parser=None):
                     run([gmake_cmd(), 'clean'], cwd=p.dir)
 
                 run([gmake_cmd()], cwd=p.dir)
+                built.add(p.name)
             continue
         else:
             if not args.java:
@@ -2026,19 +1784,18 @@ def build(args, parser=None):
         if not jdk:
             log('Excluding {0} from build (Java compliance level {1} required)'.format(p.name, requiredCompliance))
             continue
+        compliance = str(jdk.javaCompliance)
 
         outputDir = prepareOutputDirs(p, args.clean)
 
+        cp = classpath(p.name, includeSelf=True)
         sourceDirs = p.source_dirs()
-        buildReason = 'forced build' if args.force else None
-        taskDeps = []
-        if not buildReason:
-            for dep in p.all_deps([], includeLibs=False, includeAnnotationProcessors=True):
-                taskDep = tasks.get(dep.name)
-                if taskDep:
-                    if not buildReason:
-                        buildReason = dep.name + ' rebuilt'
-                    taskDeps.append(taskDep)
+        mustBuild = args.force
+        if not mustBuild:
+            for dep in p.all_deps([], False):
+                if dep.name in built:
+                    mustBuild = True
+
 
         jasminAvailable = None
         javafilelist = []
@@ -2087,18 +1844,20 @@ def build(args, parser=None):
                         if exists(dirname(dst)) and (not exists(dst) or os.path.getmtime(dst) < os.path.getmtime(src)):
                             shutil.copyfile(src, dst)
 
-                if not buildReason:
+                if not mustBuild:
                     for javafile in javafiles:
                         classfile = TimeStampFile(outputDir + javafile[len(sourceDir):-len('java')] + 'class')
                         if not classfile.exists() or classfile.isOlderThan(javafile):
-                            buildReason = 'class file(s) out of date'
+                            mustBuild = True
                             break
 
+        aps = p.annotation_processors()
         apsOutOfDate = p.update_current_annotation_processors_file()
         if apsOutOfDate:
-            buildReason = 'annotation processor(s) changed'
+            logv('[annotation processors for {0} changed]'.format(p.name))
+            mustBuild = True
 
-        if not buildReason:
+        if not mustBuild:
             logv('[all class files for {0} are up to date - skipping]'.format(p.name))
             continue
 
@@ -2106,96 +1865,95 @@ def build(args, parser=None):
             logv('[no Java sources for {0} - skipping]'.format(p.name))
             continue
 
-        task = JavaCompileTask(args, p, buildReason, javafilelist, jdk, outputDir, jdtJar, taskDeps)
+        # Ensure that the output directories are clean
+        # prepareOutputDirs(p, True)
 
-        if args.parallelize:
-            # Best to initialize class paths on main process
-            jdk.bootclasspath()
-            task.proc = None
-            tasks[p.name] = task
+        built.add(p.name)
+
+        argfileName = join(p.dir, 'javafilelist.txt')
+        argfile = open(argfileName, 'wb')
+        argfile.write('\n'.join(javafilelist))
+        argfile.close()
+
+        processorArgs = []
+
+        if len(aps) > 0:
+            processorPath = classpath(aps, resolve=True)
+            genDir = p.source_gen_dir()
+            if exists(genDir):
+                shutil.rmtree(genDir)
+            os.mkdir(genDir)
+            processorArgs += ['-processorpath', join(processorPath), '-s', genDir]
         else:
-            task.execute()
+            processorArgs += ['-proc:none']
 
-    if args.parallelize:
+        toBeDeleted = [argfileName]
+        try:
+            if not jdtJar:
+                mainJava = java()
+                if not args.error_prone:
+                    log('Compiling Java sources for {0} with javac...'.format(p.name))
+                    javacCmd = [mainJava.javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
+                    if jdk.debug_port is not None:
+                        javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(jdk.debug_port)]
+                    javacCmd += processorArgs
+                    javacCmd += ['@' + argfile.name]
 
-        def joinTasks(tasks):
-            failed = []
-            for t in tasks:
-                t.proc.join()
-                if t.proc.exitcode != 0:
-                    failed.append(t)
-            return failed
-
-        def checkTasks(tasks):
-            active = []
-            for t in tasks:
-                if t.proc.is_alive():
-                    active.append(t)
+                    if not args.warnAPI:
+                        javacCmd.append('-XDignore.symbol.file')
+                    run(javacCmd)
                 else:
-                    _removeSubprocess(t.sub)
-                    if t.proc.exitcode != 0:
-                        return ([], joinTasks(tasks))
-            return (active, [])
+                    log('Compiling Java sources for {0} with javac (with error-prone)...'.format(p.name))
+                    javaArgs = ['-Xmx1g']
+                    javacArgs = ['-g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
+                    javacArgs += processorArgs
+                    javacArgs += ['@' + argfile.name]
+                    if not args.warnAPI:
+                        javacArgs.append('-XDignore.symbol.file')
+                    run_java(javaArgs + ['-cp', os.pathsep.join([mainJava.toolsjar, args.error_prone]), 'com.google.errorprone.ErrorProneCompiler'] + javacArgs)
+            else:
+                log('Compiling Java sources for {0} with JDT...'.format(p.name))
 
-        def remainingDepsDepth(task):
-            if task._d is None:
-                incompleteDeps = [d for d in task.deps if d.proc is None or d.proc.is_alive()]
-                if len(incompleteDeps) == 0:
-                    task._d = 0
+                jdtVmArgs = ['-Xmx1g', '-jar', jdtJar]
+
+                jdtArgs = ['-' + compliance,
+                         '-cp', cp, '-g', '-enableJavadoc',
+                         '-d', outputDir,
+                         '-bootclasspath', jdk.bootclasspath(),
+                         '-endorseddirs', jdk.endorseddirs(),
+                         '-extdirs', jdk.extdirs()]
+                jdtArgs += processorArgs
+
+
+                jdtProperties = join(p.dir, '.settings', 'org.eclipse.jdt.core.prefs')
+                rootJdtProperties = join(p.suite.mxDir, 'eclipse-settings', 'org.eclipse.jdt.core.prefs')
+                if not exists(jdtProperties) or os.path.getmtime(jdtProperties) < os.path.getmtime(rootJdtProperties):
+                    # Try to fix a missing properties file by running eclipseinit
+                    eclipseinit([], buildProcessorJars=False)
+                if not exists(jdtProperties):
+                    log('JDT properties file {0} not found'.format(jdtProperties))
                 else:
-                    task._d = max([remainingDepsDepth(t) for t in incompleteDeps]) + 1
-            return task._d
+                    with open(jdtProperties) as fp:
+                        origContent = fp.read()
+                        content = origContent
+                        if args.jdt_warning_as_error:
+                            content = content.replace('=warning', '=error')
+                        if not args.jdt_show_task_tags:
+                            content = content + '\norg.eclipse.jdt.core.compiler.problem.tasks=ignore'
+                    if origContent != content:
+                        jdtPropertiesTmp = jdtProperties + '.tmp'
+                        with open(jdtPropertiesTmp, 'w') as fp:
+                            fp.write(content)
+                        toBeDeleted.append(jdtPropertiesTmp)
+                        jdtArgs += ['-properties', jdtPropertiesTmp]
+                    else:
+                        jdtArgs += ['-properties', jdtProperties]
+                jdtArgs.append('@' + argfile.name)
 
-        def compareTasks(t1, t2):
-            d = remainingDepsDepth(t1) - remainingDepsDepth(t2)
-            if d == 0:
-                t1Work = (1 + len(t1.proj.annotation_processors())) * len(t1.javafilelist)
-                t2Work = (1 + len(t2.proj.annotation_processors())) * len(t2.javafilelist)
-                d = t1Work - t2Work
-            return d
-
-        def sortWorklist(tasks):
-            for t in tasks:
-                t._d = None
-            return sorted(tasks, compareTasks)
-
-        import multiprocessing
-        cpus = multiprocessing.cpu_count()
-        worklist = sortWorklist(tasks.values())
-        active = []
-        while len(worklist) != 0:
-            while True:
-                active, failed = checkTasks(active)
-                if len(failed) != 0:
-                    assert not active, active
-                    break
-                if len(active) == cpus:
-                    # Sleep for 1 second
-                    time.sleep(1)
-                else:
-                    break
-
-            def executeTask(task):
-                task.execute()
-
-            def depsDone(task):
-                for d in task.deps:
-                    if d.proc is None or d.proc.exitcode is None:
-                        return False
-                return True
-
-            for task in worklist:
-                if depsDone(task):
-                    worklist.remove(task)
-                    task.proc = multiprocessing.Process(target=executeTask, args=(task,))
-                    task.proc.start()
-                    active.append(task)
-                    task.sub = _addSubprocess(task.proc, ['JavaCompileTask', str(task)])
-                if len(active) == cpus:
-                    break
-
-            worklist = sortWorklist(worklist)
-        joinTasks(active)
+                run_java(jdtVmArgs + jdtArgs)
+        finally:
+            for n in toBeDeleted:
+                os.remove(n)
 
     for dist in _dists.values():
         archive(['@' + dist.name])
@@ -2203,39 +1961,6 @@ def build(args, parser=None):
     if suppliedParser:
         return args
     return None
-
-def _chunk_files_for_command_line(files, limit=None, pathFunction=None):
-    """
-    Returns a generator for splitting up a list of files into chunks such that the
-    size of the space separated file paths in a chunk is less than a given limit.
-    This is used to work around system command line length limits.
-    """
-    chunkSize = 0
-    chunkStart = 0
-    if limit is None:
-        commandLinePrefixAllowance = 3000
-        if get_os() == 'windows':
-            # The CreateProcess function on Windows limits the length of a command line to
-            # 32,768 characters (http://msdn.microsoft.com/en-us/library/ms682425%28VS.85%29.aspx)
-            limit = 32768 - commandLinePrefixAllowance
-        else:
-            # Using just SC_ARG_MAX without extra downwards adjustment
-            # results in "[Errno 7] Argument list too long" on MacOS.
-            syslimit = os.sysconf('SC_ARG_MAX') - 20000
-            limit = syslimit - commandLinePrefixAllowance
-    for i in range(len(files)):
-        path = files[i] if pathFunction is None else pathFunction(files[i])
-        size = len(path) + 1
-        if chunkSize + size < limit:
-            chunkSize += size
-        else:
-            assert i > chunkStart
-            yield files[chunkStart:i]
-            chunkStart = i
-            chunkSize = 0
-    if chunkStart == 0:
-        assert chunkSize < limit
-        yield files
 
 def eclipseformat(args):
     """run the Eclipse Code Formatter on the Java sources
@@ -2339,19 +2064,18 @@ def eclipseformat(args):
         if res is not batch:
             res.javafiles = res.javafiles + batch.javafiles
 
-    log("we have: " + str(len(batches)) + " batches")
+    print "we have: " + str(len(batches)) + " batches"
     for batch in batches.itervalues():
-        for chunk in _chunk_files_for_command_line(batch.javafiles, pathFunction=lambda f: f.path):
-            run([args.eclipse_exe,
-                '-nosplash',
-                '-application',
-                'org.eclipse.jdt.core.JavaCodeFormatter',
-                '-vm', java(batch.javaCompliance).java,
-                '-config', batch.path]
-                + [f.path for f in chunk])
-            for fi in chunk:
-                if fi.update(batch.removeTrailingWhitespace):
-                    modified.append(fi)
+        run([args.eclipse_exe,
+            '-nosplash',
+            '-application',
+            'org.eclipse.jdt.core.JavaCodeFormatter',
+            '-vm', java(batch.javaCompliance).java,
+            '-config', batch.path]
+            + [f.path for f in batch.javafiles])
+        for fi in batch.javafiles:
+            if fi.update(batch.removeTrailingWhitespace):
+                modified.append(fi)
 
     log('{0} files were modified'.format(len(modified)))
 
@@ -2389,7 +2113,7 @@ def _processorjars_suite(s):
         return []
 
     pnames = [p.name for p in projs]
-    build(['--jdt-warning-as-error', '--projects', ",".join(pnames)])
+    build(['--projects', ",".join(pnames)])
     return archive(pnames)
 
 def pylint(args):
@@ -2460,50 +2184,124 @@ def pylint(args):
         log('Running pylint on ' + pyfile + '...')
         run(['pylint', '--reports=n', '--rcfile=' + rcfile, pyfile], env=env)
 
-"""
-Utility for creating and updating a zip file atomically.
-"""
-class Archiver:
-    def __init__(self, path):
-        self.path = path
-
-    def __enter__(self):
-        if self.path:
-            fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(self.path) + '.', dir=dirname(self.path))
-            self.tmpFd = fd
-            self.tmpPath = tmp
-            self.zf = zipfile.ZipFile(tmp, 'w')
-        else:
-            self.tmpFd = None
-            self.tmpPath = None
-            self.zf = None
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self.zf:
-            self.zf.close()
-            os.close(self.tmpFd)
-            # Correct the permissions on the temporary file which is created with restrictive permissions
-            os.chmod(self.tmpPath, 0o666 & ~currentUmask)
-            # Atomic on Unix
-            shutil.move(self.tmpPath, self.path)
-
 def archive(args):
     """create jar files for projects and distributions"""
     parser = ArgumentParser(prog='mx archive')
     parser.add_argument('names', nargs=REMAINDER, metavar='[<project>|@<distribution>]...')
     args = parser.parse_args(args)
 
+
+    class Archive:
+        def __init__(self, path):
+            self.path = path
+
+        def __enter__(self):
+            if self.path:
+                fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(self.path) + '.', dir=dirname(self.path))
+                self.tmpFd = fd
+                self.tmpPath = tmp
+                self.zf = zipfile.ZipFile(tmp, 'w')
+            else:
+                self.tmpFd = None
+                self.tmpPath = None
+                self.zf = None
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            if self.zf:
+                self.zf.close()
+                os.close(self.tmpFd)
+                # Correct the permissions on the temporary file which is created with restrictive permissions
+                os.chmod(self.tmpPath, 0o666 & ~currentUmask)
+                # Atomic on Unix
+                shutil.move(self.tmpPath, self.path)
+
     archives = []
     for name in args.names:
         if name.startswith('@'):
             dname = name[1:]
             d = distribution(dname)
-            d.make_archive()
+            with Archive(d.path) as arc, Archive(d.sourcesPath) as srcArc:
+                services = {}
+                def overwriteCheck(zf, arcname, source):
+                    if arcname in zf.namelist():
+                        log('warning: ' + d.path + ': overwriting ' + arcname + ' [source: ' + source + ']')
+
+                for dep in d.sorted_deps(includeLibs=True):
+                    if dep.isLibrary():
+                        l = dep
+                        # merge library jar into distribution jar
+                        logv('[' + d.path + ': adding library ' + l.name + ']')
+                        lpath = l.get_path(resolve=True)
+                        libSourcePath = l.get_source_path(resolve=True)
+                        if lpath:
+                            with zipfile.ZipFile(lpath, 'r') as lp:
+                                for arcname in lp.namelist():
+                                    if arcname.startswith('META-INF/services/') and not arcname == 'META-INF/services/':
+                                        service = arcname[len('META-INF/services/'):]
+                                        assert '/' not in service
+                                        services.setdefault(service, []).extend(lp.read(arcname).splitlines())
+                                    else:
+                                        overwriteCheck(arc.zf, arcname, lpath + '!' + arcname)
+                                        arc.zf.writestr(arcname, lp.read(arcname))
+                        if srcArc.zf and libSourcePath:
+                            with zipfile.ZipFile(libSourcePath, 'r') as lp:
+                                for arcname in lp.namelist():
+                                    overwriteCheck(srcArc.zf, arcname, lpath + '!' + arcname)
+                                    srcArc.zf.writestr(arcname, lp.read(arcname))
+                    else:
+                        p = dep
+                        # skip a  Java project if its Java compliance level is "higher" than the configured JDK
+                        jdk = java(p.javaCompliance)
+                        if not jdk:
+                            log('Excluding {0} from {2} (Java compliance level {1} required)'.format(p.name, p.javaCompliance, d.path))
+                            continue
+
+                        logv('[' + d.path + ': adding project ' + p.name + ']')
+                        outputDir = p.output_dir()
+                        for root, _, files in os.walk(outputDir):
+                            relpath = root[len(outputDir) + 1:]
+                            if relpath == join('META-INF', 'services'):
+                                for service in files:
+                                    with open(join(root, service), 'r') as fp:
+                                        services.setdefault(service, []).extend([provider.strip() for provider in fp.readlines()])
+                            elif relpath == join('META-INF', 'providers'):
+                                for provider in files:
+                                    with open(join(root, provider), 'r') as fp:
+                                        for service in fp:
+                                            services.setdefault(service.strip(), []).append(provider)
+                            else:
+                                for f in files:
+                                    arcname = join(relpath, f).replace(os.sep, '/')
+                                    overwriteCheck(arc.zf, arcname, join(root, f))
+                                    arc.zf.write(join(root, f), arcname)
+                        if srcArc.zf:
+                            for srcDir in p.source_dirs():
+                                for root, _, files in os.walk(srcDir):
+                                    relpath = root[len(srcDir) + 1:]
+                                    for f in files:
+                                        if f.endswith('.java'):
+                                            arcname = join(relpath, f).replace(os.sep, '/')
+                                            overwriteCheck(srcArc.zf, arcname, join(root, f))
+                                            srcArc.zf.write(join(root, f), arcname)
+
+                for service, providers in services.iteritems():
+                    arcname = 'META-INF/services/' + service
+                    arc.zf.writestr(arcname, '\n'.join(providers))
+
+            d.notify_updated()
             archives.append(d.path)
+
         else:
             p = project(name)
-            archives.append(p.make_archive())
+            outputDir = p.output_dir()
+            with Archive(join(p.dir, p.name + '.jar')) as arc:
+                for root, _, files in os.walk(outputDir):
+                    for f in files:
+                        relpath = root[len(outputDir) + 1:]
+                        arcname = join(relpath, f).replace(os.sep, '/')
+                        arc.zf.write(join(root, f), arcname)
+                archives.append(arc.path)
 
     return archives
 
@@ -2683,9 +2481,26 @@ def checkstyle(args):
             log('Running Checkstyle on {0} using {1}...'.format(sourceDir, config))
 
             try:
-                for chunk in _chunk_files_for_command_line(javafilelist):
+
+                # Checkstyle is unable to read the filenames to process from a file, and the
+                # CreateProcess function on Windows limits the length of a command line to
+                # 32,768 characters (http://msdn.microsoft.com/en-us/library/ms682425%28VS.85%29.aspx)
+                # so calling Checkstyle must be done in batches.
+                while len(javafilelist) != 0:
+                    i = 0
+                    size = 0
+                    while i < len(javafilelist):
+                        s = len(javafilelist[i]) + 1
+                        if size + s < 30000:
+                            size += s
+                            i += 1
+                        else:
+                            break
+
+                    batch = javafilelist[:i]
+                    javafilelist = javafilelist[i:]
                     try:
-                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-f', 'xml', '-c', config, '-o', auditfileName] + chunk, nonZeroIsFatal=False)
+                        run_java(['-Xmx1g', '-jar', library('CHECKSTYLE').get_path(True), '-f', 'xml', '-c', config, '-o', auditfileName] + batch, nonZeroIsFatal=False)
                     finally:
                         if exists(auditfileName):
                             errors = []
@@ -2725,12 +2540,6 @@ def clean(args, parser=None):
 
     args = parser.parse_args(args)
 
-    def _rmtree(dirPath):
-        path = dirPath
-        if get_os() == 'windows':
-            path = unicode("\\\\?\\" + dirPath)
-        shutil.rmtree(path)
-
     for p in projects_opt_limit_to_suites():
         if p.native:
             if args.native:
@@ -2741,13 +2550,13 @@ def clean(args, parser=None):
                 if genDir != '' and exists(genDir):
                     log('Clearing {0}...'.format(genDir))
                     for f in os.listdir(genDir):
-                        _rmtree(join(genDir, f))
+                        shutil.rmtree(join(genDir, f))
 
 
                 outputDir = p.output_dir()
                 if outputDir != '' and exists(outputDir):
                     log('Removing {0}...'.format(outputDir))
-                    _rmtree(outputDir)
+                    shutil.rmtree(outputDir)
 
             for configName in ['netbeans-config.zip', 'eclipse-config.zip']:
                 config = TimeStampFile(join(p.suite.mxDir, configName))
@@ -3995,7 +3804,7 @@ def ideclean(args):
 
 
 def ideinit(args, refreshOnly=False, buildProcessorJars=True):
-    """(re)generate Eclipse, NetBeans and Intellij project configurations"""
+    """(re)generate Eclipse and NetBeans project configurations"""
     eclipseinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
     netbeansinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
     intellijinit(args, refreshOnly=refreshOnly)
@@ -4133,13 +3942,7 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True, stdDoclet=Tru
             try:
                 log('Generating {2} for {0} in {1}'.format(p.name, out, docDir))
                 projectJava = java(p.javaCompliance)
-
-                # Once https://bugs.openjdk.java.net/browse/JDK-8041628 is fixed,
-                # this should be reverted to:
-                # javadocExe = java().javadoc
-                javadocExe = projectJava.javadoc
-
-                run([javadocExe, memory,
+                run([java().javadoc, memory,
                      '-XDignore.symbol.file',
                      '-classpath', cp,
                      '-quiet',
@@ -4149,7 +3952,6 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True, stdDoclet=Tru
                      '-source', str(projectJava.javaCompliance),
                      '-bootclasspath', projectJava.bootclasspath(),
                      '-extdirs', projectJava.extdirs()] +
-                     ([] if projectJava.javaCompliance < JavaCompliance('1.8') else ['-Xdoclint:none']) +
                      links +
                      extraArgs +
                      nowarnAPI +
@@ -4187,19 +3989,115 @@ def javadoc(args, parser=None, docDir='javadoc', includeDeps=True, stdDoclet=Tru
              '-quiet',
              '-d', out,
              '-sourcepath', sp] +
-             ([] if java().javaCompliance < JavaCompliance('1.8') else ['-Xdoclint:none']) +
              links +
              extraArgs +
              nowarnAPI +
              list(pkgs))
         log('Generated {2} for {0} in {1}'.format(', '.join(names), out, docDir))
 
+class Chunk:
+    def __init__(self, content, ldelim, rdelim=None):
+        lindex = content.find(ldelim)
+        if rdelim is not None:
+            rindex = content.find(rdelim)
+        else:
+            rindex = lindex + len(ldelim)
+        self.ldelim = ldelim
+        self.rdelim = rdelim
+        if lindex != -1 and rindex != -1 and rindex > lindex:
+            self.text = content[lindex + len(ldelim):rindex]
+        else:
+            self.text = None
+
+    def replace(self, content, repl):
+        lindex = content.find(self.ldelim)
+        if self.rdelim is not None:
+            rindex = content.find(self.rdelim)
+            rdelimLen = len(self.rdelim)
+        else:
+            rindex = lindex + len(self.ldelim)
+            rdelimLen = 0
+        old = content[lindex:rindex + rdelimLen]
+        return content.replace(old, repl)
+
+# Post-process an overview-summary.html file to move the
+# complete overview to the top of the page
+def _fix_overview_summary(path, topLink):
+    """
+    Processes an "overview-summary.html" generated by javadoc to put the complete
+    summary text above the Packages table.
+    """
+
+    # This uses scraping and so will break if the relevant content produced by javadoc changes in any way!
+    with open(path) as fp:
+        content = fp.read()
+
+    chunk1 = Chunk(content, """<div class="header">
+<div class="subTitle">
+<div class="block">""", """</div>
+</div>
+<p>See: <a href="#overview.description">Description</a></p>
+</div>""")
+
+    chunk2 = Chunk(content, """<div class="contentContainer"><a name="overview.description">
+<!--   -->
+</a>
+<div class="block">""", """</div>
+</div>
+<!-- ======= START OF BOTTOM NAVBAR ====== -->""")
+
+    assert chunk1.text, 'Could not find header section in ' + path
+    assert chunk2.text, 'Could not find footer section in ' + path
+
+    content = chunk1.replace(content, '<div class="header"><div class="subTitle"><div class="block">' + topLink + chunk2.text + '</div></div></div>')
+    content = chunk2.replace(content, '')
+
+    with open(path, 'w') as fp:
+        fp.write(content)
+
+
+# Post-process a package-summary.html file to move the
+# complete package description to the top of the page
+def _fix_package_summary(path):
+    """
+    Processes an "overview-summary.html" generated by javadoc to put the complete
+    summary text above the Packages table.
+    """
+
+    # This uses scraping and so will break if the relevant content produced by javadoc changes in any way!
+    with open(path) as fp:
+        content = fp.read()
+
+    chunk1 = Chunk(content, """<div class="header">
+<h1 title="Package" class="title">Package""", """<p>See:&nbsp;<a href="#package.description">Description</a></p>
+</div>""")
+
+    chunk2 = Chunk(content, """<a name="package.description">
+<!--   -->
+</a>""", """</div>
+</div>
+<!-- ======= START OF BOTTOM NAVBAR ====== -->""")
+
+    if chunk1.text:
+        if chunk2.text:
+            repl = re.sub(r'<h2 title=(.*) Description</h2>', r'<h1 title=\1</h1>', chunk2.text, 1)
+            content = chunk1.replace(content, '<div class="header">' + repl + '</div></div>')
+            content = chunk2.replace(content, '')
+
+            with open(path, 'w') as fp:
+                fp.write(content)
+        else:
+            log('warning: Could not find package description detail section in ' + path)
+
+    else:
+        # no package description given
+        pass
+
 def site(args):
     """creates a website containing javadoc and the project dependency graph"""
 
     parser = ArgumentParser(prog='site')
     parser.add_argument('-d', '--base', action='store', help='directory for generated site', required=True, metavar='<dir>')
-    parser.add_argument('--tmp', action='store', help='directory to use for intermediate results', metavar='<dir>')
     parser.add_argument('--name', action='store', help='name of overall documentation', required=True, metavar='<name>')
     parser.add_argument('--overview', action='store', help='path to the overview content for overall documentation', required=True, metavar='<path>')
     parser.add_argument('--projects', action='store', help='comma separated projects to process (omit to process all projects)')
@@ -4210,7 +4108,7 @@ def site(args):
     args = parser.parse_args(args)
 
     args.base = os.path.abspath(args.base)
-    tmpbase = args.tmp if args.tmp else  tempfile.mkdtemp(prefix=basename(args.base) + '.', dir=dirname(args.base))
+    tmpbase = tempfile.mkdtemp(prefix=basename(args.base) + '.', dir=dirname(args.base))
     unified = join(tmpbase, 'all')
 
     exclude_packages_arg = []
@@ -4259,9 +4157,6 @@ def site(args):
                  '--arg', '@-windowtitle', '--arg', '@' + title,
                  '--arg', '@-doctitle', '--arg', '@' + title,
                  '--arg', '@-overview', '--arg', '@' + args.overview] + exclude_packages_arg + projects_arg + extra_javadoc_args)
-
-        if exists(unified):
-            shutil.rmtree(unified)
         os.rename(join(tmpbase, 'javadoc'), unified)
 
         # Generate dependency graph with Graphviz
@@ -4315,17 +4210,29 @@ def site(args):
             with open(html, 'w') as fp:
                 print >> fp, '<html><body><object data="{}.svg" type="image/svg+xml"></object></body></html>'.format(args.dot_output_base)
 
+        top = join(tmpbase, 'all', 'overview-summary.html')
+        for root, _, files in os.walk(tmpbase):
+            for f in files:
+                if f == 'overview-summary.html':
+                    path = join(root, f)
+                    topLink = ''
+                    if top != path:
+                        link = os.path.relpath(join(tmpbase, 'all', 'index.html'), dirname(path))
+                        topLink = '<p><a href="' + link + '", target="_top"><b>[return to the overall ' + args.name + ' documentation]</b></a></p>'
+                    _fix_overview_summary(path, topLink)
+                elif f == 'package-summary.html':
+                    path = join(root, f)
+                    _fix_package_summary(path)
+
+
         if exists(args.base):
             shutil.rmtree(args.base)
-        if args.tmp:
-            shutil.copytree(tmpbase, args.base)
-        else:
-            shutil.move(tmpbase, args.base)
+        shutil.move(tmpbase, args.base)
 
         print 'Created website - root is ' + join(args.base, 'all', 'index.html')
 
     finally:
-        if not args.tmp and exists(tmpbase):
+        if exists(tmpbase):
             shutil.rmtree(tmpbase)
 
 def _kwArg(kwargs):
@@ -4399,7 +4306,6 @@ def exportlibs(args):
 
     parser = ArgumentParser(prog='exportlibs')
     parser.add_argument('-b', '--base', action='store', help='base name of archive (default: libs)', default='libs', metavar='<path>')
-    parser.add_argument('-a', '--include-all', action='store_true', help="include all defined libaries")
     parser.add_argument('--arc', action='store', choices=['tgz', 'tbz2', 'tar', 'zip'], default='tgz', help='the type of the archive to create')
     parser.add_argument('--no-sha1', action='store_false', dest='sha1', help='do not create SHA1 signature of archive')
     parser.add_argument('--no-md5', action='store_false', dest='md5', help='do not create MD5 signature of archive')
@@ -4420,44 +4326,9 @@ def exportlibs(args):
             else:
                 logv('[already added ' + path + ']')
 
-        libsToExport = set()
-        if args.include_all:
-            for lib in _libs.itervalues():
-                libsToExport.add(lib)
-        else:
-            def isValidLibrary(dep):
-                if dep in _libs.iterkeys():
-                    lib = _libs[dep]
-                    if len(lib.urls) != 0 or args.include_system_libs:
-                        return lib
-                return None
-
-            # iterate over all project dependencies and find used libraries
-            for p in _projects.itervalues():
-                for dep in p.deps:
-                    r = isValidLibrary(dep)
-                    if r:
-                        libsToExport.add(r)
-
-            # a library can have other libraries as dependency
-            size = 0
-            while size != len(libsToExport):
-                size = len(libsToExport)
-                for lib in libsToExport.copy():
-                    for dep in lib.deps:
-                        r = isValidLibrary(dep)
-                        if r:
-                            libsToExport.add(r)
-
-        for lib in libsToExport:
-            add(lib.get_path(resolve=True), lib.path)
-            if lib.sha1:
-                add(lib.get_path(resolve=True) + ".sha1", lib.path + ".sha1")
-            if lib.sourcePath:
-                add(lib.get_source_path(resolve=True), lib.sourcePath)
-                if lib.sourceSha1:
-                    add(lib.get_source_path(resolve=True) + ".sha1", lib.sourcePath + ".sha1")
-
+        for lib in _libs.itervalues():
+            if len(lib.urls) != 0 or args.include_system_libs:
+                add(lib.get_path(resolve=True), lib.path)
         if args.extras:
             for e in args.extras:
                 if os.path.isdir(e):

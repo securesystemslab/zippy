@@ -178,15 +178,14 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
                 }
                 StructuredGraph graph = (StructuredGraph) node.graph();
                 Mark mark = graph.getMark();
-                if (!GraphUtil.tryKillUnused(node)) {
+                if (!tryKillUnused(node)) {
                     if (!tryCanonicalize(node, nodeClass)) {
                         if (node instanceof ValueNode) {
                             ValueNode valueNode = (ValueNode) node;
                             boolean improvedStamp = tryInferStamp(valueNode);
                             Constant constant = valueNode.stamp().asConstant();
                             if (constant != null && !(node instanceof ConstantNode)) {
-                                valueNode.replaceAtUsages(InputType.Value, ConstantNode.forConstant(valueNode.stamp(), constant, context.getMetaAccess(), graph));
-                                GraphUtil.tryKillUnused(valueNode);
+                                performReplacement(valueNode, ConstantNode.forConstant(valueNode.stamp(), constant, context.getMetaAccess(), valueNode.graph()));
                             } else if (improvedStamp) {
                                 // the improved stamp may enable additional canonicalization
                                 tryCanonicalize(valueNode, nodeClass);
@@ -199,6 +198,14 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
                     workList.add(newNode);
                 }
             }
+        }
+
+        private static boolean tryKillUnused(Node node) {
+            if (node.isAlive() && GraphUtil.isFloatingNode().apply(node) && node.recordsUsages() && node.usages().isEmpty()) {
+                GraphUtil.killWithUnusedFloatingInputs(node);
+                return true;
+            }
+            return false;
         }
 
         public static boolean tryGlobalValueNumbering(Node node, NodeClass nodeClass) {
@@ -347,7 +354,7 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
             @Override
             public void deleteBranch(Node branch) {
                 branch.predecessor().replaceFirstSuccessor(branch, null);
-                GraphUtil.killCFG(branch, this);
+                GraphUtil.killCFG(branch);
             }
 
             /**
@@ -376,7 +383,7 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
 
             @Override
             public void removeIfUnused(Node node) {
-                GraphUtil.tryKillUnused(node);
+                tryKillUnused(node);
             }
 
             @Override

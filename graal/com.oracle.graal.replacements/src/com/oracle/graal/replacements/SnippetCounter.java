@@ -24,21 +24,23 @@ package com.oracle.graal.replacements;
 
 //JaCoCo Exclude
 
-import static com.oracle.graal.compiler.common.UnsafeAccess.*;
+import static com.oracle.graal.graph.UnsafeAccess.*;
 
 import java.io.*;
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.replacements.Snippet.Fold;
-import com.oracle.graal.word.*;
+import com.oracle.graal.replacements.nodes.*;
 
 /**
  * A counter that can be safely {@linkplain #inc() incremented} from within a snippet for gathering
  * snippet specific metrics.
  */
 public class SnippetCounter implements Comparable<SnippetCounter> {
+    private static final LocationIdentity SNIPPET_COUNTER_LOCATION = new NamedLocationIdentity("SnippetCounter");
+
     /**
      * A group of related counters.
      */
@@ -105,7 +107,7 @@ public class SnippetCounter implements Comparable<SnippetCounter> {
 
     /**
      * Creates a counter.
-     *
+     * 
      * @param group the group to which the counter belongs. If this is null, the newly created
      *            counter is disabled and {@linkplain #inc() incrementing} is a no-op.
      * @param name the name of the counter
@@ -128,20 +130,12 @@ public class SnippetCounter implements Comparable<SnippetCounter> {
     }
 
     /**
-     * We do not want to use the {@link LocationIdentity} of the {@link #value} field, so that the
-     * usage in snippets is always possible. If a method accesses the counter via the field and the
-     * snippet, the result might not be correct though.
-     */
-    protected static final LocationIdentity SNIPPET_COUNTER_LOCATION = new NamedLocationIdentity("SnippetCounter");
-
-    /**
      * Increments the value of this counter. This method can be safely used in a snippet if it is
      * invoked on a compile-time constant {@link SnippetCounter} object.
      */
     public void inc() {
         if (group != null) {
-            long loadedValue = ObjectAccess.readLong(this, countOffset(), SNIPPET_COUNTER_LOCATION);
-            ObjectAccess.writeLong(this, countOffset(), loadedValue + 1, SNIPPET_COUNTER_LOCATION);
+            DirectObjectStoreNode.storeLong(this, countOffset(), 0, value + 1, SNIPPET_COUNTER_LOCATION);
         }
     }
 

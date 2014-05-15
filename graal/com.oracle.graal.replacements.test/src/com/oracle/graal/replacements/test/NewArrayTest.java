@@ -25,6 +25,7 @@ package com.oracle.graal.replacements.test;
 import org.junit.*;
 
 import com.oracle.graal.compiler.test.*;
+import com.oracle.graal.test.*;
 
 /**
  * Tests the implementation of {@code [A]NEWARRAY}.
@@ -32,10 +33,10 @@ import com.oracle.graal.compiler.test.*;
 public class NewArrayTest extends GraalCompilerTest {
 
     @Override
-    protected void assertDeepEquals(Object expected, Object actual) {
+    protected void assertEquals(Object expected, Object actual) {
         Assert.assertTrue(expected != null);
         Assert.assertTrue(actual != null);
-        super.assertDeepEquals(expected.getClass(), actual.getClass());
+        super.assertEquals(expected.getClass(), actual.getClass());
         if (expected instanceof int[]) {
             Assert.assertArrayEquals((int[]) expected, (int[]) actual);
         } else if (expected instanceof byte[]) {
@@ -57,7 +58,7 @@ public class NewArrayTest extends GraalCompilerTest {
         }
     }
 
-    @Test
+    @LongTest
     public void test1() {
         for (String type : new String[]{"Byte", "Char", "Short", "Int", "Float", "Long", "Double", "String"}) {
             test("new" + type + "Array7");

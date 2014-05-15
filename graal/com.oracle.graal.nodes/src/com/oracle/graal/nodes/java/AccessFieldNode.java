@@ -22,10 +22,12 @@
  */
 package com.oracle.graal.nodes.java;
 
+import java.lang.reflect.*;
+
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 
 /**
  * The base class of all instructions that access fields.
@@ -68,7 +70,7 @@ public abstract class AccessFieldNode extends FixedWithNextNode implements Lower
      * @return {@code true} if this field access is to a static field
      */
     public boolean isStatic() {
-        return field.isStatic();
+        return Modifier.isStatic(field.getModifiers());
     }
 
     /**
@@ -77,7 +79,7 @@ public abstract class AccessFieldNode extends FixedWithNextNode implements Lower
      * @return {@code true} if the field is resolved and declared volatile
      */
     public boolean isVolatile() {
-        return field.isVolatile();
+        return Modifier.isVolatile(field.getModifiers());
     }
 
     @Override

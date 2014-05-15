@@ -22,11 +22,10 @@
  */
 package com.oracle.graal.replacements.test;
 
-import org.junit.*;
-
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
+import com.oracle.graal.test.*;
 
 /**
  * Tests the implementation of checkcast, allowing profiling information to be manually specified.
@@ -42,7 +41,7 @@ public class CheckCastTest extends TypeCheckTest {
         }
     }
 
-    @Test
+    @LongTest
     public void test1() {
         test("asNumber", profile(), 111);
         test("asNumber", profile(Integer.class), 111);
@@ -52,7 +51,7 @@ public class CheckCastTest extends TypeCheckTest {
         test("asNumberExt", profile(Long.class, Short.class), 111);
     }
 
-    @Test
+    @LongTest
     public void test2() {
         test("asString", profile(), "111");
         test("asString", profile(String.class), "111");
@@ -68,27 +67,27 @@ public class CheckCastTest extends TypeCheckTest {
         test("asStringExt", profile(String.class), "111");
     }
 
-    @Test
+    @LongTest
     public void test3() {
         test("asNumber", profile(), "111");
     }
 
-    @Test
+    @LongTest
     public void test4() {
         test("asString", profile(String.class), 111);
     }
 
-    @Test
+    @LongTest
     public void test5() {
         test("asNumberExt", profile(), "111");
     }
 
-    @Test
+    @LongTest
     public void test6() {
         test("asStringExt", profile(String.class), 111);
     }
 
-    @Test
+    @LongTest
     public void test7() {
         Throwable throwable = new Exception();
         test("asThrowable", profile(), throwable);
@@ -96,12 +95,12 @@ public class CheckCastTest extends TypeCheckTest {
         test("asThrowable", profile(Exception.class, Error.class), throwable);
     }
 
-    @Test
+    @LongTest
     public void test8() {
         test("arrayStore", new Object[100], "111");
     }
 
-    @Test
+    @LongTest
     public void test801() {
         test("arrayFill", new Object[100], "111");
     }
@@ -198,7 +197,7 @@ public class CheckCastTest extends TypeCheckTest {
         return (Cloneable) o;
     }
 
-    @Test
+    @LongTest
     public void test9() {
         Object o = new Depth13();
         test("asDepth12", profile(), o);
@@ -206,7 +205,7 @@ public class CheckCastTest extends TypeCheckTest {
         test("asDepth12", profile(Depth13.class, Depth14.class), o);
     }
 
-    @Test
+    @LongTest
     public void test10() {
         Object o = new Depth13[3][];
         test("asDepth12Arr", o);

@@ -35,8 +35,8 @@ import com.oracle.graal.api.code.CompilationResult.Infopoint;
 import com.oracle.graal.api.code.CompilationResult.Mark;
 import com.oracle.graal.api.code.CompilationResult.PrimitiveData;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.bridge.*;
 import com.oracle.graal.hotspot.bridge.CompilerToVM.CodeInstallResult;
@@ -206,12 +206,12 @@ public abstract class HotSpotCodeCacheProvider implements CodeCacheProvider {
         return installedCode;
     }
 
-    public InstalledCode installMethod(HotSpotResolvedJavaMethod method, CompilationResult compResult, long ctask) {
+    public InstalledCode installMethod(HotSpotResolvedJavaMethod method, CompilationResult compResult) {
         if (compResult.getId() == -1) {
             compResult.setId(method.allocateCompileId(compResult.getEntryBCI()));
         }
         HotSpotInstalledCode installedCode = new HotSpotNmethod(method, compResult.getName(), true);
-        runtime.getCompilerToVM().installCode(new HotSpotCompiledNmethod(target, method, compResult, ctask), installedCode, method.getSpeculationLog());
+        runtime.getCompilerToVM().installCode(new HotSpotCompiledNmethod(target, method, compResult), installedCode, method.getSpeculationLog());
         return logOrDump(installedCode, compResult);
     }
 
@@ -228,7 +228,7 @@ public abstract class HotSpotCodeCacheProvider implements CodeCacheProvider {
         }
         CodeInstallResult result = runtime.getCompilerToVM().installCode(new HotSpotCompiledNmethod(target, hotspotMethod, compResult), installedCode, log);
         if (result != CodeInstallResult.OK) {
-            throw new BailoutException("Code installation failed: " + result);
+            return null;
         }
         return logOrDump(installedCode, compResult);
     }
@@ -236,7 +236,7 @@ public abstract class HotSpotCodeCacheProvider implements CodeCacheProvider {
     @Override
     public InstalledCode setDefaultMethod(ResolvedJavaMethod method, CompilationResult compResult) {
         HotSpotResolvedJavaMethod hotspotMethod = (HotSpotResolvedJavaMethod) method;
-        return installMethod(hotspotMethod, compResult, 0L);
+        return installMethod(hotspotMethod, compResult);
     }
 
     public HotSpotNmethod addExternalMethod(ResolvedJavaMethod method, CompilationResult compResult) {
@@ -285,9 +285,5 @@ public abstract class HotSpotCodeCacheProvider implements CodeCacheProvider {
 
     public String disassemble(ResolvedJavaMethod method) {
         return new BytecodeDisassembler().disassemble(method);
-    }
-
-    public SpeculationLog createSpeculationLog() {
-        return new HotSpotSpeculationLog();
     }
 }

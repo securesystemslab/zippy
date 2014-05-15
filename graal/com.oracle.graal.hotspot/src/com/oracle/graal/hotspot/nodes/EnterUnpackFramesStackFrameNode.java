@@ -23,12 +23,11 @@
 package com.oracle.graal.hotspot.nodes;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.stubs.*;
-import com.oracle.graal.lir.StandardOp.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.word.*;
 
 /**
@@ -40,18 +39,12 @@ public class EnterUnpackFramesStackFrameNode extends FixedWithNextNode implement
     @Input private ValueNode framePc;
     @Input private ValueNode senderSp;
     @Input private ValueNode senderFp;
-    @Input private SaveAllRegistersNode registerSaver;
 
-    public EnterUnpackFramesStackFrameNode(ValueNode framePc, ValueNode senderSp, ValueNode senderFp, ValueNode registerSaver) {
+    public EnterUnpackFramesStackFrameNode(ValueNode framePc, ValueNode senderSp, ValueNode senderFp) {
         super(StampFactory.forVoid());
         this.framePc = framePc;
         this.senderSp = senderSp;
         this.senderFp = senderFp;
-        this.registerSaver = (SaveAllRegistersNode) registerSaver;
-    }
-
-    private SaveRegistersOp getSaveRegistersOp() {
-        return registerSaver.getSaveRegistersOp();
     }
 
     @Override
@@ -59,9 +52,9 @@ public class EnterUnpackFramesStackFrameNode extends FixedWithNextNode implement
         Value operandValue = gen.operand(framePc);
         Value senderSpValue = gen.operand(senderSp);
         Value senderFpValue = gen.operand(senderFp);
-        ((HotSpotLIRGenerator) gen.getLIRGeneratorTool()).emitEnterUnpackFramesStackFrame(operandValue, senderSpValue, senderFpValue, getSaveRegistersOp());
+        ((HotSpotLIRGenerator) gen.getLIRGeneratorTool()).emitEnterUnpackFramesStackFrame(operandValue, senderSpValue, senderFpValue);
     }
 
     @NodeIntrinsic
-    public static native void enterUnpackFramesStackFrame(Word framePc, Word senderSp, Word senderFp, long registerSaver);
+    public static native void enterUnpackFramesStackFrame(Word framePc, Word senderSp, Word senderFp);
 }

@@ -22,7 +22,7 @@
  */
 
 #include "graal/graalCodeInstaller.hpp"
-#include "graal/graalRuntime.hpp"
+#include "graal/graalCompiler.hpp"
 #include "graal/graalCompilerToVM.hpp"
 #include "graal/graalJavaAccess.hpp"
 

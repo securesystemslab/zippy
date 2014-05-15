@@ -29,7 +29,6 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.function.*;
 
 public class PProfilingGenerator extends PGenerator {
 
@@ -41,7 +40,7 @@ public class PProfilingGenerator extends PGenerator {
     private long iterationStart;
     private long iterationEnd;
 
-    public PProfilingGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, PArguments arguments, PythonContext context) {
+    public PProfilingGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, Object[] arguments, PythonContext context) {
         super(name, callTarget, frameDescriptor, arguments);
         this.context = context;
     }
@@ -52,7 +51,7 @@ public class PProfilingGenerator extends PGenerator {
         outerTime += iterationEnd == 0 ? 0 : iterationStart - iterationEnd;
 
         try {
-            Object result = callTarget.call(arguments.packAsObjectArray());
+            Object result = callTarget.call(arguments);
 
             iterationEnd = System.nanoTime();
             innerTime += iterationEnd - iterationStart;

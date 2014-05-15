@@ -321,9 +321,6 @@ class Thread: public ThreadShadow {
   virtual bool is_Named_thread() const               { return false; }
   virtual bool is_Worker_thread() const              { return false; }
 
-  // Can this thread make Java upcalls
-  virtual bool can_call_java() const                 { return true;  }
-
   // Casts
   virtual WorkerThread* as_Worker_thread() const     { return NULL; }
 
@@ -1879,13 +1876,8 @@ class CompilerThread : public JavaThread {
   CompilerThread(CompileQueue* queue, CompilerCounters* counters);
 
   bool is_Compiler_thread() const                { return true; }
-
-#ifdef COMPILERGRAAL
-  virtual bool can_call_java() const;
-#endif
-
   // Hide this compiler thread from external view.
-  bool is_hidden_from_external_view() const      { return !can_call_java(); }
+  bool is_hidden_from_external_view() const      { return true; }
 
   void set_compiler(AbstractCompiler* c)         { _compiler = c; }
   AbstractCompiler* compiler() const             { return _compiler; }

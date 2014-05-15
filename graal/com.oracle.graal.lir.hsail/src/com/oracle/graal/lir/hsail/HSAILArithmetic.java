@@ -27,7 +27,7 @@ import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.hsail.*;
-import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
 
@@ -108,7 +108,7 @@ public enum HSAILArithmetic {
         private final String from;
         private final String to;
         @Def({REG}) protected AllocatableValue result;
-        @Use({REG}) protected AllocatableValue x;
+        @Use({REG, STACK}) protected AllocatableValue x;
 
         public ConvertOp(AllocatableValue result, AllocatableValue x, String to, String from) {
             this.from = from;
@@ -123,10 +123,52 @@ public enum HSAILArithmetic {
         }
     }
 
-    public static class Op1Reg extends HSAILLIRInstruction {
+    public static class Op1Stack extends HSAILLIRInstruction {
+        @Opcode private final HSAILArithmetic opcode;
+        @Def({REG, HINT}) protected Value result;
+        @Use({REG, STACK, CONST}) protected Value x;
+
+        public Op1Stack(HSAILArithmetic opcode, Value result, Value x) {
+            this.opcode = opcode;
+            this.result = result;
+            this.x = x;
+        }
+
+        @Override
+        public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
+            emit(crb, masm, opcode, result, x, null);
+        }
+    }
+
+    public static class Op2Stack extends HSAILLIRInstruction {
         @Opcode private final HSAILArithmetic opcode;
         @Def({REG, HINT}) protected Value result;
         @Use({REG, CONST}) protected Value x;
+        @Alive({REG, CONST}) protected Value y;
+
+        public Op2Stack(HSAILArithmetic opcode, Value result, Value x, Value y) {
+            this.opcode = opcode;
+            this.result = result;
+            this.x = x;
+            this.y = y;
+        }
+
+        @Override
+        public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
+            emit(crb, masm, opcode, result, x, y, null);
+        }
+
+        @Override
+        public void verify() {
+            super.verify();
+            verifyKind(opcode, result, x, y);
+        }
+    }
+
+    public static class Op1Reg extends HSAILLIRInstruction {
+        @Opcode private final HSAILArithmetic opcode;
+        @Def({REG, HINT}) protected Value result;
+        @Use({REG}) protected Value x;
 
         public Op1Reg(HSAILArithmetic opcode, Value result, Value x) {
             this.opcode = opcode;
@@ -143,7 +185,7 @@ public enum HSAILArithmetic {
     public static class Op2Reg extends HSAILLIRInstruction {
         @Opcode private final HSAILArithmetic opcode;
         @Def({REG, HINT}) protected Value result;
-        @Use({REG, CONST}) protected Value x;
+        @Use({REG, STACK, CONST}) protected Value x;
         @Alive({REG, CONST}) protected Value y;
 
         public Op2Reg(HSAILArithmetic opcode, Value result, Value x, Value y) {
@@ -165,10 +207,35 @@ public enum HSAILArithmetic {
         }
     }
 
+    public static class Op2RegCommutative extends HSAILLIRInstruction {
+        @Opcode private final HSAILArithmetic opcode;
+        @Def({REG, HINT}) protected Value result;
+        @Use({REG, STACK, CONST}) protected Value x;
+        @Use({REG, CONST}) protected Value y;
+
+        public Op2RegCommutative(HSAILArithmetic opcode, Value result, Value x, Value y) {
+            this.opcode = opcode;
+            this.result = result;
+            this.x = x;
+            this.y = y;
+        }
+
+        @Override
+        public void emitCode(CompilationResultBuilder crb, HSAILAssembler masm) {
+            throw GraalInternalError.shouldNotReachHere();
+        }
+
+        @Override
+        protected void verify() {
+            super.verify();
+            verifyKind(opcode, result, x, y);
+        }
+    }
+
     public static class ShiftOp extends HSAILLIRInstruction {
         @Opcode private final HSAILArithmetic opcode;
         @Def({REG, HINT}) protected Value result;
-        @Use({REG, CONST}) protected Value x;
+        @Use({REG, STACK, CONST}) protected Value x;
         @Alive({REG, CONST}) protected Value y;
 
         public ShiftOp(HSAILArithmetic opcode, Value result, Value x, Value y) {
@@ -228,7 +295,7 @@ public enum HSAILArithmetic {
 
     /**
      * Emits the HSAIL code for an arithmetic operation taking one input parameter.
-     *
+     * 
      * @param crb the CompilationResultBuilder
      * @param masm the HSAIL assembler
      * @param opcode the opcode of the arithmetic operation

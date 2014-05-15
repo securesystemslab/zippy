@@ -24,9 +24,8 @@
  */
 package com.oracle.graal.jtt.threads;
 
-import org.junit.*;
-
 import com.oracle.graal.jtt.*;
+import com.oracle.graal.test.*;
 
 public final class Thread_getState02 extends JTTTest {
 
@@ -34,7 +33,7 @@ public final class Thread_getState02 extends JTTTest {
         return new Thread().getState() == Thread.State.NEW;
     }
 
-    @Test
+    @LongTest
     public void run0() throws Throwable {
         runTest("test");
     }

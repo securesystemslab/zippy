@@ -23,13 +23,14 @@
 
 package com.oracle.graal.hotspot.nodes;
 
-import com.oracle.graal.compiler.common.type.*;
+import com.oracle.graal.compiler.gen.*;
+import com.oracle.graal.compiler.target.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.word.*;
 
-public class PrefetchAllocateNode extends FixedWithNextNode implements LIRLowerable {
+public class PrefetchAllocateNode extends FixedWithNextNode implements LIRGenLowerable {
 
     @Input private ValueNode distance;
     @Input private ValueNode address;
@@ -41,7 +42,7 @@ public class PrefetchAllocateNode extends FixedWithNextNode implements LIRLowera
     }
 
     @Override
-    public void generate(NodeLIRBuilderTool gen) {
+    public void generate(NodeLIRBuilder gen) {
         ((HotSpotNodeLIRBuilder) gen).emitPrefetchAllocate(address, distance);
     }
 

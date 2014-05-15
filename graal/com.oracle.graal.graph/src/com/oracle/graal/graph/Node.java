@@ -184,6 +184,7 @@ public abstract class Node implements Cloneable, Formattable {
 
     class NodeUsageIterator implements Iterator<Node> {
 
+        private final int expectedModCount = usageModCount();
         int index = -1;
         Node current;
 
@@ -206,10 +207,12 @@ public abstract class Node implements Cloneable, Formattable {
         }
 
         public boolean hasNext() {
+            assert expectedModCount == usageModCount();
             return current != null;
         }
 
         public Node next() {
+            assert expectedModCount == usageModCount();
             Node result = current;
             if (result == null) {
                 throw new NoSuchElementException();
@@ -224,35 +227,10 @@ public abstract class Node implements Cloneable, Formattable {
         }
     }
 
-    class NodeUsageWithModCountIterator extends NodeUsageIterator {
-
-        private final int expectedModCount = usageModCount();
-
-        @Override
-        public boolean hasNext() {
-            if (expectedModCount != usageModCount()) {
-                throw new ConcurrentModificationException();
-            }
-            return super.hasNext();
-        }
-
-        @Override
-        public Node next() {
-            if (expectedModCount != usageModCount()) {
-                throw new ConcurrentModificationException();
-            }
-            return super.next();
-        }
-    }
-
     class NodeUsageIterable implements NodeIterable<Node> {
 
         public NodeUsageIterator iterator() {
-            if (MODIFICATION_COUNTS_ENABLED) {
-                return new NodeUsageWithModCountIterator();
-            } else {
-                return new NodeUsageIterator();
-            }
+            return new NodeUsageIterator();
         }
 
         @Override
@@ -673,7 +651,7 @@ public abstract class Node implements Cloneable, Formattable {
             NodeClassIterator iter = usage.inputs().iterator();
             while (iter.hasNext()) {
                 Position pos = iter.nextPosition();
-                if (pos.getInputType(usage) == type && pos.get(usage) == this) {
+                if (pos.getInputType(usage) == type) {
                     pos.set(usage, other);
                 }
             }
@@ -831,7 +809,7 @@ public abstract class Node implements Cloneable, Formattable {
         try {
             newNode = (Node) this.clone();
         } catch (CloneNotSupportedException e) {
-            throw new GraalGraphInternalError(e).addContext(this);
+            throw new GraalInternalError(e).addContext(this);
         }
         if (clearInputsAndSuccessors) {
             nodeClass.clearInputs(newNode);

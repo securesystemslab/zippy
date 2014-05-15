@@ -24,7 +24,6 @@ package com.oracle.graal.replacements;
 
 import java.util.*;
 
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.util.*;
@@ -34,13 +33,13 @@ import com.oracle.graal.phases.graph.ReentrantNodeIterator.LoopInfo;
 import com.oracle.graal.phases.graph.ReentrantNodeIterator.NodeIteratorClosure;
 
 /**
- * This phase ensures that there's a single {@linkplain BytecodeFrame#AFTER_BCI collapsed frame
- * state} per path.
- *
+ * This phase ensures that there's a single {@linkplain FrameState#AFTER_BCI collapsed frame state}
+ * per path.
+ * 
  * Removes other frame states from {@linkplain StateSplit#hasSideEffect() non-side-effecting} nodes
- * in the graph, and replaces them with {@linkplain BytecodeFrame#INVALID_FRAMESTATE_BCI invalid
- * frame states}.
- *
+ * in the graph, and replaces them with {@linkplain FrameState#INVALID_FRAMESTATE_BCI invalid frame
+ * states}.
+ * 
  * The invalid frame states ensure that no deoptimization to a snippet frame state will happen.
  */
 public class CollapseFrameForSingleSideEffectPhase extends Phase {
@@ -112,7 +111,7 @@ public class CollapseFrameForSingleSideEffectPhase extends Phase {
     @Override
     protected void run(StructuredGraph graph) {
         CollapseFrameForSingleSideEffectClosure closure = new CollapseFrameForSingleSideEffectClosure();
-        ReentrantNodeIterator.apply(closure, graph.start(), new IterationState());
+        ReentrantNodeIterator.apply(closure, graph.start(), new IterationState(), null);
         closure.finishProcessing(graph);
     }
 
@@ -177,7 +176,7 @@ public class CollapseFrameForSingleSideEffectPhase extends Phase {
                 if (!unwindSideEffects.contains(returnSideEffect) && !maskedSideEffects.contains(returnSideEffect)) {
                     StateSplit split = (StateSplit) returnSideEffect;
                     if (split.stateAfter() != null) {
-                        split.setStateAfter(graph.add(new FrameState(BytecodeFrame.AFTER_BCI)));
+                        split.setStateAfter(graph.add(new FrameState(FrameState.AFTER_BCI)));
                     }
                 }
             }
@@ -186,7 +185,7 @@ public class CollapseFrameForSingleSideEffectPhase extends Phase {
                 if (!returnSideEffects.contains(unwindSideEffect) && !maskedSideEffects.contains(unwindSideEffect)) {
                     StateSplit split = (StateSplit) unwindSideEffect;
                     if (split.stateAfter() != null) {
-                        split.setStateAfter(graph.add(new FrameState(BytecodeFrame.AFTER_EXCEPTION_BCI)));
+                        split.setStateAfter(graph.add(new FrameState(FrameState.AFTER_EXCEPTION_BCI)));
                     }
                 }
             }
@@ -215,7 +214,7 @@ public class CollapseFrameForSingleSideEffectPhase extends Phase {
         }
 
         private static FrameState createInvalidFrameState(FixedNode node) {
-            return node.graph().add(new FrameState(BytecodeFrame.INVALID_FRAMESTATE_BCI));
+            return node.graph().add(new FrameState(FrameState.INVALID_FRAMESTATE_BCI));
         }
     }
 }

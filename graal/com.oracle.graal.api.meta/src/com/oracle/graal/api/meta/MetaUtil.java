@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.api.meta;
 
+import static java.lang.reflect.Modifier.*;
+
 import java.io.*;
 import java.lang.annotation.*;
 import java.lang.reflect.*;
@@ -376,7 +378,7 @@ public class MetaUtil {
                         break;
                     }
                     case 'f': {
-                        sb.append(!(method instanceof ResolvedJavaMethod) ? "unresolved" : ((ResolvedJavaMethod) method).isStatic() ? "static" : "virtual");
+                        sb.append(!(method instanceof ResolvedJavaMethod) ? "unresolved" : isStatic(((ResolvedJavaMethod) method).getModifiers()) ? "static" : "virtual");
                         break;
                     }
                     case '%': {
@@ -450,7 +452,7 @@ public class MetaUtil {
                         break;
                     }
                     case 'f': {
-                        sb.append(!(field instanceof ResolvedJavaField) ? "unresolved" : ((ResolvedJavaField) field).isStatic() ? "static" : "instance");
+                        sb.append(!(field instanceof ResolvedJavaField) ? "unresolved" : isStatic(((ResolvedJavaField) field).getModifiers()) ? "static" : "instance");
                         break;
                     }
                     case '%': {
@@ -559,7 +561,7 @@ public class MetaUtil {
     }
 
     public static JavaType[] signatureToTypes(ResolvedJavaMethod method) {
-        JavaType receiver = method.isStatic() ? null : method.getDeclaringClass();
+        JavaType receiver = isStatic(method.getModifiers()) ? null : method.getDeclaringClass();
         return signatureToTypes(method.getSignature(), receiver);
     }
 

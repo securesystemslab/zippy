@@ -184,7 +184,7 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
     public Object call(Object[] args) {
         PythonObject newInstance = PythonContext.newPythonObjectInstance(this);
         PythonCallable ctor = lookUpMethod("__init__");
-        ctor.call(packSelfWithArguments(newInstance, args));
+        ctor.call(PArguments.insertSelf(args, newInstance));
         return newInstance;
     }
 
@@ -192,19 +192,8 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
     public Object call(Object[] args, PKeyword[] keywords) {
         PythonObject newInstance = PythonContext.newPythonObjectInstance(this);
         PythonCallable ctor = lookUpMethod("__init__");
-        ctor.call(packSelfWithArguments(newInstance, args), keywords);
+        ctor.call(PArguments.insertSelf(args, newInstance));
         return newInstance;
-    }
-
-    private static Object[] packSelfWithArguments(PythonObject self, Object[] arguments) {
-        Object[] packed = new Object[arguments.length + 1];
-        packed[0] = self;
-
-        for (int i = 0; i < arguments.length; i++) {
-            packed[i + 1] = arguments[i];
-        }
-
-        return packed;
     }
 
     @Override

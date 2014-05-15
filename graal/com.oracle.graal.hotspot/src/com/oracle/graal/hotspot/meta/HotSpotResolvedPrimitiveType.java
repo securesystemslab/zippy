@@ -27,7 +27,7 @@ import java.lang.reflect.*;
 import java.net.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.graph.*;
 
 /**
  * Implementation of {@link JavaType} for primitive HotSpot types.

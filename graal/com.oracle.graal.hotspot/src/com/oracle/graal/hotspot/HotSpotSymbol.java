@@ -22,12 +22,12 @@
  */
 package com.oracle.graal.hotspot;
 
-import static com.oracle.graal.compiler.common.UnsafeAccess.*;
+import static com.oracle.graal.graph.UnsafeAccess.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 
 import java.io.*;
 
-import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.graph.*;
 
 /**
  * Represents a metaspace {@code Symbol}.

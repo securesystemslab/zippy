@@ -73,7 +73,7 @@ public final class CheckCastDynamicNode extends FixedWithNextNode implements Can
     public Node canonical(CanonicalizerTool tool) {
         assert object() != null : this;
 
-        if (StampTool.isObjectAlwaysNull(object())) {
+        if (ObjectStamp.isObjectAlwaysNull(object())) {
             return object();
         }
         if (hub.isConstant()) {

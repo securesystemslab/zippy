@@ -84,7 +84,7 @@ bool Exceptions::special_exception(Thread* thread, const char* file, int line, H
 #endif // ASSERT
 
   if (thread->is_VM_thread()
-      || !thread->can_call_java() ) {
+      || thread->is_Compiler_thread() ) {
     // We do not care what kind of exception we get for the vm-thread or a thread which
     // is compiling.  We just install a dummy exception object
     thread->set_pending_exception(Universe::vm_exception(), file, line);
@@ -107,7 +107,7 @@ bool Exceptions::special_exception(Thread* thread, const char* file, int line, S
   }
 
   if (thread->is_VM_thread()
-      || !thread->can_call_java() ) {
+      || thread->is_Compiler_thread() ) {
     // We do not care what kind of exception we get for the vm-thread or a thread which
     // is compiling.  We just install a dummy exception object
     thread->set_pending_exception(Universe::vm_exception(), file, line);

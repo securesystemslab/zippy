@@ -24,7 +24,6 @@ package com.oracle.graal.lir.sparc;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.asm.*;
 import com.oracle.graal.lir.*;
 
 /**
@@ -34,7 +33,7 @@ import com.oracle.graal.lir.*;
  *
  * <pre>
  *   Base       Contents
- * 
+ *
  *            :                                :  -----
  *   caller   | incoming overflow argument n   |    ^
  *   frame    :     ...                        :    | positive
@@ -89,7 +88,8 @@ public final class SPARCFrameMap extends FrameMap {
 
     @Override
     protected int alignFrameSize(int size) {
-        return NumUtil.roundUp(size, target.stackAlignment);
+        int x = size + (target.stackAlignment - 1);
+        return (x / target.stackAlignment) * target.stackAlignment;
     }
 
     @Override

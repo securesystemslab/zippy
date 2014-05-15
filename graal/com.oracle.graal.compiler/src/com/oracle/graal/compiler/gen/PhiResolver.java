@@ -29,23 +29,22 @@ import static com.oracle.graal.lir.LIRValueUtil.*;
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.lir.gen.*;
 import com.oracle.graal.nodes.*;
 
 /**
  * Converts {@link ValuePhiNode} instructions into moves.
- *
+ * 
  * Resolves cycles:
- *
+ * 
  * <pre>
- *
+ * 
  *  r1 := r2  becomes  temp := r1
  *  r2 := r1           r1 := r2
  *                     r2 := temp
  * </pre>
- *
+ * 
  * and orders moves:
- *
+ * 
  * <pre>
  *  r2 := r3  becomes  r1 := r2
  *  r1 := r2           r2 := r3
@@ -104,7 +103,7 @@ public class PhiResolver {
         }
     }
 
-    private final LIRGeneratorTool gen;
+    private final LIRGenerator gen;
 
     /**
      * The operand loop header phi for the operand currently being process in {@link #dispose()}.
@@ -121,7 +120,7 @@ public class PhiResolver {
      */
     private final HashMap<Value, PhiResolverNode> operandToNodeMap = new HashMap<>();
 
-    public PhiResolver(LIRGeneratorTool gen) {
+    public PhiResolver(LIRGenerator gen) {
         this.gen = gen;
         temp = ILLEGAL;
     }

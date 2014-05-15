@@ -34,7 +34,7 @@
 #include "runtime/interfaceSupport.hpp"
 #include "runtime/vframe.hpp"
 #include "graal/graalEnv.hpp"
-#include "graal/graalRuntime.hpp"
+#include "graal/graalCompiler.hpp"
 
 #define T_BYTE_SIZE        1
 #define T_BOOLEAN_SIZE     4

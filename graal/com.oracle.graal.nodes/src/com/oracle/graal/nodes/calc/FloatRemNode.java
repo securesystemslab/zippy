@@ -23,15 +23,15 @@
 package com.oracle.graal.nodes.calc;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
-import com.oracle.graal.lir.gen.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 
 @NodeInfo(shortName = "%")
-public class FloatRemNode extends FloatArithmeticNode implements Canonicalizable, Lowerable {
+public final class FloatRemNode extends FloatArithmeticNode implements Canonicalizable {
 
     public FloatRemNode(Stamp stamp, ValueNode x, ValueNode y, boolean isStrictFP) {
         super(stamp, x, y, isStrictFP);
@@ -57,12 +57,16 @@ public class FloatRemNode extends FloatArithmeticNode implements Canonicalizable
     }
 
     @Override
-    public void lower(LoweringTool tool) {
-        tool.getLowerer().lower(this, tool);
+    public void generate(NodeMappableLIRBuilder builder, ArithmeticLIRGenerator gen) {
+        builder.setResult(this, gen.emitRem(builder.operand(x()), builder.operand(y()), null));
     }
 
     @Override
-    public void generate(NodeMappableLIRBuilder builder, ArithmeticLIRGenerator gen) {
-        builder.setResult(this, gen.emitRem(builder.operand(x()), builder.operand(y()), null));
+    public boolean generate(MemoryArithmeticLIRLowerer gen, Access access) {
+        Value result = gen.emitRemMemory(x(), y(), access);
+        if (result != null) {
+            gen.setResult(this, result);
+        }
+        return result != null;
     }
 }

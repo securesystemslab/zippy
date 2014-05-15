@@ -24,9 +24,7 @@ package com.oracle.graal.replacements;
 
 import static com.oracle.graal.api.meta.LocationIdentity.*;
 import static com.oracle.graal.api.meta.MetaUtil.*;
-import static com.oracle.graal.compiler.common.GraalOptions.*;
 import static com.oracle.graal.debug.Debug.*;
-import static com.oracle.graal.graph.util.CollectionsAccess.*;
 import static java.util.FormattableFlags.*;
 
 import java.io.*;
@@ -37,13 +35,11 @@ import java.util.concurrent.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.replacements.*;
-import com.oracle.graal.compiler.common.*;
-import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.debug.internal.*;
-import com.oracle.graal.graph.Graph.Mark;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.Graph.Mark;
 import com.oracle.graal.loop.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.StructuredGraph.GuardsStage;
@@ -51,10 +47,10 @@ import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.common.FloatingReadPhase.MemoryMapImpl;
-import com.oracle.graal.phases.common.inlining.*;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.phases.util.*;
 import com.oracle.graal.replacements.Snippet.ConstantParameter;
@@ -105,7 +101,7 @@ public class SnippetTemplate {
             this.method = method;
             instantiationCounter = Debug.metric("SnippetInstantiationCount[%s]", method);
             instantiationTimer = Debug.timer("SnippetInstantiationTime[%s]", method);
-            assert method.isStatic() : "snippet method must be static: " + MetaUtil.format("%H.%n", method);
+            assert Modifier.isStatic(method.getModifiers()) : "snippet method must be static: " + MetaUtil.format("%H.%n", method);
             int count = method.getSignature().getParameterCount(false);
             constantParameters = new boolean[count];
             varargsParameters = new boolean[count];
@@ -495,7 +491,7 @@ public class SnippetTemplate {
 
         // Copy snippet graph, replacing constant parameters with given arguments
         final StructuredGraph snippetCopy = new StructuredGraph(snippetGraph.name, snippetGraph.method());
-        Map<Node, Node> nodeReplacements = newNodeIdentityMap();
+        IdentityHashMap<Node, Node> nodeReplacements = new IdentityHashMap<>();
         nodeReplacements.put(snippetGraph.start(), snippetCopy.start());
 
         MetaAccessProvider metaAccess = providers.getMetaAccess();
@@ -643,6 +639,11 @@ public class SnippetTemplate {
 
         MemoryAnchorNode memoryAnchor = snippetCopy.add(new MemoryAnchorNode());
         snippetCopy.start().replaceAtUsages(InputType.Memory, memoryAnchor);
+        if (memoryAnchor.usages().isEmpty()) {
+            memoryAnchor.safeDelete();
+        } else {
+            snippetCopy.addAfterFixed(snippetCopy.start(), memoryAnchor);
+        }
 
         this.snippet = snippetCopy;
 
@@ -651,21 +652,15 @@ public class SnippetTemplate {
         List<ReturnNode> returnNodes = new ArrayList<>(4);
         List<MemoryMapNode> memMaps = new ArrayList<>(4);
         StartNode entryPointNode = snippet.start();
-        boolean anchorUsed = false;
         for (ReturnNode retNode : snippet.getNodes(ReturnNode.class)) {
             MemoryMapNode memMap = retNode.getMemoryMap();
-            anchorUsed |= memMap.replaceLastLocationAccess(snippetCopy.start(), memoryAnchor);
+            memMap.replaceLastLocationAccess(snippetCopy.start(), memoryAnchor);
             memMaps.add(memMap);
             retNode.setMemoryMap(null);
             returnNodes.add(retNode);
             if (memMap.usages().isEmpty()) {
                 memMap.safeDelete();
             }
-        }
-        if (memoryAnchor.usages().isEmpty() && !anchorUsed) {
-            memoryAnchor.safeDelete();
-        } else {
-            snippetCopy.addAfterFixed(snippetCopy.start(), memoryAnchor);
         }
         assert snippet.getNodes().filter(MemoryMapNode.class).isEmpty();
         if (returnNodes.isEmpty()) {
@@ -792,8 +787,8 @@ public class SnippetTemplate {
      *
      * @return the map that will be used to bind arguments to parameters when inlining this template
      */
-    private Map<Node, Node> bind(StructuredGraph replaceeGraph, MetaAccessProvider metaAccess, Arguments args) {
-        Map<Node, Node> replacements = newNodeIdentityMap();
+    private IdentityHashMap<Node, Node> bind(StructuredGraph replaceeGraph, MetaAccessProvider metaAccess, Arguments args) {
+        IdentityHashMap<Node, Node> replacements = new IdentityHashMap<>();
         assert args.info.getParameterCount() == parameters.length : "number of args (" + args.info.getParameterCount() + ") != number of parameters (" + parameters.length + ")";
         for (int i = 0; i < parameters.length; i++) {
             Object parameter = parameters[i];
@@ -969,15 +964,7 @@ public class SnippetTemplate {
          * if no FloatingReadNode is reading from this location, the kill to this location is fine.
          */
         for (FloatingReadNode frn : replacee.graph().getNodes(FloatingReadNode.class)) {
-            LocationIdentity locationIdentity = frn.location().getLocationIdentity();
-            if (SnippetCounters.getValue()) {
-                // accesses to snippet counters are artificially introduced and violate the memory
-                // semantics.
-                if (locationIdentity == SnippetCounter.SNIPPET_COUNTER_LOCATION) {
-                    continue;
-                }
-            }
-            assert !kills.contains(locationIdentity) : frn + " reads from location \"" + locationIdentity + "\" but " + replacee + " does not kill this location";
+            assert !(kills.contains(frn.location().getLocationIdentity())) : frn + " reads from " + frn.location().getLocationIdentity() + " but " + replacee + " does not kill this location";
         }
         return true;
     }
@@ -1010,7 +997,7 @@ public class SnippetTemplate {
         }
 
         @Override
-        public boolean replaceLastLocationAccess(MemoryNode oldNode, MemoryNode newNode) {
+        public void replaceLastLocationAccess(MemoryNode oldNode, MemoryNode newNode) {
             throw GraalInternalError.shouldNotReachHere();
         }
     }
@@ -1033,7 +1020,7 @@ public class SnippetTemplate {
             StartNode entryPointNode = snippet.start();
             FixedNode firstCFGNode = entryPointNode.next();
             StructuredGraph replaceeGraph = replacee.graph();
-            Map<Node, Node> replacements = bind(replaceeGraph, metaAccess, args);
+            IdentityHashMap<Node, Node> replacements = bind(replaceeGraph, metaAccess, args);
             replacements.put(entryPointNode, BeginNode.prevBegin(replacee));
             Map<Node, Node> duplicates = replaceeGraph.addDuplicates(nodes, snippet, snippet.getNodeCount(), replacements);
             Debug.dump(replaceeGraph, "After inlining snippet %s", snippet.method());
@@ -1186,7 +1173,7 @@ public class SnippetTemplate {
             StartNode entryPointNode = snippet.start();
             FixedNode firstCFGNode = entryPointNode.next();
             StructuredGraph replaceeGraph = replacee.graph();
-            Map<Node, Node> replacements = bind(replaceeGraph, metaAccess, args);
+            IdentityHashMap<Node, Node> replacements = bind(replaceeGraph, metaAccess, args);
             replacements.put(entryPointNode, tool.getCurrentGuardAnchor().asNode());
             Map<Node, Node> duplicates = replaceeGraph.addDuplicates(nodes, snippet, snippet.getNodeCount(), replacements);
             Debug.dump(replaceeGraph, "After inlining snippet %s", snippetCopy.method());

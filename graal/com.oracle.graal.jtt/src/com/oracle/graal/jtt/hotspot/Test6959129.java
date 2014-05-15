@@ -22,16 +22,30 @@
  */
 package com.oracle.graal.jtt.hotspot;
 
-import org.junit.*;
-
 import com.oracle.graal.jtt.*;
 
+//@formatter:off
+
+/**
+ * @test
+ * @bug 6959129
+ * @summary COMPARISON WITH INTEGER.MAX_INT DOES NOT WORK CORRECTLY IN THE CLIENT VM.
+ *
+ *          This test will not run properly without assertions
+ *
+ * @run main/othervm -ea Test6959129
+ */
 public class Test6959129 extends JTTTest {
 
-    public static long test() {
+    public static int test() {
         int min = Integer.MAX_VALUE - 30000;
         int max = Integer.MAX_VALUE;
-        return maxMoves(min, max);
+        try {
+            maxMoves(min, max);
+        } catch (AssertionError e) {
+            return 95;
+        }
+        return 97;
     }
 
     /**
@@ -41,9 +55,7 @@ public class Test6959129 extends JTTTest {
         long n = n2;
         long moves = 0;
         while (n != 1) {
-            if (n <= 1) {
-                throw new IllegalStateException();
-            }
+            assert n > 1;
             if (isEven(n)) {
                 n = n / 2;
             } else {
@@ -74,7 +86,7 @@ public class Test6959129 extends JTTTest {
         return maxmoves;
     }
 
-    @Test(timeout = 20000)
+    //@Test
     public void run0() throws Throwable {
         runTest("test");
     }

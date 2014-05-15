@@ -23,7 +23,6 @@
 package com.oracle.graal.nodes.java;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
@@ -76,8 +75,8 @@ public final class StoreIndexedNode extends AccessIndexedNode implements StateSp
             int index = indexValue.isConstant() ? indexValue.asConstant().asInt() : -1;
             if (index >= 0 && index < arrayState.getVirtualObject().entryCount()) {
                 ResolvedJavaType componentType = arrayState.getVirtualObject().type().getComponentType();
-                if (componentType.isPrimitive() || StampTool.isObjectAlwaysNull(value) || componentType.getSuperclass() == null ||
-                                (StampTool.typeOrNull(value) != null && componentType.isAssignableFrom(StampTool.typeOrNull(value)))) {
+                if (componentType.isPrimitive() || ObjectStamp.isObjectAlwaysNull(value) || componentType.getSuperclass() == null ||
+                                (ObjectStamp.typeOrNull(value) != null && componentType.isAssignableFrom(ObjectStamp.typeOrNull(value)))) {
                     tool.setVirtualEntry(arrayState, index, value(), false);
                     tool.delete();
                 }

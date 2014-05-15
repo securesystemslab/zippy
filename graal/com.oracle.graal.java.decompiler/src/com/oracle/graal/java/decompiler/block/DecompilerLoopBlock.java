@@ -82,7 +82,7 @@ public class DecompilerLoopBlock extends DecompilerBlock {
 
     @Override
     public int getSuccessorCount() {
-        return block.getLoop().getExits().size();
+        return block.getLoop().exits.size();
     }
 
     @Override
