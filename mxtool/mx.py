@@ -2994,7 +2994,7 @@ def _source_locator_memento(deps):
         elif dep.isProject():
             memento = XMLDoc().element('javaProject', {'name' : dep.name}).xml(standalone='no')
             slm.element('container', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.javaProject'})
-            if javaCompliance is None or dep.javaCompliance < javaCompliance:
+            if javaCompliance is None or dep.javaCompliance > javaCompliance:
                 javaCompliance = dep.javaCompliance
 
     if javaCompliance:
