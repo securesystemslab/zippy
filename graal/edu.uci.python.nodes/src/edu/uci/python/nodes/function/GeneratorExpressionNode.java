@@ -128,7 +128,7 @@ public class GeneratorExpressionNode extends PNode {
         Object[] arguments = PArguments.empty();
 
         if (needsDeclarationFrame) {
-            declarationFrame = isEnclosingFrameGenerator ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : frame.materialize();
+            declarationFrame = isEnclosingFrameGenerator ? PArguments.getGeneratorFrame(frame) : frame.materialize();
             arguments = PArguments.create();
         }
 

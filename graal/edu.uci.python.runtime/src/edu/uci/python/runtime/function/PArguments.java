@@ -39,17 +39,18 @@ public class PArguments {
 
     public static final int INDEX_DECLARATION_FRAME = 0;
     public static final int INDEX_KEYWORD_ARGUMENTS = 1;
-    public static final int INDEX_SPECIAL_ARGUMENTS = 2;
-    public static final int USER_ARGUMENTS_OFFSET = 3;
+    public static final int INDEX_GENERATOR_FRAME = 2;
+    public static final int INDEX_SPECIAL_ARGUMENTS = 3;
+    public static final int USER_ARGUMENTS_OFFSET = 4;
 
-    private static final Object[] EMPTY_ARGUMENTS = new Object[]{null, PKeyword.EMPTY_KEYWORDS, null};
+    private static final Object[] EMPTY_ARGUMENTS = new Object[]{null, PKeyword.EMPTY_KEYWORDS, null, null};
 
     public static Object[] empty() {
         return EMPTY_ARGUMENTS;
     }
 
     public static Object[] create() {
-        return new Object[]{null, PKeyword.EMPTY_KEYWORDS, null};
+        return new Object[]{null, PKeyword.EMPTY_KEYWORDS, null, null};
     }
 
     public static Object[] create(int userArgumentLength) {
@@ -58,6 +59,7 @@ public class PArguments {
         return initialArguments;
     }
 
+    @ExplodeLoop
     public static Object[] createWithUserArguments(Object... userArguments) {
         Object[] arguments = create(userArguments.length);
 
@@ -96,6 +98,7 @@ public class PArguments {
         return frame.getArguments().length - USER_ARGUMENTS_OFFSET;
     }
 
+    @ExplodeLoop
     public static Object[] insertSelf(Object[] arguments, PythonObject self) {
         final int userArgumentLength = arguments.length - USER_ARGUMENTS_OFFSET;
         Object[] results = create(userArgumentLength + 1);
@@ -108,6 +111,7 @@ public class PArguments {
         return results;
     }
 
+    @ExplodeLoop
     public static Object[] applyKeywordArgs(Arity calleeArity, Object[] arguments, PKeyword[] keywords) {
         List<String> parameters = calleeArity.getParameterIds();
         Object[] combined = create(parameters.size());
@@ -146,6 +150,37 @@ public class PArguments {
         return null;
     }
 
+    public static VirtualFrameCargoArguments getVirtualFrameCargoArguments(Frame frame) {
+        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], VirtualFrameCargoArguments.class, true);
+    }
+
+    public static MaterializedFrame getGeneratorFrame(Frame frame) {
+        return (MaterializedFrame) frame.getArguments()[INDEX_GENERATOR_FRAME];
+    }
+
+    public static GeneratorArguments getGeneratorArguments(Frame frame) {
+        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], GeneratorArguments.class, true);
+    }
+
+    public static ParallelGeneratorArguments getParallelGeneratorArguments(Frame frame) {
+        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], ParallelGeneratorArguments.class, true);
+    }
+
+    public static void setGeneratorFrame(Object[] arguments, MaterializedFrame generatorFrame) {
+        arguments[INDEX_GENERATOR_FRAME] = generatorFrame;
+    }
+
+    public static void setGeneratorArguments(Object[] arguments, GeneratorArguments generatorArguments) {
+        arguments[INDEX_SPECIAL_ARGUMENTS] = generatorArguments;
+    }
+
+    public static void setParallelGeneratorArguments(Object[] arguments, ParallelGeneratorArguments generatorArguments) {
+        arguments[INDEX_SPECIAL_ARGUMENTS] = generatorArguments;
+    }
+
+    /**
+     * TODO: (zwei) to be removed.
+     */
     @SuppressWarnings("unused")
     public PArguments(MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywords) {
         assert arguments != null;
@@ -159,43 +194,17 @@ public class PArguments {
         return new Object[]{this};
     }
 
-    public static VirtualFrameCargoArguments getVirtualFrameCargoArguments(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], VirtualFrameCargoArguments.class, true);
-    }
-
-    public static GeneratorArguments getGeneratorArguments(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], GeneratorArguments.class, true);
-    }
-
-    public static ParallelGeneratorArguments getParallelGeneratorArguments(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], ParallelGeneratorArguments.class, true);
-    }
-
-    public static void setGeneratorArguments(Object[] arguments, GeneratorArguments generatorArguments) {
-        arguments[INDEX_SPECIAL_ARGUMENTS] = generatorArguments;
-    }
-
-    public static void setParallelGeneratorArguments(Object[] arguments, ParallelGeneratorArguments generatorArguments) {
-        arguments[INDEX_SPECIAL_ARGUMENTS] = generatorArguments;
-    }
-
     public static final class GeneratorArguments {
 
-        private final MaterializedFrame generatorFrame;
         // See GeneratorReturnTargetNode, GeneratorIfNode, GeneratorWhileNode.
         private final boolean[] activeFlags;
         private final int[] generatorBlockNodeIndices;       // See {@link GeneratorBlockNode}
         private final PIterator[] generatorForNodeIterators; // See {@link GeneratorForNode}
 
-        public GeneratorArguments(MaterializedFrame generatorFrame, int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
-            this.generatorFrame = generatorFrame;
+        public GeneratorArguments(int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
             this.activeFlags = new boolean[numOfActiveFlags];
             this.generatorBlockNodeIndices = new int[numOfGeneratorBlockNode];
             this.generatorForNodeIterators = new PIterator[numOfGeneratorForNode];
-        }
-
-        public MaterializedFrame getGeneratorFrame() {
-            return CompilerDirectives.unsafeFrameCast(generatorFrame);
         }
 
         public boolean getActive(int slot) {

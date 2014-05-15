@@ -45,9 +45,10 @@ public class PGenerator implements PIterator {
         /**
          * Setting up the persistent frame in {@link #arguments}.
          */
-        PArguments.setDeclarationFrame(arguments, declarationFrame);
         MaterializedFrame generatorFrame = Truffle.getRuntime().createMaterializedFrame(PArguments.empty(), frameDescriptor);
-        GeneratorArguments generatorArgs = new PArguments.GeneratorArguments(generatorFrame, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        GeneratorArguments generatorArgs = new PArguments.GeneratorArguments(numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        PArguments.setDeclarationFrame(arguments, declarationFrame);
+        PArguments.setGeneratorFrame(arguments, generatorFrame);
         PArguments.setGeneratorArguments(arguments, generatorArgs);
 
         if (PythonOptions.ProfileGeneratorCalls) {
