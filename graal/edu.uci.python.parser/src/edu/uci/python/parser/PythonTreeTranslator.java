@@ -104,8 +104,6 @@ public class PythonTreeTranslator extends Visitor {
         // System.out.println("ASSIGN SOURCE SECTION line " + startLine + " startColumn " +
 // startColumn + " for " + truffleNode);
         SourceSection sourceSection = source.createSection(identifier, startLine, startColumn, charIndex, charLength);
-        // SourceSection sourceSection = new DefaultSourceSection(source, identifier, startLine,
-// startColumn, charIndex, charLength);
         truffleNode.assignSourceSection(sourceSection);
         return truffleNode;
     }

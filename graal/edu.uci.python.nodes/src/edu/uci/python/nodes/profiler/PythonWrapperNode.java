@@ -17,10 +17,18 @@ public class PythonWrapperNode extends PNode implements Wrapper {
     private final Probe probe;
 
     public PythonWrapperNode(PythonContext context, PNode child) {
+        /**
+         * Don't insert the child here, because child node will be replaced with the wrapper node.
+         * If child node is inserted here, it's parent (which will be wrapper's parent after
+         * replacement) will be lost. Instead, wrapper is created, and the child is replaced with
+         * its wrapper, and then wrapper's child is adopted by calling adoptChildren() in
+         * {@link ProfilerTranslator}.
+         */
         this.child = child;
-        // this.child = insert(child);
-        // context.getInstrumentation().getProbe will generate a probe
-        // this.probe = context.getInstrumentation().getProbe(child.getSourceSection(), null);
+        /**
+         * context.getProbe will either generate a probe for this source section, or return the
+         * existing probe for this section. There can be only one probe for the same source section.
+         */
         this.probe = context.getProbe(child.getSourceSection());
     }
 
