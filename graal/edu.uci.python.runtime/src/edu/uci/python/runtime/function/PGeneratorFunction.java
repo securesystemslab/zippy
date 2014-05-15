@@ -58,13 +58,20 @@ public final class PGeneratorFunction extends PFunction {
     }
 
     @Override
-    public Object call(Object[] args) {
+    public Object call(Object[] arguments) {
         if (PythonOptions.ParallelizeGeneratorCalls) {
             assert parallelCallTarget != null;
-            return makeParallelGeneratorHelper(args);
+            return makeParallelGeneratorHelper(arguments);
         } else {
-            return PGenerator.create(getName(), context, getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            return PGenerator.create(getName(), context, getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), arguments, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
+    }
+
+    @Override
+    public Object call(Object[] arguments, PKeyword[] keywords) {
+        // keywords are ignored.
+        assert keywords.length == 0;
+        return call(arguments);
     }
 
     private PGenerator makeParallelGeneratorHelper(Object[] args) {
@@ -79,13 +86,6 @@ public final class PGeneratorFunction extends PFunction {
         } else {
             return PGenerator.create(getName(), context, getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
-    }
-
-    @Override
-    public Object call(Object[] arguments, PKeyword[] keywords) {
-        // keywords are ignored.
-        assert keywords.length == 0;
-        return call(arguments);
     }
 
 }
