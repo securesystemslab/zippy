@@ -42,8 +42,10 @@ public class PArguments {
     public static final int INDEX_SPECIAL_ARGUMENTS = 2;
     public static final int USER_ARGUMENTS_OFFSET = 3;
 
+    private static final Object[] EMPTY_ARGUMENTS = new Object[]{null, PKeyword.EMPTY_KEYWORDS, null};
+
     public static Object[] empty() {
-        return new Object[]{null, PKeyword.EMPTY_KEYWORDS, null};
+        return EMPTY_ARGUMENTS;
     }
 
     public static Object[] create() {
