@@ -31,6 +31,7 @@ import edu.uci.python.runtime.sequence.*;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
 public final class ReadVarArgsNode extends ReadIndexedArgumentNode {
 
@@ -45,18 +46,19 @@ public final class ReadVarArgsNode extends ReadIndexedArgumentNode {
 
     @Override
     public PTuple executePTuple(VirtualFrame frame) {
-        Object[] arguments = frame.getArguments();
-        int userArgumentLength = PArguments.getUserArgumentLength(frame);
+        final int userArgumentLength = PArguments.getUserArgumentLength(frame);
 
         if (index >= userArgumentLength) {
             return new PTuple();
         } else {
             Object[] varArgs = new Object[userArgumentLength - index];
+
             for (int i = 0; i < varArgs.length; i++) {
-                varArgs[i] = PArguments.getArgument(arguments, i + index);
+                varArgs[i] = PArguments.getArgumentAt(frame, i + index);
             }
 
             return new PTuple(varArgs);
         }
     }
+
 }

@@ -50,8 +50,8 @@ public class PArguments {
         return new Object[]{null, PKeyword.EMPTY_KEYWORDS, null};
     }
 
-    public static Object[] create(int userArgumentCount) {
-        Object[] initialArguments = new Object[USER_ARGUMENTS_OFFSET + userArgumentCount];
+    public static Object[] create(int userArgumentLength) {
+        Object[] initialArguments = new Object[USER_ARGUMENTS_OFFSET + userArgumentLength];
         initialArguments[INDEX_KEYWORD_ARGUMENTS] = PKeyword.EMPTY_KEYWORDS;
         return initialArguments;
     }
@@ -70,24 +70,24 @@ public class PArguments {
         arguments[INDEX_DECLARATION_FRAME] = declarationFrame;
     }
 
-    public static MaterializedFrame getDeclarationFrame(Object[] arguments) {
-        return (MaterializedFrame) arguments[INDEX_DECLARATION_FRAME];
+    public static MaterializedFrame getDeclarationFrame(Frame frame) {
+        return (MaterializedFrame) frame.getArguments()[INDEX_DECLARATION_FRAME];
     }
 
     public static void setKeywordArguments(Object[] arguments, PKeyword[] keywordArguments) {
         arguments[INDEX_KEYWORD_ARGUMENTS] = keywordArguments;
     }
 
-    public static PKeyword[] getKeywordArguments(Object[] arguments) {
-        return (PKeyword[]) arguments[INDEX_KEYWORD_ARGUMENTS];
+    public static PKeyword[] getKeywordArguments(Frame frame) {
+        return (PKeyword[]) frame.getArguments()[INDEX_KEYWORD_ARGUMENTS];
     }
 
     public static void setArgument(Object[] arguments, int index, Object value) {
         arguments[USER_ARGUMENTS_OFFSET + index] = value;
     }
 
-    public static Object getArgument(Object[] arguments, int index) {
-        return arguments[USER_ARGUMENTS_OFFSET + index];
+    public static Object getArgumentAt(Frame frame, int index) {
+        return frame.getArguments()[USER_ARGUMENTS_OFFSET + index];
     }
 
     public static int getUserArgumentLength(VirtualFrame frame) {
@@ -130,8 +130,8 @@ public class PArguments {
     }
 
     @ExplodeLoop
-    public static PKeyword getKeyword(Object[] arguments, String name) {
-        PKeyword[] keywordArguments = getKeywordArguments(arguments);
+    public static PKeyword getKeyword(Frame frame, String name) {
+        PKeyword[] keywordArguments = getKeywordArguments(frame);
 
         for (int i = 0; i < keywordArguments.length; i++) {
             PKeyword keyword = keywordArguments[i];

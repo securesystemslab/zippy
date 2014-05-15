@@ -55,7 +55,6 @@ public class PythonCallUtil {
 
     /**
      * Pack primary into the evaluated arguments array if passPrimary is true.
-     *
      */
     @ExplodeLoop
     protected static final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary, PNode[] arguments) {

@@ -36,10 +36,10 @@ public final class FrameUtil {
     public static MaterializedFrame getParentFrame(VirtualFrame frame, int level) {
         assert level > 0;
         CompilerAsserts.compilationConstant(level);
-        MaterializedFrame parentFrame = PArguments.getDeclarationFrame(frame.getArguments());
+        MaterializedFrame parentFrame = PArguments.getDeclarationFrame(frame);
 
         for (int i = 1; i < level; i++) {
-            parentFrame = PArguments.getDeclarationFrame(parentFrame.getArguments());
+            parentFrame = PArguments.getDeclarationFrame(parentFrame);
         }
 
         return parentFrame;

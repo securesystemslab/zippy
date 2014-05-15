@@ -32,7 +32,7 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public class PMethod extends PythonBuiltinObject implements PythonCallable {
+public final class PMethod extends PythonBuiltinObject implements PythonCallable {
 
     private final PFunction function;
     private final PythonObject self;
@@ -52,10 +52,10 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
         return self;
     }
 
-    public Object call(Object[] args) {
-        Object[] combined = PArguments.insertSelf(args, self);
-        PArguments.setDeclarationFrame(combined, function.getDeclarationFrame());
-        return callTarget.call(combined);
+    public Object call(Object[] arguments) {
+        Object[] processed = PArguments.insertSelf(arguments, self);
+        PArguments.setDeclarationFrame(processed, function.getDeclarationFrame());
+        return callTarget.call(processed);
     }
 
     /**
@@ -63,22 +63,14 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
      * from an arguments array copy that packs the self object into the flat arguments array.
      *
      */
-    public Object call(Object[] args, PKeyword[] keywords) {
+    public Object call(Object[] arguments, PKeyword[] keywords) {
         if (PythonOptions.CatchZippyExceptionForUnitTesting) {
-            return slowPathCallForUnitTest(args, keywords);
+            return slowPathCallForUnitTest(arguments, keywords);
         }
 
-        Object[] combined = PArguments.insertSelf(args, self);
-        combined = PArguments.applyKeywordArgs(getArity(), combined, keywords);
-        PArguments.setDeclarationFrame(combined, function.getDeclarationFrame());
-        return callTarget.call(combined);
-    }
-
-    protected static Object[] packSelfWithArguments(Object self, Object[] arguments) {
-        Object[] argsWithSelf = new Object[arguments.length + 1];
-        argsWithSelf[0] = self;
-        System.arraycopy(arguments, 0, argsWithSelf, 1, arguments.length);
-        return argsWithSelf;
+        Object[] processed = PArguments.insertSelf(arguments, self);
+        PArguments.setDeclarationFrame(processed, function.getDeclarationFrame());
+        return callTarget.call(PArguments.applyKeywordArgs(getArity(), processed, keywords));
     }
 
     /**
