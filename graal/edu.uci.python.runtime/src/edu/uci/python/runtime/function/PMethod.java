@@ -53,7 +53,9 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
     }
 
     public Object call(Object[] args) {
-        return callTarget.call(new PArguments(function.getDeclarationFrame(), packSelfWithArguments(self, args)).packAsObjectArray());
+        Object[] combined = PArguments.insertSelf(args, self);
+        PArguments.setDeclarationFrame(combined, function.getDeclarationFrame());
+        return callTarget.call(combined);
     }
 
     /**
@@ -66,8 +68,10 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
             return slowPathCallForUnitTest(args, keywords);
         }
 
-        Object[] combined = PFunction.applyKeywordArgs(getArity(), packSelfWithArguments(self, args), keywords);
-        return callTarget.call(new PArguments(function.getDeclarationFrame(), combined).packAsObjectArray());
+        Object[] combined = PArguments.insertSelf(args, self);
+        combined = PArguments.applyKeywordArgs(getArity(), combined, keywords);
+        PArguments.setDeclarationFrame(combined, function.getDeclarationFrame());
+        return callTarget.call(combined);
     }
 
     protected static Object[] packSelfWithArguments(Object self, Object[] arguments) {
@@ -87,16 +91,17 @@ public class PMethod extends PythonBuiltinObject implements PythonCallable {
     private Object slowPathCallForUnitTest(Object[] args, PKeyword[] keywords) {
         if (function.getName().equals("_executeTestPart")) {
             try {
-                Object[] combined = PFunction.applyKeywordArgs(getArity(), packSelfWithArguments(self, args), keywords);
-                Object returnValue = callTarget.call(new PArguments(function.getDeclarationFrame(), combined).packAsObjectArray());
-                return returnValue;
+                Object[] combined = PArguments.insertSelf(args, self);
+                combined = PArguments.applyKeywordArgs(getArity(), combined, keywords);
+                return callTarget.call(combined);
             } catch (Exception e) {
                 return "ZippyExecutionError: " + e;
             }
         }
 
-        Object[] combined = PFunction.applyKeywordArgs(getArity(), packSelfWithArguments(self, args), keywords);
-        return callTarget.call(new PArguments(function.getDeclarationFrame(), combined).packAsObjectArray());
+        Object[] combined = PArguments.insertSelf(args, self);
+        combined = PArguments.applyKeywordArgs(getArity(), combined, keywords);
+        return callTarget.call(combined);
     }
 
     @Override

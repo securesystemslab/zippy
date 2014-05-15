@@ -47,8 +47,9 @@ public class ReadVarKeywordsNode extends PNode {
 
     @Override
     public final PKeyword[] executeObjectArray(VirtualFrame frame) {
-        PArguments arguments = PArguments.get(frame);
-        PKeyword[] keywords = arguments.getKeywords();
+        Object[] arguments = frame.getArguments();
+        PKeyword[] keywords = PArguments.getKeywordArguments(arguments);
         return keywords;
     }
+
 }

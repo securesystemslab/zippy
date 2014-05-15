@@ -78,8 +78,7 @@ public abstract class ReadIndexedArgumentNode extends PNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            PArguments args = PArguments.get(frame);
-            return args.getArgument(index);
+            return PArguments.getArgument(frame.getArguments(), index);
         }
     }
 
@@ -105,14 +104,13 @@ public abstract class ReadIndexedArgumentNode extends PNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            PArguments args = PArguments.get(frame);
 
-            if (index >= args.getArgumentsLength()) {
+            if (index >= PArguments.getUserArgumentLength(frame)) {
                 replace(new OffBoundReadArgumentNode(index));
                 return PNone.NONE;
             } else {
                 replace(new InBoundReadArgumentNode(index));
-                return args.getArgument(index);
+                return PArguments.getArgument(frame.getArguments(), index);
             }
         }
     }

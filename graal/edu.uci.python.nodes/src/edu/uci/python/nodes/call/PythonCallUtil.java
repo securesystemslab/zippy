@@ -40,6 +40,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
+import static edu.uci.python.runtime.function.PArguments.*;
 
 public class PythonCallUtil {
 
@@ -59,18 +60,18 @@ public class PythonCallUtil {
     @ExplodeLoop
     protected static final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary, PNode[] arguments) {
         final int length = passPrimary ? arguments.length + 1 : arguments.length;
-        final Object[] evaluated = length == 0 ? EMPTY_ARGUMENTS : new Object[length];
+        final Object[] evaluated = length == 0 ? create() : create(length);
         final int offset;
 
         if (passPrimary) {
-            evaluated[0] = primary;
+            evaluated[USER_ARGUMENTS_OFFSET] = primary;
             offset = 1;
         } else {
             offset = 0;
         }
 
         for (int i = 0; i < arguments.length; i++) {
-            evaluated[i + offset] = arguments[i].execute(frame);
+            evaluated[USER_ARGUMENTS_OFFSET + i + offset] = arguments[i].execute(frame);
         }
 
         return evaluated;
@@ -78,6 +79,18 @@ public class PythonCallUtil {
 
     @ExplodeLoop
     public static final Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
+        final int length = arguments.length;
+        final Object[] evaluated = length == 0 ? EMPTY : create(length);
+
+        for (int i = 0; i < arguments.length; i++) {
+            evaluated[USER_ARGUMENTS_OFFSET + i] = arguments[i].execute(frame);
+        }
+
+        return evaluated;
+    }
+
+    @ExplodeLoop
+    public static final Object[] executeArgumentsForJython(VirtualFrame frame, PNode[] arguments) {
         final int length = arguments.length;
         final Object[] evaluated = length == 0 ? EMPTY_ARGUMENTS : new Object[length];
 

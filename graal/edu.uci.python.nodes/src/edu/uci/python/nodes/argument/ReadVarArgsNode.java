@@ -45,14 +45,15 @@ public final class ReadVarArgsNode extends ReadIndexedArgumentNode {
 
     @Override
     public PTuple executePTuple(VirtualFrame frame) {
-        PArguments arguments = PArguments.get(frame);
+        Object[] arguments = frame.getArguments();
+        int userArgumentLength = PArguments.getUserArgumentLength(frame);
 
-        if (index >= arguments.getLength()) {
+        if (index >= userArgumentLength) {
             return new PTuple();
         } else {
-            Object[] varArgs = new Object[arguments.getLength() - index];
+            Object[] varArgs = new Object[userArgumentLength - index];
             for (int i = 0; i < varArgs.length; i++) {
-                varArgs[i] = arguments.getArgument(i + index);
+                varArgs[i] = PArguments.getArgument(arguments, i + index);
             }
 
             return new PTuple(varArgs);

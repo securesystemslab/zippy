@@ -94,8 +94,8 @@ public abstract class InvokeNode extends Node {
 
         @Override
         protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
-            PArguments arg = new PArguments(declarationFrame, arguments);
-            return callNode.call(frame, arg.packAsObjectArray());
+            PArguments.setDeclarationFrame(arguments, declarationFrame);
+            return callNode.call(frame, arguments);
         }
     }
 
@@ -112,9 +112,9 @@ public abstract class InvokeNode extends Node {
 
         @Override
         protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
-            Object[] combined = PFunction.applyKeywordArgs(arity, arguments, keywords);
-            PArguments arg = new PArguments(declarationFrame, combined);
-            return callNode.call(frame, arg.packAsObjectArray());
+            Object[] combined = PArguments.applyKeywordArgs(arity, arguments, keywords);
+            PArguments.setDeclarationFrame(combined, declarationFrame);
+            return callNode.call(frame, combined);
         }
     }
 
@@ -126,8 +126,8 @@ public abstract class InvokeNode extends Node {
 
         @Override
         protected Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords) {
-            PArguments arg = new PArguments(null, arguments, keywords);
-            return callNode.call(frame, arg.packAsObjectArray());
+            PArguments.setKeywordArguments(arguments, keywords);
+            return callNode.call(frame, arguments);
         }
     }
 

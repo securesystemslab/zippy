@@ -47,12 +47,13 @@ public class ReadKeywordNode extends PNode {
 
     @Override
     public final Object execute(VirtualFrame frame) {
-        PArguments arguments = PArguments.get(frame);
-        PKeyword keyword = arguments.getKeyword(name);
+        PKeyword keyword = PArguments.getKeyword(frame.getArguments(), name);
+
         if (keyword == null) {
             return PNone.NONE;
         }
 
         return keyword;
     }
+
 }
