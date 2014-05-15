@@ -59,7 +59,7 @@ public class PythonCallUtil {
     @ExplodeLoop
     protected static final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary, PNode[] arguments) {
         final int length = passPrimary ? arguments.length + 1 : arguments.length;
-        final Object[] evaluated = length == 0 ? empty() : create(length);
+        final Object[] evaluated = length == 0 ? create() : create(length);
         final int offset;
 
         if (passPrimary) {
@@ -79,7 +79,7 @@ public class PythonCallUtil {
     @ExplodeLoop
     public static final Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
         final int length = arguments.length;
-        final Object[] evaluated = length == 0 ? empty() : create(length);
+        final Object[] evaluated = length == 0 ? create() : create(length);
 
         for (int i = 0; i < arguments.length; i++) {
             evaluated[USER_ARGUMENTS_OFFSET + i] = arguments[i].execute(frame);
