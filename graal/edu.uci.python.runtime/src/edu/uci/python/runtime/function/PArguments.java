@@ -40,10 +40,6 @@ public class PArguments {
     public static final Object[] EMPTY_ARGUMENTS_ARRAY = new Object[0];
     public static final PArguments EMPTY_ARGUMENT = new PArguments(null, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
 
-    private final MaterializedFrame declarationFrame;
-    private final Object[] arguments;
-    private final PKeyword[] keywords;
-
     public static final int INDEX_DECLARATION_FRAME = 0;
     public static final int INDEX_KEYWORD_ARGUMENTS = 1;
     public static final int INDEX_SPECIAL_ARGUMENTS = 2;
@@ -155,6 +151,10 @@ public class PArguments {
 
         return null;
     }
+
+    private final MaterializedFrame declarationFrame;
+    private final Object[] arguments;
+    private final PKeyword[] keywords;
 
     public PArguments(MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywords) {
         this.declarationFrame = declarationFrame;

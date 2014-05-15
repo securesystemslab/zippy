@@ -39,26 +39,10 @@ public final class FrameUtil {
         MaterializedFrame parentFrame = PArguments.getDeclarationFrame(frame.getArguments());
 
         for (int i = 1; i < level; i++) {
-            parentFrame = PArguments.getDeclarationFrame(frame.getArguments());
+            parentFrame = PArguments.getDeclarationFrame(parentFrame.getArguments());
         }
 
         return parentFrame;
-    }
-
-    @ExplodeLoop
-    public static MaterializedFrame getParentFrame(MaterializedFrame frame, int level) {
-        assert level >= 0;
-        if (level == 0) {
-            return frame;
-        } else {
-            MaterializedFrame parentFrame = frame;
-
-            for (int i = 0; i < level; i++) {
-                parentFrame = PArguments.getDeclarationFrame(frame.getArguments());
-            }
-
-            return parentFrame;
-        }
     }
 
 }

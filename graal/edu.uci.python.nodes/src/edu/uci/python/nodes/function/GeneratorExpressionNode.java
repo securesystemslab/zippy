@@ -124,7 +124,12 @@ public class GeneratorExpressionNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        MaterializedFrame declarationFrame = needsDeclarationFrame ? (isEnclosingFrameGenerator ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : frame.materialize()) : null;
+        MaterializedFrame declarationFrame = null;
+
+        if (needsDeclarationFrame) {
+            declarationFrame = isEnclosingFrameGenerator ? PArguments.getGeneratorArguments(frame).getGeneratorFrame() : frame.materialize();
+        }
+
         return PGenerator.create(name, context, callTarget, frameDescriptor, declarationFrame, PArguments.create(), numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
