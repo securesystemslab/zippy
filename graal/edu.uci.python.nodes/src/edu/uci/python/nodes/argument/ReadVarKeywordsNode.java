@@ -31,6 +31,7 @@ import edu.uci.python.runtime.function.*;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
 public class ReadVarKeywordsNode extends PNode {
 
@@ -47,8 +48,7 @@ public class ReadVarKeywordsNode extends PNode {
 
     @Override
     public final PKeyword[] executeObjectArray(VirtualFrame frame) {
-        PArguments arguments = PArguments.get(frame);
-        PKeyword[] keywords = arguments.getKeywords();
-        return keywords;
+        return PArguments.getKeywordArguments(frame);
     }
+
 }

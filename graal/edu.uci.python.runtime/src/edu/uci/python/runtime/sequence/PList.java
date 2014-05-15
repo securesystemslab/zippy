@@ -45,7 +45,7 @@ public class PList extends PSequence {
     @CompilationFinal private SequenceStorage store;
 
 // public static List<PList> lists = new ArrayList<PList>();
-    public static long appendCounter = 0;
+// public static long appendCounter = 0;
 
     public PList() {
         store = SequenceStorageFactory.createStorage(null);
@@ -245,7 +245,7 @@ public class PList extends PSequence {
             }
         }
 
-        appendCounter++;
+        // appendCounter++;
     }
 
     public final void extend(PList appendee) {

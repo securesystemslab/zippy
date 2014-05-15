@@ -50,7 +50,7 @@ public class ASTInterpreter {
             }
         }
 
-	   module.call(PArguments.EMPTY_ARGUMENTS_ARRAY);
+        module.call(PArguments.empty());
     }
 
 }

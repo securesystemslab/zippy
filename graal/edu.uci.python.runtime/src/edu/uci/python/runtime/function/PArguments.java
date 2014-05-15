@@ -29,24 +29,161 @@ import java.util.concurrent.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.object.*;
 
 public class PArguments {
 
-    public static final Object[] EMPTY_ARGUMENTS_ARRAY = new Object[0];
-    public static final PArguments EMPTY_ARGUMENT = new PArguments(null, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
+    public static final int INDEX_DECLARATION_FRAME = 0;
+    public static final int INDEX_KEYWORD_ARGUMENTS = 1;
+    public static final int INDEX_GENERATOR_FRAME = 2;
+    public static final int INDEX_SPECIAL_ARGUMENTS = 3;
+    public static final int USER_ARGUMENTS_OFFSET = 4;
 
-    private final MaterializedFrame declarationFrame;
-    private final Object[] arguments;
-    private final PKeyword[] keywords;
+    private static final Object[] EMPTY_ARGUMENTS = new Object[]{null, PKeyword.EMPTY_KEYWORDS, null, null};
 
+    public static Object[] empty() {
+        return EMPTY_ARGUMENTS;
+    }
+
+    public static Object[] create() {
+        return new Object[]{null, PKeyword.EMPTY_KEYWORDS, null, null};
+    }
+
+    public static Object[] create(int userArgumentLength) {
+        Object[] initialArguments = new Object[USER_ARGUMENTS_OFFSET + userArgumentLength];
+        initialArguments[INDEX_KEYWORD_ARGUMENTS] = PKeyword.EMPTY_KEYWORDS;
+        return initialArguments;
+    }
+
+    @ExplodeLoop
+    public static Object[] createWithUserArguments(Object... userArguments) {
+        Object[] arguments = create(userArguments.length);
+
+        for (int i = 0; i < userArguments.length; i++) {
+            arguments[USER_ARGUMENTS_OFFSET + i] = userArguments[i];
+        }
+
+        return arguments;
+    }
+
+    public static void setDeclarationFrame(Object[] arguments, MaterializedFrame declarationFrame) {
+        arguments[INDEX_DECLARATION_FRAME] = declarationFrame;
+    }
+
+    public static MaterializedFrame getDeclarationFrame(Frame frame) {
+        return (MaterializedFrame) frame.getArguments()[INDEX_DECLARATION_FRAME];
+    }
+
+    public static void setKeywordArguments(Object[] arguments, PKeyword[] keywordArguments) {
+        arguments[INDEX_KEYWORD_ARGUMENTS] = keywordArguments;
+    }
+
+    public static PKeyword[] getKeywordArguments(Frame frame) {
+        return (PKeyword[]) frame.getArguments()[INDEX_KEYWORD_ARGUMENTS];
+    }
+
+    public static void setArgument(Object[] arguments, int index, Object value) {
+        arguments[USER_ARGUMENTS_OFFSET + index] = value;
+    }
+
+    public static Object getArgumentAt(Frame frame, int index) {
+        return frame.getArguments()[USER_ARGUMENTS_OFFSET + index];
+    }
+
+    public static int getUserArgumentLength(VirtualFrame frame) {
+        return frame.getArguments().length - USER_ARGUMENTS_OFFSET;
+    }
+
+    @ExplodeLoop
+    public static Object[] insertSelf(Object[] arguments, PythonObject self) {
+        final int userArgumentLength = arguments.length - USER_ARGUMENTS_OFFSET;
+        Object[] results = create(userArgumentLength + 1);
+        results[USER_ARGUMENTS_OFFSET] = self;
+
+        for (int i = 0; i < userArgumentLength; i++) {
+            results[USER_ARGUMENTS_OFFSET + 1 + i] = arguments[USER_ARGUMENTS_OFFSET + i];
+        }
+
+        return results;
+    }
+
+    @ExplodeLoop
+    public static Object[] applyKeywordArgs(Arity calleeArity, Object[] arguments, PKeyword[] keywords) {
+        List<String> parameters = calleeArity.getParameterIds();
+        Object[] combined = create(parameters.size());
+        assert combined.length >= arguments.length : "Parameters size does not match";
+        System.arraycopy(arguments, 0, combined, 0, arguments.length);
+
+        for (int i = 0; i < keywords.length; i++) {
+            PKeyword keyarg = keywords[i];
+            int keywordIdx = parameters.indexOf(keyarg.getName());
+
+            if (keywordIdx < -1) {
+                /**
+                 * TODO can throw a type error for wrong keyword name // TypeError: foo() got an
+                 * unexpected keyword argument 'c'
+                 */
+            }
+
+            combined[USER_ARGUMENTS_OFFSET + keywordIdx] = keyarg.getValue();
+        }
+
+        return combined;
+    }
+
+    @ExplodeLoop
+    public static PKeyword getKeyword(Frame frame, String name) {
+        PKeyword[] keywordArguments = getKeywordArguments(frame);
+
+        for (int i = 0; i < keywordArguments.length; i++) {
+            PKeyword keyword = keywordArguments[i];
+
+            if (keyword.getName().equals(name)) {
+                return keyword;
+            }
+        }
+
+        return null;
+    }
+
+    public static VirtualFrameCargoArguments getVirtualFrameCargoArguments(Frame frame) {
+        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], VirtualFrameCargoArguments.class, true);
+    }
+
+    public static MaterializedFrame getGeneratorFrame(Frame frame) {
+        return (MaterializedFrame) frame.getArguments()[INDEX_GENERATOR_FRAME];
+    }
+
+    public static GeneratorArguments getGeneratorArguments(Frame frame) {
+        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], GeneratorArguments.class, true);
+    }
+
+    public static ParallelGeneratorArguments getParallelGeneratorArguments(Frame frame) {
+        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], ParallelGeneratorArguments.class, true);
+    }
+
+    public static void setGeneratorFrame(Object[] arguments, MaterializedFrame generatorFrame) {
+        arguments[INDEX_GENERATOR_FRAME] = generatorFrame;
+    }
+
+    public static void setGeneratorArguments(Object[] arguments, GeneratorArguments generatorArguments) {
+        arguments[INDEX_SPECIAL_ARGUMENTS] = generatorArguments;
+    }
+
+    public static void setParallelGeneratorArguments(Object[] arguments, ParallelGeneratorArguments generatorArguments) {
+        arguments[INDEX_SPECIAL_ARGUMENTS] = generatorArguments;
+    }
+
+    /**
+     * TODO: (zwei) to be removed.
+     */
+    @SuppressWarnings("unused")
     public PArguments(MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywords) {
-        this.declarationFrame = declarationFrame;
-        this.arguments = arguments;
         assert arguments != null;
-        this.keywords = keywords;
     }
 
     public PArguments(MaterializedFrame declarationFrame, Object[] arguments) {
@@ -57,76 +194,17 @@ public class PArguments {
         return new Object[]{this};
     }
 
-    public static PArguments get(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[0], PArguments.class, true);
-    }
+    public static final class GeneratorArguments {
 
-    public static VirtualFrameCargoArguments getVirtualFrameCargoArguments(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[0], VirtualFrameCargoArguments.class, true);
-    }
-
-    public static GeneratorArguments getGeneratorArguments(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[0], GeneratorArguments.class, true);
-    }
-
-    public static ParallelGeneratorArguments getParallelGeneratorArguments(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[0], ParallelGeneratorArguments.class, true);
-    }
-
-    public final int getArgumentsLength() {
-        return arguments.length;
-    }
-
-    public final Object[] getArgumentsArray() {
-        return CompilerDirectives.unsafeCast(arguments, Object[].class, true);
-    }
-
-    public MaterializedFrame getDeclarationFrame() {
-        return CompilerDirectives.unsafeFrameCast(declarationFrame);
-    }
-
-    public final Object getArgument(int index) {
-        assert index < arguments.length;
-        return arguments[index];
-    }
-
-    public PKeyword getKeyword(String name) {
-        for (int i = 0; i < keywords.length; i++) {
-            PKeyword keyword = keywords[i];
-            if (keyword.getName().equals(name)) {
-                return keyword;
-            }
-        }
-
-        return null;
-    }
-
-    public PKeyword[] getKeywords() {
-        return keywords;
-    }
-
-    public int getLength() {
-        return arguments.length;
-    }
-
-    public static final class GeneratorArguments extends PArguments {
-
-        private final MaterializedFrame generatorFrame;
         // See GeneratorReturnTargetNode, GeneratorIfNode, GeneratorWhileNode.
         private final boolean[] activeFlags;
         private final int[] generatorBlockNodeIndices;       // See {@link GeneratorBlockNode}
         private final PIterator[] generatorForNodeIterators; // See {@link GeneratorForNode}
 
-        public GeneratorArguments(MaterializedFrame declarationFrame, MaterializedFrame generatorFrame, Object[] arguments, int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
-            super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
-            this.generatorFrame = generatorFrame;
+        public GeneratorArguments(int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
             this.activeFlags = new boolean[numOfActiveFlags];
             this.generatorBlockNodeIndices = new int[numOfGeneratorBlockNode];
             this.generatorForNodeIterators = new PIterator[numOfGeneratorForNode];
-        }
-
-        public MaterializedFrame getGeneratorFrame() {
-            return CompilerDirectives.unsafeFrameCast(generatorFrame);
         }
 
         public boolean getActive(int slot) {
@@ -172,39 +250,35 @@ public class PArguments {
         }
     }
 
-    public static final class ParallelGeneratorArguments extends PArguments {
+    public static final class ParallelGeneratorArguments {
 
         private final BlockingQueue<Object> blockingQueue;
         private final SingleProducerCircularBuffer buffer;
         private final Queue<Object> queue;
         private final DisruptorRingBufferHandler ringBuffer;
 
-        public ParallelGeneratorArguments(MaterializedFrame declarationFrame, BlockingQueue<Object> queue, Object[] arguments) {
-            super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+        public ParallelGeneratorArguments(BlockingQueue<Object> queue) {
             this.blockingQueue = queue;
             this.buffer = null;
             this.queue = null;
             this.ringBuffer = null;
         }
 
-        public ParallelGeneratorArguments(MaterializedFrame declarationFrame, SingleProducerCircularBuffer buffer, Object[] arguments) {
-            super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+        public ParallelGeneratorArguments(SingleProducerCircularBuffer buffer) {
             this.blockingQueue = null;
             this.buffer = buffer;
             this.queue = null;
             this.ringBuffer = null;
         }
 
-        public ParallelGeneratorArguments(MaterializedFrame declarationFrame, Queue<Object> queue, Object[] arguments) {
-            super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+        public ParallelGeneratorArguments(Queue<Object> queue) {
             this.blockingQueue = null;
             this.buffer = null;
             this.queue = queue;
             this.ringBuffer = null;
         }
 
-        public ParallelGeneratorArguments(MaterializedFrame declarationFrame, DisruptorRingBufferHandler ringBuffer, Object[] arguments) {
-            super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
+        public ParallelGeneratorArguments(DisruptorRingBufferHandler ringBuffer) {
             this.blockingQueue = null;
             this.buffer = null;
             this.queue = null;

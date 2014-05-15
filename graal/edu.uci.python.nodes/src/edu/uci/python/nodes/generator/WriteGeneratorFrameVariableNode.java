@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -72,56 +72,56 @@ public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode impl
 
     @Specialization(order = 1, guards = "isNotIllegal")
     public PNone writeNone(VirtualFrame frame, PNone right) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+        MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         mframe.setObject(frameSlot, PNone.NONE);
         return right;
     }
 
     @Specialization(order = 2, guards = "isBooleanKind")
     public boolean write(VirtualFrame frame, boolean right) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+        MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         mframe.setBoolean(frameSlot, right);
         return right;
     }
 
     @Specialization(order = 3, guards = "isIntegerKind")
     public int doInteger(VirtualFrame frame, int value) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+        MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         mframe.setInt(frameSlot, value);
         return value;
     }
 
     @Specialization(order = 4, guards = "isIntOrObjectKind")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+        MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         setObject(mframe, value);
         return value;
     }
 
     @Specialization(order = 5, guards = "isDoubleKind")
     public double doDouble(VirtualFrame frame, double right) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+        MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         mframe.setDouble(frameSlot, right);
         return right;
     }
 
     @Specialization(order = 6, guards = "isObjectKind")
     public PComplex write(VirtualFrame frame, PComplex right) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+        MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         setObject(mframe, right);
         return right;
     }
 
     @Specialization(order = 7, guards = "isObjectKind")
     public String write(VirtualFrame frame, String right) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+        MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         setObject(mframe, right);
         return right;
     }
 
     @Specialization(guards = "isObjectKind")
     public Object write(VirtualFrame frame, Object right) {
-        MaterializedFrame mframe = PArguments.getGeneratorArguments(frame).getGeneratorFrame();
+        MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         setObject(mframe, right);
         return right;
     }

@@ -364,7 +364,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
             try {
                 while (true) {
-                    list.append(mappingFunction.call(new Object[]{iter.__next__()}));
+                    list.append(mappingFunction.call(PArguments.createWithUserArguments(iter.__next__())));
                 }
             } catch (StopIterationException e) {
 

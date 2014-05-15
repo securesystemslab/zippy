@@ -40,10 +40,11 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
+import static edu.uci.python.runtime.function.PArguments.*;
 
 public class PythonCallUtil {
 
-    public static final Object[] EMPTY_ARGUMENTS = new Object[0];
+    private static final Object[] EMPTY_ARGUMENTS = new Object[0];
 
     protected static void logJythonRuntime(PyObject callee) {
         if (PythonOptions.TraceJythonRuntime) {
@@ -54,23 +55,22 @@ public class PythonCallUtil {
 
     /**
      * Pack primary into the evaluated arguments array if passPrimary is true.
-     *
      */
     @ExplodeLoop
     protected static final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary, PNode[] arguments) {
         final int length = passPrimary ? arguments.length + 1 : arguments.length;
-        final Object[] evaluated = length == 0 ? EMPTY_ARGUMENTS : new Object[length];
+        final Object[] evaluated = length == 0 ? empty() : create(length);
         final int offset;
 
         if (passPrimary) {
-            evaluated[0] = primary;
+            evaluated[USER_ARGUMENTS_OFFSET] = primary;
             offset = 1;
         } else {
             offset = 0;
         }
 
         for (int i = 0; i < arguments.length; i++) {
-            evaluated[i + offset] = arguments[i].execute(frame);
+            evaluated[USER_ARGUMENTS_OFFSET + i + offset] = arguments[i].execute(frame);
         }
 
         return evaluated;
@@ -78,6 +78,18 @@ public class PythonCallUtil {
 
     @ExplodeLoop
     public static final Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
+        final int length = arguments.length;
+        final Object[] evaluated = length == 0 ? empty() : create(length);
+
+        for (int i = 0; i < arguments.length; i++) {
+            evaluated[USER_ARGUMENTS_OFFSET + i] = arguments[i].execute(frame);
+        }
+
+        return evaluated;
+    }
+
+    @ExplodeLoop
+    public static final Object[] executeArgumentsForJython(VirtualFrame frame, PNode[] arguments) {
         final int length = arguments.length;
         final Object[] evaluated = length == 0 ? EMPTY_ARGUMENTS : new Object[length];
 

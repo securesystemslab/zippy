@@ -91,7 +91,7 @@ public class ZipPyConsole extends InteractiveConsole {
             ProfilerResultPrinter.printProfilerInstrumenterResults();
         }
 
-        System.out.println("APPEND COUNTER " + PList.appendCounter);
+// System.out.println("APPEND COUNTER " + PList.appendCounter);
 
 // for (int i = 0; i < PList.lists.size(); i++) {
 // System.out.println("APPEND COUNTER " + PList.lists.get(i).appendCounter + " for " +

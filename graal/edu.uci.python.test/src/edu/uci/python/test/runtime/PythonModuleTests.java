@@ -51,7 +51,7 @@ public class PythonModuleTests {
         final PythonContext context = PythonTests.getContext();
         final PythonModule builtins = context.getBuiltins();
         PBuiltinFunction min = (PBuiltinFunction) builtins.getAttribute("min");
-        Object returnValue = min.call(new Object[]{4, 2, 1});
+        Object returnValue = min.call(PArguments.createWithUserArguments(4, 2, 1));
         assertEquals(1, returnValue);
     }
 
@@ -60,7 +60,7 @@ public class PythonModuleTests {
         final PythonContext context = PythonTests.getContext();
         final PythonModule builtins = context.getBuiltins();
         PythonBuiltinClass intClass = (PythonBuiltinClass) builtins.getAttribute("int");
-        Object returnValue = intClass.call(new Object[]{"42"});
+        Object returnValue = intClass.call(PArguments.createWithUserArguments("42"));
         assertEquals(42, returnValue);
     }
 
@@ -70,7 +70,7 @@ public class PythonModuleTests {
         PythonModule main = context.createMainModule(null);
         PythonModule builtins = (PythonModule) main.getAttribute("__builtins__");
         PBuiltinFunction abs = (PBuiltinFunction) builtins.getAttribute("abs");
-        Object returned = abs.call(new Object[]{-42});
+        Object returned = abs.call(PArguments.createWithUserArguments(-42));
         assertEquals(42, returned);
     }
 

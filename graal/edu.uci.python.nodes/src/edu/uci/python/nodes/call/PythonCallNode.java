@@ -331,7 +331,7 @@ public abstract class PythonCallNode extends PNode {
         }
 
         private Object executeCall(VirtualFrame frame, PyObject callee) {
-            Object[] arguments = executeArguments(frame, argumentNodes);
+            Object[] arguments = executeArgumentsForJython(frame, argumentNodes);
             PyObject[] pyargs = adaptToPyObjects(arguments);
             return unboxPyObject(callee.__call__(pyargs));
         }
