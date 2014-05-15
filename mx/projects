@@ -2,8 +2,7 @@
 mxversion=1.0
 suite=graal
 
-library@JDK_TOOLS@path=${JAVA_HOME}/lib/tools.jar
-library@JDK_TOOLS@optional=true
+jrelibrary@JFR@jar=jfr.jar
 
 library@JUNIT@path=lib/junit-4.11.jar
 library@JUNIT@urls=http://repo1.maven.org/maven2/junit/junit/4.11/junit-4.11.jar
@@ -75,6 +74,7 @@ com.oracle.graal.truffle,\
 com.oracle.graal.truffle.hotspot.amd64,\
 com.oracle.graal.hotspot.sparc,\
 com.oracle.graal.hotspot,\
+com.oracle.graal.hotspot.jfr,\
 com.oracle.graal.hotspot.hsail
 distribution@GRAAL@exclude=FINDBUGS
 
@@ -190,6 +190,16 @@ project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replacements.verifier,com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot@javaCompliance=1.8
 project@com.oracle.graal.hotspot@workingSets=Graal,HotSpot
+
+# graal.hotspot.jfr
+project@com.oracle.graal.hotspot.jfr@subDir=graal
+project@com.oracle.graal.hotspot.jfr@sourceDirs=src
+project@com.oracle.graal.hotspot.jfr@dependencies=com.oracle.graal.hotspot,JFR
+project@com.oracle.graal.hotspot.jfr@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot.jfr@annotationProcessors=com.oracle.graal.service.processor
+project@com.oracle.graal.hotspot.jfr@javaCompliance=1.8
+project@com.oracle.graal.hotspot.jfr@profile=
+project@com.oracle.graal.hotspot.jfr@workingSets=Graal,HotSpot
 
 # graal.hotspot.amd64
 project@com.oracle.graal.hotspot.amd64@subDir=graal
