@@ -44,7 +44,7 @@ import static edu.uci.python.runtime.function.PArguments.*;
 
 public class PythonCallUtil {
 
-    public static final Object[] EMPTY_ARGUMENTS = new Object[0];
+    private static final Object[] EMPTY_ARGUMENTS = new Object[0];
 
     protected static void logJythonRuntime(PyObject callee) {
         if (PythonOptions.TraceJythonRuntime) {
@@ -60,7 +60,7 @@ public class PythonCallUtil {
     @ExplodeLoop
     protected static final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary, PNode[] arguments) {
         final int length = passPrimary ? arguments.length + 1 : arguments.length;
-        final Object[] evaluated = length == 0 ? create() : create(length);
+        final Object[] evaluated = length == 0 ? empty() : create(length);
         final int offset;
 
         if (passPrimary) {
@@ -80,7 +80,7 @@ public class PythonCallUtil {
     @ExplodeLoop
     public static final Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
         final int length = arguments.length;
-        final Object[] evaluated = length == 0 ? EMPTY : create(length);
+        final Object[] evaluated = length == 0 ? empty() : create(length);
 
         for (int i = 0; i < arguments.length; i++) {
             evaluated[USER_ARGUMENTS_OFFSET + i] = arguments[i].execute(frame);

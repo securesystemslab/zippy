@@ -35,7 +35,7 @@ public class ASTInterpreter {
     public static void interpret(PythonParseResult result) {
         ModuleNode root = (ModuleNode) result.getModuleRoot();
         RootCallTarget module = Truffle.getRuntime().createCallTarget(root);
-        module.call(PArguments.create());
+        module.call(PArguments.empty());
     }
 
 }
