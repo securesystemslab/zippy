@@ -37,9 +37,6 @@ import edu.uci.python.runtime.object.*;
 
 public class PArguments {
 
-    public static final Object[] EMPTY_ARGUMENTS_ARRAY = new Object[0];
-    public static final PArguments EMPTY_ARGUMENT = new PArguments(null, EMPTY_ARGUMENTS_ARRAY, PKeyword.EMPTY_KEYWORDS);
-
     public static final int INDEX_DECLARATION_FRAME = 0;
     public static final int INDEX_KEYWORD_ARGUMENTS = 1;
     public static final int INDEX_SPECIAL_ARGUMENTS = 2;
@@ -107,13 +104,6 @@ public class PArguments {
         return results;
     }
 
-    public static Object[] extractUserArguments(Object[] arguments) {
-        int userArgumentLength = arguments.length - USER_ARGUMENTS_OFFSET;
-        Object[] userArguments = new Object[userArgumentLength];
-        System.arraycopy(arguments, USER_ARGUMENTS_OFFSET, userArguments, 0, userArgumentLength);
-        return userArguments;
-    }
-
     public static Object[] applyKeywordArgs(Arity calleeArity, Object[] arguments, PKeyword[] keywords) {
         List<String> parameters = calleeArity.getParameterIds();
         Object[] combined = create(parameters.size());
@@ -152,15 +142,9 @@ public class PArguments {
         return null;
     }
 
-    private final MaterializedFrame declarationFrame;
-    private final Object[] arguments;
-    private final PKeyword[] keywords;
-
+    @SuppressWarnings("unused")
     public PArguments(MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywords) {
-        this.declarationFrame = declarationFrame;
-        this.arguments = arguments;
         assert arguments != null;
-        this.keywords = keywords;
     }
 
     public PArguments(MaterializedFrame declarationFrame, Object[] arguments) {
@@ -169,10 +153,6 @@ public class PArguments {
 
     public final Object[] packAsObjectArray() {
         return new Object[]{this};
-    }
-
-    public static PArguments get(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[0], PArguments.class, true);
     }
 
     public static VirtualFrameCargoArguments getVirtualFrameCargoArguments(Frame frame) {
@@ -185,38 +165,6 @@ public class PArguments {
 
     public static ParallelGeneratorArguments getParallelGeneratorArguments(Frame frame) {
         return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], ParallelGeneratorArguments.class, true);
-    }
-
-    public final int getArgumentsLength() {
-        return arguments.length;
-    }
-
-    public MaterializedFrame getDeclarationFrame() {
-        return CompilerDirectives.unsafeFrameCast(declarationFrame);
-    }
-
-    public final Object getArgument(int index) {
-        assert index < arguments.length;
-        return arguments[index];
-    }
-
-    public PKeyword getKeyword(String name) {
-        for (int i = 0; i < keywords.length; i++) {
-            PKeyword keyword = keywords[i];
-            if (keyword.getName().equals(name)) {
-                return keyword;
-            }
-        }
-
-        return null;
-    }
-
-    public PKeyword[] getKeywords() {
-        return keywords;
-    }
-
-    public int getLength() {
-        return arguments.length;
     }
 
     public static void setGeneratorArguments(Object[] arguments, GeneratorArguments generatorArguments) {
