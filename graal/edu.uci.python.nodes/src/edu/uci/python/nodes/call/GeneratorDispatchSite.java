@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,49 +22,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.shell;
+package edu.uci.python.nodes.call;
 
-import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.function.*;
 
-public class CommandLineParser {
+public interface GeneratorDispatchSite {
 
-    public static void parse(String[] args) {
-        int index = 0;
+    PythonCallNode getCallNode();
 
-        while (index < args.length) {
-            String arg = args[index++];
-
-            if (!arg.startsWith("-")) {
-                continue;
-            }
-
-            if (arg.equals("-print-ast")) {
-                PythonOptions.PrintAST = true;
-                continue;
-            }
-
-            if (arg.equals("-visualize-ast")) {
-                PythonOptions.VisualizedAST = true;
-                continue;
-            }
-
-            if (arg.equals("-print-function")) {
-                PythonOptions.UsePrintFunction = true;
-                continue;
-            }
-
-            if (arg.equals("-inline-generator")) {
-                PythonOptions.InlineGeneratorCalls = true;
-                continue;
-            }
-
-            if (arg.equals("-OptimizeGeneratorExpressions:false")) {
-                PythonOptions.OptimizeGeneratorExpressions = false;
-                continue;
-            }
-
-            throw new IllegalStateException("Unknown options " + arg);
-        }
-    }
+    PGeneratorFunction getGeneratorFunction();
 
 }

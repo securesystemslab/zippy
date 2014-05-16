@@ -134,7 +134,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
     }
 
-    public static final class DispatchGeneratorBoxedNode extends CallDispatchBoxedNode {
+    public static final class DispatchGeneratorBoxedNode extends CallDispatchBoxedNode implements GeneratorDispatchSite {
 
         @Child protected ShapeCheckNode check;
         @Child protected CallDispatchBoxedNode next;
@@ -156,10 +156,6 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             return super.getCost();
         }
 
-        public PGeneratorFunction getGeneratorFunction() {
-            return (PGeneratorFunction) generator;
-        }
-
         @Override
         public Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             try {
@@ -171,6 +167,16 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             } catch (InvalidAssumptionException ex) {
                 return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
             }
+        }
+
+        @Override
+        public PGeneratorFunction getGeneratorFunction() {
+            return (PGeneratorFunction) generator;
+        }
+
+        @Override
+        public PythonCallNode getCallNode() {
+            return (PythonCallNode) getTop().getParent();
         }
     }
 

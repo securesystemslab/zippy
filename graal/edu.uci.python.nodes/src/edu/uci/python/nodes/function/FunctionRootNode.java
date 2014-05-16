@@ -110,6 +110,7 @@ public final class FunctionRootNode extends RootNode {
         }
 
         CompilerAsserts.neverPartOfCompilation();
+
         for (DispatchGeneratorBoxedNode dispatch : NodeUtil.findAllNodeInstances(body, DispatchGeneratorBoxedNode.class)) {
             boolean inlinable = dispatch.getCost() == NodeCost.MONOMORPHIC;
             PGeneratorFunction genfun = dispatch.getGeneratorFunction();
