@@ -104,12 +104,8 @@ public final class PDict extends PythonBuiltinObject implements PIterable {
         return map;
     }
 
-    public boolean hasKey(Object[] args) {
-        if (args.length == 1) {
-            return this.map.containsKey(args[0]);
-        } else {
-            throw new RuntimeException("invalid arguments for has_key()");
-        }
+    public boolean hasKey(Object key) {
+        return this.map.containsKey(key);
     }
 
     public PIterator __iter__() {
