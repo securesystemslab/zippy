@@ -1505,11 +1505,11 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
         sub = _addSubprocess(p, args)
         if callable(out):
             t = Thread(target=redirect, args=(p.stdout, out))
-            t.daemon = True  # thread dies with the program
+            # Don't make the reader thread a daemon otherwise output can be droppped
             t.start()
         if callable(err):
             t = Thread(target=redirect, args=(p.stderr, err))
-            t.daemon = True  # thread dies with the program
+            # Don't make the reader thread a daemon otherwise output can be droppped
             t.start()
         if timeout is None or timeout == 0:
             retcode = waitOn(p)
