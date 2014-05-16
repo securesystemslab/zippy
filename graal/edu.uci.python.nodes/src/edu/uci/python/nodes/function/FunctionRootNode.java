@@ -24,11 +24,15 @@
  */
 package edu.uci.python.nodes.function;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.CallDispatchBoxedNode.*;
+import edu.uci.python.nodes.control.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.function.*;
 
 /**
  * RootNode of a Python Function body. It is invoked by a CallTarget.
@@ -87,7 +91,44 @@ public final class FunctionRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
+        if (CompilerDirectives.inInterpreter()) {
+            optimizeGeneratorCalls();
+        }
         return body.execute(frame);
+    }
+
+    protected void optimizeGeneratorCalls() {
+        if (CompilerDirectives.inCompiledCode() || !PythonOptions.InlineGeneratorCalls) {
+            return;
+        }
+
+        CompilerAsserts.neverPartOfCompilation();
+        for (DispatchGeneratorBoxedNode dispatch : NodeUtil.findAllNodeInstances(body, DispatchGeneratorBoxedNode.class)) {
+            boolean inlinable = dispatch.getCost() == NodeCost.MONOMORPHIC;
+            PGeneratorFunction genfun = dispatch.getGeneratorFunction();
+            int calleeNodeCount = NodeUtil.countNodes(this);
+            int generatorNodeCount = NodeUtil.countNodes(genfun.getFunctionRootNode());
+            inlinable &= generatorNodeCount < 500;
+            inlinable &= calleeNodeCount < 2500;
+            peelGeneratorLoop(inlinable, dispatch);
+        }
+    }
+
+    protected static void peelGeneratorLoop(boolean inlinable, DispatchGeneratorBoxedNode dispatch) {
+        CompilerAsserts.neverPartOfCompilation();
+
+        if (!inlinable) {
+            return;
+        }
+
+        Node callNode = dispatch.getTop().getParent();
+        Node getIter = callNode.getParent();
+        Node forNode = getIter.getParent();
+
+        if (!(getIter instanceof GetIteratorNode) || !(forNode instanceof ForNode)) {
+            return;
+        }
+
     }
 
     @Override

@@ -50,7 +50,7 @@ public abstract class CallDispatchNode extends Node {
         return depth;
     }
 
-    protected CallDispatchNode getTop() {
+    public CallDispatchNode getTop() {
         CallDispatchNode current = this;
 
         while (current.getParent() instanceof CallDispatchNode) {

@@ -156,6 +156,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             return super.getCost();
         }
 
+        public PGeneratorFunction getGeneratorFunction() {
+            return (PGeneratorFunction) generator;
+        }
+
         @Override
         public Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             try {
