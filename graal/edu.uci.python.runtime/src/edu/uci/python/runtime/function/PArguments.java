@@ -150,8 +150,8 @@ public class PArguments {
         return null;
     }
 
-    public static VirtualFrameCargoArguments getVirtualFrameCargoArguments(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], VirtualFrameCargoArguments.class, true);
+    public static VirtualFrame getVirtualFrameCargoArguments(Frame frame) {
+        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], VirtualFrame.class, true);
     }
 
     public static MaterializedFrame getGeneratorFrame(Frame frame) {

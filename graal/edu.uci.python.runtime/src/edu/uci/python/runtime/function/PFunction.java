@@ -26,7 +26,6 @@ package edu.uci.python.runtime.function;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.*;
@@ -69,8 +68,7 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
     }
 
     public RootNode getFunctionRootNode() {
-        DefaultCallTarget defaultTarget = (DefaultCallTarget) callTarget;
-        return defaultTarget.getRootNode();
+        return callTarget.getRootNode();
     }
 
     @Override
