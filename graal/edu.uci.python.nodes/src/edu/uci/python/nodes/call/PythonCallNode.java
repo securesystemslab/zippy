@@ -81,6 +81,10 @@ public abstract class PythonCallNode extends PNode {
         return new UninitializedCallNode(context, primaryNode, calleeName, calleeNode, argumentNodes, keywords);
     }
 
+    public PNode[] getArgumentNodes() {
+        return argumentNodes;
+    }
+
     protected Object rewriteAndExecuteCall(VirtualFrame frame, Object primary, Object callee) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
 

@@ -174,6 +174,10 @@ public class PArguments {
         arguments[INDEX_SPECIAL_ARGUMENTS] = generatorArguments;
     }
 
+    public static void setVirtualFrameCargoArguments(Object[] arguments, Frame cargoFrame) {
+        arguments[INDEX_SPECIAL_ARGUMENTS] = cargoFrame;
+    }
+
     public static void setParallelGeneratorArguments(Object[] arguments, ParallelGeneratorArguments generatorArguments) {
         arguments[INDEX_SPECIAL_ARGUMENTS] = generatorArguments;
     }

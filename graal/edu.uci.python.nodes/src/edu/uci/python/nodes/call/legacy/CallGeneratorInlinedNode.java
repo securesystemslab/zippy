@@ -74,4 +74,30 @@ public class CallGeneratorInlinedNode extends InlinedCallNode {
         return generatorRoot.execute(createInlinedFrame(frame, pargs));
     }
 
+    public static final class PeeledGeneratorLoopNode extends PNode {
+
+        @Child protected PNode inlinedRootNode;
+        @Children protected final PNode[] argumentNodes;
+
+        private final FrameDescriptor frameDescriptor;
+
+        public PeeledGeneratorLoopNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode[] argumentNodes) {
+            this.frameDescriptor = frameDescriptor;
+            this.argumentNodes = argumentNodes;
+            this.inlinedRootNode = generatorRoot.getInlinedRootNode();
+        }
+
+        public PNode getGeneratorRoot() {
+            return inlinedRootNode;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            final Object[] arguments = PythonCallUtil.executeArguments(frame, argumentNodes);
+            PArguments.setVirtualFrameCargoArguments(arguments, frame);
+            VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
+            return inlinedRootNode.execute(generatorFrame);
+        }
+    }
+
 }

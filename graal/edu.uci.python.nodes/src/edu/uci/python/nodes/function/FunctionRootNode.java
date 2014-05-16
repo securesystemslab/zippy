@@ -24,13 +24,20 @@
  */
 package edu.uci.python.nodes.function;
 
+import java.io.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.*;
+import edu.uci.python.nodes.call.legacy.CallGeneratorInlinedNode.PeeledGeneratorLoopNode;
 import edu.uci.python.nodes.control.*;
+import edu.uci.python.nodes.frame.*;
+import edu.uci.python.nodes.generator.*;
+import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 
@@ -110,11 +117,11 @@ public final class FunctionRootNode extends RootNode {
             int generatorNodeCount = NodeUtil.countNodes(genfun.getFunctionRootNode());
             inlinable &= generatorNodeCount < 500;
             inlinable &= calleeNodeCount < 2500;
-            peelGeneratorLoop(inlinable, dispatch);
+            peelGeneratorLoop(inlinable, dispatch, genfun);
         }
     }
 
-    protected static void peelGeneratorLoop(boolean inlinable, DispatchGeneratorBoxedNode dispatch) {
+    protected void peelGeneratorLoop(boolean inlinable, DispatchGeneratorBoxedNode dispatch, PGeneratorFunction genfun) {
         CompilerAsserts.neverPartOfCompilation();
 
         if (!inlinable) {
@@ -125,10 +132,38 @@ public final class FunctionRootNode extends RootNode {
         Node getIter = callNode.getParent();
         Node forNode = getIter.getParent();
 
-        if (!(getIter instanceof GetIteratorNode) || !(forNode instanceof ForNode)) {
+        if (!(getIter instanceof GetIteratorNode) || !(forNode instanceof ForNode) || !(callNode instanceof PythonCallNode)) {
             return;
         }
 
+        PythonCallNode call = (PythonCallNode) callNode;
+        ForNode loop = (ForNode) forNode;
+        PeeledGeneratorLoopNode peeled = new PeeledGeneratorLoopNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getArgumentNodes());
+        loop.replace(peeled);
+
+        PNode loopBody = loop.getBody();
+        FrameSlot yieldToSlotInCallerFrame;
+        PNode target = loop.getTarget();
+        yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
+
+        for (YieldNode yield : NodeUtil.findAllNodeInstances(peeled.getGeneratorRoot(), YieldNode.class)) {
+            PNode frameTransfer = FrameTransferNodeFactory.create(yieldToSlotInCallerFrame, yield.getRhs());
+            PNode frameSwapper = new FrameSwappingNode(NodeUtil.cloneNode(loopBody));
+            PNode block = BlockNode.create(frameTransfer, frameSwapper);
+            yield.replace(block);
+        }
+
+        /**
+         * Reset generator expressions in the ungeneratorized function as declared not in generator
+         * frame.
+         */
+        RootNode enclosingRoot = getRootNode();
+        for (GeneratorExpressionNode genexp : NodeUtil.findAllNodeInstances(enclosingRoot, GeneratorExpressionNode.class)) {
+            genexp.setEnclosingFrameGenerator(false);
+        }
+
+        PrintStream ps = System.out;
+        ps.println("[ZipPy] transformed generator call to " + genfun.getCallTarget() + " in " + getRootNode());
     }
 
     @Override
