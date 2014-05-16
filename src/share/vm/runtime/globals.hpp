@@ -3058,7 +3058,7 @@ class CommandLineFlags {
           "If non-zero, maximum number of words that malloc/realloc can "   \
           "allocate (for testing only)")                                    \
                                                                             \
-  product(intx, TypeProfileWidth,     2,                                    \
+  product_pd(intx, TypeProfileWidth,                                        \
           "Number of receiver types to record in call/cast profile")        \
                                                                             \
   product_pd(intx, MethodProfileWidth,                                      \

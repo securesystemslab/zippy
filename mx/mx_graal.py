@@ -957,7 +957,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
         f_testfile.close()
         harness(projectscp, vmArgs)
 
-def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, enable_timing=False, regex=None):
+def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, enable_timing=False, regex=None, color=False, eager_stacktrace=False):
     mxdir = dirname(__file__)
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
@@ -976,6 +976,10 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
         coreArgs.append('-JUnitVerbose')
     if enable_timing:
         coreArgs.append('-JUnitEnableTiming')
+    if color:
+        coreArgs.append('-JUnitColor')
+    if eager_stacktrace:
+        coreArgs.append('-JUnitEagerStackTrace')
 
 
     def harness(projectscp, vmArgs):
@@ -1006,6 +1010,8 @@ _unittestHelpSuffix = """
       --verbose              enable verbose JUnit output
       --enable-timing        enable JUnit test timing
       --regex <regex>        run only testcases matching a regular expression
+      --color                enable colors output
+      --eager-stacktrace     print stacktrace eagerly
 
     To avoid conflicts with VM options '--' can be used as delimiter.
 
@@ -1046,6 +1052,8 @@ def unittest(args):
     parser.add_argument('--verbose', help='enable verbose JUnit output', action='store_true')
     parser.add_argument('--enable-timing', help='enable JUnit test timing', action='store_true')
     parser.add_argument('--regex', help='run only testcases matching a regular expression', metavar='<regex>')
+    parser.add_argument('--color', help='enable color output', action='store_true')
+    parser.add_argument('--eager-stacktrace', help='print stacktrace eagerly', action='store_true')
 
     ut_args = []
     delimiter = False
@@ -1064,15 +1072,14 @@ def unittest(args):
         # parse all know arguments
         parsed_args, args = parser.parse_known_args(ut_args)
 
-    whitelist = None
     if parsed_args.whitelist:
         try:
             with open(join(_graal_home, parsed_args.whitelist)) as fp:
-                whitelist = [re.compile(fnmatch.translate(l.rstrip())) for l in fp.readlines() if not l.startswith('#')]
+                parsed_args.whitelist = [re.compile(fnmatch.translate(l.rstrip())) for l in fp.readlines() if not l.startswith('#')]
         except IOError:
             mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
 
-    _unittest(args, ['@Test', '@Parameters'], whitelist=whitelist, verbose=parsed_args.verbose, enable_timing=parsed_args.enable_timing, regex=parsed_args.regex)
+    _unittest(args, ['@Test', '@Parameters'], **parsed_args.__dict__)
 
 def shortunittest(args):
     """alias for 'unittest --whitelist test/whitelist_shortunittest.txt'{0}"""
@@ -1581,7 +1588,7 @@ def makejmhdeps(args):
                     if not mx.library(name, fatalIfMissing=False):
                         mx.log('Skipping ' + groupId + '.' + artifactId + '.jar as ' + name + ' cannot be resolved')
                         return
-        d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=deps, excludedDependencies=[])
+        d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=deps, excludedDependencies=[], distDependencies=[])
         d.make_archive()
         cmd = ['mvn', 'install:install-file', '-DgroupId=' + groupId, '-DartifactId=' + artifactId,
                '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar', '-Dfile=' + d.path]

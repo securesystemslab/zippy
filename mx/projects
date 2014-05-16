@@ -2,8 +2,7 @@
 mxversion=1.0
 suite=graal
 
-library@JDK_TOOLS@path=${JAVA_HOME}/lib/tools.jar
-library@JDK_TOOLS@optional=true
+jrelibrary@JFR@jar=jfr.jar
 
 library@JUNIT@path=lib/junit-4.11.jar
 library@JUNIT@urls=http://repo1.maven.org/maven2/junit/junit/4.11/junit-4.11.jar
@@ -87,6 +86,7 @@ com.oracle.graal.truffle,\
 com.oracle.graal.truffle.hotspot.amd64,\
 com.oracle.graal.hotspot.sparc,\
 com.oracle.graal.hotspot,\
+com.oracle.graal.hotspot.jfr,\
 com.oracle.graal.hotspot.hsail
 distribution@GRAAL@exclude=FINDBUGS
 
@@ -99,7 +99,7 @@ distribution@TRUFFLE-DSL-PROCESSOR@path=truffle-dsl-processor.jar
 distribution@TRUFFLE-DSL-PROCESSOR@sourcesPath=truffle-dsl-processor-sources.jar
 distribution@TRUFFLE-DSL-PROCESSOR@dependencies=\
 com.oracle.truffle.dsl.processor
-distribution@TRUFFLE-DSL-PROCESSOR@distDependency=TRUFFLE
+distribution@TRUFFLE-DSL-PROCESSOR@distDependencies=TRUFFLE
 
 # graal.api.collections
 project@com.oracle.graal.api.collections@subDir=graal
@@ -202,6 +202,16 @@ project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replacements.verifier,com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot@javaCompliance=1.8
 project@com.oracle.graal.hotspot@workingSets=Graal,HotSpot
+
+# graal.hotspot.jfr
+project@com.oracle.graal.hotspot.jfr@subDir=graal
+project@com.oracle.graal.hotspot.jfr@sourceDirs=src
+project@com.oracle.graal.hotspot.jfr@dependencies=com.oracle.graal.hotspot,JFR
+project@com.oracle.graal.hotspot.jfr@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot.jfr@annotationProcessors=com.oracle.graal.service.processor
+project@com.oracle.graal.hotspot.jfr@javaCompliance=1.8
+project@com.oracle.graal.hotspot.jfr@profile=
+project@com.oracle.graal.hotspot.jfr@workingSets=Graal,HotSpot
 
 # graal.hotspot.amd64
 project@com.oracle.graal.hotspot.amd64@subDir=graal
@@ -580,7 +590,7 @@ project@com.oracle.graal.printer@workingSets=Graal,Graph
 # graal.test
 project@com.oracle.graal.test@subDir=graal
 project@com.oracle.graal.test@sourceDirs=src
-project@com.oracle.graal.test@dependencies=JUNIT
+project@com.oracle.graal.test@dependencies=JUNIT,com.oracle.graal.debug
 project@com.oracle.graal.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.test@javaCompliance=1.8
 project@com.oracle.graal.test@workingSets=Graal,Test

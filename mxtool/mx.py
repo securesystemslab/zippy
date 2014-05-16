@@ -49,6 +49,7 @@ from os.path import join, basename, dirname, exists, getmtime, isabs, expandvars
 
 _projects = dict()
 _libs = dict()
+_jreLibs = dict()
 _dists = dict()
 _suites = dict()
 _annotationProcessors = None
@@ -62,7 +63,7 @@ _warn = False
 A distribution is a jar or zip file containing the output from one or more Java projects.
 """
 class Distribution:
-    def __init__(self, suite, name, path, sourcesPath, deps, excludedDependencies, distDependency):
+    def __init__(self, suite, name, path, sourcesPath, deps, excludedDependencies, distDependencies):
         self.suite = suite
         self.name = name
         self.path = path.replace('/', os.sep)
@@ -71,7 +72,7 @@ class Distribution:
         self.deps = deps
         self.update_listeners = set()
         self.excludedDependencies = excludedDependencies
-        self.distDependency = distDependency
+        self.distDependencies = distDependencies
 
     def sorted_deps(self, includeLibs=False):
         try:
@@ -123,18 +124,22 @@ class Distribution:
                             for arcname in lp.namelist():
                                 overwriteCheck(srcArc.zf, arcname, lpath + '!' + arcname)
                                 srcArc.zf.writestr(arcname, lp.read(arcname))
-                else:
+                elif dep.isProject():
                     p = dep
 
-                    if self.distDependency and p in _dists[self.distDependency].sorted_deps():
-                        logv("Excluding {0} from {1} because it's provided by the dependency {2}".format(p.name, self.path, self.distDependency))
+                    isCoveredByDependecy = False
+                    for d in self.distDependencies:
+                        if p in _dists[d].sorted_deps():
+                            logv("Excluding {0} from {1} because it's provided by the dependency {2}".format(p.name, self.path, d))
+                            isCoveredByDependecy = True
+                            break
+
+                    if isCoveredByDependecy:
                         continue
 
                     # skip a  Java project if its Java compliance level is "higher" than the configured JDK
                     jdk = java(p.javaCompliance)
-                    if not jdk:
-                        log('Excluding {0} from {2} (Java compliance level {1} required)'.format(p.name, p.javaCompliance, self.path))
-                        continue
+                    assert jdk
 
                     logv('[' + self.path + ': adding project ' + p.name + ']')
                     outputDir = p.output_dir()
@@ -201,6 +206,9 @@ class Dependency:
     def isLibrary(self):
         return isinstance(self, Library)
 
+    def isJreLibrary(self):
+        return isinstance(self, JreLibrary)
+
     def isProject(self):
         return isinstance(self, Project)
 
@@ -229,7 +237,7 @@ class Project(Dependency):
             if not exists(s):
                 os.mkdir(s)
 
-    def all_deps(self, deps, includeLibs, includeSelf=True, includeAnnotationProcessors=False):
+    def all_deps(self, deps, includeLibs, includeSelf=True, includeJreLibs=False, includeAnnotationProcessors=False):
         """
         Add the transitive set of dependencies for this project, including
         libraries if 'includeLibs' is true, to the 'deps' list.
@@ -242,8 +250,8 @@ class Project(Dependency):
         for name in childDeps:
             assert name != self.name
             dep = dependency(name)
-            if not dep in deps and (includeLibs or not dep.isLibrary()):
-                dep.all_deps(deps, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
+            if not dep in deps and (dep.isProject or (dep.isLibrary() and includeLibs) or (dep.isJreLibrary() and includeJreLibs)):
+                dep.all_deps(deps, includeLibs=includeLibs, includeJreLibs=includeJreLibs, includeAnnotationProcessors=includeAnnotationProcessors)
         if not self in deps and includeSelf:
             deps.append(self)
         return deps
@@ -506,17 +514,74 @@ def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExis
 
     return path
 
-class Library(Dependency):
-    def __init__(self, suite, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1, deps):
+class BaseLibrary(Dependency):
+    def __init__(self, suite, name, optional):
         Dependency.__init__(self, suite, name)
+        self.optional = optional
+
+    def __ne__(self, other):
+        result = self.__eq__(other)
+        if result is NotImplemented:
+            return result
+        return not result
+
+"""
+A library that will be provided by the JDK but may be absent.
+Any project or normal library that depends on a missing library
+will be removed from the global project and library dictionaries
+(i.e., _projects and _libs).
+
+This mechanism exists primarily to be able to support code
+that may use functionality in one JDK (e.g., Oracle JDK)
+that is not present in another JDK (e.g., OpenJDK). A
+motivating example is the Java Flight Recorder library
+found in the Oracle JDK. 
+"""
+class JreLibrary(BaseLibrary):
+    def __init__(self, suite, name, jar, optional):
+        BaseLibrary.__init__(self, suite, name, optional)
+        self.jar = jar
+
+    def __eq__(self, other):
+        if isinstance(other, JreLibrary):
+            return self.jar == other.jar
+        else:
+            return NotImplemented
+
+    def is_present_in_jdk(self, jdk):
+        for e in jdk.bootclasspath().split(os.pathsep):
+            if basename(e) == self.jar:
+                return True
+        for d in jdk.extdirs().split(os.pathsep):
+            if len(d) and self.jar in os.listdir(d):
+                return True
+        for d in jdk.endorseddirs().split(os.pathsep):
+            if len(d) and self.jar in os.listdir(d):
+                return True
+        return False
+
+    def all_deps(self, deps, includeLibs, includeSelf=True, includeJreLibs=False, includeAnnotationProcessors=False):
+        """
+        Add the transitive set of dependencies for this JRE library to the 'deps' list.
+        """
+        if includeJreLibs and includeSelf and not self in deps:
+            deps.append(self)
+        return deps
+
+class Library(BaseLibrary):
+    def __init__(self, suite, name, path, optional, urls, sha1, sourcePath, sourceUrls, sourceSha1, deps):
+        BaseLibrary.__init__(self, suite, name, optional)
         self.path = path.replace('/', os.sep)
         self.urls = urls
         self.sha1 = sha1
-        self.mustExist = mustExist
         self.sourcePath = sourcePath
         self.sourceUrls = sourceUrls
         self.sourceSha1 = sourceSha1
         self.deps = deps
+        abspath = _make_absolute(self.path, self.suite.dir)
+        if not optional and not exists(abspath):
+            if not len(urls):
+                abort('Non-optional library {} must either exist at {} or specify one or more URLs from which it can be retrieved'.format(name, abspath))
         for url in urls:
             if url.endswith('/') != self.path.endswith(os.sep):
                 abort('Path for dependency directory must have a URL ending with "/": path=' + self.path + ' url=' + url)
@@ -530,14 +595,6 @@ class Library(Dependency):
         else:
             return NotImplemented
 
-
-    def __ne__(self, other):
-        result = self.__eq__(other)
-        if result is NotImplemented:
-            return result
-        return not result
-
-
     def get_path(self, resolve):
         path = _make_absolute(self.path, self.suite.dir)
         sha1path = path + '.sha1'
@@ -546,8 +603,7 @@ class Library(Dependency):
         if includedInJDK and java().javaCompliance >= JavaCompliance(includedInJDK):
             return None
 
-        return _download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, self.mustExist)
-
+        return _download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, not self.optional)
 
     def get_source_path(self, resolve):
         if self.sourcePath is None:
@@ -562,7 +618,7 @@ class Library(Dependency):
         if path and (exists(path) or not resolve):
             cp.append(path)
 
-    def all_deps(self, deps, includeLibs, includeSelf=True, includeAnnotationProcessors=False):
+    def all_deps(self, deps, includeLibs, includeSelf=True, includeJreLibs=False, includeAnnotationProcessors=False):
         """
         Add the transitive set of dependencies for this library to the 'deps' list.
         """
@@ -575,7 +631,7 @@ class Library(Dependency):
             assert name != self.name
             dep = library(name)
             if not dep in deps:
-                dep.all_deps(deps, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
+                dep.all_deps(deps, includeLibs=includeLibs, includeJreLibs=includeJreLibs, includeAnnotationProcessors=includeAnnotationProcessors)
         if not self in deps and includeSelf:
             deps.append(self)
         return deps
@@ -631,6 +687,7 @@ class Suite:
         self.mxDir = mxDir
         self.projects = []
         self.libs = []
+        self.jreLibs = []
         self.dists = []
         self.commands = None
         self.primary = primary
@@ -648,6 +705,7 @@ class Suite:
 
     def _load_projects(self):
         libsMap = dict()
+        jreLibsMap = dict()
         projsMap = dict()
         distsMap = dict()
         projectsFile = join(self.mxDir, 'projects')
@@ -697,6 +755,8 @@ class Suite:
                         m = projsMap
                     elif kind == 'library':
                         m = libsMap
+                    elif kind == 'jrelibrary':
+                        m = jreLibsMap
                     elif kind == 'distribution':
                         m = distsMap
                     else:
@@ -737,16 +797,24 @@ class Suite:
             p.__dict__.update(attrs)
             self.projects.append(p)
 
+        for name, attrs in jreLibsMap.iteritems():
+            jar = attrs.pop('jar')
+            # JRE libraries are optional by default
+            optional = attrs.pop('optional', 'true') != 'false'
+            l = JreLibrary(self, name, jar, optional)
+            self.jreLibs.append(l)
+
         for name, attrs in libsMap.iteritems():
             path = attrs.pop('path')
-            mustExist = attrs.pop('optional', 'false') != 'true'
             urls = pop_list(attrs, 'urls')
             sha1 = attrs.pop('sha1', None)
             sourcePath = attrs.pop('sourcePath', None)
             sourceUrls = pop_list(attrs, 'sourceUrls')
             sourceSha1 = attrs.pop('sourceSha1', None)
             deps = pop_list(attrs, 'dependencies')
-            l = Library(self, name, path, mustExist, urls, sha1, sourcePath, sourceUrls, sourceSha1, deps)
+            # Add support optional libraries once we have a good use case
+            optional = False
+            l = Library(self, name, path, optional, urls, sha1, sourcePath, sourceUrls, sourceSha1, deps)
             l.__dict__.update(attrs)
             self.libs.append(l)
 
@@ -755,8 +823,8 @@ class Suite:
             sourcesPath = attrs.pop('sourcesPath', None)
             deps = pop_list(attrs, 'dependencies')
             exclDeps = pop_list(attrs, 'exclude')
-            distDep = attrs.pop('distDependency', None)
-            d = Distribution(self, name, path, sourcesPath, deps, exclDeps, distDep)
+            distDeps = pop_list(attrs, 'distDependencies')
+            d = Distribution(self, name, path, sourcesPath, deps, exclDeps, distDeps)
             d.__dict__.update(attrs)
             self.dists.append(d)
 
@@ -836,6 +904,12 @@ class Suite:
             if existing is not None and existing != l:
                 abort('inconsistent library redefinition of ' + l.name + ' in ' + existing.suite.dir + ' and ' + l.suite.dir)
             _libs[l.name] = l
+        for l in self.jreLibs:
+            existing = _jreLibs.get(l.name)
+            # Check that suites that define same library are consistent
+            if existing is not None and existing != l:
+                abort('inconsistent JRE library redefinition of ' + l.name + ' in ' + existing.suite.dir + ' and ' + l.suite.dir)
+            _jreLibs[l.name] = l
         for d in self.dists:
             existing = _dists.get(d.name)
             if existing is not None:
@@ -844,6 +918,54 @@ class Suite:
                 warn('distribution ' + d.name + ' redefined')
                 d.path = existing.path
             _dists[d.name] = d
+
+        # Remove projects and libraries that (recursively) depend on an optional library
+        # whose artifact does not exist or on a JRE library that is not present in the
+        # JDK for a project. Also remove projects whose Java compliance requirement
+        # cannot be satisfied by the configured JDKs.
+        #
+        # Removed projects and libraries are also removed from
+        # distributions in they are listed as dependencies.
+        for d in sorted_deps(includeLibs=True):
+            if d.isLibrary():
+                if d.optional:
+                    try:
+                        d.optional = False
+                        path = d.get_path(resolve=True)
+                    except SystemExit:
+                        path = None
+                    finally:
+                        d.optional = True
+                    if not path:
+                        logv('[omitting optional library {} as {} does not exist]'.format(d, d.path))
+                        del _libs[d.name]
+                        self.libs.remove(d)
+            elif d.isProject():
+                if java(d.javaCompliance) is None:
+                    logv('[omitting project {} as Java compliance {} cannot be satisfied by configured JDKs]'.format(d, d.javaCompliance))
+                    del _projects[d.name]
+                    self.projects.remove(d)
+                else:
+                    for name in list(d.deps):
+                        jreLib = _jreLibs.get(name)
+                        if jreLib:
+                            if not jreLib.is_present_in_jdk(java(d.javaCompliance)):
+                                if jreLib.optional:
+                                    logv('[omitting project {} as dependency {} is missing]'.format(d, name))
+                                    del _projects[d.name]
+                                    self.projects.remove(d)
+                                else:
+                                    abort('JRE library {} required by {} not found'.format(jreLib, d))
+                        elif not dependency(name, fatalIfMissing=False):
+                            logv('[omitting project {} as dependency {} is missing]'.format(d, name))
+                            del _projects[d.name]
+                            self.projects.remove(d)
+        for dist in _dists.values():
+            for name in list(dist.deps):
+                if not dependency(name, fatalIfMissing=False):
+                    logv('[omitting {} from distribution {}]'.format(name, dist))
+                    dist.deps.remove(name)
+
         if hasattr(self, 'mx_post_parse_cmd_line'):
             self.mx_post_parse_cmd_line(opts)
 
@@ -1025,6 +1147,8 @@ def dependency(name, fatalIfMissing=True):
     d = _projects.get(name)
     if d is None:
         d = _libs.get(name)
+        if d is None:
+            d = _jreLibs.get(name)
     if d is None and fatalIfMissing:
         if name in _opts.ignored_projects:
             abort('project named ' + name + ' is ignored')
@@ -1539,6 +1663,8 @@ class JavaConfig:
         self.javadoc = exe_suffix(join(self.jdk, 'bin', 'javadoc'))
         self.toolsjar = join(self.jdk, 'lib', 'tools.jar')
         self._bootclasspath = None
+        self._extdirs = None
+        self._endorseddirs = None
 
         if not exists(self.java):
             abort('Java launcher does not exist: ' + self.java)
@@ -1707,8 +1833,6 @@ def abort(codeOrMessage):
     if _opts.killwithsigquit:
         _send_sigquit()
 
-    # import traceback
-    # traceback.print_stack()
     for p, args in _currentSubprocesses:
         try:
             if get_os() == 'windows':
@@ -1718,6 +1842,9 @@ def abort(codeOrMessage):
         except BaseException as e:
             log('error while killing subprocess {} "{}": {}'.format(p.pid, ' '.join(args), e))
 
+    if _opts and _opts.verbose:
+        import traceback
+        traceback.print_stack()
     raise SystemExit(codeOrMessage)
 
 def download(path, urls, verbose=False):
@@ -2023,9 +2150,7 @@ def build(args, parser=None):
         # skip building this Java project if its Java compliance level is "higher" than the configured JDK
         requiredCompliance = p.javaCompliance if p.javaCompliance else JavaCompliance(args.compliance) if args.compliance else None
         jdk = java(requiredCompliance)
-        if not jdk:
-            log('Excluding {0} from build (Java compliance level {1} required)'.format(p.name, requiredCompliance))
-            continue
+        assert jdk
 
         outputDir = prepareOutputDirs(p, args.clean)
 
@@ -2621,9 +2746,7 @@ def checkstyle(args):
 
         # skip checking this Java project if its Java compliance level is "higher" than the configured JDK
         jdk = java(p.javaCompliance)
-        if not jdk:
-            log('Excluding {0} from checking (Java compliance level {1} required)'.format(p.name, p.javaCompliance))
-            continue
+        assert jdk
 
         for sourceDir in sourceDirs:
             javafilelist = []
@@ -2867,10 +2990,10 @@ def _source_locator_memento(deps):
             elif dep.get_source_path(resolve=True):
                 memento = XMLDoc().element('archive', {'detectRoot' : 'true', 'path' : dep.get_source_path(resolve=True)}).xml(standalone='no')
                 slm.element('container', {'memento' : memento, 'typeId':'org.eclipse.debug.core.containerType.externalArchive'})
-        else:
+        elif dep.isProject():
             memento = XMLDoc().element('javaProject', {'name' : dep.name}).xml(standalone='no')
             slm.element('container', {'memento' : memento, 'typeId':'org.eclipse.jdt.launching.sourceContainer.javaProject'})
-            if javaCompliance is None or dep.javaCompliance < javaCompliance:
+            if javaCompliance is None or dep.javaCompliance > javaCompliance:
                 javaCompliance = dep.javaCompliance
 
     if javaCompliance:
@@ -3034,9 +3157,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         if p.native:
             continue
 
-        if not java(p.javaCompliance):
-            log('Excluding {0} (JDK with compliance level {1} not available)'.format(p.name, p.javaCompliance))
-            continue
+        assert java(p.javaCompliance)
 
         if not exists(p.dir):
             os.makedirs(p.dir)
@@ -3077,7 +3198,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                     libraryDeps -= set(dep.all_deps([], True))
                 else:
                     libraryDeps.add(dep)
-            else:
+            elif dep.isProject():
                 projectDeps.add(dep)
 
         for dep in containerDeps:
@@ -3086,8 +3207,6 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         for dep in libraryDeps:
             path = dep.path
             dep.get_path(resolve=True)
-            if not path or (not exists(path) and not dep.mustExist):
-                continue
 
             # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
             # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
@@ -3245,16 +3364,13 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
                 for dep in dependency(ap).all_deps([], True):
                     if dep.isLibrary():
                         if not hasattr(dep, 'eclipse.container') and not hasattr(dep, 'eclipse.project'):
-                            if dep.mustExist:
-                                path = dep.get_path(resolve=True)
-                                if path:
-                                    # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-                                    # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-                                    # safest to simply use absolute paths.
-                                    path = _make_absolute(path, p.suite.dir)
-                                    out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
-                                    files.append(path)
-                    else:
+                            # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+                            # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+                            # safest to simply use absolute paths.
+                            path = _make_absolute(dep.get_path(resolve=True), p.suite.dir)
+                            out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
+                            files.append(path)
+                    elif dep.isProject():
                         out.element('factorypathentry', {'kind' : 'WKSPJAR', 'id' : '/' + dep.name + '/' + dep.name + '.jar', 'enabled' : 'true', 'runInBatchMode' : 'false'})
             out.close('factorypath')
             update_file(join(p.dir, '.factorypath'), out.xml(indent='\t', newl='\n'))
@@ -3557,10 +3673,7 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
             os.makedirs(join(p.dir, 'nbproject'))
 
         jdk = java(p.javaCompliance)
-
-        if not jdk:
-            log('Excluding {0} (JDK with compliance level {1} not available)'.format(p.name, p.javaCompliance))
-            continue
+        assert jdk
 
         jdks.add(jdk)
 
@@ -3601,7 +3714,7 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
             if dep == p:
                 continue
 
-            if not dep.isLibrary():
+            if dep.isProject():
                 n = dep.name.replace('.', '_')
                 if firstDep:
                     out.open('references', {'xmlns' : 'http://www.netbeans.org/ns/ant-project-references/1'})
@@ -3736,8 +3849,6 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
                 continue
 
             if dep.isLibrary():
-                if not dep.mustExist:
-                    continue
                 path = dep.get_path(resolve=True)
                 if path:
                     if os.sep == '\\':
@@ -3746,7 +3857,7 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
                     print >> out, ref + '=' + path
                     libFiles.append(path)
 
-            else:
+            elif dep.isProject():
                 n = dep.name.replace('.', '_')
                 relDepPath = os.path.relpath(dep.dir, p.dir).replace(os.sep, '/')
                 ref = 'reference.' + n + '.jar'
@@ -3813,9 +3924,7 @@ def _intellij_suite(args, suite, refreshOnly=False):
         if p.native:
             continue
 
-        if not java(p.javaCompliance):
-            log('Excluding {0} (JDK with compliance level {1} not available)'.format(p.name, p.javaCompliance))
-            continue
+        assert java(p.javaCompliance)
 
         if not exists(p.dir):
             os.makedirs(p.dir)
@@ -3862,10 +3971,9 @@ def _intellij_suite(args, suite, refreshOnly=False):
                 continue
 
             if dep.isLibrary():
-                if dep.mustExist:
-                    libraries.add(dep)
-                    moduleXml.element('orderEntry', attributes={'type': 'library', 'name': dep.name, 'level': 'project'})
-            else:
+                libraries.add(dep)
+                moduleXml.element('orderEntry', attributes={'type': 'library', 'name': dep.name, 'level': 'project'})
+            elif dep.isProject():
                 moduleXml.element('orderEntry', attributes={'type': 'module', 'module-name': dep.name})
 
         moduleXml.close('component')
@@ -3937,7 +4045,7 @@ def _intellij_suite(args, suite, refreshOnly=False):
                 for entry in pDep.all_deps([], True):
                     if entry.isLibrary():
                         compilerXml.element('entry', attributes={'name': '$PROJECT_DIR$/' + os.path.relpath(entry.path, suite.dir)})
-                    else:
+                    elif entry.isProject():
                         assert entry.isProject()
                         compilerXml.element('entry', attributes={'name': '$PROJECT_DIR$/' + os.path.relpath(entry.output_dir(), suite.dir)})
             compilerXml.close('processorPath')
