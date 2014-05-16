@@ -1,0 +1,91 @@
+/*
+ * Copyright (c) 2014, Regents of the University of California
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+package edu.uci.python.nodes.optimize;
+
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
+
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.function.*;
+import edu.uci.python.nodes.object.*;
+import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.object.*;
+
+public class PeeledGeneratorLoopNode extends PNode {
+
+    @Children protected final PNode[] argumentNodes;
+    @Child protected PNode primaryNode;
+    @Child protected ShapeCheckNode checkNode;
+    @Child protected PNode inlinedRootNode;
+    private final PNode originalLoop;
+
+    private final FrameDescriptor frameDescriptor;
+
+    public PeeledGeneratorLoopNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode primaryNode, PNode[] argumentNodes, ShapeCheckNode checkNode, PNode originalLoop) {
+        this.frameDescriptor = frameDescriptor;
+        this.inlinedRootNode = generatorRoot.split().getBody();
+        this.primaryNode = primaryNode;
+        this.argumentNodes = argumentNodes;
+        this.checkNode = checkNode;
+        this.originalLoop = originalLoop;
+    }
+
+    public PNode getGeneratorRoot() {
+        return inlinedRootNode;
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        PythonObject primary;
+
+        try {
+            primary = primaryNode.executePythonObject(frame);
+        } catch (UnexpectedResultException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            return deoptAndExecute(frame);
+        }
+
+        try {
+            if (checkNode.accept(primary)) {
+                final Object[] arguments = PythonCallUtil.executeArguments(frame, argumentNodes);
+                PArguments.setVirtualFrameCargoArguments(arguments, frame);
+                VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
+                return inlinedRootNode.execute(generatorFrame);
+            }
+        } catch (InvalidAssumptionException e) {
+        }
+
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        return deoptAndExecute(frame);
+    }
+
+    protected Object deoptAndExecute(VirtualFrame frame) {
+        CompilerAsserts.neverPartOfCompilation();
+        return replace(originalLoop).execute(frame);
+    }
+
+}

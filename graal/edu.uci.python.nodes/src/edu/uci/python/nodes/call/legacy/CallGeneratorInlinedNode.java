@@ -32,9 +32,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.function.GeneratorExpressionNode.CallableGeneratorExpressionDefinition;
-import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.object.*;
 
 public class CallGeneratorInlinedNode extends InlinedCallNode {
 
@@ -74,60 +72,6 @@ public class CallGeneratorInlinedNode extends InlinedCallNode {
         final Object[] args = PythonCallUtil.executeArguments(frame, arguments);
         final PArguments pargs = new PArguments.VirtualFrameCargoArguments(null, frame, args);
         return generatorRoot.execute(createInlinedFrame(frame, pargs));
-    }
-
-    public static final class PeeledGeneratorLoopNode extends PNode {
-
-        @Children protected final PNode[] argumentNodes;
-        @Child protected PNode primaryNode;
-        @Child protected ShapeCheckNode checkNode;
-        @Child protected PNode inlinedRootNode;
-        private final PNode originalLoop;
-
-        private final FrameDescriptor frameDescriptor;
-
-        public PeeledGeneratorLoopNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode primaryNode, PNode[] argumentNodes, ShapeCheckNode checkNode, PNode originalLoop) {
-            this.frameDescriptor = frameDescriptor;
-            this.inlinedRootNode = generatorRoot.getInlinedRootNode();
-            this.primaryNode = primaryNode;
-            this.argumentNodes = argumentNodes;
-            this.checkNode = checkNode;
-            this.originalLoop = originalLoop;
-        }
-
-        public PNode getGeneratorRoot() {
-            return inlinedRootNode;
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            PythonObject primary;
-
-            try {
-                primary = primaryNode.executePythonObject(frame);
-            } catch (UnexpectedResultException e) {
-                CompilerDirectives.transferToInterpreterAndInvalidate();
-                return deoptAndExecute(frame);
-            }
-
-            try {
-                if (checkNode.accept(primary)) {
-                    final Object[] arguments = PythonCallUtil.executeArguments(frame, argumentNodes);
-                    PArguments.setVirtualFrameCargoArguments(arguments, frame);
-                    VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
-                    return inlinedRootNode.execute(generatorFrame);
-                }
-            } catch (InvalidAssumptionException e) {
-            }
-
-            CompilerDirectives.transferToInterpreterAndInvalidate();
-            return deoptAndExecute(frame);
-        }
-
-        protected Object deoptAndExecute(VirtualFrame frame) {
-            CompilerAsserts.neverPartOfCompilation();
-            return replace(originalLoop).execute(frame);
-        }
     }
 
 }
