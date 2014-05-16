@@ -24,6 +24,7 @@ package com.oracle.graal.phases.common;
 
 import java.util.*;
 
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.nodes.*;
@@ -106,8 +107,9 @@ public class FrameStateAssignmentPhase extends Phase {
     protected void run(StructuredGraph graph) {
         assert graph.getGuardsStage().ordinal() >= GuardsStage.FIXED_DEOPTS.ordinal() && checkFixedDeopts(graph);
         if (graph.getGuardsStage().ordinal() < GuardsStage.AFTER_FSA.ordinal()) {
-            ReentrantNodeIterator.apply(new FrameStateAssignmentClosure(), graph.start(), null, null);
+            ReentrantNodeIterator.apply(new FrameStateAssignmentClosure(), graph.start(), null);
             graph.setGuardsStage(GuardsStage.AFTER_FSA);
+            graph.getNodes(FrameState.class).filter(state -> state.usages().isEmpty()).forEach(GraphUtil::killWithUnusedFloatingInputs);
         }
     }
 

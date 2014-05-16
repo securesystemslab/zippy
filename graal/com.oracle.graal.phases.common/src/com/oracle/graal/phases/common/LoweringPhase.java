@@ -22,12 +22,13 @@
  */
 package com.oracle.graal.phases.common;
 
-import static com.oracle.graal.phases.GraalOptions.*;
+import static com.oracle.graal.compiler.common.GraalOptions.*;
 
 import java.util.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.Graph.Mark;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
@@ -36,7 +37,6 @@ import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.schedule.*;
 import com.oracle.graal.phases.tiers.*;
@@ -240,11 +240,17 @@ public class LoweringPhase extends BasePhase<PhaseContext> {
 
         private final PhaseContext context;
         private final SchedulePhase schedule;
+        private final int iteration;
 
         private Round(int iteration, PhaseContext context) {
-            super("LoweringIteration" + iteration);
+            this.iteration = iteration;
             this.context = context;
             this.schedule = new SchedulePhase();
+        }
+
+        @Override
+        protected CharSequence createName() {
+            return "LoweringIteration" + iteration;
         }
 
         @Override

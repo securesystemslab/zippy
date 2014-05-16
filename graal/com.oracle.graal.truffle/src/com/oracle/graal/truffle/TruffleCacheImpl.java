@@ -22,9 +22,8 @@
  */
 package com.oracle.graal.truffle;
 
-import static com.oracle.graal.phases.GraalOptions.*;
+import static com.oracle.graal.compiler.common.GraalOptions.*;
 
-import java.lang.reflect.*;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -44,6 +43,7 @@ import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.common.inlining.*;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.phases.util.*;
 import com.oracle.graal.truffle.phases.*;
@@ -65,7 +65,7 @@ public final class TruffleCacheImpl implements TruffleCache {
     private final HashMap<List<Object>, Long> lastUsed = new HashMap<>();
     private final StructuredGraph markerGraph = new StructuredGraph();
     private final ResolvedJavaType stringBuilderClass;
-    private final ResolvedJavaMethod executeHelperMethod;
+    private final ResolvedJavaMethod callBoundaryMethod;
     private long counter;
 
     public TruffleCacheImpl(Providers providers, GraphBuilderConfiguration config, GraphBuilderConfiguration configForRootGraph, OptimisticOptimizations optimisticOptimizations) {
@@ -75,14 +75,14 @@ public final class TruffleCacheImpl implements TruffleCache {
         this.optimisticOptimizations = optimisticOptimizations;
         this.stringBuilderClass = providers.getMetaAccess().lookupJavaType(StringBuilder.class);
         try {
-            executeHelperMethod = providers.getMetaAccess().lookupJavaMethod(OptimizedCallTarget.class.getDeclaredMethod("executeHelper", Object[].class));
+            callBoundaryMethod = providers.getMetaAccess().lookupJavaMethod(OptimizedCallTarget.class.getDeclaredMethod("callRoot", Object[].class));
         } catch (NoSuchMethodException ex) {
             throw new RuntimeException(ex);
         }
     }
 
-    public StructuredGraph createRootGraph() {
-        StructuredGraph graph = new StructuredGraph(executeHelperMethod);
+    public StructuredGraph createRootGraph(String name) {
+        StructuredGraph graph = new StructuredGraph(name, callBoundaryMethod);
         new GraphBuilderPhase.Instance(providers.getMetaAccess(), configForRootGraph, TruffleCompilerImpl.Optimizations).apply(graph);
         return graph;
     }
@@ -259,7 +259,7 @@ public final class TruffleCacheImpl implements TruffleCache {
         if (methodCallTargetNode.targetMethod().isConstructor()) {
             ResolvedJavaType runtimeException = providers.getMetaAccess().lookupJavaType(RuntimeException.class);
             ResolvedJavaType controlFlowException = providers.getMetaAccess().lookupJavaType(ControlFlowException.class);
-            ResolvedJavaType exceptionType = Objects.requireNonNull(ObjectStamp.typeOrNull(methodCallTargetNode.receiver().stamp()));
+            ResolvedJavaType exceptionType = Objects.requireNonNull(StampTool.typeOrNull(methodCallTargetNode.receiver().stamp()));
             if (runtimeException.isAssignableFrom(methodCallTargetNode.targetMethod().getDeclaringClass()) && !controlFlowException.isAssignableFrom(exceptionType)) {
                 DeoptimizeNode deoptNode = methodCallTargetNode.graph().add(new DeoptimizeNode(DeoptimizationAction.InvalidateRecompile, DeoptimizationReason.UnreachedCode));
                 FixedNode invokeNode = methodCallTargetNode.invoke().asNode();
@@ -273,7 +273,7 @@ public final class TruffleCacheImpl implements TruffleCache {
 
     private boolean shouldInline(final MethodCallTargetNode methodCallTargetNode) {
         boolean result = (methodCallTargetNode.invokeKind() == InvokeKind.Special || methodCallTargetNode.invokeKind() == InvokeKind.Static) && methodCallTargetNode.targetMethod().canBeInlined() &&
-                        !Modifier.isNative(methodCallTargetNode.targetMethod().getModifiers()) && methodCallTargetNode.targetMethod().getAnnotation(ExplodeLoop.class) == null &&
+                        !methodCallTargetNode.targetMethod().isNative() && methodCallTargetNode.targetMethod().getAnnotation(ExplodeLoop.class) == null &&
                         methodCallTargetNode.targetMethod().getAnnotation(CompilerDirectives.SlowPath.class) == null &&
                         !methodCallTargetNode.targetMethod().getDeclaringClass().equals(stringBuilderClass);
         return result;

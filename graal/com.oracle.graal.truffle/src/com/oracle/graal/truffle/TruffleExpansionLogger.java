@@ -23,7 +23,6 @@
 package com.oracle.graal.truffle;
 
 import java.io.*;
-import java.lang.reflect.*;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -49,7 +48,7 @@ public class TruffleExpansionLogger {
         int sourceMethodBci = callTarget.invoke().bci();
         ResolvedJavaMethod targetMethod = callTarget.targetMethod();
         ResolvedJavaType targetReceiverType = null;
-        if (!Modifier.isStatic(targetMethod.getModifiers()) && callTarget.receiver().isConstant()) {
+        if (!targetMethod.isStatic() && callTarget.receiver().isConstant()) {
             targetReceiverType = providers.getMetaAccess().lookupJavaType(callTarget.arguments().first().asConstant());
         }
 

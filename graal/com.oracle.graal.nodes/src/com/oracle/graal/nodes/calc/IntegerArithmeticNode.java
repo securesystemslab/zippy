@@ -22,11 +22,12 @@
  */
 package com.oracle.graal.nodes.calc;
 
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
-public abstract class IntegerArithmeticNode extends BinaryNode implements ArithmeticLIRLowerable, MemoryArithmeticLIRLowerable {
+public abstract class IntegerArithmeticNode extends BinaryNode implements ArithmeticLIRLowerable {
 
     public IntegerArithmeticNode(Stamp stamp, ValueNode x, ValueNode y) {
         super(stamp, x, y);
