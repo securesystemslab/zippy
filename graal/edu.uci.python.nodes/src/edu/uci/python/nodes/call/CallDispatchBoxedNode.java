@@ -169,6 +169,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             }
         }
 
+        public ShapeCheckNode getCheckNode() {
+            return check;
+        }
+
         @Override
         public PGeneratorFunction getGeneratorFunction() {
             return (PGeneratorFunction) generator;

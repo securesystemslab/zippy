@@ -139,7 +139,9 @@ public final class FunctionRootNode extends RootNode {
 
         PythonCallNode call = (PythonCallNode) callNode;
         ForNode loop = (ForNode) forNode;
-        PeeledGeneratorLoopNode peeled = new PeeledGeneratorLoopNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getArgumentNodes());
+        PNode orignalLoop = NodeUtil.cloneNode(loop);
+        PeeledGeneratorLoopNode peeled = new PeeledGeneratorLoopNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getPrimary(), call.getArgumentNodes(),
+                        dispatch.getCheckNode(), orignalLoop);
         loop.replace(peeled);
 
         PNode loopBody = loop.getBody();
