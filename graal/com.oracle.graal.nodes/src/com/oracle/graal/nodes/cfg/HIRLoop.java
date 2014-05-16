@@ -22,7 +22,7 @@
  */
 package com.oracle.graal.nodes.cfg;
 
-import com.oracle.graal.cfg.*;
+import com.oracle.graal.compiler.common.cfg.*;
 import com.oracle.graal.nodes.*;
 
 public class HIRLoop extends Loop<Block> {
@@ -33,6 +33,6 @@ public class HIRLoop extends Loop<Block> {
 
     @Override
     public long numBackedges() {
-        return ((LoopBeginNode) header.getBeginNode()).loopEnds().count();
+        return ((LoopBeginNode) getHeader().getBeginNode()).loopEnds().count();
     }
 }

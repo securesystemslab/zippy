@@ -113,7 +113,9 @@ public class AMD64HotSpotBackendFactory implements HotSpotBackendFactory {
         Replacements replacements = createReplacements(runtime, assumptions, p, snippetReflection);
         HotSpotDisassemblerProvider disassembler = createDisassembler(runtime);
         HotSpotSuitesProvider suites = createSuites(runtime);
-        HotSpotProviders providers = new HotSpotProviders(metaAccess, codeCache, constantReflection, foreignCalls, lowerer, replacements, disassembler, suites, registers, snippetReflection);
+        HotSpotMethodHandleAccessProvider methodHandleAccess = new HotSpotMethodHandleAccessProvider();
+        HotSpotProviders providers = new HotSpotProviders(metaAccess, codeCache, constantReflection, foreignCalls, lowerer, replacements, disassembler, suites, registers, snippetReflection,
+                        methodHandleAccess);
 
         return createBackend(runtime, providers);
     }
@@ -159,7 +161,7 @@ public class AMD64HotSpotBackendFactory implements HotSpotBackendFactory {
         return new HotSpotSnippetReflectionProvider();
     }
 
-    protected AMD64HotSpotLoweringProvider createLowerer(HotSpotGraalRuntime runtime, HotSpotMetaAccessProvider metaAccess, HotSpotForeignCallsProvider foreignCalls, HotSpotRegistersProvider registers) {
+    protected HotSpotLoweringProvider createLowerer(HotSpotGraalRuntime runtime, HotSpotMetaAccessProvider metaAccess, HotSpotForeignCallsProvider foreignCalls, HotSpotRegistersProvider registers) {
         return new AMD64HotSpotLoweringProvider(runtime, metaAccess, foreignCalls, registers);
     }
 

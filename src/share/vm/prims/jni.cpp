@@ -35,6 +35,7 @@
 #include "utilities/macros.hpp"
 #ifdef GRAAL
 #include "graal/graalCompiler.hpp"
+#include "graal/graalVMToCompiler.hpp"
 #endif
 #if INCLUDE_ALL_GCS
 #include "gc_implementation/g1/g1SATBCardTableModRefBS.hpp"
@@ -5173,13 +5174,20 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
     *vm = (JavaVM *)(&main_vm);
     *(JNIEnv**)penv = thread->jni_environment();
 
-#ifdef GRAAL
-    // GraalCompiler needs to have been created in compileBroker.cpp
-    GraalCompiler* graal_compiler = GraalCompiler::instance();
-    if (graal_compiler != NULL) {
-      graal_compiler->initialize();
+#ifdef COMPILERGRAAL
+    if (UseGraalCompilationQueue) {
+      // GraalCompiler may have been created in compileBroker.cpp
+      GraalCompiler* graal_compiler = GraalCompiler::instance();
+      if (ForceGraalInitialization && graal_compiler == NULL) {
+        graal_compiler = new GraalCompiler();
+      }
+      if (graal_compiler != NULL) {
+        graal_compiler->initialize();
+      } else {
+        assert(!UseCompiler, "why isn't there any compiler?");
+      }
     } else {
-      assert(!UseCompiler, "why isn't there any compiler?");
+      // Graal is initialized on a CompilerThread
     }
 #endif
 
@@ -5203,7 +5211,19 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
   #endif
 
     // Check if we should compile all classes on bootclasspath
+#ifdef GRAAL
+#ifndef COMPILERGRAAL
+    if (CompileTheWorld) {
+      // Graal is considered as application code so we need to
+      // stop the VM deferring compilation now.
+      CompilationPolicy::completed_vm_startup();
+
+      VMToCompiler::compileTheWorld();
+    }
+#endif
+#else
     if (CompileTheWorld) ClassLoader::compile_the_world();
+#endif
     if (ReplayCompiles) ciReplay::replay(thread);
 
     // Some platforms (like Win*) need a wrapper around these test

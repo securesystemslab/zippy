@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.phases.graph;
 
+import static com.oracle.graal.graph.util.CollectionsAccess.*;
+
 import java.util.*;
 
 import com.oracle.graal.graph.NodeClass.NodeClassIterator;
@@ -31,8 +33,8 @@ public final class ReentrantNodeIterator {
 
     public static class LoopInfo<StateT> {
 
-        public final Map<LoopEndNode, StateT> endStates = new IdentityHashMap<>(4);
-        public final Map<LoopExitNode, StateT> exitStates = new IdentityHashMap<>(2);
+        public final Map<LoopEndNode, StateT> endStates = newNodeIdentityMap(4);
+        public final Map<LoopExitNode, StateT> exitStates = newNodeIdentityMap(2);
     }
 
     public abstract static class NodeIteratorClosure<StateT> {
@@ -47,7 +49,7 @@ public final class ReentrantNodeIterator {
 
         /**
          * Determine whether iteration should continue in the current state.
-         * 
+         *
          * @param currentState
          */
         protected boolean continueIteration(StateT currentState) {
@@ -60,11 +62,7 @@ public final class ReentrantNodeIterator {
     }
 
     public static <StateT> LoopInfo<StateT> processLoop(NodeIteratorClosure<StateT> closure, LoopBeginNode loop, StateT initialState) {
-        HashSet<FixedNode> boundary = new HashSet<>();
-        for (LoopExitNode exit : loop.loopExits()) {
-            boundary.add(exit);
-        }
-        Map<FixedNode, StateT> blockEndStates = apply(closure, loop, initialState, boundary);
+        Map<FixedNode, StateT> blockEndStates = apply(closure, loop, initialState, loop);
 
         LoopInfo<StateT> info = new LoopInfo<>();
         for (LoopEndNode end : loop.loopEnds()) {
@@ -80,15 +78,20 @@ public final class ReentrantNodeIterator {
         return info;
     }
 
-    public static <StateT> Map<FixedNode, StateT> apply(NodeIteratorClosure<StateT> closure, FixedNode start, StateT initialState, Set<FixedNode> boundary) {
+    public static <StateT> void apply(NodeIteratorClosure<StateT> closure, FixedNode start, StateT initialState) {
+        apply(closure, start, initialState, null);
+    }
+
+    private static <StateT> Map<FixedNode, StateT> apply(NodeIteratorClosure<StateT> closure, FixedNode start, StateT initialState, LoopBeginNode boundary) {
+        assert start != null;
         Deque<BeginNode> nodeQueue = new ArrayDeque<>();
-        IdentityHashMap<FixedNode, StateT> blockEndStates = new IdentityHashMap<>();
+        Map<FixedNode, StateT> blockEndStates = newNodeIdentityMap();
 
         StateT state = initialState;
         FixedNode current = start;
         do {
             while (current instanceof FixedWithNextNode) {
-                if (boundary != null && boundary.contains(current)) {
+                if (boundary != null && current instanceof LoopExitNode && ((LoopExitNode) current).loopBegin() == boundary) {
                     blockEndStates.put(current, state);
                     current = null;
                 } else {

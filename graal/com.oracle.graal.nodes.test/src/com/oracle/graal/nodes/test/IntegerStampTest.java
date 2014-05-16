@@ -27,6 +27,7 @@ import static org.junit.Assert.*;
 import org.junit.*;
 
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.type.*;
 
@@ -291,5 +292,11 @@ public class IntegerStampTest {
         testZeroExtendShort(-42, 0, 0, 0xFFFF);
         testZeroExtendShort(-1, 1, 0, 0xFFFF);
         testZeroExtendShort(Short.MIN_VALUE, Short.MAX_VALUE, 0, 0xFFFF);
+    }
+
+    @Test
+    public void testIllegalJoin() {
+        assertFalse(new IntegerStamp(32, 0, 0xff00, 0, 0xff00).join(new IntegerStamp(32, 1, 0xff, 0x00, 0xff)).isLegal());
+        assertFalse(new IntegerStamp(32, 0x100, 0xff00, 0, 0xff00).join(new IntegerStamp(32, 0, 0xff, 0x00, 0xff)).isLegal());
     }
 }
