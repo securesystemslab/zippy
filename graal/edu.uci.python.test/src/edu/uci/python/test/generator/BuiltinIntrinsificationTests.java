@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,50 +22,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.generator;
 
 import static edu.uci.python.test.PythonTests.*;
+import static org.junit.Assert.*;
 
 import java.nio.file.*;
 
 import org.junit.*;
 
-public class GeneratorTests {
+import edu.uci.python.runtime.*;
+
+public class BuiltinIntrinsificationTests {
 
     @Test
-    public void simpleLoop() {
-        String source = "def loopgen(n):\n" + //
-                        "    for i in range(n):\n" + //
-                        "        yield i\n" + //
-                        "\n" + //
-                        "for i in loopgen(5):\n" + //
-                        "    print(i)\n";
-
-        assertPrints("0\n1\n2\n3\n4\n", source);
-    }
-
-    @Test
-    public void conditionAndLoop() {
-        Path script = Paths.get("generator-if-and-loop-test.py");
-        assertPrints("10\n0\n1\n2\n3\n4\n", script);
-    }
-
-    @Test
-    public void multipleYields() {
-        Path script = Paths.get("generator-multiple-yield-test.py");
-        assertPrints("1\n3\n2\n1\n", script);
-    }
-
-    @Test
-    public void accumulator() {
-        Path script = Paths.get("generator-accumulator-test.py");
-        assertPrints("['w', 'c', 'g']\n['h', 'z']\n", script);
-    }
-
-    @Test
-    public void objectsInList() {
-        Path script = Paths.get("generator-objects-test.py");
-        assertPrints("1\n2\n10\n11\n", script);
+    public void listComp() {
+        assertTrue(PythonOptions.IntrinsifyBuiltinCalls);
+        PythonOptions.OptimizeGeneratorExpressions = false;
+        Path script = Paths.get("builtin-list-intrinsification-test.py");
+        assertPrints("9\n", script);
     }
 
 }

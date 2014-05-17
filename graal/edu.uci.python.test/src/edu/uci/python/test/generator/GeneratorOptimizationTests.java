@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Regents of the University of California
+ * Copyright (c) 2013, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,10 +22,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.generator;
 
 import static edu.uci.python.test.PythonTests.*;
-import static org.junit.Assert.*;
 
 import java.nio.file.*;
 
@@ -33,14 +32,43 @@ import org.junit.*;
 
 import edu.uci.python.runtime.*;
 
-public class BuiltinIntrinsificationTests {
+public class GeneratorOptimizationTests {
 
     @Test
-    public void listComp() {
-        assertTrue(PythonOptions.IntrinsifyBuiltinCalls);
+    public void euler11() {
         PythonOptions.OptimizeGeneratorExpressions = false;
-        Path script = Paths.get("builtin-list-intrinsification-test.py");
-        assertPrints("9\n", script);
+        Path script = Paths.get("euler11-test.py");
+        assertPrints("9507960\n9507960\n", script);
+    }
+
+    @Test
+    public void inline() {
+        PythonOptions.InlineGeneratorCalls = true;
+        Path script = Paths.get("generator-inline-test.py");
+        assertPrints("99\n99\n99\n99\n99\n", script);
+    }
+
+    @Test
+    public void inlineNone() {
+        PythonOptions.InlineGeneratorCalls = true;
+        Path script = Paths.get("generator-inline-none-test.py");
+        assertPrints("99\n99\n99\n99\n99\n", script);
+    }
+
+    @Test
+    public void inlineGenexp() {
+        PythonOptions.InlineGeneratorCalls = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
+        Path script = Paths.get("generator-inline-genexp-test.py");
+        assertPrintContains("420\n", script);
+    }
+
+    @Test
+    public void inlineGenexpLocalVar() {
+        PythonOptions.InlineGeneratorCalls = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
+        Path script = Paths.get("generator-inline-genexp-localvar-test.py");
+        assertPrintContains("420\n", script);
     }
 
 }

@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.generator;
 
 import static edu.uci.python.test.PythonTests.*;
 
@@ -30,45 +30,42 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-import edu.uci.python.runtime.*;
-
-public class GeneratorOptimizationTests {
+public class GeneratorTests {
 
     @Test
-    public void euler11() {
-        PythonOptions.OptimizeGeneratorExpressions = false;
-        Path script = Paths.get("euler11-test.py");
-        assertPrints("9507960\n9507960\n", script);
+    public void simpleLoop() {
+        String source = "def loopgen(n):\n" + //
+                        "    for i in range(n):\n" + //
+                        "        yield i\n" + //
+                        "\n" + //
+                        "for i in loopgen(5):\n" + //
+                        "    print(i)\n";
+
+        assertPrints("0\n1\n2\n3\n4\n", source);
     }
 
     @Test
-    public void inline() {
-        PythonOptions.InlineGeneratorCalls = true;
-        Path script = Paths.get("generator-inline-test.py");
-        assertPrints("99\n99\n99\n99\n99\n", script);
+    public void conditionAndLoop() {
+        Path script = Paths.get("generator-if-and-loop-test.py");
+        assertPrints("10\n0\n1\n2\n3\n4\n", script);
     }
 
     @Test
-    public void inlineNone() {
-        PythonOptions.InlineGeneratorCalls = true;
-        Path script = Paths.get("generator-inline-none-test.py");
-        assertPrints("99\n99\n99\n99\n99\n", script);
+    public void multipleYields() {
+        Path script = Paths.get("generator-multiple-yield-test.py");
+        assertPrints("1\n3\n2\n1\n", script);
     }
 
     @Test
-    public void inlineGenexp() {
-        PythonOptions.InlineGeneratorCalls = true;
-        PythonOptions.OptimizeGeneratorExpressions = true;
-        Path script = Paths.get("generator-inline-genexp-test.py");
-        assertPrintContains("420\n", script);
+    public void accumulator() {
+        Path script = Paths.get("generator-accumulator-test.py");
+        assertPrints("['w', 'c', 'g']\n['h', 'z']\n", script);
     }
 
     @Test
-    public void inlineGenexpLocalVar() {
-        PythonOptions.InlineGeneratorCalls = true;
-        PythonOptions.OptimizeGeneratorExpressions = true;
-        Path script = Paths.get("generator-inline-genexp-localvar-test.py");
-        assertPrintContains("420\n", script);
+    public void objectsInList() {
+        Path script = Paths.get("generator-objects-test.py");
+        assertPrints("1\n2\n10\n11\n", script);
     }
 
 }
