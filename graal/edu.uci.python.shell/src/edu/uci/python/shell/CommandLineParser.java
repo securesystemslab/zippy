@@ -58,6 +58,11 @@ public class CommandLineParser {
                 continue;
             }
 
+            if (arg.equals("-optimize-genexp")) {
+                PythonOptions.OptimizeGeneratorExpressions = true;
+                continue;
+            }
+
             if (arg.equals("-OptimizeGeneratorExpressions:false")) {
                 PythonOptions.OptimizeGeneratorExpressions = false;
                 continue;

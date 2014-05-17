@@ -60,4 +60,11 @@ public abstract class CallDispatchNode extends Node {
         return current;
     }
 
+    protected NodeCost getCost(Node next) {
+        if (next != null && next.getCost() == NodeCost.MONOMORPHIC) {
+            return NodeCost.POLYMORPHIC;
+        }
+        return super.getCost();
+    }
+
 }
