@@ -25,18 +25,19 @@
 package edu.uci.python.nodes.function;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 
-public final class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
+public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
 
-    private final int numOfActiveFlags;
-    private final int numOfGeneratorBlockNode;
-    private final int numOfGeneratorForNode;
-    private final RootCallTarget parallelCallTarget;
+    protected final int numOfActiveFlags;
+    protected final int numOfGeneratorBlockNode;
+    protected final int numOfGeneratorForNode;
+    protected final RootCallTarget parallelCallTarget;
 
     public GeneratorFunctionDefinitionNode(String name, PythonContext context, Arity arity, PNode defaults, RootCallTarget callTarget, FrameDescriptor frameDescriptor,
                     RootCallTarget parallelCallTarget, boolean needsDeclarationFrame, int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
@@ -47,11 +48,45 @@ public final class GeneratorFunctionDefinitionNode extends FunctionDefinitionNod
         this.parallelCallTarget = parallelCallTarget;
     }
 
+    public static GeneratorFunctionDefinitionNode create(String name, PythonContext context, Arity arity, PNode defaults, RootCallTarget callTarget, FrameDescriptor frameDescriptor,
+                    RootCallTarget parallelCallTarget, boolean needsDeclarationFrame, int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+        if (needsDeclarationFrame || defaults != EmptyNode.INSTANCE) {
+            return new GeneratorFunctionDefinitionNode(name, context, arity, defaults, callTarget, frameDescriptor, parallelCallTarget, needsDeclarationFrame, numOfActiveFlags,
+                            numOfGeneratorBlockNode, numOfGeneratorForNode);
+        }
+
+        return new StatelessGeneratorFunctionDefinitionNode(name, context, arity, callTarget, frameDescriptor, parallelCallTarget, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         defaults.executeVoid(frame);
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
         return new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame, parallelCallTarget, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+    }
+
+    /**
+     * Creates a generator function that does not capture any state. Therefore, it can always return
+     * the same generator function instance.
+     */
+    public static final class StatelessGeneratorFunctionDefinitionNode extends GeneratorFunctionDefinitionNode {
+
+        @CompilationFinal private PGeneratorFunction cached;
+
+        public StatelessGeneratorFunctionDefinitionNode(String name, PythonContext context, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, RootCallTarget parallelCallTarget,
+                        int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+            super(name, context, arity, EmptyNode.INSTANCE, callTarget, frameDescriptor, parallelCallTarget, false, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            if (cached != null) {
+                return cached;
+            }
+
+            cached = new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, null, parallelCallTarget, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            return cached;
+        }
     }
 
 }
