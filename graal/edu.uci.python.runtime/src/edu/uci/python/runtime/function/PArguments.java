@@ -32,7 +32,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.object.*;
 
 //@formatter:off
@@ -189,9 +188,9 @@ public class PArguments {
         return (MaterializedFrame) frame.getArguments()[INDEX_GENERATOR_FRAME];
     }
 
-    public static GeneratorArguments getGeneratorArguments(Frame frame) {
+    public static GeneratorControlData getGeneratorArguments(Frame frame) {
         MaterializedFrame generatorFrame = getGeneratorFrame(frame);
-        return CompilerDirectives.unsafeCast(generatorFrame.getArguments()[INDEX_GENERATOR_FRAME], GeneratorArguments.class, true);
+        return CompilerDirectives.unsafeCast(generatorFrame.getArguments()[INDEX_GENERATOR_FRAME], GeneratorControlData.class, true);
     }
 
     public static ParallelGeneratorArguments getParallelGeneratorArguments(Frame frame) {
@@ -202,7 +201,7 @@ public class PArguments {
         arguments[INDEX_GENERATOR_FRAME] = generatorFrame;
     }
 
-    public static void setGeneratorArguments(Object[] arguments, GeneratorArguments generatorArguments) {
+    public static void setGeneratorArguments(Object[] arguments, GeneratorControlData generatorArguments) {
         MaterializedFrame generatorFrame = (MaterializedFrame) arguments[INDEX_GENERATOR_FRAME];
         generatorFrame.getArguments()[INDEX_GENERATOR_FRAME] = generatorArguments;
     }
@@ -229,44 +228,6 @@ public class PArguments {
 
     public final Object[] packAsObjectArray() {
         return new Object[]{this};
-    }
-
-    public static final class GeneratorArguments {
-
-        // See GeneratorReturnTargetNode, GeneratorIfNode, GeneratorWhileNode.
-        private final boolean[] activeFlags;
-        private final int[] generatorBlockNodeIndices;       // See {@link GeneratorBlockNode}
-        private final PIterator[] generatorForNodeIterators; // See {@link GeneratorForNode}
-
-        public GeneratorArguments(int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
-            this.activeFlags = new boolean[numOfActiveFlags];
-            this.generatorBlockNodeIndices = new int[numOfGeneratorBlockNode];
-            this.generatorForNodeIterators = new PIterator[numOfGeneratorForNode];
-        }
-
-        public boolean getActive(int slot) {
-            return activeFlags[slot];
-        }
-
-        public void setActive(int slot, boolean flag) {
-            activeFlags[slot] = flag;
-        }
-
-        public int getBlockIndexAt(int slot) {
-            return generatorBlockNodeIndices[slot];
-        }
-
-        public void setBlockIndexAt(int slot, int value) {
-            generatorBlockNodeIndices[slot] = value;
-        }
-
-        public PIterator getIteratorAt(int slot) {
-            return generatorForNodeIterators[slot];
-        }
-
-        public void setIteratorAt(int slot, PIterator value) {
-            generatorForNodeIterators[slot] = value;
-        }
     }
 
     /**

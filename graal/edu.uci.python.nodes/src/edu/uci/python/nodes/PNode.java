@@ -36,7 +36,6 @@ import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.function.PArguments.GeneratorArguments;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
@@ -214,10 +213,6 @@ public abstract class PNode extends Node {
 
     public PythonCallable executePythonCallable(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPythonCallable(execute(frame));
-    }
-
-    public GeneratorArguments executeGeneratorArguments(VirtualFrame frame) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectGeneratorArguments(execute(frame));
     }
 
     public void executeVoid(VirtualFrame frame) {

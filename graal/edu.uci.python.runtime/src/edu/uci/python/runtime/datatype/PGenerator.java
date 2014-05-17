@@ -30,7 +30,6 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.function.PArguments.GeneratorArguments;
 import edu.uci.python.runtime.iterator.*;
 
 public class PGenerator implements PIterator {
@@ -45,7 +44,7 @@ public class PGenerator implements PIterator {
         /**
          * Setting up the persistent frame in {@link #arguments}.
          */
-        GeneratorArguments generatorArgs = new PArguments.GeneratorArguments(numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        GeneratorControlData generatorArgs = new GeneratorControlData(numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
         MaterializedFrame generatorFrame = Truffle.getRuntime().createMaterializedFrame(PArguments.create(), frameDescriptor);
         PArguments.setDeclarationFrame(arguments, declarationFrame);
         PArguments.setGeneratorFrame(arguments, generatorFrame);
