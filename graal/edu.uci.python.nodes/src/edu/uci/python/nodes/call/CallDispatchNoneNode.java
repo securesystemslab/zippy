@@ -51,7 +51,7 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         UninitializedDispatchNoneNode next = new UninitializedDispatchNoneNode(callee.getName(), keywords.length != 0);
 
         if (callee instanceof PGeneratorFunction) {
-            return new GenericDispatchNoneNode(callee.getName());
+            return new DispatchGeneratorNoneNode(callee, next);
         }
 
         if (callee instanceof PFunction) {
@@ -98,6 +98,43 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
             }
 
             return next.executeCall(frame, callee, arguments, keywords);
+        }
+    }
+
+    public static final class DispatchGeneratorNoneNode extends CallDispatchNoneNode implements GeneratorDispatchSite {
+
+        @Child protected CallDispatchNoneNode next;
+        private final PythonCallable generator;
+
+        public DispatchGeneratorNoneNode(PythonCallable callee, UninitializedDispatchNoneNode next) {
+            super(callee.getName());
+            this.next = next;
+            this.generator = callee;
+            assert callee instanceof PGeneratorFunction;
+        }
+
+        @Override
+        public NodeCost getCost() {
+            return getCost(next);
+        }
+
+        @Override
+        protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object[] arguments, PKeyword[] keywords) {
+            if (generator == callee) {
+                return generator.call(arguments);
+            }
+
+            return next.executeCall(frame, callee, arguments, keywords);
+        }
+
+        @Override
+        public PGeneratorFunction getGeneratorFunction() {
+            return (PGeneratorFunction) generator;
+        }
+
+        @Override
+        public PythonCallNode getCallNode() {
+            return (PythonCallNode) getTop().getParent();
         }
     }
 
