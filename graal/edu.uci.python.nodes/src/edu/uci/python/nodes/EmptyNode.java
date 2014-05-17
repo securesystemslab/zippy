@@ -30,8 +30,6 @@ import edu.uci.python.runtime.datatype.*;
 
 public final class EmptyNode extends PNode {
 
-// public static final EmptyNode INSTANCE = new EmptyNode();
-
     private EmptyNode() {
     }
 
