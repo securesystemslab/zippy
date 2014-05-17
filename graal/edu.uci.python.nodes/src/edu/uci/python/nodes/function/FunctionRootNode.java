@@ -183,7 +183,7 @@ public final class FunctionRootNode extends RootNode {
         }
 
         PrintStream ps = System.out;
-        ps.println("[ZipPy] transformed generator call to " + genfun.getCallTarget() + " in " + getRootNode());
+        ps.println("[ZipPy] peeled generator " + genfun.getCallTarget() + " in " + getRootNode());
     }
 
     @Override

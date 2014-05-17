@@ -82,7 +82,6 @@ public class GeneratorExpressionOptimizer {
              * The simplest case in micro bench: generator-expression.
              */
             if (genExp.getParent() instanceof GetIteratorNode) {
-// transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) genExp.getParent(), false);
                 desugarGeneratorExpression(genExp, (GetIteratorNode) genExp.getParent(), false);
             } else if (genExp.getParent() instanceof CallFunctionInlinedNode) {
                 /**
@@ -105,7 +104,8 @@ public class GeneratorExpressionOptimizer {
             }
 
             if (read.getParent() instanceof GetIteratorNode) {
-                transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) read.getParent(), false);
+// transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) read.getParent(), false);
+                desugarGeneratorExpression(genExp, (GetIteratorNode) read.getParent(), false);
             }
         }
     }

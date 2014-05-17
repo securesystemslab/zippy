@@ -63,4 +63,12 @@ public class GeneratorOptimizationTests {
         assertPrintContains("420\n", script);
     }
 
+    @Test
+    public void inlineGenexpLocalVar() {
+        PythonOptions.InlineGeneratorCalls = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
+        Path script = Paths.get("generator-inline-genexp-localvar-test.py");
+        assertPrintContains("420\n", script);
+    }
+
 }
