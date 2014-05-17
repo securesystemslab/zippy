@@ -87,11 +87,6 @@ public final class FunctionRootNode extends RootNode {
     }
 
     @Override
-    public FunctionRootNode copy() {
-        return new FunctionRootNode(this.context, this.functionName, this.getFrameDescriptor(), this.uninitializedBody);
-    }
-
-    @Override
     public FunctionRootNode split() {
         return new FunctionRootNode(this.context, this.functionName, this.getFrameDescriptor().shallowCopy(), this.uninitializedBody);
     }
