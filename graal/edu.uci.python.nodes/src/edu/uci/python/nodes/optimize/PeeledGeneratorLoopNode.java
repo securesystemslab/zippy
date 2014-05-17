@@ -51,7 +51,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
     }
 
     public static PeeledGeneratorLoopNode create(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode primaryNode, PNode[] argumentNodes, ShapeCheckNode checkNode, PNode originalLoop) {
-        if (primaryNode != EmptyNode.INSTANCE) {
+        if (primaryNode != EmptyNode.create()) {
             return new PeeledGeneratorLoopBoxedNode(generatorRoot, frameDescriptor, primaryNode, argumentNodes, checkNode, originalLoop);
         }
 

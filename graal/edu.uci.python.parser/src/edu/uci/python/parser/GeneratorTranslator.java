@@ -140,7 +140,7 @@ public class GeneratorTranslator {
             PNode argumentLoads = body.getStatements()[0];
             returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body.getStatements()[1], returnTarget.getReturn(), nextActiveFlagSlot()));
         } else {
-            returnTarget.replace(new GeneratorReturnTargetNode(EmptyNode.INSTANCE, returnTarget.getBody(), returnTarget.getReturn(), nextActiveFlagSlot()));
+            returnTarget.replace(new GeneratorReturnTargetNode(EmptyNode.create(), returnTarget.getBody(), returnTarget.getReturn(), nextActiveFlagSlot()));
         }
     }
 

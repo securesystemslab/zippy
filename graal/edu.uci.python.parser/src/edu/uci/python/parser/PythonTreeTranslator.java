@@ -110,7 +110,7 @@ public class PythonTreeTranslator extends Visitor {
             PNode statement = (PNode) visit(statementObject);
 
             // Statements like Global is ignored
-            if (statement == EmptyNode.INSTANCE) {
+            if (EmptyNode.isEmpty(statement)) {
                 continue;
             }
 
@@ -266,7 +266,7 @@ public class PythonTreeTranslator extends Visitor {
             ReadDefaultArgumentNode[] defaultReads = environment.getDefaultArgumentReads();
             return new DefaultParametersNode(defaultParameters.toArray(new PNode[defaultParameters.size()]), defaultReads);
         } else {
-            return EmptyNode.INSTANCE;
+            return EmptyNode.create();
         }
     }
 
@@ -443,7 +443,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitImportFrom(ImportFrom node) throws Exception {
         if (node.getInternalModule().compareTo("__future__") == 0) {
-            return EmptyNode.INSTANCE;
+            return EmptyNode.create();
         }
         List<alias> aliases = node.getInternalNames();
         assert !aliases.isEmpty();
@@ -475,7 +475,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode body = factory.createBlock(visitStatements(node.getInternalBody()));
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, environment.getCurrentFrame(), body);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
-        FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, context, new Arity(name, 0, 0, new ArrayList<String>()), EmptyNode.INSTANCE, ct, environment.getCurrentFrame(),
+        FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, context, new Arity(name, 0, 0, new ArrayList<String>()), EmptyNode.create(), ct, environment.getCurrentFrame(),
                         environment.needsDeclarationFrame());
         environment.endScope(node);
 
@@ -701,10 +701,10 @@ public class PythonTreeTranslator extends Visitor {
 
             List<expr> conditions = comp.getInternalIfs();
             if (conditions != null && !conditions.isEmpty()) {
-                current = factory.createIf(factory.toBooleanCastNode((PNode) visit(conditions.get(0))), current, EmptyNode.INSTANCE);
+                current = factory.createIf(factory.toBooleanCastNode((PNode) visit(conditions.get(0))), current, EmptyNode.create());
             }
 
-            PNode target = ((ReadNode) visit(comp.getInternalTarget())).makeWriteNode(EmptyNode.INSTANCE);
+            PNode target = ((ReadNode) visit(comp.getInternalTarget())).makeWriteNode(EmptyNode.create());
             PNode iterator = (PNode) visit(comp.getInternalIter());
             current = createForInScope(target, iterator, current);
         }
@@ -791,7 +791,7 @@ public class PythonTreeTranslator extends Visitor {
 
         StatementNode whileNode = factory.createWhile(factory.toBooleanCastNode(test), wrappedBody);
 
-        if (orelse != EmptyNode.INSTANCE) {
+        if (orelse != EmptyNode.create()) {
             whileNode = factory.createElse(whileNode, orelse);
         }
 
@@ -808,7 +808,7 @@ public class PythonTreeTranslator extends Visitor {
         List<expr> lhs = new ArrayList<>();
         lhs.add(node.getInternalTarget());
 
-        List<PNode> targets = assigns.walkTargetList(lhs, EmptyNode.INSTANCE);
+        List<PNode> targets = assigns.walkTargetList(lhs, EmptyNode.create());
         PNode iteratorWrite = targets.remove(0);
 
         PNode iter = (PNode) visit(node.getInternalIter());
@@ -828,7 +828,7 @@ public class PythonTreeTranslator extends Visitor {
 
         StatementNode forNode = createForInScope(target, iter, wrappedBody);
 
-        if (orelse != EmptyNode.INSTANCE) {
+        if (orelse != EmptyNode.create()) {
             forNode = factory.createElse(forNode, orelse);
         }
 
@@ -881,7 +881,7 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitGlobal(Global node) throws Exception {
-        return EmptyNode.INSTANCE;
+        return EmptyNode.create();
     }
 
     @Override
@@ -907,7 +907,7 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitPass(Pass node) throws Exception {
-        return EmptyNode.INSTANCE;
+        return EmptyNode.create();
     }
 
     @Override
@@ -935,7 +935,7 @@ public class PythonTreeTranslator extends Visitor {
                 }
             }
 
-            PNode exceptName = (except.getInternalName() == null) ? null : ((ReadNode) visit(except.getInternalName())).makeWriteNode(EmptyNode.INSTANCE);
+            PNode exceptName = (except.getInternalName() == null) ? null : ((ReadNode) visit(except.getInternalName())).makeWriteNode(EmptyNode.create());
             List<PNode> exceptbody = visitStatements(except.getInternalBody());
             PNode exceptBody = factory.createBlock(exceptbody);
             ExceptNode exceptNode = new ExceptNode(context, exceptBody, exceptType, exceptName);

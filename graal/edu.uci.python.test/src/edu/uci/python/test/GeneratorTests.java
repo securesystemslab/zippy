@@ -30,8 +30,6 @@ import java.nio.file.*;
 
 import org.junit.*;
 
-import edu.uci.python.runtime.*;
-
 public class GeneratorTests {
 
     @Test
@@ -62,27 +60,6 @@ public class GeneratorTests {
     public void accumulator() {
         Path script = Paths.get("generator-accumulator-test.py");
         assertPrints("['w', 'c', 'g']\n['h', 'z']\n", script);
-    }
-
-    @Test
-    public void euler11() {
-        PythonOptions.OptimizeGeneratorExpressions = false;
-        Path script = Paths.get("euler11-test.py");
-        assertPrints("9507960\n9507960\n", script);
-    }
-
-    @Test
-    public void inline() {
-        PythonOptions.InlineGeneratorCalls = true;
-        Path script = Paths.get("generator-inline-test.py");
-        assertPrints("99\n99\n99\n99\n99\n", script);
-    }
-
-    @Test
-    public void inlineNone() {
-        PythonOptions.InlineGeneratorCalls = true;
-        Path script = Paths.get("generator-inline-none-test.py");
-        assertPrints("99\n99\n99\n99\n99\n", script);
     }
 
     @Test

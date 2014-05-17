@@ -116,7 +116,7 @@ public class PythonCallUtil {
     }
 
     protected static boolean isPrimaryNone(Object primary, PythonCallNode node) {
-        return node.primaryNode == EmptyNode.INSTANCE && primary == PNone.NONE;
+        return EmptyNode.isEmpty(node.primaryNode) && primary == PNone.NONE;
     }
 
     protected static boolean isConstructorCall(Object primary, PythonCallable callee) {

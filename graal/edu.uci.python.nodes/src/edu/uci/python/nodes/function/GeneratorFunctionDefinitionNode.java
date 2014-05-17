@@ -50,7 +50,7 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
 
     public static GeneratorFunctionDefinitionNode create(String name, PythonContext context, Arity arity, PNode defaults, RootCallTarget callTarget, FrameDescriptor frameDescriptor,
                     RootCallTarget parallelCallTarget, boolean needsDeclarationFrame, int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
-        if (needsDeclarationFrame || defaults != EmptyNode.INSTANCE) {
+        if (needsDeclarationFrame || !EmptyNode.isEmpty(defaults)) {
             return new GeneratorFunctionDefinitionNode(name, context, arity, defaults, callTarget, frameDescriptor, parallelCallTarget, needsDeclarationFrame, numOfActiveFlags,
                             numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
@@ -75,7 +75,12 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
 
         public StatelessGeneratorFunctionDefinitionNode(String name, PythonContext context, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, RootCallTarget parallelCallTarget,
                         int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
-            super(name, context, arity, EmptyNode.INSTANCE, callTarget, frameDescriptor, parallelCallTarget, false, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            super(name, context, arity, EmptyNode.create(), callTarget, frameDescriptor, parallelCallTarget, false, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        }
+
+        public StatelessGeneratorFunctionDefinitionNode(GeneratorExpressionNode prev) {
+            super(prev.getName(), prev.context, Arity.DUMMY, EmptyNode.create(), prev.getCallTarget(), prev.getFrameDescriptor(), null, false, prev.getNumOfActiveFlags(),
+                            prev.getNumOfGeneratorBlockNode(), prev.getNumOfGeneratorForNode());
         }
 
         @Override

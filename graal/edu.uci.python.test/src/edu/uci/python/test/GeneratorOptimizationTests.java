@@ -22,30 +22,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
+package edu.uci.python.test;
 
-import com.oracle.truffle.api.frame.*;
+import static edu.uci.python.test.PythonTests.*;
 
-import edu.uci.python.runtime.datatype.*;
+import java.nio.file.*;
 
-public final class EmptyNode extends PNode {
+import org.junit.*;
 
-// public static final EmptyNode INSTANCE = new EmptyNode();
+import edu.uci.python.runtime.*;
 
-    private EmptyNode() {
+public class GeneratorOptimizationTests {
+
+    @Test
+    public void euler11() {
+        PythonOptions.OptimizeGeneratorExpressions = false;
+        Path script = Paths.get("euler11-test.py");
+        assertPrints("9507960\n9507960\n", script);
     }
 
-    public static EmptyNode create() {
-        return new EmptyNode();
+    @Test
+    public void inline() {
+        PythonOptions.InlineGeneratorCalls = true;
+        Path script = Paths.get("generator-inline-test.py");
+        assertPrints("99\n99\n99\n99\n99\n", script);
     }
 
-    public static boolean isEmpty(PNode other) {
-        return other instanceof EmptyNode;
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return PNone.NONE;
+    @Test
+    public void inlineNone() {
+        PythonOptions.InlineGeneratorCalls = true;
+        Path script = Paths.get("generator-inline-none-test.py");
+        assertPrints("99\n99\n99\n99\n99\n", script);
     }
 
 }

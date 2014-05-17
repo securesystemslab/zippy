@@ -136,7 +136,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         private boolean toBoolean(Object value) {
             if (toBoolean == null) {
                 CompilerDirectives.transferToInterpreter();
-                toBoolean = insert(YesNodeFactory.create(EmptyNode.INSTANCE));
+                toBoolean = insert(YesNodeFactory.create(EmptyNode.create()));
             }
             return toBoolean.executeBoolean(null, value);
         }
@@ -151,7 +151,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         private boolean toBoolean(Object value) {
             if (toBoolean == null) {
                 CompilerDirectives.transferToInterpreter();
-                toBoolean = insert(YesNodeFactory.create(EmptyNode.INSTANCE));
+                toBoolean = insert(YesNodeFactory.create(EmptyNode.create()));
             }
             return toBoolean.executeBoolean(null, value);
         }

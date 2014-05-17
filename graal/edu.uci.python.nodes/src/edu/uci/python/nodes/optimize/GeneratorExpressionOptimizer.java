@@ -31,6 +31,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;
+import edu.uci.python.nodes.call.CallDispatchNoneNode.*;
 import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.frame.*;
@@ -39,6 +40,8 @@ import edu.uci.python.nodes.function.GeneratorExpressionNode.CallableGeneratorEx
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
+import static edu.uci.python.nodes.function.GeneratorFunctionDefinitionNode.*;
+import static edu.uci.python.nodes.call.PythonCallNode.*;
 
 public class GeneratorExpressionOptimizer {
 
@@ -79,7 +82,8 @@ public class GeneratorExpressionOptimizer {
              * The simplest case in micro bench: generator-expression.
              */
             if (genExp.getParent() instanceof GetIteratorNode) {
-                transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) genExp.getParent(), false);
+// transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) genExp.getParent(), false);
+                desugarGeneratorExpression(genExp, (GetIteratorNode) genExp.getParent(), false);
             } else if (genExp.getParent() instanceof CallFunctionInlinedNode) {
                 /**
                  * Function calls that were just inlined create new opportunities for genexp
@@ -133,6 +137,37 @@ public class GeneratorExpressionOptimizer {
 
         genExp.setAsOptimized();
         context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to inlineable generator call");
+    }
+
+    private void desugarGeneratorExpression(GeneratorExpressionNode genexp, GetIteratorNode getIterator, boolean isTargetCallSiteInInlinedFrame) {
+        FrameDescriptor fd = genexp.getFrameDescriptor();
+        FunctionRootNode root = (FunctionRootNode) genexp.getFunctionRootNode();
+        PNode[] argReads;
+
+        try {
+            List<FrameSlot> arguments = addParameterSlots(root, fd, findEnclosingFrameDescriptor(genexp));
+            replaceParameters(arguments, root);
+            replaceReadLevels(arguments, root);
+            argReads = assembleArgumentReads(arguments, genexp, isTargetCallSiteInInlinedFrame);
+        } catch (IllegalStateException e) {
+            return;
+        }
+
+        assert argReads != null;
+
+        PNode desugaredDefNode = new StatelessGeneratorFunctionDefinitionNode(genexp);
+        PNode generatorCallNode = new NoneCallNode(context, genexp.getName(), EmptyNode.create(), desugaredDefNode, argReads, new PNode[]{}, new UninitializedDispatchNoneNode(genexp.getName(), false));
+        PNode loadGenerator = getIterator.getOperand();
+        loadGenerator.replace(generatorCallNode);
+
+        try {
+            PNode matched = NodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
+            matched.replace(NodeUtil.cloneNode(generatorCallNode));
+        } catch (IllegalStateException e) {
+        }
+
+        genexp.setAsOptimized();
+        context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genexp + " to inlineable generator call");
     }
 
     /**

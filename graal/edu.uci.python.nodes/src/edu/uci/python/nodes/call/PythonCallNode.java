@@ -74,7 +74,7 @@ public abstract class PythonCallNode extends PNode {
             primaryNode = NodeUtil.cloneNode(hasPrimary.extractPrimary());
             calleeName = ((HasPrimaryNode) calleeNode).getAttributeId();
         } else {
-            primaryNode = EmptyNode.INSTANCE;
+            primaryNode = EmptyNode.create();
             calleeName = "~unknown";
         }
 
