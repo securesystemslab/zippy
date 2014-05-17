@@ -468,6 +468,13 @@ C2V_VMENTRY(jlong, resolveField, (JNIEnv *env, jobject, jlong metaspace_constant
   return (jlong) (address) result.field_holder();
 C2V_END
 
+C2V_VMENTRY(jint, getVtableIndexForInterface, (JNIEnv *, jobject, jlong metaspace_klass, jlong metaspace_method))
+  Klass* klass = (Klass*) metaspace_klass;
+  Method* method = (Method*) metaspace_method;
+
+  return LinkResolver::vtable_index_of_interface_method(klass, method);
+C2V_END
+
 C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jlong metaspace_klass_receiver, jlong metaspace_method, jlong metaspace_klass_caller))
   Klass* recv_klass = (Klass*) metaspace_klass_receiver;
   Klass* caller_klass = (Klass*) metaspace_klass_caller;
