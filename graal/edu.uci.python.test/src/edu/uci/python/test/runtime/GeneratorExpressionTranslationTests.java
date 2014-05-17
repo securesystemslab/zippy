@@ -26,6 +26,9 @@ package edu.uci.python.test.runtime;
 
 import org.junit.*;
 
+import com.oracle.truffle.api.nodes.*;
+
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.*;
 import static edu.uci.python.test.PythonTests.*;
 import static org.junit.Assert.*;
@@ -41,8 +44,10 @@ public class GeneratorExpressionTranslationTests {
                         "    for i in (x for x in range(n)):\n" + //
                         "        item = i\n";
 
-        String result = parseTest(source);
-        assertTrue(result.contains("does not escape"));
+        PythonParseResult parsed = getParseResult(source);
+        RootNode root = parsed.getFunctionRoot("foo");
+        GeneratorExpressionNode genexp = NodeUtil.findFirstNodeInstance(root, GeneratorExpressionNode.class);
+        assertTrue(genexp == null || genexp.isOptimized());
     }
 
     @Test

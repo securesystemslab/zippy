@@ -83,7 +83,7 @@ public class ZipPyConsole extends InteractiveConsole {
         return result;
     }
 
-    public void parseFile(PythonContext context, Source source) {
+    public PythonParseResult parseFile(PythonContext context, Source source) {
         PythonModule module = context.createMainModule(source.getPath());
         PythonParseResult result = context.getParser().parse(context, module, source);
 
@@ -91,6 +91,8 @@ public class ZipPyConsole extends InteractiveConsole {
             printBanner("After Parsing");
             result.printAST();
         }
+
+        return result;
     }
 
     public static void printBanner(String phase) {

@@ -55,4 +55,12 @@ public class GeneratorOptimizationTests {
         assertPrints("99\n99\n99\n99\n99\n", script);
     }
 
+    @Test
+    public void inlineGenexp() {
+        PythonOptions.InlineGeneratorCalls = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
+        Path script = Paths.get("generator-inline-genexp-test.py");
+        assertPrintContains("420\n", script);
+    }
+
 }

@@ -71,6 +71,15 @@ public class PythonTests {
         return byteArray.toString().replaceAll("\r\n", "\n");
     }
 
+    public static PythonParseResult getParseResult(String code) {
+        final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+        final PrintStream printStream = new PrintStream(byteArray);
+
+        PythonContext context = getContext(printStream, System.err);
+        Source source = context.getSourceManager().get("(test)", code);
+        return new ZipPyConsole().parseFile(context, source);
+    }
+
     public static void assertError(String expected, String code) {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
@@ -105,6 +114,26 @@ public class PythonTests {
         RunScript.runScript(new String[0], source, context);
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertEquals(expected, result);
+    }
+
+    public static void assertPrintContains(String expected, Path scriptName) {
+        final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+        final PrintStream printStream = new PrintStream(byteArray);
+
+        String path = null;
+        if (Files.isDirectory(Paths.get("graal/edu.uci.python.test/src/tests"))) {
+            path = "graal/edu.uci.python.test/src/tests";
+        } else if (Files.isDirectory(Paths.get("../../graal/edu.uci.python.test/src/tests"))) {
+            path = "../../graal/edu.uci.python.test/src/tests";
+        } else {
+            throw new RuntimeException("Unable to locate edu.uci.python.test/src/tests/");
+        }
+
+        PythonContext context = getContext(printStream, System.err);
+        Source source = context.getSourceManager().get(path + File.separatorChar + scriptName.toString());
+        RunScript.runScript(new String[0], source, context);
+        String result = byteArray.toString().replaceAll("\r\n", "\n");
+        assertTrue(result.contains(expected));
     }
 
     public static PythonContext getContext() {
