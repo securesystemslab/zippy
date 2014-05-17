@@ -34,7 +34,7 @@ def measure():
 	print("generator-expression: " + duration)
 
 #warm up
-for run in range(1000):
+for run in range(2000):
 	call_generator(10, 100)
 
 measure()
