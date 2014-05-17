@@ -1149,6 +1149,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"resolveField",                                 CC"("METASPACE_CONSTANT_POOL"IB[J)"METASPACE_KLASS,                       FN_PTR(resolveField)},
   {CC"resolveInvokeDynamic",                         CC"("METASPACE_CONSTANT_POOL"I)V",                                        FN_PTR(resolveInvokeDynamic)},
   {CC"resolveMethod",                                CC"("METASPACE_KLASS METASPACE_METHOD METASPACE_KLASS")"METASPACE_METHOD, FN_PTR(resolveMethod)},
+  {CC"getVtableIndexForInterface",                   CC"("METASPACE_KLASS METASPACE_METHOD")I",                                FN_PTR(getVtableIndexForInterface)},
   {CC"getClassInitializer",                          CC"("METASPACE_KLASS")"METASPACE_METHOD,                                  FN_PTR(getClassInitializer)},
   {CC"hasFinalizableSubclass",                       CC"("METASPACE_KLASS")Z",                                                 FN_PTR(hasFinalizableSubclass)},
   {CC"getMaxCallTargetOffset",                       CC"(J)J",                                                                 FN_PTR(getMaxCallTargetOffset)},
