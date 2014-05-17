@@ -41,7 +41,6 @@ enum IntrinsifiableBuiltin {
     SET("set");
 
     private final String name;
-
     private static final Map<String, IntrinsifiableBuiltin> TargetBuiltins = new HashMap<>();
 
     static {
@@ -50,15 +49,15 @@ enum IntrinsifiableBuiltin {
         TargetBuiltins.put(SET.name, SET);
     }
 
-    IntrinsifiableBuiltin(String name) {
+    private IntrinsifiableBuiltin(String name) {
         this.name = name;
     }
 
-    String getName() {
+    public String getName() {
         return name;
     }
 
-    static IntrinsifiableBuiltin findIntrinsifiable(String name) {
+    public static IntrinsifiableBuiltin findIntrinsifiable(String name) {
         return TargetBuiltins.get(name);
     }
 
@@ -66,8 +65,8 @@ enum IntrinsifiableBuiltin {
         return callee instanceof PBuiltinFunction && TargetBuiltins.containsKey(callee.getName());
     }
 
-    static ComprehensionNode createComprehensionNode(IntrinsifiableBuiltin targetBuiltin, FrameSlot targetSlot, PNode comprehension) {
-        switch (targetBuiltin) {
+    public ComprehensionNode createComprehensionNode(FrameSlot targetSlot, PNode comprehension) {
+        switch (this) {
             case LIST:
                 return new ComprehensionNode.ListComprehensionNode(targetSlot, comprehension);
             case TUPLE:
@@ -79,8 +78,8 @@ enum IntrinsifiableBuiltin {
         }
     }
 
-    static PNode createComprehensionAppendNode(IntrinsifiableBuiltin targetBuiltin, FrameSlot targetSlot, PNode comprehension) {
-        switch (targetBuiltin) {
+    public PNode createComprehensionAppendNode(FrameSlot targetSlot, PNode comprehension) {
+        switch (this) {
             case LIST:
                 return ListAppendNodeFactory.create(targetSlot, comprehension);
             case TUPLE:

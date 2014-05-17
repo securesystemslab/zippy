@@ -117,8 +117,8 @@ public class BuiltinIntrinsifier {
         FrameSlot listCompSlot = enclosingFrame.addFrameSlot("<" + target.getName() + "_comp_val" + genexp.hashCode() + ">");
         YieldNode yield = NodeUtil.findFirstNodeInstance(uninitializedGenexpBody, YieldNode.class);
         WriteLocalVariableNode write = (WriteLocalVariableNode) yield.getRhs();
-        yield.replace(IntrinsifiableBuiltin.createComprehensionAppendNode(target, listCompSlot, write.getRhs()));
-        call.replace(IntrinsifiableBuiltin.createComprehensionNode(target, listCompSlot, uninitializedGenexpBody));
+        yield.replace(target.createComprehensionAppendNode(listCompSlot, write.getRhs()));
+        call.replace(target.createComprehensionNode(listCompSlot, uninitializedGenexpBody));
 
         genexp.setAsOptimized();
         PrintStream out = System.out;

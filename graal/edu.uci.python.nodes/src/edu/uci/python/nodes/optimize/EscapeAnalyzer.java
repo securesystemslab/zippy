@@ -123,6 +123,7 @@ public class EscapeAnalyzer {
     }
 
     /**
+     * TODO: (zwei) remove this nonsense! <br>
      * A trivial way to identify if the callee is a builtin function. If so, the generator
      * expression argument to this call is not considered as escaping.
      */
