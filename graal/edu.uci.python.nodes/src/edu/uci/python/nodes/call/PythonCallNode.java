@@ -81,8 +81,12 @@ public abstract class PythonCallNode extends PNode {
         return new UninitializedCallNode(context, primaryNode, calleeName, calleeNode, argumentNodes, keywords);
     }
 
-    public final PNode getPrimary() {
+    public final PNode getPrimaryNode() {
         return primaryNode;
+    }
+
+    public final PNode getCalleeNode() {
+        return calleeNode;
     }
 
     public final PNode[] getArgumentNodes() {

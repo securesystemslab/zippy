@@ -3,9 +3,9 @@
 
 def call_generator():
     for i in range(5000):
-    	def localgen(n):
-    		for i in range(n):
-        		yield i
+        def localgen(n):
+            for i in range(n):
+                yield i
 
         for i in localgen(100):
             item = i

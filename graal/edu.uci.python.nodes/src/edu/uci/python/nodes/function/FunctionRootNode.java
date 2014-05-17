@@ -32,7 +32,8 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.call.*;
-import edu.uci.python.nodes.call.CallDispatchBoxedNode.*;
+import edu.uci.python.nodes.call.CallDispatchBoxedNode.DispatchGeneratorBoxedNode;
+import edu.uci.python.nodes.call.CallDispatchNoneNode.DispatchGeneratorNoneNode;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.generator.*;
@@ -40,6 +41,7 @@ import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
+import static edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.*;
 
 /**
  * RootNode of a Python Function body. It is invoked by a CallTarget.
@@ -107,24 +109,35 @@ public final class FunctionRootNode extends RootNode {
         CompilerAsserts.neverPartOfCompilation();
 
         for (DispatchGeneratorBoxedNode dispatch : NodeUtil.findAllNodeInstances(body, DispatchGeneratorBoxedNode.class)) {
-            boolean inlinable = dispatch.getCost() == NodeCost.MONOMORPHIC;
             PGeneratorFunction genfun = dispatch.getGeneratorFunction();
-            int calleeNodeCount = NodeUtil.countNodes(this);
-            int generatorNodeCount = NodeUtil.countNodes(genfun.getFunctionRootNode());
-            inlinable &= generatorNodeCount < 500;
-            inlinable &= calleeNodeCount < 2500;
+            boolean inlinable = isInlinable(dispatch, genfun);
+            peelGeneratorLoop(inlinable, dispatch, genfun);
+        }
+
+        for (DispatchGeneratorNoneNode dispatch : NodeUtil.findAllNodeInstances(body, DispatchGeneratorNoneNode.class)) {
+            PGeneratorFunction genfun = dispatch.getGeneratorFunction();
+            boolean inlinable = isInlinable(dispatch, genfun);
             peelGeneratorLoop(inlinable, dispatch, genfun);
         }
     }
 
-    protected void peelGeneratorLoop(boolean inlinable, DispatchGeneratorBoxedNode dispatch, PGeneratorFunction genfun) {
+    private boolean isInlinable(CallDispatchNode dispatch, PGeneratorFunction genfun) {
+        boolean inlinable = dispatch.getCost() == NodeCost.MONOMORPHIC;
+        int calleeNodeCount = NodeUtil.countNodes(this);
+        int generatorNodeCount = NodeUtil.countNodes(genfun.getFunctionRootNode());
+        inlinable &= generatorNodeCount < 500;
+        inlinable &= calleeNodeCount < 2500;
+        return inlinable;
+    }
+
+    protected void peelGeneratorLoop(boolean inlinable, GeneratorDispatchSite dispatch, PGeneratorFunction genfun) {
         CompilerAsserts.neverPartOfCompilation();
 
         if (!inlinable) {
             return;
         }
 
-        Node callNode = dispatch.getTop().getParent();
+        Node callNode = dispatch.getCallNode();
         Node getIter = callNode.getParent();
         Node forNode = getIter.getParent();
 
@@ -135,8 +148,17 @@ public final class FunctionRootNode extends RootNode {
         PythonCallNode call = (PythonCallNode) callNode;
         ForNode loop = (ForNode) forNode;
         PNode orignalLoop = NodeUtil.cloneNode(loop);
-        PeeledGeneratorLoopNode peeled = PeeledGeneratorLoopNode.create((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getPrimary(), call.getArgumentNodes(),
-                        dispatch.getCheckNode(), orignalLoop);
+        PeeledGeneratorLoopNode peeled;
+
+        if (call instanceof PythonCallNode.BoxedCallNode) {
+            DispatchGeneratorBoxedNode boxedDispatch = (DispatchGeneratorBoxedNode) dispatch;
+            peeled = new PeeledGeneratorLoopBoxedNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getPrimaryNode(), call.getArgumentNodes(),
+                            boxedDispatch.getCheckNode(), orignalLoop);
+        } else {
+            peeled = new PeeledGeneratorLoopNoneNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getCalleeNode(), call.getArgumentNodes(),
+                            dispatch.getGeneratorFunction(), orignalLoop);
+        }
+
         loop.replace(peeled);
 
         PNode loopBody = loop.getBody();

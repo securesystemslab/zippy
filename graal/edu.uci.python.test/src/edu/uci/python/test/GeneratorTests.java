@@ -73,7 +73,15 @@ public class GeneratorTests {
 
     @Test
     public void inline() {
+        PythonOptions.InlineGeneratorCalls = true;
         Path script = Paths.get("generator-inline-test.py");
+        assertPrints("99\n99\n99\n99\n99\n", script);
+    }
+
+    @Test
+    public void inlineNone() {
+        PythonOptions.InlineGeneratorCalls = true;
+        Path script = Paths.get("generator-inline-none-test.py");
         assertPrints("99\n99\n99\n99\n99\n", script);
     }
 
