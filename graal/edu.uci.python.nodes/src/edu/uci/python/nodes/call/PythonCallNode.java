@@ -34,9 +34,11 @@ import org.python.core.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.object.*;
+import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
@@ -79,6 +81,10 @@ public abstract class PythonCallNode extends PNode {
         }
 
         return new UninitializedCallNode(context, primaryNode, calleeName, calleeNode, argumentNodes, keywords);
+    }
+
+    public final String getCalleeName() {
+        return calleeName;
     }
 
     public final PNode getPrimaryNode() {
@@ -143,6 +149,11 @@ public abstract class PythonCallNode extends PNode {
             CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) callee, "__call__", callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
             replace(new CallPythonObjectNode(context, callable.getName(), primaryNode, calleeNode, argumentNodes, keywordNodes, dispatch));
             return dispatch.executeCall(frame, (PythonObject) callee, arguments, PKeyword.EMPTY_KEYWORDS);
+        }
+
+        if (PythonOptions.IntrinsifyBuiltinCalls && IntrinsifiableBuiltin.isIntrinsifiable(callable)) {
+            BuiltinIntrinsifier intrinsifier = new BuiltinIntrinsifier(context, AlwaysValidAssumption.INSTANCE, AlwaysValidAssumption.INSTANCE, this);
+            intrinsifier.synthesize();
         }
 
         /**

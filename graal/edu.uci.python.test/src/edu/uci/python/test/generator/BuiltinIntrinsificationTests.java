@@ -31,9 +31,23 @@ import java.nio.file.*;
 
 import org.junit.*;
 
+import com.oracle.truffle.api.nodes.*;
+
+import edu.uci.python.nodes.generator.ComprehensionNode.*;
 import edu.uci.python.runtime.*;
 
 public class BuiltinIntrinsificationTests {
+
+    @Test
+    public void simpleListComp() {
+        assertTrue(PythonOptions.IntrinsifyBuiltinCalls);
+        String source = "for x in range(2):\n" + //
+                        "    ll = list(i for i in range(5))\n" + //
+                        "print(ll)";
+        PythonParseResult ast = assertPrints("[0, 1, 2, 3, 4]\n", source);
+        Node listComp = NodeUtil.findFirstNodeInstance(ast.getModuleRoot(), ListComprehensionNode.class);
+        assertTrue(listComp != null);
+    }
 
     @Test
     public void listComp() {

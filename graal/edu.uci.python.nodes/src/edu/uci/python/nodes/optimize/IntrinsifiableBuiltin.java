@@ -32,9 +32,10 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.generator.ComprehensionNodeFactory.ArrayListAddNodeFactory;
 import edu.uci.python.nodes.generator.ComprehensionNodeFactory.HashSetAddNodeFactory;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
 
-enum IntrinsifiableBuiltin {
+public enum IntrinsifiableBuiltin {
 
     LIST("list"),
     TUPLE("tuple"),
@@ -62,7 +63,7 @@ enum IntrinsifiableBuiltin {
     }
 
     public static boolean isIntrinsifiable(PythonCallable callee) {
-        return callee instanceof PBuiltinFunction && TargetBuiltins.containsKey(callee.getName());
+        return callee instanceof PythonBuiltinClass && TargetBuiltins.containsKey(callee.getName());
     }
 
     public ComprehensionNode createComprehensionNode(FrameSlot targetSlot, PNode comprehension) {
