@@ -124,9 +124,9 @@ public abstract class ShapeCheckNode extends Node {
         @Override
         public boolean accept(PythonObject primary) throws InvalidAssumptionException {
             storageStableAssumption.check();
+            objectStableAssumption.check();
 
             if (primary.getObjectLayout() == cachedObjectLayout) {
-                objectStableAssumption.check();
                 return true;
             }
 

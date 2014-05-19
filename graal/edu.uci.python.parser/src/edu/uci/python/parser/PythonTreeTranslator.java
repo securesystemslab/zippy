@@ -791,7 +791,7 @@ public class PythonTreeTranslator extends Visitor {
 
         StatementNode whileNode = factory.createWhile(factory.toBooleanCastNode(test), wrappedBody);
 
-        if (orelse != EmptyNode.create()) {
+        if (!EmptyNode.isEmpty(orelse)) {
             whileNode = factory.createElse(whileNode, orelse);
         }
 
@@ -828,7 +828,7 @@ public class PythonTreeTranslator extends Visitor {
 
         StatementNode forNode = createForInScope(target, iter, wrappedBody);
 
-        if (orelse != EmptyNode.create()) {
+        if (!EmptyNode.isEmpty(orelse)) {
             forNode = factory.createElse(forNode, orelse);
         }
 

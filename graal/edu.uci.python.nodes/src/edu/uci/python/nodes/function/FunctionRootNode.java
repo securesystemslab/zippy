@@ -108,6 +108,10 @@ public final class FunctionRootNode extends RootNode {
 
         CompilerAsserts.neverPartOfCompilation();
 
+        if (PythonOptions.OptimizeGeneratorExpressions) {
+            new GeneratorExpressionOptimizer(this).optimize();
+        }
+
         for (DispatchGeneratorBoxedNode dispatch : NodeUtil.findAllNodeInstances(body, DispatchGeneratorBoxedNode.class)) {
             PGeneratorFunction genfun = dispatch.getGeneratorFunction();
             boolean inlinable = isInlinable(dispatch, genfun);
