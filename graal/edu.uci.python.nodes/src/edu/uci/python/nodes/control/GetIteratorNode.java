@@ -39,6 +39,11 @@ public abstract class GetIteratorNode extends UnaryOpNode {
     }
 
     @Specialization
+    public Object doTuple(PTuple value) {
+        return value.__iter__();
+    }
+
+    @Specialization
     public Object doPSequence(PSequence value) {
         return value.__iter__();
     }

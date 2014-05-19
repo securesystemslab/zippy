@@ -17,16 +17,17 @@ public class ProfilerResultPrinter {
     public static void printProfilerInstrumenterResults() {
         Map<PythonWrapperNode, ProfilerInstrument> sorted = sortByValue(PythonNodeProber.getWrapperToInstruments());
 
-        // 30 is the length of the text
-        // by default padding left padding is added, so space is added to the beginning of the
-// string, minus sign adds padding to the right
+        /**
+         * 50 is the length of the text by default padding left padding is added, so space is added
+         * to the beginning of the string, minus sign adds padding to the right
+         */
 
-        System.out.format("%-30s", "Node");
+        System.out.format("%-50s", "Node");
         System.out.format("%-20s", "Counter");
         System.out.format("%-15s", "Line");
         System.out.format("%-15s", "Column");
         System.out.println();
-        System.out.println("=============                 ===============     ==========     ==========");
+        System.out.println("=============                                     ===============     ==========     ==========");
 
         Iterator it = sorted.entrySet().iterator();
         while (it.hasNext()) {
@@ -35,14 +36,7 @@ public class ProfilerResultPrinter {
             ProfilerInstrument instrument = (ProfilerInstrument) entry.getValue();
 
             Node child = wrapper.getChild();
-            NodeInfo nodeInfo = child.getClass().getAnnotation(NodeInfo.class);
-
-            if (nodeInfo != null) {
-                System.out.format("%-30s", nodeInfo.shortName());
-            } else {
-                System.out.format("%-30s", child);
-            }
-
+            System.out.format("%-50s", child.getClass().getSimpleName());
             System.out.format("%15s", instrument.getCounter());
             System.out.format("%15s", child.getSourceSection().getStartLine());
             System.out.format("%15s", child.getSourceSection().getStartColumn());
@@ -68,7 +62,10 @@ public class ProfilerResultPrinter {
         return result;
     }
 
-    // "FUNCTION NAME"(13 char) + "10 space" + "INVOCATION COUNTS"(27 char)
+    /**
+     * "FUNCTION NAME"(13 char) + "10 space" + "INVOCATION COUNTS"(27 char)
+     */
+
     public static void printFunctionInvocationProfilerResults() {
         List<ProfilerNode> profiledNodes = ProfilerNode.getProfiledNodes();
         if (PythonOptions.SortProfilerResults) {

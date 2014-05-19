@@ -26,46 +26,30 @@ package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
-public final class PTuple extends PImmutableSequence {
+public abstract class PTuple extends PImmutableSequence {
 
-    private final Object[] array;
-
-    public PTuple() {
-        array = new Object[0];
+    public static PTuple create() {
+        return new PObjectTuple(null);
     }
 
-    public PTuple(Object[] elements) {
-        if (elements == null) {
-            array = new Object[0];
+    public static PTuple create(Object[] elements) {
+        if (SequenceStorageFactory.canSpecializeToInt(elements)) {
+            return new PIntTuple(SequenceStorageFactory.specializeToInt(elements));
+        } else if (SequenceStorageFactory.canSpecializeToDouble(elements)) {
+            return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(elements));
+        } else if (SequenceStorageFactory.canSpecializeToString(elements)) {
+            return new PStringTuple(SequenceStorageFactory.specializeToString(elements));
         } else {
-            array = new Object[elements.length];
-            System.arraycopy(elements, 0, array, 0, elements.length);
+            return new PObjectTuple(elements);
         }
     }
 
-    public PTuple(PRangeIterator iter) {
-        /**
-         * TODO Can be improved Currently creates a list, and then creates an array
-         */
-        List<Object> list = new ArrayList<>();
-
-        final int start = iter.getStart();
-        final int stop = iter.getStop();
-        final int step = iter.getStep();
-
-        for (int i = start; i < stop; i += step) {
-            list.add(i);
-        }
-
-        array = list.toArray();
-    }
-
-    public PTuple(PIterator iter) {
+    public static PTuple create(PIterator iter) {
         /**
          * TODO Can be improved Currently creates a list, and then creates an array
          */
@@ -79,7 +63,21 @@ public final class PTuple extends PImmutableSequence {
             // fall through
         }
 
-        array = list.toArray();
+        Object[] values = list.toArray();
+
+        if (SequenceStorageFactory.canSpecializeToInt(values)) {
+            return new PIntTuple(SequenceStorageFactory.specializeToInt(values));
+        } else if (SequenceStorageFactory.canSpecializeToDouble(values)) {
+            return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(values));
+        } else if (SequenceStorageFactory.canSpecializeToString(values)) {
+            return new PStringTuple(SequenceStorageFactory.specializeToString(values));
+        } else {
+            return new PObjectTuple(values);
+        }
+    }
+
+    public static PTuple create(PRangeIterator iter) {
+        return new PIntTuple(iter);
     }
 
     /**
@@ -88,53 +86,37 @@ public final class PTuple extends PImmutableSequence {
      * @param elements the tuple elements
      * @param copy whether to copy the elements into a new array or not
      */
-    public PTuple(Object[] elements, boolean copy) {
-        if (copy) {
-            array = new Object[elements.length];
-            System.arraycopy(elements, 0, array, 0, elements.length);
+    public static PTuple create(Object[] elements, boolean copy) {
+        if (SequenceStorageFactory.canSpecializeToInt(elements)) {
+            return new PIntTuple(SequenceStorageFactory.specializeToInt(elements), copy);
+        } else if (SequenceStorageFactory.canSpecializeToDouble(elements)) {
+            return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(elements), copy);
+        } else if (SequenceStorageFactory.canSpecializeToString(elements)) {
+            return new PStringTuple(SequenceStorageFactory.specializeToString(elements), copy);
         } else {
-            array = elements;
+            return new PObjectTuple(elements);
         }
     }
 
-    public Object[] getArray() {
-        return array;
-    }
-
     @Override
-    public int len() {
-        return array.length;
-    }
+    public PIterator __iter__() {
+        if (PythonOptions.UnboxSequenceIteration) {
+            if (this instanceof PIntTuple) {
+                return new PIntTupleIterator((PIntTuple) this);
+            } else if (this instanceof PDoubleTuple) {
+                return new PDoubleTupleIterator((PDoubleTuple) this);
+            } else if (this instanceof PStringTuple) {
+                return new PStringTupleIterator((PStringTuple) this);
+            } else {
+                return new PSequenceIterator(this);
+            }
+        } else {
+            return new PSequenceIterator(this);
 
-    @Override
-    public Object getItem(int idx) {
-        int checkedIdx = idx;
-
-        if (idx < 0) {
-            checkedIdx += array.length;
         }
-
-        return array[checkedIdx];
     }
 
-    @Override
-    public Object getSlice(PSlice slice) {
-        int length = slice.computeActualIndices(array.length);
-        return getSlice(slice.getStart(), slice.getStop(), slice.getStep(), length);
-    }
-
-    @Override
-    public Object getSlice(int start, int stop, int step, int length) {
-        Object[] newArray = new Object[length];
-        if (step == 1) {
-            System.arraycopy(array, start, newArray, 0, stop - start);
-            return new PTuple(newArray, false);
-        }
-        for (int i = start, j = 0; j < length; i += step, j++) {
-            newArray[j] = array[i];
-        }
-        return new PTuple(newArray, false);
-    }
+    public abstract Object[] getArray();
 
     @Override
     public boolean lessThan(PSequence sequence) {
@@ -162,50 +144,16 @@ public final class PTuple extends PImmutableSequence {
         throw new UnsupportedOperationException();
     }
 
-    @Override
-    public String toString() {
-        StringBuilder buf = new StringBuilder("(");
-        for (int i = 0; i < array.length - 1; i++) {
-            buf.append(toString(array[i]));
-            buf.append(", ");
-        }
-
-        if (array.length > 0) {
-            buf.append(toString(array[array.length - 1]));
-        }
-
-        if (array.length == 1) {
-            buf.append(",");
-        }
-
-        buf.append(")");
-        return buf.toString();
-    }
-
-    @Override
-    public Object getMin() {
-        Object[] copy = Arrays.copyOf(this.array, this.array.length);
-        Arrays.sort(copy);
-        return copy[0];
-    }
-
-    @Override
-    public Object getMax() {
-        Object[] copy = Arrays.copyOf(this.array, this.array.length);
-        Arrays.sort(copy);
-        return copy[copy.length - 1];
-    }
-
     public PTuple __add__(PTuple tuple) {
         Object[] newArray = new Object[len() + tuple.len()];
         Object[] rightArray = tuple.getArray();
 
         System.arraycopy(getArray(), 0, newArray, 0, len());
         System.arraycopy(rightArray, 0, newArray, len(), rightArray.length);
-        return new PTuple(newArray);
+        return PTuple.create(newArray);
     }
 
-    @SuppressWarnings({"unused", "static-method"})
+    @SuppressWarnings({"unused"})
     public PTuple __mul__(int value) {
         throw new UnsupportedOperationException();
     }

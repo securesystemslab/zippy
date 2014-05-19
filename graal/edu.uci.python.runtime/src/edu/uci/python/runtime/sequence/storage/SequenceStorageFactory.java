@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -48,12 +48,14 @@ public class SequenceStorageFactory {
             return new IntSequenceStorage(specializeToInt(values));
         } else if (canSpecializeToDouble(values)) {
             return new DoubleSequenceStorage(specializeToDouble(values));
+        } else if (canSpecializeToString(values)) {
+            return new StringSequenceStorage(specializeToString(values));
         } else {
             return new ObjectSequenceStorage(values);
         }
     }
 
-    protected static boolean canSpecializeToInt(Object[] values) {
+    public static boolean canSpecializeToInt(Object[] values) {
         if (!(values[0] instanceof Integer)) {
             return false;
         }
@@ -67,7 +69,7 @@ public class SequenceStorageFactory {
         return true;
     }
 
-    protected static int[] specializeToInt(Object[] values) {
+    public static int[] specializeToInt(Object[] values) {
         final int[] intVals = new int[values.length];
 
         for (int i = 0; i < values.length; i++) {
@@ -77,7 +79,7 @@ public class SequenceStorageFactory {
         return intVals;
     }
 
-    protected static boolean canSpecializeToDouble(Object[] values) {
+    public static boolean canSpecializeToDouble(Object[] values) {
         if (!(values[0] instanceof Double)) {
             return false;
         }
@@ -91,7 +93,7 @@ public class SequenceStorageFactory {
         return true;
     }
 
-    protected static double[] specializeToDouble(Object[] values) {
+    public static double[] specializeToDouble(Object[] values) {
         final double[] doubles = new double[values.length];
 
         for (int i = 0; i < values.length; i++) {
@@ -99,6 +101,30 @@ public class SequenceStorageFactory {
         }
 
         return doubles;
+    }
+
+    public static boolean canSpecializeToString(Object[] values) {
+        if (!(values[0] instanceof String)) {
+            return false;
+        }
+
+        for (Object item : values) {
+            if (!(item instanceof String)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static String[] specializeToString(Object[] values) {
+        final String[] strings = new String[values.length];
+
+        for (int i = 0; i < values.length; i++) {
+            strings[i] = (String) values[i];
+        }
+
+        return strings;
     }
 
 }

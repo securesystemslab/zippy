@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+\ * Copyright (c) 2013, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -245,7 +245,7 @@ public class PList extends PSequence {
             }
         }
 
-        // appendCounter++;
+// appendCounter++;
     }
 
     public final void extend(PList appendee) {

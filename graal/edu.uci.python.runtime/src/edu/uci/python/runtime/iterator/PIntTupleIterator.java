@@ -25,21 +25,21 @@
 package edu.uci.python.runtime.iterator;
 
 import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.sequence.storage.*;
+import edu.uci.python.runtime.sequence.*;
 
-public class PIntegerSequenceIterator implements PIterator, PIntegerIterator {
+public class PIntTupleIterator implements PIterator, PIntegerIterator {
 
-    private final IntSequenceStorage sequence;
+    private final PIntTuple tuple;
     private int index;
 
-    public PIntegerSequenceIterator(IntSequenceStorage sequence) {
-        this.sequence = sequence;
+    public PIntTupleIterator(PIntTuple intTuple) {
+        this.tuple = intTuple;
     }
 
     @Override
     public int __nextInt__() {
-        if (index < sequence.length()) {
-            return sequence.getIntItemInBound(index++);
+        if (index < tuple.len()) {
+            return tuple.getIntItem(index++);
         }
 
         throw StopIterationException.INSTANCE;

@@ -76,11 +76,26 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     }
 
     @Specialization(order = 4)
-    public Object doPTuple(PTuple tuple, int idx) {
-        return tuple.getItem(idx);
+    public int doPIntTuple(PIntTuple tuple, int idx) {
+        return tuple.getIntItem(idx);
     }
 
     @Specialization(order = 5)
+    public double doPDoubleTuple(PDoubleTuple tuple, int idx) {
+        return tuple.getDoubleItem(idx);
+    }
+
+    @Specialization(order = 6)
+    public String doPStringTuple(PStringTuple tuple, int idx) {
+        return tuple.getStringItem(idx);
+    }
+
+    @Specialization(order = 7)
+    public Object doPObjectTuple(PObjectTuple tuple, int idx) {
+        return tuple.getObjectItem(idx);
+    }
+
+    @Specialization(order = 8)
     public Object doPRange(PRange primary, int idx) {
         return primary.getItem(idx);
     }
@@ -88,7 +103,7 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     /**
      * PDict lookup using key.
      */
-    @Specialization(order = 6)
+    @Specialization(order = 9)
     public Object doPDict(PDict primary, Object key) {
         return primary.getItem(key);
     }

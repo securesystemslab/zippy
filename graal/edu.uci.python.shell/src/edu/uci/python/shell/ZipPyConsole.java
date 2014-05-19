@@ -33,7 +33,6 @@ import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class ZipPyConsole extends InteractiveConsole {
