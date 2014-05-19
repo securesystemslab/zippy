@@ -153,8 +153,8 @@ public class BuiltinIntrinsifier {
     private void transformToComprehension(IntrinsifiableBuiltin target) {
         FrameDescriptor genexpFrame = genexp.getFrameDescriptor();
         FrameDescriptor enclosingFrame = genexp.getEnclosingFrameDescriptor();
-        PNode uninitializedGenexpBody = ((FunctionRootNode) genexp.getFunctionRootNode()).getClonedUninitializedBody();
-        uninitializedGenexpBody = NodeUtil.findFirstNodeInstance(uninitializedGenexpBody, ForNode.class);
+        PNode genexpBody = ((FunctionRootNode) genexp.getFunctionRootNode()).split().getBody();
+        genexpBody = NodeUtil.findFirstNodeInstance(genexpBody, ForNode.class);
 
         for (FrameSlot genexpSlot : genexpFrame.getSlots()) {
             if (genexpSlot.getIdentifier().equals("<return_val>")) {
@@ -165,17 +165,17 @@ public class BuiltinIntrinsifier {
             // assert enclosingFrame.findFrameSlot(genexpSlot.getIdentifier()) == null;
             FrameSlot enclosingSlot = enclosingFrame.findOrAddFrameSlot(genexpSlot.getIdentifier());
 
-            redirectLocalRead(genexpSlot, enclosingSlot, uninitializedGenexpBody);
-            redirectLocalWrite(genexpSlot, enclosingSlot, uninitializedGenexpBody);
+            redirectLocalRead(genexpSlot, enclosingSlot, genexpBody);
+            redirectLocalWrite(genexpSlot, enclosingSlot, genexpBody);
         }
 
-        redirectLevelRead(uninitializedGenexpBody);
+        redirectLevelRead(genexpBody);
 
         FrameSlot listCompSlot = enclosingFrame.addFrameSlot("<" + target.getName() + "_comp_val" + genexp.hashCode() + ">");
-        YieldNode yield = NodeUtil.findFirstNodeInstance(uninitializedGenexpBody, YieldNode.class);
+        YieldNode yield = NodeUtil.findFirstNodeInstance(genexpBody, YieldNode.class);
         WriteLocalVariableNode write = (WriteLocalVariableNode) yield.getRhs();
         yield.replace(target.createComprehensionAppendNode(listCompSlot, write.getRhs()));
-        callNode.replace(target.createComprehensionNode(listCompSlot, uninitializedGenexpBody));
+        callNode.replace(target.createComprehensionNode(listCompSlot, genexpBody));
 
         genexp.setAsOptimized();
         PrintStream out = System.out;
