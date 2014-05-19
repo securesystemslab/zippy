@@ -158,8 +158,17 @@ public class GeneratorExpressionOptimizer {
 
         assert argReads != null;
 
-        PNode desugaredDefNode = new StatelessGeneratorFunctionDefinitionNode(genexp);
-        PNode generatorCallNode = new NoneCallNode(context, genexp.getName(), EmptyNode.create(), desugaredDefNode, argReads, new PNode[]{}, new UninitializedDispatchNoneNode(genexp.getName(), false));
+        PNode desugaredGenDefNode = new StatelessGeneratorFunctionDefinitionNode(genexp);
+        genexp.replace(desugaredGenDefNode);
+        PNode genDefLoad;
+
+        if (getIterator.getOperand().equals(genexp)) {
+            genDefLoad = desugaredGenDefNode;
+        } else {
+            genDefLoad = (PNode) getIterator.getOperand().copy();
+        }
+
+        PNode generatorCallNode = new NoneCallNode(context, genexp.getName(), EmptyNode.create(), genDefLoad, argReads, new PNode[]{}, new UninitializedDispatchNoneNode(genexp.getName(), false));
         PNode loadGenerator = getIterator.getOperand();
         loadGenerator.replace(generatorCallNode);
 
