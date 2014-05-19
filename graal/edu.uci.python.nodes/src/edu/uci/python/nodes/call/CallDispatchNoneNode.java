@@ -75,13 +75,13 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
      */
     public static final class LinkedDispatchNoneNode extends CallDispatchNoneNode {
 
-        @Child protected InvokeNode invokeNode;
+        @Child protected InvokeNode invoke;
         @Child protected CallDispatchNoneNode next;
         private final PythonCallable cachedCallee;
 
         public LinkedDispatchNoneNode(PythonCallable callee, UninitializedDispatchNoneNode next) {
             super(callee.getName());
-            this.invokeNode = InvokeNode.create(callee, next.hasKeyword);
+            this.invoke = InvokeNode.create(callee, next.hasKeyword);
             this.next = next;
             this.cachedCallee = callee;
         }
@@ -92,9 +92,14 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         }
 
         @Override
+        public boolean isInlined() {
+            return getCost() == NodeCost.MONOMORPHIC && invoke.isInlined();
+        }
+
+        @Override
         protected Object executeCall(VirtualFrame frame, PythonCallable callee, Object[] arguments, PKeyword[] keywords) {
             if (cachedCallee == callee) {
-                return invokeNode.invoke(frame, null, arguments, keywords);
+                return invoke.invoke(frame, null, arguments, keywords);
             }
 
             return next.executeCall(frame, callee, arguments, keywords);

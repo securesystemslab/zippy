@@ -40,6 +40,10 @@ public abstract class InvokeNode extends Node {
 
     protected abstract Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords);
 
+    protected boolean isInlined() {
+        return callNode.isInlined();
+    }
+
     public static InvokeNode create(PythonCallable callee, boolean hasKeyword) {
         CallTarget callTarget;
         MaterializedFrame declarationFrame = null;

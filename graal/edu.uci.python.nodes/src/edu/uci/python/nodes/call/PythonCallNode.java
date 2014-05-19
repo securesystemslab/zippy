@@ -99,6 +99,8 @@ public abstract class PythonCallNode extends PNode {
         return argumentNodes;
     }
 
+    public abstract boolean isInlined();
+
     protected Object rewriteAndExecuteCall(VirtualFrame frame, Object primary, Object callee) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
 
@@ -206,6 +208,11 @@ public abstract class PythonCallNode extends PNode {
             PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             return dispatchNode.executeCall(frame, primary, arguments, keywords);
         }
+
+        @Override
+        public boolean isInlined() {
+            return dispatchNode.isInlined();
+        }
     }
 
     public static final class UnboxedCallNode extends PythonCallNode {
@@ -215,6 +222,11 @@ public abstract class PythonCallNode extends PNode {
         public UnboxedCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchUnboxedNode dispatch, boolean passPrimary) {
             super(context, calleeName, primary, callee, arguments, keywords, passPrimary);
             dispatchNode = dispatch;
+        }
+
+        @Override
+        public boolean isInlined() {
+            return dispatchNode.isInlined();
         }
 
         @Override
@@ -233,6 +245,11 @@ public abstract class PythonCallNode extends PNode {
         public NoneCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchNoneNode dispatch) {
             super(context, calleeName, primary, callee, arguments, keywords, false);
             this.dispatchNode = dispatch;
+        }
+
+        @Override
+        public boolean isInlined() {
+            return dispatchNode.isInlined();
         }
 
         @Override
@@ -260,6 +277,11 @@ public abstract class PythonCallNode extends PNode {
             super(context, pythonClass.getName(), primary, callee, arguments, keywords, true);
             dispatchNode = dispatch;
             instanceNode = new NewInstanceNode(pythonClass);
+        }
+
+        @Override
+        public boolean isInlined() {
+            return dispatchNode.isInlined();
         }
 
         @Override
@@ -331,6 +353,11 @@ public abstract class PythonCallNode extends PNode {
         }
 
         @Override
+        public boolean isInlined() {
+            return dispatchNode.isInlined();
+        }
+
+        @Override
         public Object execute(VirtualFrame frame) {
             PythonObject primary;
 
@@ -350,6 +377,11 @@ public abstract class PythonCallNode extends PNode {
 
         public CallJythonNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords) {
             super(context, calleeName, primary, callee, arguments, keywords, false);
+        }
+
+        @Override
+        public boolean isInlined() {
+            return false;
         }
 
         @Override
@@ -381,6 +413,11 @@ public abstract class PythonCallNode extends PNode {
 
         public PNode getCallee() {
             return calleeNode;
+        }
+
+        @Override
+        public boolean isInlined() {
+            return false;
         }
 
         @Override

@@ -38,6 +38,10 @@ public abstract class CallDispatchNode extends Node {
         this.calleeName = calleeName;
     }
 
+    public boolean isInlined() {
+        return false;
+    }
+
     protected int getDispatchDepth() {
         CallDispatchNode current = this;
         int depth = 0;

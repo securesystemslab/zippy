@@ -118,6 +118,11 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
+        public boolean isInlined() {
+            return getCost() == NodeCost.MONOMORPHIC && invoke.isInlined();
+        }
+
+        @Override
         public Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             try {
                 if (check.accept(primaryObj)) {

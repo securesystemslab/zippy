@@ -28,6 +28,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.call.PythonCallNode.UninitializedCallNode;
 import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.frame.*;
@@ -74,6 +75,8 @@ public class EscapeAnalyzer {
                 return escapesCurrentFrame(slot);
             } else if (current instanceof WriteNode) {
                 return true; // Other write nodes
+            } else if (current instanceof PythonCallNode) {
+                return !((PythonCallNode) current).isInlined();
             } else if (current instanceof InlinedCallNode) {
                 return false;
             } else if (current instanceof InlineableCallNode) {

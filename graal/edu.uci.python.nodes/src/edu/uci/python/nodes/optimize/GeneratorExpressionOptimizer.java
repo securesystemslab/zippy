@@ -31,6 +31,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;
+import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.call.CallDispatchNoneNode.*;
 import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.control.*;
@@ -76,22 +77,24 @@ public class GeneratorExpressionOptimizer {
         }
     }
 
-    private void transform(GeneratorExpressionNode genExp, EscapeAnalyzer escapeAnalyzer) {
+    private void transform(GeneratorExpressionNode genexp, EscapeAnalyzer escapeAnalyzer) {
         if (!escapeAnalyzer.isBoundToLocalFrame()) {
             /**
              * The simplest case in micro bench: generator-expression.
              */
-            if (genExp.getParent() instanceof GetIteratorNode) {
-                desugarGeneratorExpression(genExp, (GetIteratorNode) genExp.getParent(), false);
-            } else if (genExp.getParent() instanceof CallFunctionInlinedNode) {
+            if (genexp.getParent() instanceof GetIteratorNode) {
+                desugarGeneratorExpression(genexp, (GetIteratorNode) genexp.getParent(), false);
+            } else if (genexp.getParent() instanceof CallFunctionInlinedNode) {
                 /**
                  * Function calls that were just inlined create new opportunities for genexp
                  * transformation.<br>
                  * Already transformed genexp, whose parent is of type
                  * {@link CallGeneratorInlinedNode} should be ignore.
                  */
-                GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(genExp.getParent(), GetIteratorNode.class);
-                transformGetIterToInlineableGeneratorCall(genExp, getIter, true);
+                GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(genexp.getParent(), GetIteratorNode.class);
+                transformGetIterToInlineableGeneratorCall(genexp, getIter, true);
+            } else if (genexp.getParent() instanceof PythonCallNode) {
+                // Being implemented...
             }
 
             return;
@@ -105,7 +108,7 @@ public class GeneratorExpressionOptimizer {
 
             if (read.getParent() instanceof GetIteratorNode) {
 // transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) read.getParent(), false);
-                desugarGeneratorExpression(genExp, (GetIteratorNode) read.getParent(), false);
+                desugarGeneratorExpression(genexp, (GetIteratorNode) read.getParent(), false);
             }
         }
     }

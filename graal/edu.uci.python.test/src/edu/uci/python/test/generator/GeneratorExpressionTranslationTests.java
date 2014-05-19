@@ -59,7 +59,7 @@ public class GeneratorExpressionTranslationTests {
                         "    return list(x for x in range(n))\n";
 
         String result = parseTest(source);
-        assertTrue(result.contains("does not escape"));
+        assertTrue(result.contains("escapes"));
     }
 
     @Test
@@ -72,7 +72,7 @@ public class GeneratorExpressionTranslationTests {
                         "    return list(ll)\n";
 
         String result = parseTest(source);
-        assertTrue(result.contains("does not escape"));
+        assertTrue(result.contains("escapes"));
     }
 
     @Test
