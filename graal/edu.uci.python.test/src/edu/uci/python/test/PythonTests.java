@@ -116,7 +116,7 @@ public class PythonTests {
         assertEquals(expected, result);
     }
 
-    public static void assertPrintContains(String expected, Path scriptName) {
+    public static PythonParseResult assertPrintContains(String expected, Path scriptName) {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
 
@@ -131,9 +131,10 @@ public class PythonTests {
 
         PythonContext context = getContext(printStream, System.err);
         Source source = context.getSourceManager().get(path + File.separatorChar + scriptName.toString());
-        RunScript.runScript(new String[0], source, context);
+        PythonParseResult ast = RunScript.runScript(new String[0], source, context);
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertTrue(result.contains(expected));
+        return ast;
     }
 
     public static PythonContext getContext() {

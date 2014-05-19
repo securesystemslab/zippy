@@ -25,11 +25,15 @@
 package edu.uci.python.test.generator;
 
 import static edu.uci.python.test.PythonTests.*;
+import static org.junit.Assert.*;
 
 import java.nio.file.*;
 
 import org.junit.*;
 
+import com.oracle.truffle.api.nodes.*;
+
+import edu.uci.python.nodes.generator.ComprehensionNode.*;
 import edu.uci.python.runtime.*;
 
 public class GeneratorOptimizationTests {
@@ -69,6 +73,17 @@ public class GeneratorOptimizationTests {
         PythonOptions.OptimizeGeneratorExpressions = true;
         Path script = Paths.get("generator-inline-genexp-localvar-test.py");
         assertPrintContains("420\n", script);
+    }
+
+    @Test
+    public void inlineGenexpBuiltinCall() {
+        assertTrue(PythonOptions.IntrinsifyBuiltinCalls);
+        PythonOptions.InlineGeneratorCalls = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
+        Path script = Paths.get("generator-inline-genexp-builtin-test.py");
+        PythonParseResult ast = assertPrintContains("420\n", script);
+        Node listComp = NodeUtil.findFirstNodeInstance(ast.getFunctionRoot("call_generator_builtin"), ListComprehensionNode.class);
+        assertTrue(listComp != null);
     }
 
 }
