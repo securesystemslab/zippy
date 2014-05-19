@@ -112,6 +112,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             }
         }
 
+        protected InvokeNode getInvokeNode() {
+            return invoke;
+        }
+
         @Override
         public NodeCost getCost() {
             return getCost(next);

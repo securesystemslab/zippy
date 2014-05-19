@@ -44,6 +44,10 @@ public abstract class InvokeNode extends Node {
         return callNode.isInlined();
     }
 
+    protected DirectCallNode getDirectCallNode() {
+        return callNode;
+    }
+
     public static InvokeNode create(PythonCallable callee, boolean hasKeyword) {
         CallTarget callTarget;
         MaterializedFrame declarationFrame = null;

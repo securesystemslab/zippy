@@ -86,6 +86,10 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
             this.cachedCallee = callee;
         }
 
+        protected InvokeNode getInvokeNode() {
+            return invoke;
+        }
+
         @Override
         public NodeCost getCost() {
             return getCost(next);

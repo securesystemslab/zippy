@@ -32,6 +32,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.call.PythonCallNode.NoneCallNode;
 import edu.uci.python.nodes.call.CallDispatchNoneNode.*;
 import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.control.*;
@@ -42,7 +43,6 @@ import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import static edu.uci.python.nodes.function.GeneratorFunctionDefinitionNode.*;
-import static edu.uci.python.nodes.call.PythonCallNode.*;
 
 public class GeneratorExpressionOptimizer {
 
@@ -94,7 +94,10 @@ public class GeneratorExpressionOptimizer {
                 GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(genexp.getParent(), GetIteratorNode.class);
                 transformGetIterToInlineableGeneratorCall(genexp, getIter, true);
             } else if (genexp.getParent() instanceof PythonCallNode) {
-                // Being implemented...
+// BoxedCallNode callNode = (BoxedCallNode) genexp.getParent();
+// GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(callNode.getInlinedCalleeRoot(),
+// GetIteratorNode.class);
+// desugarGeneratorExpression(genexp, getIter, false);
             }
 
             return;

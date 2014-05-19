@@ -37,6 +37,8 @@ import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
+import edu.uci.python.nodes.call.CallDispatchNoneNode.LinkedDispatchNoneNode;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.nodes.truffle.*;
@@ -185,13 +187,17 @@ public abstract class PythonCallNode extends PNode {
         return dispatch.executeCall(frame, primary, arguments, keywords);
     }
 
-    public static final class BoxedCallNode extends PythonCallNode {
+    public static final class BoxedCallNode extends PythonCallNode implements InlineableCallNode {
 
         @Child protected CallDispatchBoxedNode dispatchNode;
 
         public BoxedCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchBoxedNode dispatch, boolean passPrimary) {
             super(context, calleeName, primary, callee, arguments, keywords, passPrimary);
             dispatchNode = dispatch;
+        }
+
+        public CallDispatchNode getDispatchNode() {
+            return dispatchNode;
         }
 
         @Override
@@ -213,6 +219,16 @@ public abstract class PythonCallNode extends PNode {
         public boolean isInlined() {
             return dispatchNode.isInlined();
         }
+
+        public RootNode getInlinedCalleeRoot() {
+            assert isInlined();
+            assert dispatchNode instanceof LinkedDispatchBoxedNode;
+            LinkedDispatchBoxedNode linked = (LinkedDispatchBoxedNode) dispatchNode;
+            DirectCallNode direct = linked.getInvokeNode().getDirectCallNode();
+            RootNode root = direct.getCurrentRootNode();
+            assert root != null;
+            return root;
+        }
     }
 
     public static final class UnboxedCallNode extends PythonCallNode {
@@ -222,6 +238,10 @@ public abstract class PythonCallNode extends PNode {
         public UnboxedCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchUnboxedNode dispatch, boolean passPrimary) {
             super(context, calleeName, primary, callee, arguments, keywords, passPrimary);
             dispatchNode = dispatch;
+        }
+
+        public CallDispatchNode getDispatchNode() {
+            return dispatchNode;
         }
 
         @Override
@@ -238,13 +258,17 @@ public abstract class PythonCallNode extends PNode {
         }
     }
 
-    public static final class NoneCallNode extends PythonCallNode {
+    public static final class NoneCallNode extends PythonCallNode implements InlineableCallNode {
 
         @Child protected CallDispatchNoneNode dispatchNode;
 
         public NoneCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchNoneNode dispatch) {
             super(context, calleeName, primary, callee, arguments, keywords, false);
             this.dispatchNode = dispatch;
+        }
+
+        public CallDispatchNode getDispatchNode() {
+            return dispatchNode;
         }
 
         @Override
@@ -265,6 +289,16 @@ public abstract class PythonCallNode extends PNode {
             Object[] arguments = executeArguments(frame, argumentNodes);
             PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             return dispatchNode.executeCall(frame, callee, arguments, keywords);
+        }
+
+        public RootNode getInlinedCalleeRoot() {
+            assert isInlined();
+            assert dispatchNode instanceof LinkedDispatchNoneNode;
+            LinkedDispatchNoneNode linked = (LinkedDispatchNoneNode) dispatchNode;
+            DirectCallNode direct = linked.getInvokeNode().getDirectCallNode();
+            RootNode root = direct.getCurrentRootNode();
+            assert root != null;
+            return root;
         }
     }
 
@@ -427,6 +461,12 @@ public abstract class PythonCallNode extends PNode {
             Object primary = primaryNode.execute(frame);
             return rewriteAndExecuteCall(frame, primary, calleeNode.execute(frame));
         }
+    }
+
+    public interface InlineableCallNode {
+
+        RootNode getInlinedCalleeRoot();
+
     }
 
 }
