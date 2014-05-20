@@ -276,8 +276,8 @@ public class PythonTreeTranslator extends Visitor {
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, generatorName, true, fd, body);
         result.addParsedFunction(generatorName, funcRoot);
         GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
-        return new GeneratorExpressionNode(generatorName, context, gtran.translate(), gtran.createParallelGeneratorCallTarget(), fd, environment.needsDeclarationFrame(), gtran.getNumOfActiveFlags(),
-                        gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
+        return new GeneratorExpressionNode(generatorName, context, gtran.translate(), fd, environment.needsDeclarationFrame(), gtran.getNumOfActiveFlags(), gtran.getNumOfGeneratorBlockNode(),
+                        gtran.getNumOfGeneratorForNode());
     }
 
     public Arity createArity(String functionName, arguments node) {

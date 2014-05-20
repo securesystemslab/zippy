@@ -162,7 +162,7 @@ public final class FunctionRootNode extends RootNode {
     /**
      * See OptimizedCallUtils.
      */
-    public int getDeepNodeCount() {
+    protected int getDeepNodeCount() {
         return NodeUtil.countNodes(this, new NodeCountFilter() {
             public boolean isCounted(Node node) {
                 NodeCost cost = node.getCost();

@@ -34,13 +34,12 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
-public class GeneratorExpressionNode extends PNode {
+public final class GeneratorExpressionNode extends PNode {
 
     // name = "generator_exp:" + line number of the generator;
     private final String name;
     protected final PythonContext context;
     private final RootCallTarget callTarget;
-    private final CallTarget parallelCallTarget;
     private final FrameDescriptor frameDescriptor;
     private final boolean needsDeclarationFrame;
     private final int numOfActiveFlags;
@@ -51,12 +50,11 @@ public class GeneratorExpressionNode extends PNode {
     @CompilationFinal private boolean isEnclosingFrameGenerator;
     @CompilationFinal private boolean isOptimized;
 
-    public GeneratorExpressionNode(String name, PythonContext context, RootCallTarget callTarget, CallTarget parallelCallTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame,
-                    int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+    public GeneratorExpressionNode(String name, PythonContext context, RootCallTarget callTarget, FrameDescriptor descriptor, boolean needsDeclarationFrame, int numOfActiveFlags,
+                    int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         this.name = name;
         this.context = context;
         this.callTarget = callTarget;
-        this.parallelCallTarget = parallelCallTarget;
         this.frameDescriptor = descriptor;
         this.needsDeclarationFrame = needsDeclarationFrame;
         this.numOfActiveFlags = numOfActiveFlags;
@@ -136,39 +134,6 @@ public class GeneratorExpressionNode extends PNode {
     @Override
     public String toString() {
         return name;
-    }
-
-    public static class CallableGeneratorExpressionDefinition extends GeneratorExpressionNode implements PythonCallable {
-
-        public CallableGeneratorExpressionDefinition(GeneratorExpressionNode prev) {
-            super(prev.name, prev.context, prev.callTarget, prev.parallelCallTarget, prev.frameDescriptor, prev.needsDeclarationFrame, prev.numOfActiveFlags, prev.numOfGeneratorBlockNode,
-                            prev.numOfGeneratorForNode);
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            return this;
-        }
-
-        @Override
-        public Object call(Object[] args) {
-            return PGenerator.create(getName(), context, getCallTarget(), getFrameDescriptor(), null, args, getNumOfActiveFlags(), getNumOfGeneratorBlockNode(), getNumOfGeneratorForNode());
-        }
-
-        @Override
-        public Object call(Object[] args, PKeyword[] keywords) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
-        }
-
-        @Override
-        public Arity getArity() {
-            throw new UnsupportedOperationException();
-        }
-
     }
 
 }
