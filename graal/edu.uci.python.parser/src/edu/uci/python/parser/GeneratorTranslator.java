@@ -148,7 +148,7 @@ public class GeneratorTranslator {
         /**
          * Has it been replace already?
          */
-        if (node.getClass().getSimpleName().contains("Generator")) {
+        if (node instanceof GeneratorControlNode) {
             return;
         }
 

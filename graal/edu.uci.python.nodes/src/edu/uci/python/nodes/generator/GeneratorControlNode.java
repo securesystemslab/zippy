@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,19 +22,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.control;
+package edu.uci.python.nodes.generator;
 
-import com.oracle.truffle.api.frame.*;
-
-import edu.uci.python.nodes.generator.*;
-import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.exception.*;
-
-public final class BreakNode extends StatementNode implements GeneratorControlNode {
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        throw BreakException.INSTANCE;
-    }
+public interface GeneratorControlNode {
 
 }

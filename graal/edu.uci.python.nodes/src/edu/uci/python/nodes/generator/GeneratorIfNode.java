@@ -32,7 +32,7 @@ import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
-public class GeneratorIfNode extends IfNode {
+public class GeneratorIfNode extends IfNode implements GeneratorControlNode {
 
     protected final int thenFlagSlot;
     protected final int elseFlagSlot;

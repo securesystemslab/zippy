@@ -31,7 +31,7 @@ import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 
-public final class GeneratorReturnTargetNode extends ReturnTargetNode {
+public final class GeneratorReturnTargetNode extends ReturnTargetNode implements GeneratorControlNode {
 
     @Child protected PNode parameters;
     private final int flagSlot;
