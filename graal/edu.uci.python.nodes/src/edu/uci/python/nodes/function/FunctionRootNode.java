@@ -132,6 +132,23 @@ public final class FunctionRootNode extends RootNode {
 
     private boolean isInlinable(CallDispatchNode dispatch, PGeneratorFunction genfun) {
         boolean inlinable = dispatch.getCost() == NodeCost.MONOMORPHIC;
+
+        Node current = dispatch;
+        while (!(current instanceof PeeledGeneratorLoopNode) && !(current instanceof FunctionRootNode)) {
+            current = current.getParent();
+        }
+
+        String callerName;
+        if (current instanceof PeeledGeneratorLoopNode) {
+            callerName = ((PeeledGeneratorLoopNode) current).getName();
+        } else {
+            callerName = ((FunctionRootNode) current).getFunctionName();
+        }
+
+        if (callerName.equals(genfun.getName())) {
+            inlinable = false;
+        }
+
         int callerNodeCount = countNonTrivialNodes();
         int generatorNodeCount = NodeUtil.countNodes(genfun.getFunctionRootNode());
         inlinable &= generatorNodeCount < 200;

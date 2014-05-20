@@ -60,6 +60,10 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
         throw new IllegalStateException();
     }
 
+    public String getName() {
+        return generatorName;
+    }
+
     public PNode getGeneratorRoot() {
         return inlinedRootNode;
     }
