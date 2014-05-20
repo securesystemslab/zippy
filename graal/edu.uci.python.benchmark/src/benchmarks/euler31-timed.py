@@ -47,7 +47,7 @@ def solve(total):
     return _sum(1 for pat in gen((), 0, total))
 
 def measure():
-    input = int(sys.argv[1])) # 200
+    input = int(sys.argv[1]) # 200
     for i in range(3):
         solve(num)
 
