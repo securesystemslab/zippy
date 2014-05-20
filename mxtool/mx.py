@@ -2248,6 +2248,7 @@ def build(args, parser=None):
             failed = []
             for t in tasks:
                 t.proc.join()
+                _removeSubprocess(t.sub)
                 if t.proc.exitcode != 0:
                     failed.append(t)
             return failed
@@ -2258,7 +2259,6 @@ def build(args, parser=None):
                 if t.proc.is_alive():
                     active.append(t)
                 else:
-                    _removeSubprocess(t.sub)
                     if t.proc.exitcode != 0:
                         return ([], joinTasks(tasks))
             return (active, [])
@@ -2289,6 +2289,7 @@ def build(args, parser=None):
         cpus = multiprocessing.cpu_count()
         worklist = sortWorklist(tasks.values())
         active = []
+        failed = []
         while len(worklist) != 0:
             while True:
                 active, failed = checkTasks(active)
@@ -2300,6 +2301,9 @@ def build(args, parser=None):
                     time.sleep(1)
                 else:
                     break
+
+            if len(failed) != 0:
+                break
 
             def executeTask(task):
                 # Clear sub-process list cloned from parent process
@@ -2323,7 +2327,12 @@ def build(args, parser=None):
                     break
 
             worklist = sortWorklist(worklist)
-        joinTasks(active)
+
+        failed += joinTasks(active)
+        if len(failed):
+            for t in failed:
+                log('Compiling {} failed'.format(t.proj.name))
+            abort('{} Java compilation tasks failed'.format(len(failed)))
 
     for dist in _dists.values():
         archive(['@' + dist.name])
