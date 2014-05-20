@@ -66,5 +66,7 @@
   declare_constant(CodeInstaller::POLL_FAR)                                                       \
   declare_constant(CodeInstaller::POLL_RETURN_FAR)                                                \
   declare_constant(CodeInstaller::INVOKE_INVALID)                                                 \
+                                                                                                  \
+  declare_constant(Method::invalid_vtable_index)                                                  \
 
 #endif // SHARE_VM_GRAAL_VMSTRUCTS_GRAAL_HPP

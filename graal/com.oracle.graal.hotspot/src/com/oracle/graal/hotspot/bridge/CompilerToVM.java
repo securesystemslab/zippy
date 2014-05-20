@@ -248,7 +248,7 @@ public interface CompilerToVM {
 
     void initializeConfiguration(HotSpotVMConfig config);
 
-    long resolveMethod(long metaspaceKlass, String name, String signature);
+    long resolveMethod(long metaspaceKlassExactReceiver, long metaspaceMethod, long metaspaceKlassCaller);
 
     long getClassInitializer(long metaspaceKlass);
 
@@ -353,4 +353,6 @@ public interface CompilerToVM {
     void materializeVirtualObjects(HotSpotStackFrameReference stackFrame, boolean invalidate);
 
     void resolveInvokeDynamic(long metaspaceConstantPool, int index);
+
+    int getVtableIndexForInterface(long metaspaceKlass, long metaspaceMethod);
 }

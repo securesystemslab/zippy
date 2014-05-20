@@ -99,7 +99,7 @@ public class CompilerToVMImpl implements CompilerToVM {
     public native void initializeConfiguration(HotSpotVMConfig config);
 
     @Override
-    public native long resolveMethod(long metaspaceKlass, String name, String signature);
+    public native long resolveMethod(long metaspaceKlassExactReceiver, long metaspaceMethod, long metaspaceKlassCaller);
 
     @Override
     public native boolean hasFinalizableSubclass(long metaspaceKlass);
@@ -182,4 +182,6 @@ public class CompilerToVMImpl implements CompilerToVM {
     public native long getTimeStamp();
 
     public native void resolveInvokeDynamic(long metaspaceConstantPool, int index);
+
+    public native int getVtableIndexForInterface(long metaspaceKlass, long metaspaceMethod);
 }

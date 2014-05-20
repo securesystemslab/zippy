@@ -605,10 +605,11 @@ void CodeInstaller::assumption_ConcreteSubtype(Handle assumption) {
   Klass* context = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(context_handle));
   Klass* subtype = java_lang_Class::as_Klass(HotSpotResolvedObjectType::javaClass(subtype_handle));
 
-  _dependencies->assert_leaf_type(subtype);
   if (context != subtype) {
     assert(context->is_abstract(), "");
     _dependencies->assert_abstract_with_unique_concrete_subtype(context, subtype);
+  } else {
+    _dependencies->assert_leaf_type(subtype);
   }
 }
 

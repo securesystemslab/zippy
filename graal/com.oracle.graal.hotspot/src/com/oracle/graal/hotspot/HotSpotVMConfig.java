@@ -737,6 +737,8 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMFlag(name = "AllocatePrefetchStepSize") @Stable public int allocatePrefetchStepSize;
     @HotSpotVMFlag(name = "AllocatePrefetchDistance") @Stable public int allocatePrefetchDistance;
 
+    @HotSpotVMFlag(name = "FlightRecorder", optional = true) @Stable public boolean flightRecorder;
+
     @HotSpotVMField(name = "Universe::_collectedHeap", type = "CollectedHeap*", get = HotSpotVMField.Type.VALUE) @Stable private long universeCollectedHeap;
     @HotSpotVMField(name = "CollectedHeap::_total_collections", type = "unsigned int", get = HotSpotVMField.Type.OFFSET) @Stable private int collectedHeapTotalCollectionsOffset;
 
@@ -1064,6 +1066,7 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMConstant(name = "Method::_dont_inline") @Stable public int methodFlagsDontInline;
     @HotSpotVMConstant(name = "Method::_hidden") @Stable public int methodFlagsHidden;
     @HotSpotVMConstant(name = "Method::nonvirtual_vtable_index") @Stable public int nonvirtualVtableIndex;
+    @HotSpotVMConstant(name = "Method::invalid_vtable_index") @Stable public int invalidVtableIndex;
 
     @HotSpotVMConstant(name = "JVM_ACC_MONITOR_MATCH") @Stable public int jvmAccMonitorMatch;
     @HotSpotVMConstant(name = "JVM_ACC_HAS_MONITOR_BYTECODES") @Stable public int jvmAccHasMonitorBytecodes;
