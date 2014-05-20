@@ -149,14 +149,17 @@ public final class FunctionRootNode extends RootNode {
             inlinable = false;
         }
 
-        int callerNodeCount = countNonTrivialNodes();
+        int callerNodeCount = getDeepNodeCount();
         int generatorNodeCount = NodeUtil.countNodes(genfun.getFunctionRootNode());
-        inlinable &= generatorNodeCount < 200;
-        inlinable &= callerNodeCount < 400;
+        inlinable &= generatorNodeCount < 300;
+        inlinable &= callerNodeCount < 500;
         return inlinable;
     }
 
-    public int countNonTrivialNodes() {
+    /**
+     * See OptimizedCallUtils.
+     */
+    public int getDeepNodeCount() {
         return NodeUtil.countNodes(this, new NodeCountFilter() {
             public boolean isCounted(Node node) {
                 NodeCost cost = node.getCost();
