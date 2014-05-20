@@ -32,12 +32,12 @@ library@DACAPO@urls=http://softlayer.dl.sourceforge.net/project/dacapobench/9.12
 library@DACAPO@sha1=2626a9546df09009f6da0df854e6dc1113ef7dd4
 
 library@JACOCOAGENT@path=lib/jacocoagent.jar
-library@JACOCOAGENT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoagent.jar
-library@JACOCOAGENT@sha1=9e2c835289356d86afbf31840f05a0f9007c4e44
+library@JACOCOAGENT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoagent-0.7.1-1.jar
+library@JACOCOAGENT@sha1=2f73a645b02e39290e577ce555f00b02004650b0
 
 library@JACOCOREPORT@path=lib/jacocoreport.jar
-library@JACOCOREPORT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoreport.jar
-library@JACOCOREPORT@sha1=32fb5ba2f12d86c4feb74bcefc17a4e6fad8a323
+library@JACOCOREPORT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoreport-0.7.1-1.jar
+library@JACOCOREPORT@sha1=0c5db714804416dd1df4d8110762136ce3d5c7dc
 
 library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0-20120216.jar
 library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20120216.103539-3.jar
