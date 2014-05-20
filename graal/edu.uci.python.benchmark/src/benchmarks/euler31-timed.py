@@ -47,9 +47,13 @@ def solve(total):
     return _sum(1 for pat in gen((), 0, total))
 
 def measure():
+    input = int(sys.argv[1])) # 200
+    for i in range(3):
+        solve(num)
+
     print("Start timing...")
     start = time.time()
-    result = solve(int(sys.argv[1])) # 200
+    result = solve(num)
     print('total number of different ways: ', result)
     duration = "%.3f\n" % (time.time() - start)
     print("euler31: " + duration)

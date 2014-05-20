@@ -85,9 +85,13 @@ def main(n):
     return nums[-1]
 
 def measure():
+    input = int(sys.argv[1])
+    for i in range(3):
+        main(input)
+
     print("Start timing...")
     start = time.time()
-    result = main(int(sys.argv[1]))
+    result = main(input)
     print(result)
     duration = "%.3f\n" % (time.time() - start)
     print("pads-eratosthenes: " + duration)
