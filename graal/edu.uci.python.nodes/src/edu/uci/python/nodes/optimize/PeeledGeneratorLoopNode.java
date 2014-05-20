@@ -41,12 +41,14 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
     @Child protected PNode inlinedRootNode;
     private final PNode originalLoop;
 
+    protected final String generatorName;
     protected final FrameDescriptor frameDescriptor;
 
     public PeeledGeneratorLoopNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode[] argumentNodes, PNode originalLoop) {
         this.frameDescriptor = frameDescriptor;
         this.inlinedRootNode = generatorRoot.split().getBody();
         this.argumentNodes = argumentNodes;
+        this.generatorName = generatorRoot.getFunctionName();
         this.originalLoop = originalLoop;
     }
 

@@ -112,8 +112,12 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             }
         }
 
-        protected InvokeNode getInvokeNode() {
+        public InvokeNode getInvokeNode() {
             return invoke;
+        }
+
+        public ShapeCheckNode getCheckNode() {
+            return check;
         }
 
         @Override

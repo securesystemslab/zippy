@@ -44,7 +44,7 @@ public abstract class InvokeNode extends Node {
         return callNode.isInlined();
     }
 
-    protected DirectCallNode getDirectCallNode() {
+    public DirectCallNode getDirectCallNode() {
         return callNode;
     }
 

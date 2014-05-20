@@ -29,6 +29,7 @@ import java.io.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.nodes.NodeUtil.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.call.*;
@@ -60,7 +61,7 @@ public final class FunctionRootNode extends RootNode {
         super(null, frameDescriptor); // SourceSection is not supported yet.
         this.context = context;
         this.functionName = functionName;
-        this.body = body;
+        this.body = NodeUtil.cloneNode(body);
         this.uninitializedBody = NodeUtil.cloneNode(body);
     }
 
@@ -102,11 +103,15 @@ public final class FunctionRootNode extends RootNode {
     }
 
     protected void optimizeGeneratorCalls() {
+        CompilerAsserts.neverPartOfCompilation();
+
         if (CompilerDirectives.inCompiledCode() || !PythonOptions.InlineGeneratorCalls) {
             return;
         }
 
-        CompilerAsserts.neverPartOfCompilation();
+        if (body instanceof GeneratorReturnTargetNode) {
+            return;
+        }
 
         if (PythonOptions.OptimizeGeneratorExpressions) {
             new GeneratorExpressionOptimizer(this).optimize();
@@ -127,11 +132,23 @@ public final class FunctionRootNode extends RootNode {
 
     private boolean isInlinable(CallDispatchNode dispatch, PGeneratorFunction genfun) {
         boolean inlinable = dispatch.getCost() == NodeCost.MONOMORPHIC;
-        int calleeNodeCount = NodeUtil.countNodes(this);
+        int callerNodeCount = countNonTrivialNodes();
         int generatorNodeCount = NodeUtil.countNodes(genfun.getFunctionRootNode());
-        inlinable &= generatorNodeCount < 500;
-        inlinable &= calleeNodeCount < 2500;
+        inlinable &= generatorNodeCount < 200;
+        inlinable &= callerNodeCount < 400;
         return inlinable;
+    }
+
+    public int countNonTrivialNodes() {
+        return NodeUtil.countNodes(this, new NodeCountFilter() {
+            public boolean isCounted(Node node) {
+                NodeCost cost = node.getCost();
+                if (cost != null && cost != NodeCost.NONE && cost != NodeCost.UNINITIALIZED) {
+                    return true;
+                }
+                return false;
+            }
+        }, true);
     }
 
     protected void peelGeneratorLoop(boolean inlinable, GeneratorDispatchSite dispatch, PGeneratorFunction genfun) {

@@ -32,6 +32,8 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
+import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
 import edu.uci.python.nodes.call.PythonCallNode.NoneCallNode;
 import edu.uci.python.nodes.call.CallDispatchNoneNode.*;
 import edu.uci.python.nodes.call.legacy.*;
@@ -40,6 +42,7 @@ import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.function.GeneratorExpressionNode.CallableGeneratorExpressionDefinition;
 import edu.uci.python.nodes.generator.*;
+import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import static edu.uci.python.nodes.function.GeneratorFunctionDefinitionNode.*;
@@ -94,10 +97,14 @@ public class GeneratorExpressionOptimizer {
                 GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(genexp.getParent(), GetIteratorNode.class);
                 transformGetIterToInlineableGeneratorCall(genexp, getIter, true);
             } else if (genexp.getParent() instanceof PythonCallNode) {
-// BoxedCallNode callNode = (BoxedCallNode) genexp.getParent();
-// GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(callNode.getInlinedCalleeRoot(),
-// GetIteratorNode.class);
-// desugarGeneratorExpression(genexp, getIter, false);
+                BoxedCallNode callNode = (BoxedCallNode) genexp.getParent();
+                assert callNode.isInlined();
+                FunctionRootNode calleeRoot = (FunctionRootNode) callNode.getInlinedCalleeRoot();
+                PeeledGeneratorLoopBoxedNode manualInlinedCallNode = new PeeledGeneratorLoopBoxedNode(calleeRoot, calleeRoot.getFrameDescriptor(), callNode.getPrimaryNode(),
+                                callNode.getArgumentNodes(), ((LinkedDispatchBoxedNode) callNode.getDispatchNode()).getCheckNode(), callNode);
+                callNode.replace(manualInlinedCallNode);
+                GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(manualInlinedCallNode.getGeneratorRoot(), GetIteratorNode.class);
+                desugarGeneratorExpression(genexp, getIter, true);
             }
 
             return;
