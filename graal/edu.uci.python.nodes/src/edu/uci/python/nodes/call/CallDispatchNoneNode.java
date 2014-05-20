@@ -110,7 +110,7 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         }
     }
 
-    public static final class DispatchGeneratorNoneNode extends CallDispatchNoneNode implements GeneratorDispatchSite {
+    public static final class DispatchGeneratorNoneNode extends CallDispatchNoneNode implements GeneratorDispatch {
 
         @Child protected CallDispatchNoneNode next;
         private final PythonCallable generator;

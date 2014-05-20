@@ -26,7 +26,7 @@ package edu.uci.python.nodes.call;
 
 import edu.uci.python.runtime.function.*;
 
-public interface GeneratorDispatchSite {
+public interface GeneratorDispatch {
 
     PythonCallNode getCallNode();
 

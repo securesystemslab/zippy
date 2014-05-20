@@ -53,14 +53,16 @@ public final class FunctionRootNode extends RootNode {
 
     private final PythonContext context;
     private final String functionName;
+    private final boolean isGenerator;
 
     @Child protected PNode body;
     private PNode uninitializedBody;
 
-    public FunctionRootNode(PythonContext context, String functionName, FrameDescriptor frameDescriptor, PNode body) {
+    public FunctionRootNode(PythonContext context, String functionName, boolean isGenerator, FrameDescriptor frameDescriptor, PNode body) {
         super(null, frameDescriptor); // SourceSection is not supported yet.
         this.context = context;
         this.functionName = functionName;
+        this.isGenerator = isGenerator;
         this.body = NodeUtil.cloneNode(body);
         this.uninitializedBody = NodeUtil.cloneNode(body);
     }
@@ -91,7 +93,7 @@ public final class FunctionRootNode extends RootNode {
 
     @Override
     public FunctionRootNode split() {
-        return new FunctionRootNode(this.context, this.functionName, this.getFrameDescriptor().shallowCopy(), this.uninitializedBody);
+        return new FunctionRootNode(context, functionName, isGenerator, getFrameDescriptor().shallowCopy(), uninitializedBody);
     }
 
     @Override
@@ -105,11 +107,7 @@ public final class FunctionRootNode extends RootNode {
     protected void optimizeGeneratorCalls() {
         CompilerAsserts.neverPartOfCompilation();
 
-        if (CompilerDirectives.inCompiledCode() || !PythonOptions.InlineGeneratorCalls) {
-            return;
-        }
-
-        if (body instanceof GeneratorReturnTargetNode) {
+        if (CompilerDirectives.inCompiledCode() || !PythonOptions.InlineGeneratorCalls || isGenerator) {
             return;
         }
 
@@ -176,7 +174,7 @@ public final class FunctionRootNode extends RootNode {
         }, true);
     }
 
-    protected void peelGeneratorLoop(boolean inlinable, GeneratorDispatchSite dispatch, PGeneratorFunction genfun) {
+    protected void peelGeneratorLoop(boolean inlinable, GeneratorDispatch dispatch, PGeneratorFunction genfun) {
         CompilerAsserts.neverPartOfCompilation();
 
         if (!inlinable) {

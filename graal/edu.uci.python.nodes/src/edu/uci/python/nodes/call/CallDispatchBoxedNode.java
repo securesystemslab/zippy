@@ -144,7 +144,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
     }
 
-    public static final class DispatchGeneratorBoxedNode extends CallDispatchBoxedNode implements GeneratorDispatchSite {
+    public static final class DispatchGeneratorBoxedNode extends CallDispatchBoxedNode implements GeneratorDispatch {
 
         @Child protected ShapeCheckNode check;
         @Child protected CallDispatchBoxedNode next;

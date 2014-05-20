@@ -226,7 +226,7 @@ public class GeneratorTranslator {
             genexp.setEnclosingFrameGenerator(false);
         }
 
-        RootNode parallelRoot = new FunctionRootNode(context, root.getFunctionName(), root.getFrameDescriptor(), parallelBody);
+        RootNode parallelRoot = new FunctionRootNode(context, root.getFunctionName(), true, root.getFrameDescriptor(), parallelBody);
         return Truffle.getRuntime().createCallTarget(parallelRoot);
     }
 

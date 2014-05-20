@@ -188,7 +188,7 @@ public class PythonTreeTranslator extends Visitor {
          * Function root
          */
         FrameDescriptor fd = environment.getCurrentFrame();
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, fd, body);
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, environment.isInGeneratorScope(), fd, body);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
         result.addParsedFunction(name, funcRoot);
 
@@ -240,7 +240,7 @@ public class PythonTreeTranslator extends Visitor {
          * Lambda function root
          */
         FrameDescriptor fd = environment.getCurrentFrame();
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, fd, bodyNode);
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, environment.isInGeneratorScope(), fd, bodyNode);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
         result.addParsedFunction(name, funcRoot);
 
@@ -273,7 +273,7 @@ public class PythonTreeTranslator extends Visitor {
     private GeneratorExpressionNode createGeneratorExpressionDefinition(StatementNode body, int lineNum) {
         FrameDescriptor fd = environment.getCurrentFrame();
         String generatorName = "generator_exp:" + lineNum;
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, generatorName, fd, body);
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, generatorName, true, fd, body);
         result.addParsedFunction(generatorName, funcRoot);
         GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
         return new GeneratorExpressionNode(generatorName, context, gtran.translate(), gtran.createParallelGeneratorCallTarget(), fd, environment.needsDeclarationFrame(), gtran.getNumOfActiveFlags(),
@@ -473,7 +473,7 @@ public class PythonTreeTranslator extends Visitor {
 
         environment.beginScope(node, ScopeInfo.ScopeKind.Class);
         PNode body = factory.createBlock(visitStatements(node.getInternalBody()));
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, environment.getCurrentFrame(), body);
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, false, environment.getCurrentFrame(), body);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
         FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, context, new Arity(name, 0, 0, new ArrayList<String>()), EmptyNode.create(), ct, environment.getCurrentFrame(),
                         environment.needsDeclarationFrame());
