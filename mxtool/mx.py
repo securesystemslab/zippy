@@ -1232,7 +1232,7 @@ def classpath_walk(names=None, resolve=True, includeSelf=True, includeBootClassp
                     entryPath = zi.filename
                     yield zf, entryPath
 
-def sorted_deps(projectNames=None, includeLibs=False, includeAnnotationProcessors=False):
+def sorted_deps(projectNames=None, includeLibs=False, includeJreLibs=False, includeAnnotationProcessors=False):
     """
     Gets projects and libraries sorted such that dependencies
     are before the projects that depend on them. Unless 'includeLibs' is
@@ -1240,12 +1240,12 @@ def sorted_deps(projectNames=None, includeLibs=False, includeAnnotationProcessor
     """
     projects = projects_from_names(projectNames)
 
-    return sorted_project_deps(projects, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
+    return sorted_project_deps(projects, includeLibs=includeLibs, includeJreLibs=includeJreLibs, includeAnnotationProcessors=includeAnnotationProcessors)
 
-def sorted_project_deps(projects, includeLibs=False, includeAnnotationProcessors=False):
+def sorted_project_deps(projects, includeLibs=False, includeJreLibs=False, includeAnnotationProcessors=False):
     deps = []
     for p in projects:
-        p.all_deps(deps, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
+        p.all_deps(deps, includeLibs=includeLibs, includeJreLibs=includeJreLibs, includeAnnotationProcessors=includeAnnotationProcessors)
     return deps
 
 def _handle_missing_java_home():
@@ -2941,7 +2941,7 @@ def projectgraph(args, suite=None):
         igv.close('properties')
         igv.open('graph', {'name' : 'dependencies'})
         igv.open('nodes')
-        for p in sorted_deps(includeLibs=True):
+        for p in sorted_deps(includeLibs=True, includeJreLibs=True):
             ident = len(ids)
             ids[p.name] = str(ident)
             igv.open('node', {'id' : str(ident)})
