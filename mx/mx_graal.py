@@ -690,7 +690,7 @@ def build(args, vm=None):
             mustBuild = False
             timestamp = os.path.getmtime(timestampFile)
             sources = []
-            for d in ['src', 'make']:
+            for d in ['src', 'make', 'graal/com.oracle.graal.hotspot/src_gen/hotspot']:
                 for root, dirnames, files in os.walk(join(_graal_home, d)):
                     # ignore <graal>/src/share/tools
                     if root == join(_graal_home, 'src', 'share'):

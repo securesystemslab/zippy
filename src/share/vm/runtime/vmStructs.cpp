@@ -70,6 +70,9 @@
 #include "oops/constMethod.hpp"
 #include "oops/constantPool.hpp"
 #include "oops/cpCache.hpp"
+#ifdef GRAAL
+#include "oops/fieldStreams.hpp"
+#endif
 #include "oops/instanceClassLoaderKlass.hpp"
 #include "oops/instanceKlass.hpp"
 #include "oops/instanceMirrorKlass.hpp"
@@ -105,6 +108,7 @@
 #include "utilities/hashtable.hpp"
 #include "utilities/macros.hpp"
 #ifdef GRAAL
+# include "graal/graalRuntime.hpp"
 # include "graal/vmStructs_graal.hpp"
 # include "hsail/vm/vmStructs_hsail.hpp"
 #endif
@@ -3478,4 +3482,12 @@ void VMStructs::test() {
     }
   }
 }
+#endif
+
+
+#ifdef GRAAL
+// Emit intialization code for HotSpotVMConfig.  It's placed here so
+// it can take advantage of the relaxed access checking enjoyed by
+// VMStructs.
+#include "HotSpotVMConfig.inline.hpp"
 #endif

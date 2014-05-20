@@ -57,6 +57,7 @@ ProjectCreatorIncludesPRIVATE=\
         -relativeInclude src\os_cpu\windows_$(Platform_arch)\vm \
         -relativeInclude src\cpu\$(Platform_arch)\vm \
         -relativeInclude src\gpu \
+        -relativeInclude graal\com.oracle.graal.hotspot\src_gen\hotspot \
         -absoluteInclude $(HOTSPOTBUILDSPACE)/%f/generated \
         -relativeSrcInclude src \
         -absoluteSrcInclude $(HOTSPOTBUILDSPACE) \
@@ -151,7 +152,7 @@ ProjectCreatorIDEOptionsIgnoreCompiler1=\
 
 ProjectCreatorIDEOptionsIgnoreGraal=\
  -ignorePath_TARGET src/share/vm/graal \
- -ignorePath_TARGET graal/generated \
+ -ignorePath_TARGET graal\com.oracle.graal.hotspot\src_gen\hotspot \
  -ignorePath_TARGET vm/graal
 
 ProjectCreatorIDEOptionsIgnoreCompiler2=\
@@ -175,7 +176,6 @@ ProjectCreatorIDEOptionsIgnoreCompiler2=\
 ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_compiler1 COMPILER1 \
  -define_compiler1 GRAAL \
- -ignorePath_compiler1 graal/generated \
  $(ProjectCreatorIDEOptionsIgnoreCompiler2:TARGET=compiler1)
 
 ##################################################
@@ -195,7 +195,6 @@ ProjectCreatorIDEOptions=$(ProjectCreatorIDEOptions) \
  -define_compiler2 COMPILER1 \
  -define_compiler2 COMPILER2 \
  -define_compiler2 GRAAL \
- -ignorePath_compiler2 graal/generated \
  -additionalFile_compiler2 $(Platform_arch_model).ad \
  -additionalFile_compiler2 ad_$(Platform_arch_model).cpp \
  -additionalFile_compiler2 ad_$(Platform_arch_model).hpp \
