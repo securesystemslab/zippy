@@ -471,7 +471,7 @@ C2V_END
 C2V_VMENTRY(jint, getVtableIndexForInterface, (JNIEnv *, jobject, jlong metaspace_klass, jlong metaspace_method))
   Klass* klass = (Klass*) metaspace_klass;
   Method* method = (Method*) metaspace_method;
-
+  assert(!klass->is_interface(), "");
   return LinkResolver::vtable_index_of_interface_method(klass, method);
 C2V_END
 
