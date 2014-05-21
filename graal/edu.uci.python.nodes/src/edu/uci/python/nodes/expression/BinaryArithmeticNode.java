@@ -346,7 +346,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 0, guards = "isLeftNegative")
         int doIntegerNegative(int left, int right) {
-            return (left % right + right) % right;
+            return (left + right) % right;
         }
 
         @Specialization(order = 1)
