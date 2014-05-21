@@ -32,6 +32,7 @@ import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.NodeUtil.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.DispatchGeneratorBoxedNode;
 import edu.uci.python.nodes.call.CallDispatchNoneNode.DispatchGeneratorNoneNode;
@@ -58,6 +59,8 @@ public final class FunctionRootNode extends RootNode {
     @Child protected PNode body;
     private PNode uninitializedBody;
 
+    @Child private PNode profiler;
+
     public FunctionRootNode(PythonContext context, String functionName, boolean isGenerator, FrameDescriptor frameDescriptor, PNode body) {
         super(null, frameDescriptor); // SourceSection is not supported yet.
         this.context = context;
@@ -65,6 +68,11 @@ public final class FunctionRootNode extends RootNode {
         this.isGenerator = isGenerator;
         this.body = NodeUtil.cloneNode(body);
         this.uninitializedBody = NodeUtil.cloneNode(body);
+        if (PythonOptions.ProfileCalls) {
+            this.profiler = new ProfilerNode(this);
+        } else {
+            this.profiler = EmptyNode.create();
+        }
     }
 
     public PythonContext getContext() {
@@ -100,6 +108,9 @@ public final class FunctionRootNode extends RootNode {
     public Object execute(VirtualFrame frame) {
         if (CompilerDirectives.inInterpreter()) {
             optimizeGeneratorCalls();
+        }
+        if (PythonOptions.ProfileCalls) {
+            profiler.execute(frame);
         }
         return body.execute(frame);
     }

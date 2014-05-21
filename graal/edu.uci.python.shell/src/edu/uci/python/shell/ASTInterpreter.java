@@ -27,6 +27,7 @@ package edu.uci.python.shell;
 import com.oracle.truffle.api.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 
@@ -35,6 +36,20 @@ public class ASTInterpreter {
     public static void interpret(PythonParseResult result) {
         ModuleNode root = (ModuleNode) result.getModuleRoot();
         RootCallTarget module = Truffle.getRuntime().createCallTarget(root);
+        // Added here because createCallTarget adopts all children, i.e. adds all parent
+        // relationships. In order to be able create wrapper nodes, and replace nodes with wrapper
+        // nodes, we need parent relationship
+
+        if (PythonOptions.AddProfilingInstrumentation) {
+            ProfilerTranslator pt = new ProfilerTranslator(result.getContext());
+            pt.translate(result, root);
+
+            if (PythonOptions.PrintAST) {
+                System.out.println("============= " + "After Adding Wrapper Nodes" + " ============= ");
+                result.printAST();
+            }
+        }
+
         module.call(PArguments.empty());
     }
 

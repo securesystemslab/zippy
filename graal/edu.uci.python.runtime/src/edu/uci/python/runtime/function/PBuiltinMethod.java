@@ -90,4 +90,7 @@ public class PBuiltinMethod extends PythonBuiltinObject implements PythonCallabl
         return "<method '" + function.getName() + "' of '" + self + "' objects>";
     }
 
+    public String getCallableName() {
+        return function.getCallableName();
+    }
 }

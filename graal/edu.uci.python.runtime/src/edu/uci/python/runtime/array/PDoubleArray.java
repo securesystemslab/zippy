@@ -26,7 +26,9 @@ package edu.uci.python.runtime.array;
 
 import java.util.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -64,6 +66,15 @@ public final class PDoubleArray extends PArray {
 
     public double[] getSequence() {
         return array;
+    }
+
+    @Override
+    public PIterator __iter__() {
+        if (PythonOptions.UnboxSequenceIteration) {
+            return new PDoubleArrayIterator(this);
+        } else {
+            return new PSequenceIterator(this);
+        }
     }
 
     @Override

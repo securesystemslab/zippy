@@ -177,7 +177,7 @@ public class RandomModuleBuiltins extends PythonBuiltins {
                 for (int i = 0; i < b.length; i++) {
                     retarr[i] = new Integer(b[i]);
                 }
-                PTuple ret = new PTuple(retarr);
+                PTuple ret = PTuple.create(retarr);
                 return ret;
             } catch (IOException e) {
                 throw Py.SystemError("creation of state vector failed: " + e.getMessage());
