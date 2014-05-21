@@ -34,6 +34,7 @@ Full documentation can be found at https://wiki.openjdk.java.net/display/Graal/T
 """
 
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
+import multiprocessing
 import textwrap
 import socket
 import tarfile
@@ -1844,14 +1845,22 @@ def abort(codeOrMessage):
     if _opts.killwithsigquit:
         _send_sigquit()
 
+    def is_alive(p):
+        if isinstance(p, subprocess.Popen):
+            return p.poll() is not None
+        assert isinstance(p, multiprocessing.Process), p
+        return p.is_alive()
+
     for p, args in _currentSubprocesses:
-        try:
-            if get_os() == 'windows':
-                p.terminate()
-            else:
-                _kill_process_group(p.pid, signal.SIGKILL)
-        except BaseException as e:
-            log('error while killing subprocess {} "{}": {}'.format(p.pid, ' '.join(args), e))
+        if is_alive(p):
+            try:
+                if get_os() == 'windows':
+                    p.terminate()
+                else:
+                    _kill_process_group(p.pid, signal.SIGKILL)
+            except BaseException as e:
+                if is_alive(p):
+                    log('error while killing subprocess {} "{}": {}'.format(p.pid, ' '.join(args), e))
 
     if _opts and _opts.verbose:
         import traceback
@@ -2295,7 +2304,6 @@ def build(args, parser=None):
                 t._d = None
             return sorted(tasks, compareTasks)
 
-        import multiprocessing
         cpus = multiprocessing.cpu_count()
         worklist = sortWorklist(tasks.values())
         active = []
