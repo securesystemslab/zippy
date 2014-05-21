@@ -22,6 +22,7 @@
  */
 package com.oracle.graal.nodes.calc;
 
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -29,7 +30,7 @@ import com.oracle.graal.nodes.type.*;
 /**
  * The {@code LogicNode} class definition.
  */
-public abstract class BitLogicNode extends BinaryNode implements ArithmeticLIRLowerable, MemoryArithmeticLIRLowerable, NarrowableArithmeticNode {
+public abstract class BitLogicNode extends BinaryNode implements ArithmeticLIRLowerable, NarrowableArithmeticNode {
 
     /**
      * Constructs a new logic operation node.

@@ -31,14 +31,20 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;
+import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
+import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
+import edu.uci.python.nodes.call.PythonCallNode.NoneCallNode;
+import edu.uci.python.nodes.call.CallDispatchNoneNode.*;
 import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
-import edu.uci.python.nodes.function.GeneratorExpressionNode.CallableGeneratorExpressionDefinition;
 import edu.uci.python.nodes.generator.*;
+import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
+import static edu.uci.python.nodes.function.GeneratorFunctionDefinitionNode.*;
 
 public class GeneratorExpressionOptimizer {
 
@@ -73,22 +79,31 @@ public class GeneratorExpressionOptimizer {
         }
     }
 
-    private void transform(GeneratorExpressionNode genExp, EscapeAnalyzer escapeAnalyzer) {
+    private void transform(GeneratorExpressionNode genexp, EscapeAnalyzer escapeAnalyzer) {
         if (!escapeAnalyzer.isBoundToLocalFrame()) {
             /**
              * The simplest case in micro bench: generator-expression.
              */
-            if (genExp.getParent() instanceof GetIteratorNode) {
-                transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) genExp.getParent(), false);
-            } else if (genExp.getParent() instanceof CallFunctionInlinedNode) {
+            if (genexp.getParent() instanceof GetIteratorNode) {
+                desugarGeneratorExpression(genexp, (GetIteratorNode) genexp.getParent(), false);
+            } else if (genexp.getParent() instanceof CallFunctionInlinedNode) {
                 /**
                  * Function calls that were just inlined create new opportunities for genexp
                  * transformation.<br>
                  * Already transformed genexp, whose parent is of type
                  * {@link CallGeneratorInlinedNode} should be ignore.
                  */
-                GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(genExp.getParent(), GetIteratorNode.class);
-                transformGetIterToInlineableGeneratorCall(genExp, getIter, true);
+                GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(genexp.getParent(), GetIteratorNode.class);
+                desugarGeneratorExpression(genexp, getIter, true);
+            } else if (genexp.getParent() instanceof PythonCallNode) {
+                BoxedCallNode callNode = (BoxedCallNode) genexp.getParent();
+                assert callNode.isInlined();
+                FunctionRootNode calleeRoot = (FunctionRootNode) callNode.getInlinedCalleeRoot();
+                PeeledGeneratorLoopBoxedNode manualInlinedCallNode = new PeeledGeneratorLoopBoxedNode(calleeRoot, calleeRoot.getFrameDescriptor(), callNode.getPrimaryNode(),
+                                callNode.getArgumentNodes(), ((LinkedDispatchBoxedNode) callNode.getDispatchNode()).getCheckNode(), callNode);
+                callNode.replace(manualInlinedCallNode);
+                GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(manualInlinedCallNode.getGeneratorRoot(), GetIteratorNode.class);
+                desugarGeneratorExpression(genexp, getIter, true);
             }
 
             return;
@@ -101,38 +116,49 @@ public class GeneratorExpressionOptimizer {
             }
 
             if (read.getParent() instanceof GetIteratorNode) {
-                transformGetIterToInlineableGeneratorCall(genExp, (GetIteratorNode) read.getParent(), false);
+                desugarGeneratorExpression(genexp, (GetIteratorNode) read.getParent(), false);
             }
         }
     }
 
-    private void transformGetIterToInlineableGeneratorCall(GeneratorExpressionNode genExp, GetIteratorNode getIterator, boolean isTargetCallSiteInInlinedFrame) {
-        FrameDescriptor fd = genExp.getFrameDescriptor();
-        FunctionRootNode root = (FunctionRootNode) genExp.getFunctionRootNode();
+    private void desugarGeneratorExpression(GeneratorExpressionNode genexp, GetIteratorNode getIterator, boolean isTargetCallSiteInInlinedFrame) {
+        FrameDescriptor fd = genexp.getFrameDescriptor();
+        FunctionRootNode root = (FunctionRootNode) genexp.getFunctionRootNode();
         PNode[] argReads;
 
         try {
-            List<FrameSlot> arguments = addParameterSlots(root, fd, findEnclosingFrameDescriptor(genExp));
+            List<FrameSlot> arguments = addParameterSlots(root, fd, findEnclosingFrameDescriptor(genexp));
             replaceParameters(arguments, root);
             replaceReadLevels(arguments, root);
-            argReads = assembleArgumentReads(arguments, genExp, isTargetCallSiteInInlinedFrame);
+            argReads = assembleArgumentReads(arguments, genexp, isTargetCallSiteInInlinedFrame);
         } catch (IllegalStateException e) {
             return;
         }
 
         assert argReads != null;
-        CallableGeneratorExpressionDefinition callableGenExp = new CallableGeneratorExpressionDefinition(genExp);
+
+        PNode desugaredGenDefNode = new StatelessGeneratorFunctionDefinitionNode(genexp);
+        genexp.replace(desugaredGenDefNode);
+        PNode genDefLoad;
+
+        if (getIterator.getOperand().equals(genexp)) {
+            genDefLoad = desugaredGenDefNode;
+        } else {
+            genDefLoad = (PNode) getIterator.getOperand().copy();
+        }
+
+        PNode generatorCallNode = new NoneCallNode(context, genexp.getName(), EmptyNode.create(), genDefLoad, argReads, new PNode[]{}, new UninitializedDispatchNoneNode(genexp.getName(), false));
         PNode loadGenerator = getIterator.getOperand();
-        loadGenerator.replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
+        loadGenerator.replace(generatorCallNode);
 
         try {
             PNode matched = NodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
-            matched.replace(new CallGeneratorNode(callableGenExp, argReads, callableGenExp, root));
+            matched.replace(NodeUtil.cloneNode(generatorCallNode));
         } catch (IllegalStateException e) {
         }
 
-        genExp.setAsOptimized();
-        context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genExp + " to inlineable generator call");
+        genexp.setAsOptimized();
+        context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genexp + " to inlineable generator call");
     }
 
     /**

@@ -27,22 +27,22 @@ import java.util.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.meta.JavaTypeProfile.ProfiledType;
 import com.oracle.graal.api.meta.ProfilingInfo.TriState;
+import com.oracle.graal.compiler.common.calc.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.calc.*;
-import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 
 /**
  * The {@code IfNode} represents a branch that can go one of two directions depending on the outcome
  * of a comparison.
  */
-public final class IfNode extends ControlSplitNode implements Simplifiable, LIRLowerable, MemoryArithmeticLIRLowerable {
+public final class IfNode extends ControlSplitNode implements Simplifiable, LIRLowerable {
 
     @Successor private BeginNode trueSuccessor;
     @Successor private BeginNode falseSuccessor;
@@ -131,11 +131,6 @@ public final class IfNode extends ControlSplitNode implements Simplifiable, LIRL
     }
 
     @Override
-    public boolean generate(MemoryArithmeticLIRLowerer gen, Access access) {
-        return gen.emitIfMemory(this, access);
-    }
-
-    @Override
     public boolean verify() {
         assertTrue(condition() != null, "missing condition");
         assertTrue(trueSuccessor() != null, "missing trueSuccessor");
@@ -154,6 +149,45 @@ public final class IfNode extends ControlSplitNode implements Simplifiable, LIRL
             IfNode newIfNode = graph().add(new IfNode(negation.getInput(), falseSucc, trueSucc, 1 - trueSuccessorProbability));
             predecessor().replaceFirstSuccessor(this, newIfNode);
             this.safeDelete();
+            return;
+        }
+        if (trueSuccessor().usages().isEmpty() && falseSuccessor().usages().isEmpty()) {
+            // push similar nodes upwards through the if, thereby deduplicating them
+            do {
+                BeginNode trueSucc = trueSuccessor();
+                BeginNode falseSucc = falseSuccessor();
+                if (trueSucc.getClass() == BeginNode.class && falseSucc.getClass() == BeginNode.class && trueSucc.next() instanceof FixedWithNextNode && falseSucc.next() instanceof FixedWithNextNode) {
+                    FixedWithNextNode trueNext = (FixedWithNextNode) trueSucc.next();
+                    FixedWithNextNode falseNext = (FixedWithNextNode) falseSucc.next();
+                    NodeClass nodeClass = trueNext.getNodeClass();
+                    if (trueNext.getClass() == falseNext.getClass()) {
+                        if (nodeClass.inputsEqual(trueNext, falseNext) && nodeClass.valueEqual(trueNext, falseNext)) {
+                            falseNext.replaceAtUsages(trueNext);
+                            graph().removeFixed(falseNext);
+                            FixedNode next = trueNext.next();
+                            trueNext.setNext(null);
+                            trueNext.replaceAtPredecessor(next);
+                            graph().addBeforeFixed(this, trueNext);
+                            for (Node usage : trueNext.usages().snapshot()) {
+                                if (usage.getNodeClass().valueNumberable() && !usage.getNodeClass().isLeafNode()) {
+                                    Node newNode = graph().findDuplicate(usage);
+                                    if (newNode != null) {
+                                        usage.replaceAtUsages(newNode);
+                                        usage.safeDelete();
+                                    }
+                                }
+                                if (usage.isAlive()) {
+                                    tool.addToWorkList(usage);
+                                }
+                            }
+                            continue;
+                        }
+                    }
+                }
+            } while (false);
+        }
+
+        if (checkForUnsignedCompare(tool)) {
             return;
         }
 
@@ -189,7 +223,7 @@ public final class IfNode extends ControlSplitNode implements Simplifiable, LIRL
                 // Reordering of those two if statements is beneficial from the point of view of
                 // their probabilities.
                 if (prepareForSwap(tool.getConstantReflection(), condition(), nextIf.condition(), this.trueSuccessorProbability, probabilityB)) {
-                    // Reording is allowed from (if1 => begin => if2) to (if2 => begin => if1).
+                    // Reordering is allowed from (if1 => begin => if2) to (if2 => begin => if1).
                     assert intermediateBegin.next() == nextIf;
                     BeginNode bothFalseBegin = nextIf.falseSuccessor();
                     nextIf.setFalseSuccessor(null);
@@ -211,6 +245,106 @@ public final class IfNode extends ControlSplitNode implements Simplifiable, LIRL
                 }
             }
         }
+    }
+
+    /**
+     * Recognize a couple patterns that can be merged into an unsigned compare.
+     *
+     * @param tool
+     * @return true if a replacement was done.
+     */
+    private boolean checkForUnsignedCompare(SimplifierTool tool) {
+        if (condition() instanceof IntegerLessThanNode && trueSuccessor().usages().isEmpty() && falseSuccessor().usages().isEmpty()) {
+            IntegerLessThanNode lessThan = (IntegerLessThanNode) condition();
+            Constant y = lessThan.y().stamp().asConstant();
+            if (y != null && y.asLong() == 0 && falseSuccessor().next() instanceof IfNode) {
+                IfNode ifNode2 = (IfNode) falseSuccessor().next();
+                if (ifNode2.condition() instanceof IntegerLessThanNode) {
+                    IntegerLessThanNode lessThan2 = (IntegerLessThanNode) ifNode2.condition();
+                    BeginNode falseSucc = ifNode2.falseSuccessor();
+                    BeginNode trueSucc = ifNode2.trueSuccessor();
+                    IntegerBelowThanNode below = null;
+                    /*
+                     * Convert x >= 0 && x < positive which is represented as !(x < 0) && x <
+                     * <positive> into an unsigned compare.
+                     */
+                    if (lessThan2.x() == lessThan.x() && lessThan2.y().stamp() instanceof IntegerStamp && ((IntegerStamp) lessThan2.y().stamp()).isPositive() &&
+                                    sameDestination(trueSuccessor(), ifNode2.falseSuccessor)) {
+                        below = graph().unique(new IntegerBelowThanNode(lessThan2.x(), lessThan2.y()));
+                        // swap direction
+                        BeginNode tmp = falseSucc;
+                        falseSucc = trueSucc;
+                        trueSucc = tmp;
+                    } else if (lessThan2.y() == lessThan.x() && sameDestination(trueSuccessor(), ifNode2.trueSuccessor)) {
+                        /*
+                         * Convert x >= 0 && x <= positive which is represented as !(x < 0) &&
+                         * !(<positive> > x), into x <| positive + 1. This can only be done for
+                         * constants since there isn't a IntegerBelowEqualThanNode but that doesn't
+                         * appear to be interesting.
+                         */
+                        Constant positive = lessThan2.x().asConstant();
+                        if (positive != null && positive.asLong() > 0 && positive.asLong() < positive.getKind().getMaxValue()) {
+                            ConstantNode newLimit = ConstantNode.forIntegerKind(positive.getKind(), positive.asLong() + 1, graph());
+                            below = graph().unique(new IntegerBelowThanNode(lessThan.x(), newLimit));
+                        }
+                    }
+                    if (below != null) {
+                        ifNode2.setTrueSuccessor(null);
+                        ifNode2.setFalseSuccessor(null);
+
+                        IfNode newIfNode = graph().add(new IfNode(below, falseSucc, trueSucc, 1 - trueSuccessorProbability));
+                        // Remove the < 0 test.
+                        tool.deleteBranch(trueSuccessor);
+                        graph().removeSplit(this, falseSuccessor);
+
+                        // Replace the second test with the new one.
+                        ifNode2.predecessor().replaceFirstSuccessor(ifNode2, newIfNode);
+                        ifNode2.safeDelete();
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check it these two blocks end up at the same place. Meeting at the same merge, or
+     * deoptimizing in the same way.
+     */
+    private static boolean sameDestination(BeginNode succ1, BeginNode succ2) {
+        Node next1 = succ1.next();
+        Node next2 = succ2.next();
+        if (next1 instanceof EndNode && next2 instanceof EndNode) {
+            EndNode end1 = (EndNode) next1;
+            EndNode end2 = (EndNode) next2;
+            if (end1.merge() == end2.merge()) {
+                // They go to the same MergeNode
+                return true;
+            }
+        } else if (next1 instanceof DeoptimizeNode && next2 instanceof DeoptimizeNode) {
+            DeoptimizeNode deopt1 = (DeoptimizeNode) next1;
+            DeoptimizeNode deopt2 = (DeoptimizeNode) next2;
+            if (deopt1.reason() == deopt2.reason() && deopt1.action() == deopt2.action()) {
+                // Same deoptimization reason and action.
+                return true;
+            }
+        } else if (next1 instanceof LoopExitNode && next2 instanceof LoopExitNode) {
+            LoopExitNode exit1 = (LoopExitNode) next1;
+            LoopExitNode exit2 = (LoopExitNode) next2;
+            if (exit1.loopBegin() == exit2.loopBegin() && exit1.stateAfter() == exit2.stateAfter() && exit1.stateAfter() == null && sameDestination(exit1, exit2)) {
+                // Exit the same loop and end up at the same place.
+                return true;
+            }
+        } else if (next1 instanceof ReturnNode && next2 instanceof ReturnNode) {
+            ReturnNode exit1 = (ReturnNode) next1;
+            ReturnNode exit2 = (ReturnNode) next2;
+            if (exit1.result() == exit2.result()) {
+                // Exit the same loop and end up at the same place.
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean prepareForSwap(ConstantReflectionProvider constantReflection, LogicNode a, LogicNode b, double probabilityA, double probabilityB) {

@@ -50,7 +50,7 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
     }
 
     public PBuiltinFunction duplicate() {
-        RootNode copiedRoot = (RootNode) getFunctionRootNode().copy();
+        RootNode copiedRoot = getFunctionRootNode().split();
         return new PBuiltinFunction(name, arity, Truffle.getRuntime().createCallTarget(copiedRoot));
     }
 

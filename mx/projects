@@ -2,8 +2,7 @@
 mxversion=1.0
 suite=graal
 
-library@JDK_TOOLS@path=${JAVA_HOME}/lib/tools.jar
-library@JDK_TOOLS@optional=true
+jrelibrary@JFR@jar=jfr.jar
 
 library@JUNIT@path=lib/junit-4.11.jar
 library@JUNIT@urls=http://repo1.maven.org/maven2/junit/junit/4.11/junit-4.11.jar
@@ -26,9 +25,11 @@ library@CHECKSTYLE@urls=jar:http://sourceforge.net/projects/checkstyle/files/che
 
 library@FINDBUGS@path=lib/findbugs-3.0.0-dev-20131204-e3cbbd5.jar
 library@FINDBUGS@urls=jar:http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0-dev-20131204-e3cbbd5.zip/download!/findbugs-3.0.0-dev-20131204-e3cbbd5/lib/findbugs.jar
+library@FINDBUGS@sha1=539fdc73ef5f65a85c94687f6ec77dcd8493f8c1
 
 library@DACAPO@path=lib/dacapo-9.12-bach.jar
 library@DACAPO@urls=http://softlayer.dl.sourceforge.net/project/dacapobench/9.12-bach/dacapo-9.12-bach.jar
+library@DACAPO@sha1=2626a9546df09009f6da0df854e6dc1113ef7dd4
 
 library@JACOCOAGENT@path=lib/jacocoagent.jar
 library@JACOCOAGENT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoagent.jar
@@ -42,22 +43,27 @@ library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0-20120216.jar
 library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20120216.103539-3.jar
 library@DACAPO_SCALA@sha1=59b64c974662b5cf9dbd3cf9045d293853dd7a51
 
-library@OKRA@path=lib/okra-1.8.jar
-library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.8.jar
-library@OKRA@sourcePath=lib/okra-1.8-src.jar
-library@OKRA@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-src.jar
+library@OKRA@path=lib/okra-1.9.jar
+library@OKRA@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.9.jar
+library@OKRA@sha1=df450b04882e6b5a365299e2cbf1622038ae880e
+library@OKRA@sourcePath=lib/okra-1.9-src.jar
+library@OKRA@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.9-src.jar
+library@OKRA@sourceSha1=41dcda5197ca4d87bc94e4d7b5a90e7f22667756
 
-library@OKRA_WITH_SIM@path=lib/okra-1.8-with-sim.jar
-library@OKRA_WITH_SIM@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-with-sim.jar
-library@OKRA_WITH_SIM@sourcePath=lib/okra-1.8-with-sim-src.jar
-library@OKRA_WITH_SIM@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.8-with-sim-src.jar
+library@OKRA_WITH_SIM@path=lib/okra-1.9-with-sim.jar
+library@OKRA_WITH_SIM@urls=http://cr.openjdk.java.net/~tdeneau/okra-1.9-with-sim.jar
+library@OKRA_WITH_SIM@sha1=816fa24814cf51c02f9c05477447bb55a152b388
+library@OKRA_WITH_SIM@sourcePath=lib/okra-1.9-with-sim-src.jar
+library@OKRA_WITH_SIM@sourceSha1=1628919457999a8479d9f39845865de527dbd523
+library@OKRA_WITH_SIM@sourceUrls=http://cr.openjdk.java.net/~tdeneau/okra-1.9-with-sim-src.jar
 
 library@JAVA_ALLOCATION_INSTRUMENTER@path=lib/java-allocation-instrumenter.jar
-library@JAVA_ALLOCATION_INSTRUMENTER@urls=http://lafo.ssw.uni-linz.ac.at/java-allocation-instrumenter/java-allocation-instrumenter-8f0db117e64e.jar
-library@JAVA_ALLOCATION_INSTRUMENTER@sha1=64c0a5329fbcb8284640e58d83252e0a3b08c23e
+library@JAVA_ALLOCATION_INSTRUMENTER@urls=http://lafo.ssw.uni-linz.ac.at/java-allocation-instrumenter/java-allocation-instrumenter-c7e3525a6b90.jar
+library@JAVA_ALLOCATION_INSTRUMENTER@sha1=128eb20a4cd3362a4d8b94614e66647808a2e37c
 
 library@VECMATH@path=lib/vecmath-1.3.1.jar
 library@VECMATH@urls=http://mirrors.ibiblio.org/pub/mirrors/maven/java3d/jars/vecmath-1.3.1.jar
+library@VECMATH@sha1=a0ae4f51da409fa0c20fa0ca59e6bbc9413ae71d
 
 library@JLINE09@path=lib/jline-0.9.95-SNAPSHOT.jar
 library@JLINE09@urls=http://mirrors.ibiblio.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar
@@ -80,8 +86,27 @@ com.oracle.graal.truffle,\
 com.oracle.graal.truffle.hotspot.amd64,\
 com.oracle.graal.hotspot.sparc,\
 com.oracle.graal.hotspot,\
+com.oracle.graal.hotspot.jfr,\
 com.oracle.graal.hotspot.hsail
-distribution@GRAAL@excludeLibs=FINDBUGS
+distribution@GRAAL@exclude=FINDBUGS
+
+distribution@TRUFFLE@path=truffle.jar
+distribution@TRUFFLE@sourcesPath=truffle-sources.jar
+distribution@TRUFFLE@dependencies=\
+com.oracle.truffle.api.dsl
+
+distribution@TRUFFLE-DSL-PROCESSOR@path=truffle-dsl-processor.jar
+distribution@TRUFFLE-DSL-PROCESSOR@sourcesPath=truffle-dsl-processor-sources.jar
+distribution@TRUFFLE-DSL-PROCESSOR@dependencies=\
+com.oracle.truffle.dsl.processor
+distribution@TRUFFLE-DSL-PROCESSOR@distDependencies=TRUFFLE
+
+# graal.api.collections
+project@com.oracle.graal.api.collections@subDir=graal
+project@com.oracle.graal.api.collections@sourceDirs=src
+project@com.oracle.graal.api.collections@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.api.collections@javaCompliance=1.8
+project@com.oracle.graal.api.collections@workingSets=API,Graal
 
 # graal.api.runtime
 project@com.oracle.graal.api.runtime@subDir=graal
@@ -178,6 +203,16 @@ project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replaceme
 project@com.oracle.graal.hotspot@javaCompliance=1.8
 project@com.oracle.graal.hotspot@workingSets=Graal,HotSpot
 
+# graal.hotspot.jfr
+project@com.oracle.graal.hotspot.jfr@subDir=graal
+project@com.oracle.graal.hotspot.jfr@sourceDirs=src
+project@com.oracle.graal.hotspot.jfr@dependencies=com.oracle.graal.hotspot,JFR
+project@com.oracle.graal.hotspot.jfr@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot.jfr@annotationProcessors=com.oracle.graal.service.processor
+project@com.oracle.graal.hotspot.jfr@javaCompliance=1.8
+project@com.oracle.graal.hotspot.jfr@profile=
+project@com.oracle.graal.hotspot.jfr@workingSets=Graal,HotSpot
+
 # graal.hotspot.amd64
 project@com.oracle.graal.hotspot.amd64@subDir=graal
 project@com.oracle.graal.hotspot.amd64@sourceDirs=src
@@ -265,7 +300,7 @@ project@com.oracle.graal.options.test@workingSets=Graal
 # graal.graph
 project@com.oracle.graal.graph@subDir=graal
 project@com.oracle.graal.graph@sourceDirs=src
-project@com.oracle.graal.graph@dependencies=com.oracle.graal.debug,com.oracle.graal.api.code,FINDBUGS
+project@com.oracle.graal.graph@dependencies=com.oracle.graal.debug,com.oracle.graal.compiler.common,com.oracle.graal.api.collections,com.oracle.graal.api.runtime,FINDBUGS
 project@com.oracle.graal.graph@javaCompliance=1.8
 project@com.oracle.graal.graph@workingSets=Graal,Graph
 
@@ -295,7 +330,7 @@ project@com.oracle.graal.debug.test@workingSets=Graal,Debug,Test
 # graal.lir
 project@com.oracle.graal.lir@subDir=graal
 project@com.oracle.graal.lir@sourceDirs=src
-project@com.oracle.graal.lir@dependencies=com.oracle.graal.nodes,com.oracle.graal.asm
+project@com.oracle.graal.lir@dependencies=com.oracle.graal.debug,com.oracle.graal.compiler.common,com.oracle.graal.asm
 project@com.oracle.graal.lir@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.lir@javaCompliance=1.8
 project@com.oracle.graal.lir@workingSets=Graal,LIR
@@ -327,7 +362,7 @@ project@com.oracle.graal.lir.sparc@workingSets=Graal,LIR,SPARC
 # graal.alloc
 project@com.oracle.graal.alloc@subDir=graal
 project@com.oracle.graal.alloc@sourceDirs=src
-project@com.oracle.graal.alloc@dependencies=com.oracle.graal.nodes
+project@com.oracle.graal.alloc@dependencies=com.oracle.graal.compiler.common
 project@com.oracle.graal.alloc@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.alloc@javaCompliance=1.8
 project@com.oracle.graal.alloc@workingSets=Graal
@@ -385,7 +420,7 @@ project@com.oracle.graal.replacements.verifier@workingSets=Graal,Replacements
 # graal.nodes
 project@com.oracle.graal.nodes@subDir=graal
 project@com.oracle.graal.nodes@sourceDirs=src
-project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements,com.oracle.graal.cfg
+project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements,com.oracle.graal.lir
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.8
 project@com.oracle.graal.nodes@annotationProcessors=com.oracle.graal.replacements.verifier
@@ -402,7 +437,7 @@ project@com.oracle.graal.nodes.test@workingSets=Graal,Graph
 # graal.phases
 project@com.oracle.graal.phases@subDir=graal
 project@com.oracle.graal.phases@sourceDirs=src
-project@com.oracle.graal.phases@dependencies=com.oracle.graal.nodes,com.oracle.graal.options
+project@com.oracle.graal.phases@dependencies=com.oracle.graal.nodes
 project@com.oracle.graal.phases@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.phases@javaCompliance=1.8
 project@com.oracle.graal.phases@workingSets=Graal,Phases
@@ -434,10 +469,11 @@ project@com.oracle.graal.loop@workingSets=Graal,Phases
 # graal.compiler
 project@com.oracle.graal.compiler@subDir=graal
 project@com.oracle.graal.compiler@sourceDirs=src
-project@com.oracle.graal.compiler@dependencies=com.oracle.graal.api.runtime,com.oracle.graal.virtual,com.oracle.graal.loop,com.oracle.graal.alloc,com.oracle.graal.lir
+project@com.oracle.graal.compiler@dependencies=com.oracle.graal.virtual,com.oracle.graal.loop,com.oracle.graal.alloc
 project@com.oracle.graal.compiler@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler@javaCompliance=1.8
 project@com.oracle.graal.compiler@annotationProcessors=com.oracle.graal.service.processor
+project@com.oracle.graal.compiler@annotationProcessorForDependents=true
 project@com.oracle.graal.compiler@workingSets=Graal
 
 # graal.compiler.amd64
@@ -511,13 +547,13 @@ project@com.oracle.graal.java@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.java@javaCompliance=1.8
 project@com.oracle.graal.java@workingSets=Graal,Java
 
-# graal.cfg
-project@com.oracle.graal.cfg@subDir=graal
-project@com.oracle.graal.cfg@sourceDirs=src
-project@com.oracle.graal.cfg@dependencies=
-project@com.oracle.graal.cfg@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.cfg@javaCompliance=1.8
-project@com.oracle.graal.cfg@workingSets=Graal,Java
+# graal.compiler.common
+project@com.oracle.graal.compiler.common@subDir=graal
+project@com.oracle.graal.compiler.common@sourceDirs=src
+project@com.oracle.graal.compiler.common@dependencies=com.oracle.graal.api.code,com.oracle.graal.options
+project@com.oracle.graal.compiler.common@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.compiler.common@javaCompliance=1.8
+project@com.oracle.graal.compiler.common@workingSets=Graal,Java
 
 # graal.baseline
 project@com.oracle.graal.baseline@subDir=graal
@@ -554,7 +590,7 @@ project@com.oracle.graal.printer@workingSets=Graal,Graph
 # graal.test
 project@com.oracle.graal.test@subDir=graal
 project@com.oracle.graal.test@sourceDirs=src
-project@com.oracle.graal.test@dependencies=JUNIT
+project@com.oracle.graal.test@dependencies=JUNIT,com.oracle.graal.debug
 project@com.oracle.graal.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.test@javaCompliance=1.8
 project@com.oracle.graal.test@workingSets=Graal,Test
@@ -638,7 +674,7 @@ project@com.oracle.graal.compiler.hsail@javaCompliance=1.8
 # graal.compiler.hsail.test.infra - HSAIL compiler test infrastructure
 project@com.oracle.graal.compiler.hsail.test.infra@subDir=graal
 project@com.oracle.graal.compiler.hsail.test.infra@sourceDirs=src
-project@com.oracle.graal.compiler.hsail.test.infra@dependencies=com.oracle.graal.hotspot.hsail,JUNIT,OKRA_WITH_SIM
+project@com.oracle.graal.compiler.hsail.test.infra@dependencies=com.oracle.graal.test,com.oracle.graal.hotspot.hsail,OKRA_WITH_SIM
 project@com.oracle.graal.compiler.hsail.test.infra@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.hsail.test.infra@javaCompliance=1.8
 
@@ -652,7 +688,7 @@ project@com.oracle.graal.compiler.hsail.test@javaCompliance=1.8
 # graal.asm.hsail
 project@com.oracle.graal.asm.hsail@subDir=graal
 project@com.oracle.graal.asm.hsail@sourceDirs=src
-project@com.oracle.graal.asm.hsail@dependencies=com.oracle.graal.hsail,OKRA,com.oracle.graal.asm,com.oracle.graal.graph
+project@com.oracle.graal.asm.hsail@dependencies=com.oracle.graal.hsail,OKRA,com.oracle.graal.asm,com.oracle.graal.compiler.common
 project@com.oracle.graal.asm.hsail@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.asm.hsail@javaCompliance=1.8
 

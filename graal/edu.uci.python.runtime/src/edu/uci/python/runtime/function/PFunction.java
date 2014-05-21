@@ -24,11 +24,8 @@
  */
 package edu.uci.python.runtime.function;
 
-import java.util.*;
-
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.*;
@@ -71,8 +68,7 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
     }
 
     public RootNode getFunctionRootNode() {
-        DefaultCallTarget defaultTarget = (DefaultCallTarget) callTarget;
-        return defaultTarget.getRootNode();
+        return callTarget.getRootNode();
     }
 
     @Override
@@ -104,29 +100,6 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
     @Override
     public void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords) {
         arity.arityCheck(numOfArgs, numOfKeywords, keywords);
-    }
-
-    public static Object[] applyKeywordArgs(Arity calleeArity, Object[] arguments, PKeyword[] keywords) {
-        List<String> parameters = calleeArity.getParameterIds();
-        Object[] combined = new Object[parameters.size()];
-        assert combined.length >= arguments.length : "Parameters size does not match";
-        System.arraycopy(arguments, 0, combined, 0, arguments.length);
-
-        for (int i = 0; i < keywords.length; i++) {
-            PKeyword keyarg = keywords[i];
-            int keywordIdx = parameters.indexOf(keyarg.getName());
-
-            if (keywordIdx < -1) {
-                /**
-                 * TODO can throw a type error for wrong keyword name // TypeError: foo() got an
-                 * unexpected keyword argument 'c'
-                 */
-            }
-
-            combined[keywordIdx] = keyarg.getValue();
-        }
-
-        return combined;
     }
 
     @Override

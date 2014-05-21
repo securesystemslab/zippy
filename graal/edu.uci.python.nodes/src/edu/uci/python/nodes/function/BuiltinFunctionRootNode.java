@@ -51,12 +51,12 @@ public class BuiltinFunctionRootNode extends RootNode {
         if (PythonOptions.ProfileCalls) {
             this.profiler = new ProfilerNode(this);
         } else {
-            this.profiler = EmptyNode.INSTANCE;
+            this.profiler = EmptyNode.create();
         }
     }
 
     @Override
-    public RootNode copy() {
+    public RootNode split() {
         return new BuiltinFunctionRootNode(functionName, NodeUtil.cloneNode(uninitialized));
     }
 

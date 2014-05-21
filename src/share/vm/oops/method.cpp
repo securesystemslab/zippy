@@ -1314,7 +1314,7 @@ void Method::init_intrinsic_id() {
 
 // These two methods are static since a GC may move the Method
 bool Method::load_signature_classes(methodHandle m, TRAPS) {
-  if (THREAD->is_Compiler_thread()) {
+  if (!THREAD->can_call_java()) {
     // There is nothing useful this routine can do from within the Compile thread.
     // Hopefully, the signature contains only well-known classes.
     // We could scan for this and return true/false, but the caller won't care.

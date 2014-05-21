@@ -140,7 +140,7 @@ public class GeneratorTranslator {
             PNode argumentLoads = body.getStatements()[0];
             returnTarget.replace(new GeneratorReturnTargetNode(argumentLoads, body.getStatements()[1], returnTarget.getReturn(), nextActiveFlagSlot()));
         } else {
-            returnTarget.replace(new GeneratorReturnTargetNode(EmptyNode.INSTANCE, returnTarget.getBody(), returnTarget.getReturn(), nextActiveFlagSlot()));
+            returnTarget.replace(new GeneratorReturnTargetNode(EmptyNode.create(), returnTarget.getBody(), returnTarget.getReturn(), nextActiveFlagSlot()));
         }
     }
 
@@ -148,7 +148,7 @@ public class GeneratorTranslator {
         /**
          * Has it been replace already?
          */
-        if (node.getClass().getSimpleName().contains("Generator")) {
+        if (node instanceof GeneratorControlNode) {
             return;
         }
 
@@ -226,7 +226,7 @@ public class GeneratorTranslator {
             genexp.setEnclosingFrameGenerator(false);
         }
 
-        RootNode parallelRoot = new FunctionRootNode(context, root.getFunctionName(), root.getFrameDescriptor(), parallelBody);
+        RootNode parallelRoot = new FunctionRootNode(context, root.getFunctionName(), true, root.getFrameDescriptor(), parallelBody);
         return Truffle.getRuntime().createCallTarget(parallelRoot);
     }
 

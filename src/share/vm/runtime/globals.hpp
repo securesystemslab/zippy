@@ -980,6 +980,9 @@ class CommandLineFlags {
   product(bool, PrintNMethodStatistics, false,                              \
           "Print a summary statistic for the generated nmethods")           \
                                                                             \
+  product(bool, ShareDebugInfo, IS_GRAAL_DEFINED,                           \
+          "Always tries to share similar debug info inside a nmethod")      \
+                                                                            \
   diagnostic(bool, PrintNMethods, false,                                    \
           "Print assembly code for nmethods when generated")                \
                                                                             \
@@ -3055,7 +3058,7 @@ class CommandLineFlags {
           "If non-zero, maximum number of words that malloc/realloc can "   \
           "allocate (for testing only)")                                    \
                                                                             \
-  product(intx, TypeProfileWidth,     2,                                    \
+  product_pd(intx, TypeProfileWidth,                                        \
           "Number of receiver types to record in call/cast profile")        \
                                                                             \
   product_pd(intx, MethodProfileWidth,                                      \

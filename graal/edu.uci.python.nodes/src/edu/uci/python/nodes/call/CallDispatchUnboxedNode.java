@@ -70,10 +70,12 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
 
         @Override
         public NodeCost getCost() {
-            if (next != null && next.getCost() == NodeCost.MONOMORPHIC) {
-                return NodeCost.POLYMORPHIC;
-            }
-            return super.getCost();
+            return getCost(next);
+        }
+
+        @Override
+        public boolean isInlined() {
+            return getCost() == NodeCost.MONOMORPHIC && invoke.isInlined();
         }
 
         @Override

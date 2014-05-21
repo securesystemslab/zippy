@@ -71,7 +71,7 @@ def measure():
     duration = "%.3f\n" % (time.time() - start)
     print("fannkuchredux: " + duration)
 
-for i in range(10000):
+for i in range(100):
     fannkuch(7)
 
 measure()

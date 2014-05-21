@@ -28,6 +28,9 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
+import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
 import edu.uci.python.nodes.call.PythonCallNode.UninitializedCallNode;
 import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.frame.*;
@@ -74,6 +77,18 @@ public class EscapeAnalyzer {
                 return escapesCurrentFrame(slot);
             } else if (current instanceof WriteNode) {
                 return true; // Other write nodes
+            } else if (current instanceof PythonCallNode) {
+                boolean isInlined = ((PythonCallNode) current).isInlined();
+
+                if (!isInlined && current instanceof BoxedCallNode) {
+                    LinkedDispatchBoxedNode dispatch = (LinkedDispatchBoxedNode) ((BoxedCallNode) current).getDispatchNode();
+                    DirectCallNode callNode = dispatch.getInvokeNode().getDirectCallNode();
+                    if (callNode.isInlinable()) {
+                        callNode.forceInlining();
+                    }
+                }
+
+                return !isInlined;
             } else if (current instanceof InlinedCallNode) {
                 return false;
             } else if (current instanceof InlineableCallNode) {
@@ -123,6 +138,7 @@ public class EscapeAnalyzer {
     }
 
     /**
+     * TODO: (zwei) remove this nonsense! <br>
      * A trivial way to identify if the callee is a builtin function. If so, the generator
      * expression argument to this call is not considered as escaping.
      */

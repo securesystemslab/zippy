@@ -22,12 +22,12 @@
  */
 package com.oracle.graal.hotspot;
 
-import static com.oracle.graal.graph.UnsafeAccess.*;
+import static com.oracle.graal.compiler.common.UnsafeAccess.*;
 
 import java.lang.reflect.*;
 import java.util.*;
 
-import com.oracle.graal.graph.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.hotspot.bridge.*;
 import com.oracle.graal.hotspot.meta.*;
 
@@ -170,7 +170,7 @@ public class HotSpotVMConfig extends CompilerObject {
                 String name = annotation.name();
                 Flags.Flag entry = flags.get(name);
                 if (entry == null) {
-                    if (!isRequired(currentArch, annotation.archs())) {
+                    if (annotation.optional() || !isRequired(currentArch, annotation.archs())) {
                         continue;
                     }
                     throw new IllegalArgumentException("flag not found: " + name);
@@ -716,6 +716,7 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMFlag(name = "CIPrintCompilerName") @Stable public boolean printCompilerName;
     @HotSpotVMFlag(name = "PrintInlining") @Stable public boolean printInlining;
     @HotSpotVMFlag(name = "GraalUseFastLocking") @Stable public boolean useFastLocking;
+    @HotSpotVMFlag(name = "UseGraalCompilationQueue", optional = true) @Stable public boolean useGraalCompilationQueue;
     @HotSpotVMFlag(name = "ForceUnreachable") @Stable public boolean forceUnreachable;
     @HotSpotVMFlag(name = "GPUOffload") @Stable public boolean gpuOffload;
     @HotSpotVMFlag(name = "TieredCompilation") @Stable public boolean tieredCompilation;
@@ -735,6 +736,8 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMFlag(name = "AllocateInstancePrefetchLines") @Stable public int allocateInstancePrefetchLines;
     @HotSpotVMFlag(name = "AllocatePrefetchStepSize") @Stable public int allocatePrefetchStepSize;
     @HotSpotVMFlag(name = "AllocatePrefetchDistance") @Stable public int allocatePrefetchDistance;
+
+    @HotSpotVMFlag(name = "FlightRecorder", optional = true) @Stable public boolean flightRecorder;
 
     @HotSpotVMField(name = "Universe::_collectedHeap", type = "CollectedHeap*", get = HotSpotVMField.Type.VALUE) @Stable private long universeCollectedHeap;
     @HotSpotVMField(name = "CollectedHeap::_total_collections", type = "unsigned int", get = HotSpotVMField.Type.OFFSET) @Stable private int collectedHeapTotalCollectionsOffset;
@@ -794,6 +797,7 @@ public class HotSpotVMConfig extends CompilerObject {
     // offsets, ...
     @HotSpotVMFlag(name = "StackShadowPages") @Stable public int stackShadowPages;
     @HotSpotVMFlag(name = "UseStackBanging") @Stable public boolean useStackBanging;
+    @HotSpotVMConstant(name = "STACK_BIAS") @Stable public int stackBias;
 
     @HotSpotVMField(name = "oopDesc::_mark", type = "markOop", get = HotSpotVMField.Type.OFFSET) @Stable public int markOffset;
     @HotSpotVMField(name = "oopDesc::_metadata._klass", type = "Klass*", get = HotSpotVMField.Type.OFFSET) @Stable public int hubOffset;
@@ -1020,8 +1024,6 @@ public class HotSpotVMConfig extends CompilerObject {
      * exceptions from Hsail back to C++ runtime.
      */
     @HotSpotVMField(name = "Hsail::HSAILDeoptimizationInfo::_notice_safepoints", type = "jint*", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailNoticeSafepointsOffset;
-    @HotSpotVMField(name = "Hsail::HSAILDeoptimizationInfo::_deopt_save_states[0]", type = "Hsail::HSAILKernelDeoptimization", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailSaveStatesOffset0;
-    @HotSpotVMField(name = "Hsail::HSAILDeoptimizationInfo::_deopt_save_states[1]", type = "Hsail::HSAILKernelDeoptimization", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailSaveStatesOffset1;
     @HotSpotVMField(name = "Hsail::HSAILDeoptimizationInfo::_deopt_occurred", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailDeoptOccurredOffset;
     @HotSpotVMField(name = "Hsail::HSAILDeoptimizationInfo::_never_ran_array", type = "jboolean *", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailNeverRanArrayOffset;
     @HotSpotVMField(name = "Hsail::HSAILDeoptimizationInfo::_deopt_next_index", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailDeoptNextIndexOffset;
@@ -1029,11 +1031,13 @@ public class HotSpotVMConfig extends CompilerObject {
 
     @HotSpotVMField(name = "Hsail::HSAILKernelDeoptimization::_workitemid", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailDeoptimizationWorkItem;
     @HotSpotVMField(name = "Hsail::HSAILKernelDeoptimization::_actionAndReason", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailDeoptimizationReason;
-    @HotSpotVMField(name = "Hsail::HSAILKernelDeoptimization::_first_frame", type = "HSAILFrame", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailDeoptimizationFrame;
 
     @HotSpotVMField(name = "HSAILFrame::_pc_offset", type = "jint", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailFramePcOffset;
     @HotSpotVMField(name = "HSAILFrame::_num_s_regs", type = "jbyte", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailFrameNumSRegOffset;
-    @HotSpotVMField(name = "HSAILFrame::_save_area[0]", type = "jlong", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailFrameSaveAreaOffset;
+    @HotSpotVMField(name = "HSAILFrame::_num_d_regs", type = "jbyte", get = HotSpotVMField.Type.OFFSET) @Stable public int hsailFrameNumDRegOffset;
+    @HotSpotVMType(name = "HSAILFrame", get = HotSpotVMType.Type.SIZE) @Stable public int hsailFrameHeaderSize;
+    @HotSpotVMType(name = "Hsail::HSAILKernelDeoptimization", get = HotSpotVMType.Type.SIZE) @Stable public int hsailKernelDeoptimizationHeaderSize;
+    @HotSpotVMType(name = "Hsail::HSAILDeoptimizationInfo", get = HotSpotVMType.Type.SIZE) @Stable public int hsailDeoptimizationInfoHeaderSize;
 
     /**
      * Mark word right shift to get identity hash code.
@@ -1065,6 +1069,9 @@ public class HotSpotVMConfig extends CompilerObject {
 
     @HotSpotVMConstant(name = "JVM_ACC_MONITOR_MATCH") @Stable public int jvmAccMonitorMatch;
     @HotSpotVMConstant(name = "JVM_ACC_HAS_MONITOR_BYTECODES") @Stable public int jvmAccHasMonitorBytecodes;
+
+    @HotSpotVMField(name = "CompileTask::_compile_id", type = "uint", get = HotSpotVMField.Type.OFFSET) @Stable public int compileTaskCompileIdOffset;
+    @HotSpotVMField(name = "CompileTask::_num_inlined_bytecodes", type = "int", get = HotSpotVMField.Type.OFFSET) @Stable public int compileTaskNumInlinedBytecodesOffset;
 
     /**
      * Value of Method::extra_stack_entries().
@@ -1351,8 +1358,6 @@ public class HotSpotVMConfig extends CompilerObject {
     public long codeCacheHighBoundary() {
         return unsafe.getAddress(codeCacheHeap + codeHeapMemoryOffset + virtualSpaceHighBoundaryOffset);
     }
-
-    @Stable public long handleDeoptStub;
 
     @HotSpotVMField(name = "StubRoutines::_aescrypt_encryptBlock", type = "address", get = HotSpotVMField.Type.VALUE) @Stable public long aescryptEncryptBlockStub;
     @HotSpotVMField(name = "StubRoutines::_aescrypt_decryptBlock", type = "address", get = HotSpotVMField.Type.VALUE) @Stable public long aescryptDecryptBlockStub;

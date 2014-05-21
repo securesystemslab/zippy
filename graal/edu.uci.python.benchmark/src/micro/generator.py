@@ -29,7 +29,7 @@ def measure():
 	print("generator: " + duration)
 
 #warm up
-for run in range(1000):
+for run in range(2000):
 	call_generator(100, 100)
 
 measure()

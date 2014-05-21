@@ -75,10 +75,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
 
         @Override
         public NodeCost getCost() {
-            if (next != null && next.getCost() == NodeCost.MONOMORPHIC) {
-                return NodeCost.POLYMORPHIC;
-            }
-            return super.getCost();
+            return getCost(next);
         }
 
         protected final boolean accept(Object primary) throws InvalidAssumptionException {

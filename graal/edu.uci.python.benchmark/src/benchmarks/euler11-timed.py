@@ -56,12 +56,6 @@ def _max(iterator):
             max = i
     return max
 
-def _list(iterator):
-    ll = []
-    for i in iterator:
-        ll.append(i)
-    return ll
-
 def main(iteration):
     for i in range(iteration):
         solve()
@@ -77,7 +71,7 @@ def measure():
     print("euler11: " + duration)
 
 # warm up
-for i in range(150): # 100
-    main(50) # 20
+for i in range(300): # 100
+    main(500) # 20
 
 measure()

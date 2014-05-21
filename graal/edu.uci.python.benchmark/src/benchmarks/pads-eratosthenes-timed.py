@@ -25,16 +25,13 @@ def FactoredIntegers():
     i = 2
     factorization = {}
     while True:
-        # print('factorization', factorization)
         if i not in factorization:  # prime
             F = {i:1}
             yield i,F
             factorization[2*i] = F
         elif len(factorization[i]) == 1:    # prime power
-            # print(factorization[i])
             p, x = next(iter(factorization[i].items()))
 
-            # print('p, x', p, x)
             F = {p:x+1}
             yield i,F
             factorization[2*i] = F
@@ -55,7 +52,7 @@ def FactoredIntegers():
 def isPracticalFactorization(f):
     """Test whether f is the factorization of a practical number."""
     f = list(f.items())    
-    # f.sort()
+    f.sort()
     sigma = 1
     for p,x in f:
         if sigma < p - 1:
@@ -79,22 +76,28 @@ def main(n):
     # 	nums.append(next(G))
     # print(nums)
 
-    count = 0
+    nums = []
     for num in PracticalNumbers():
-        count += 1
-        if count == n:
-            # print(num)
+        nums.append(num)
+        if len(nums) == n:
             break;
 
+    return nums[-1]
+
 def measure():
+    input = int(sys.argv[1])
+    for i in range(3):
+        main(input)
+
     print("Start timing...")
     start = time.time()
-    main(int(sys.argv[1]))
+    result = main(input)
+    print(result)
     duration = "%.3f\n" % (time.time() - start)
     print("pads-eratosthenes: " + duration)
 
 # warmup
-for i in range(500):
+for i in range(100):
     main(1000)
 
 measure()

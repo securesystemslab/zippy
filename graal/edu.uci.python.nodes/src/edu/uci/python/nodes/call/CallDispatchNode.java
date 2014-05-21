@@ -38,6 +38,10 @@ public abstract class CallDispatchNode extends Node {
         this.calleeName = calleeName;
     }
 
+    public boolean isInlined() {
+        return false;
+    }
+
     protected int getDispatchDepth() {
         CallDispatchNode current = this;
         int depth = 0;
@@ -50,7 +54,7 @@ public abstract class CallDispatchNode extends Node {
         return depth;
     }
 
-    protected CallDispatchNode getTop() {
+    public CallDispatchNode getTop() {
         CallDispatchNode current = this;
 
         while (current.getParent() instanceof CallDispatchNode) {
@@ -58,6 +62,13 @@ public abstract class CallDispatchNode extends Node {
         }
 
         return current;
+    }
+
+    protected NodeCost getCost(Node next) {
+        if (next != null && next.getCost() == NodeCost.MONOMORPHIC) {
+            return NodeCost.POLYMORPHIC;
+        }
+        return super.getCost();
     }
 
 }

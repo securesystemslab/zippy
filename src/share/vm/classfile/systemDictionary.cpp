@@ -216,7 +216,7 @@ Klass* SystemDictionary::resolve_or_fail(Symbol* class_name,
 // Forwards to resolve_instance_class_or_null
 
 Klass* SystemDictionary::resolve_or_null(Symbol* class_name, Handle class_loader, Handle protection_domain, TRAPS) {
-  assert(!THREAD->is_Compiler_thread(),
+  assert(THREAD->can_call_java(),
          err_msg("can not load classes with compiler thread: class=%s, classloader=%s",
                  class_name->as_C_string(),
                  class_loader.is_null() ? "null" : class_loader->klass()->name()->as_C_string()));
@@ -2347,7 +2347,7 @@ methodHandle SystemDictionary::find_method_handle_invoker(Symbol* name,
                                                           TRAPS) {
   methodHandle empty;
   assert(EnableInvokeDynamic, "");
-  assert(!THREAD->is_Compiler_thread(), "");
+  assert(THREAD->can_call_java() ,"");
   Handle method_type =
     SystemDictionary::find_method_handle_type(signature, accessing_klass, CHECK_(empty));
   if (false) {  // FIXME: Decide if the Java upcall should resolve signatures.
@@ -2400,7 +2400,7 @@ Handle SystemDictionary::find_method_handle_type(Symbol* signature,
   if (spe != NULL && spe->method_type() != NULL) {
     assert(java_lang_invoke_MethodType::is_instance(spe->method_type()), "");
     return Handle(THREAD, spe->method_type());
-  } else if (THREAD->is_Compiler_thread()) {
+  } else if (!THREAD->can_call_java()) {
     warning("SystemDictionary::find_method_handle_type called from compiler thread");  // FIXME
     return Handle();  // do not attempt from within compiler, unless it was cached
   }

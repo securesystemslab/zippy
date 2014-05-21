@@ -35,7 +35,7 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 
-public final class GeneratorForNode extends LoopNode {
+public final class GeneratorForNode extends LoopNode implements GeneratorControlNode {
 
     @Child protected WriteGeneratorFrameVariableNode target;
     @Child protected GetIteratorNode getIterator;

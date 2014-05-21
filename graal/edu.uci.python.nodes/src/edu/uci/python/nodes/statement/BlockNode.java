@@ -43,7 +43,7 @@ public class BlockNode extends StatementNode {
         final int length = statements.length;
 
         if (length == 0) {
-            return EmptyNode.INSTANCE;
+            return EmptyNode.create();
         } else if (length == 1) {
             return statements[0] instanceof YieldNode ? new BlockNode(statements) : statements[0];
         } else {

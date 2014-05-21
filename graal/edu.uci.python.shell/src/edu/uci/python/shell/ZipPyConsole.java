@@ -46,7 +46,7 @@ public class ZipPyConsole extends InteractiveConsole {
             Source source = context.getSourceManager().get(name);
             execfile(context, source);
         } finally {
-            // context.shutdown();
+            context.shutdown();
         }
     }
 
@@ -90,18 +90,11 @@ public class ZipPyConsole extends InteractiveConsole {
             ProfilerResultPrinter.printProfilerInstrumenterResults();
         }
 
-// System.out.println("APPEND COUNTER " + PList.appendCounter);
-
-// for (int i = 0; i < PList.lists.size(); i++) {
-// System.out.println("APPEND COUNTER " + PList.lists.get(i).appendCounter + " for " +
-// PList.lists.get(i));
-// }
-
         Py.flushLine();
         return result;
     }
 
-    public void parseFile(PythonContext context, Source source) {
+    public PythonParseResult parseFile(PythonContext context, Source source) {
         PythonModule module = context.createMainModule(source.getPath());
         PythonParseResult result = context.getParser().parse(context, module, source);
 
@@ -109,6 +102,8 @@ public class ZipPyConsole extends InteractiveConsole {
             printBanner("After Parsing");
             result.printAST();
         }
+
+        return result;
     }
 
     public static void printBanner(String phase) {

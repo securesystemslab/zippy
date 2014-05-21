@@ -345,7 +345,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
         @Specialization
         public boolean doPDictionary(Object left, PDict right) {
-            return right.hasKey(new Object[]{left});
+            return right.hasKey(left);
         }
     }
 
@@ -380,7 +380,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
         @Specialization
         public boolean doPDictionary(Object left, PDict right) {
-            return !right.hasKey(new Object[]{left});
+            return !right.hasKey(left);
         }
 
     }

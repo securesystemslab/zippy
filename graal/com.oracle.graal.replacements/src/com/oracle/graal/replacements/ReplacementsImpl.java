@@ -24,7 +24,7 @@ package com.oracle.graal.replacements;
 
 import static com.oracle.graal.api.meta.MetaUtil.*;
 import static com.oracle.graal.compiler.GraalCompiler.*;
-import static com.oracle.graal.phases.GraalOptions.*;
+import static com.oracle.graal.compiler.common.GraalOptions.*;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -35,6 +35,7 @@ import sun.misc.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.replacements.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.debug.internal.*;
@@ -48,6 +49,7 @@ import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.common.inlining.*;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.phases.util.*;
 import com.oracle.graal.replacements.Snippet.DefaultSnippetInliningPolicy;
@@ -95,7 +97,7 @@ public class ReplacementsImpl implements Replacements {
     @Override
     public StructuredGraph getSnippet(ResolvedJavaMethod method, ResolvedJavaMethod recursiveEntry) {
         assert method.getAnnotation(Snippet.class) != null : "Snippet must be annotated with @" + Snippet.class.getSimpleName();
-        assert !Modifier.isAbstract(method.getModifiers()) && !Modifier.isNative(method.getModifiers()) : "Snippet must not be abstract or native";
+        assert !method.isAbstract() && !method.isNative() : "Snippet must not be abstract or native";
 
         StructuredGraph graph = UseSnippetGraphCache ? graphs.get(method) : null;
         if (graph == null) {
@@ -531,7 +533,7 @@ public class ReplacementsImpl implements Replacements {
     }
 
     private static boolean isInlinable(final ResolvedJavaMethod method) {
-        return !Modifier.isAbstract(method.getModifiers()) && !Modifier.isNative(method.getModifiers());
+        return !method.isAbstract() && !method.isNative();
     }
 
     private static String originalName(Method substituteMethod, String methodSubstitution) {

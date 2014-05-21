@@ -32,14 +32,14 @@ import java.util.*;
 import com.oracle.graal.alloc.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.cfg.*;
 import com.oracle.graal.compiler.alloc.Interval.RegisterBinding;
 import com.oracle.graal.compiler.alloc.Interval.RegisterPriority;
 import com.oracle.graal.compiler.alloc.Interval.SpillState;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.cfg.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.LIRInstruction.OperandFlag;
 import com.oracle.graal.lir.LIRInstruction.OperandMode;
@@ -702,7 +702,7 @@ public final class LinearScan {
                                     Debug.log("liveGen for operand %d", operandNum);
                                 }
                                 if (block.getLoop() != null) {
-                                    intervalInLoop.setBit(operandNum, block.getLoop().index);
+                                    intervalInLoop.setBit(operandNum, block.getLoop().getIndex());
                                 }
                             }
 
@@ -733,7 +733,7 @@ public final class LinearScan {
                                 liveKill.set(varNum);
                                 Debug.log("liveKill for operand %d", varNum);
                                 if (block.getLoop() != null) {
-                                    intervalInLoop.setBit(varNum, block.getLoop().index);
+                                    intervalInLoop.setBit(varNum, block.getLoop().getIndex());
                                 }
                             }
 
@@ -1185,7 +1185,7 @@ public final class LinearScan {
                         // interval is used anywhere inside this loop. It's possible
                         // that the block was part of a non-natural loop, so it might
                         // have an invalid loop index.
-                        if (block.isLoopEnd() && block.getLoop() != null && isIntervalInLoop(operandNum, block.getLoop().index)) {
+                        if (block.isLoopEnd() && block.getLoop() != null && isIntervalInLoop(operandNum, block.getLoop().getIndex())) {
                             intervalFor(operand).addUsePos(blockTo + 1, RegisterPriority.LiveAtLoopEnd);
                         }
                     }

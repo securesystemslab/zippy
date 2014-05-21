@@ -31,7 +31,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.function.*;
 
-public final class GeneratorBlockNode extends BlockNode {
+public final class GeneratorBlockNode extends BlockNode implements GeneratorControlNode {
 
     private final int indexSlot;
 

@@ -37,7 +37,7 @@ import edu.uci.python.runtime.function.*;
 /**
  * @author zwei
  */
-public final class GeneratorWhileNode extends WhileNode {
+public final class GeneratorWhileNode extends WhileNode implements GeneratorControlNode {
 
     private final int flagSlot;
     private int count;

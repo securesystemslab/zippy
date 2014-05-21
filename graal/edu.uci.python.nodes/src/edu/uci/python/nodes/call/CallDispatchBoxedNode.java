@@ -74,7 +74,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
          * Treat generator as slow path for now.
          */
         if (callee instanceof PGeneratorFunction) {
-            return new GenericDispatchBoxedNode(callee.getName(), calleeNode);
+            return new DispatchGeneratorBoxedNode(callee, check, next);
         }
 
         assert check != null;
@@ -112,12 +112,22 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             }
         }
 
+        public InvokeNode getInvokeNode() {
+            return invoke;
+        }
+
+        public ShapeCheckNode getCheckNode() {
+            return check;
+        }
+
         @Override
         public NodeCost getCost() {
-            if (next != null && next.getCost() == NodeCost.MONOMORPHIC) {
-                return NodeCost.POLYMORPHIC;
-            }
-            return super.getCost();
+            return getCost(next);
+        }
+
+        @Override
+        public boolean isInlined() {
+            return getCost() == NodeCost.MONOMORPHIC && invoke.isInlined();
         }
 
         @Override
@@ -131,6 +141,53 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             } catch (InvalidAssumptionException ex) {
                 return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
             }
+        }
+    }
+
+    public static final class DispatchGeneratorBoxedNode extends CallDispatchBoxedNode implements GeneratorDispatch {
+
+        @Child protected ShapeCheckNode check;
+        @Child protected CallDispatchBoxedNode next;
+        private final PythonCallable generator;
+
+        public DispatchGeneratorBoxedNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
+            super(callee.getName());
+            this.check = check;
+            this.next = next;
+            this.generator = callee;
+            assert callee instanceof PGeneratorFunction;
+        }
+
+        @Override
+        public NodeCost getCost() {
+            return getCost(next);
+        }
+
+        @Override
+        public Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
+            try {
+                if (check.accept(primaryObj)) {
+                    return generator.call(arguments);
+                } else {
+                    return next.executeCall(frame, primaryObj, arguments, keywords);
+                }
+            } catch (InvalidAssumptionException ex) {
+                return executeCallAndRewrite(next, frame, primaryObj, arguments, keywords);
+            }
+        }
+
+        public ShapeCheckNode getCheckNode() {
+            return check;
+        }
+
+        @Override
+        public PGeneratorFunction getGeneratorFunction() {
+            return (PGeneratorFunction) generator;
+        }
+
+        @Override
+        public PythonCallNode getCallNode() {
+            return (PythonCallNode) getTop().getParent();
         }
     }
 

@@ -198,6 +198,10 @@ public class PythonContext extends AbstractExecutionContext {
         }
     }
 
+    public void shutdown() {
+        executorService.shutdown();
+    }
+
     public String getLanguageShortName() {
         return "PYTHON";
     }

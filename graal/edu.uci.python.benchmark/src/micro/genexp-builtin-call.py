@@ -31,12 +31,15 @@ def call_generator_localvar(num, iteration):
 	return item
 
 def measure():
+	num = 1000
+
+	for i in range(5):
+	    call_generator(num, 10000) #1000000
+
 	print("Start timing...")
 	start = time.time()
 
-	num = 1000
-	last_item = call_generator(num, 10000) #1000000
-
+	last_item = call_generator(num, 10000)
 	print("Last item ", last_item)
 
 	duration = "%.3f\n" % (time.time() - start)

@@ -24,12 +24,26 @@
  */
 package edu.uci.python.nodes.function;
 
+import java.io.*;
+
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.nodes.NodeUtil.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.profiler.*;
+import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.call.CallDispatchBoxedNode.DispatchGeneratorBoxedNode;
+import edu.uci.python.nodes.call.CallDispatchNoneNode.DispatchGeneratorNoneNode;
+import edu.uci.python.nodes.control.*;
+import edu.uci.python.nodes.frame.*;
+import edu.uci.python.nodes.generator.*;
+import edu.uci.python.nodes.optimize.*;
+import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.function.*;
+import static edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.*;
 
 /**
  * RootNode of a Python Function body. It is invoked by a CallTarget.
@@ -40,22 +54,24 @@ public final class FunctionRootNode extends RootNode {
 
     private final PythonContext context;
     private final String functionName;
+    private final boolean isGenerator;
 
     @Child protected PNode body;
     private PNode uninitializedBody;
 
     @Child private PNode profiler;
 
-    public FunctionRootNode(PythonContext context, String functionName, FrameDescriptor frameDescriptor, PNode body) {
+    public FunctionRootNode(PythonContext context, String functionName, boolean isGenerator, FrameDescriptor frameDescriptor, PNode body) {
         super(null, frameDescriptor); // SourceSection is not supported yet.
         this.context = context;
         this.functionName = functionName;
-        this.body = body;
+        this.isGenerator = isGenerator;
+        this.body = NodeUtil.cloneNode(body);
         this.uninitializedBody = NodeUtil.cloneNode(body);
         if (PythonOptions.ProfileCalls) {
             this.profiler = new ProfilerNode(this);
         } else {
-            this.profiler = EmptyNode.INSTANCE;
+            this.profiler = EmptyNode.create();
         }
     }
 
@@ -84,16 +100,145 @@ public final class FunctionRootNode extends RootNode {
     }
 
     @Override
-    public FunctionRootNode copy() {
-        return new FunctionRootNode(this.context, this.functionName, this.getFrameDescriptor(), this.uninitializedBody);
+    public FunctionRootNode split() {
+        return new FunctionRootNode(context, functionName, isGenerator, getFrameDescriptor().shallowCopy(), uninitializedBody);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
+        if (CompilerDirectives.inInterpreter()) {
+            optimizeGeneratorCalls();
+        }
         if (PythonOptions.ProfileCalls) {
             profiler.execute(frame);
         }
         return body.execute(frame);
+    }
+
+    protected void optimizeGeneratorCalls() {
+        CompilerAsserts.neverPartOfCompilation();
+
+        if (CompilerDirectives.inCompiledCode() || !PythonOptions.InlineGeneratorCalls || isGenerator) {
+            return;
+        }
+
+        if (PythonOptions.OptimizeGeneratorExpressions) {
+            new GeneratorExpressionOptimizer(this).optimize();
+        }
+
+        for (DispatchGeneratorBoxedNode dispatch : NodeUtil.findAllNodeInstances(body, DispatchGeneratorBoxedNode.class)) {
+            PGeneratorFunction genfun = dispatch.getGeneratorFunction();
+            boolean inlinable = isInlinable(dispatch, genfun);
+            peelGeneratorLoop(inlinable, dispatch, genfun);
+        }
+
+        for (DispatchGeneratorNoneNode dispatch : NodeUtil.findAllNodeInstances(body, DispatchGeneratorNoneNode.class)) {
+            PGeneratorFunction genfun = dispatch.getGeneratorFunction();
+            boolean inlinable = isInlinable(dispatch, genfun);
+            peelGeneratorLoop(inlinable, dispatch, genfun);
+        }
+    }
+
+    private boolean isInlinable(CallDispatchNode dispatch, PGeneratorFunction genfun) {
+        boolean inlinable = dispatch.getCost() == NodeCost.MONOMORPHIC;
+
+        Node current = dispatch;
+        while (!(current instanceof PeeledGeneratorLoopNode) && !(current instanceof FunctionRootNode)) {
+            current = current.getParent();
+        }
+
+        String callerName;
+        if (current instanceof PeeledGeneratorLoopNode) {
+            callerName = ((PeeledGeneratorLoopNode) current).getName();
+        } else {
+            callerName = ((FunctionRootNode) current).getFunctionName();
+        }
+
+        if (callerName.equals(genfun.getName())) {
+            inlinable = false;
+        }
+
+        int callerNodeCount = getDeepNodeCount();
+        int generatorNodeCount = NodeUtil.countNodes(genfun.getFunctionRootNode());
+        inlinable &= generatorNodeCount < 300;
+        inlinable &= callerNodeCount < 500;
+
+        if (genfun.getName().equals("FactoredIntegers")) {
+            inlinable = false;
+        }
+
+        return inlinable;
+    }
+
+    /**
+     * See OptimizedCallUtils.
+     */
+    protected int getDeepNodeCount() {
+        return NodeUtil.countNodes(this, new NodeCountFilter() {
+            public boolean isCounted(Node node) {
+                NodeCost cost = node.getCost();
+                if (cost != null && cost != NodeCost.NONE && cost != NodeCost.UNINITIALIZED) {
+                    return true;
+                }
+                return false;
+            }
+        }, true);
+    }
+
+    protected void peelGeneratorLoop(boolean inlinable, GeneratorDispatch dispatch, PGeneratorFunction genfun) {
+        CompilerAsserts.neverPartOfCompilation();
+
+        if (!inlinable) {
+            return;
+        }
+
+        Node callNode = dispatch.getCallNode();
+        Node getIter = callNode.getParent();
+        Node forNode = getIter.getParent();
+
+        if (!(getIter instanceof GetIteratorNode) || !(forNode instanceof ForNode) || !(callNode instanceof PythonCallNode)) {
+            return;
+        }
+
+        PythonCallNode call = (PythonCallNode) callNode;
+        ForNode loop = (ForNode) forNode;
+        PNode orignalLoop = NodeUtil.cloneNode(loop);
+        PeeledGeneratorLoopNode peeled;
+
+        if (call instanceof PythonCallNode.BoxedCallNode) {
+            DispatchGeneratorBoxedNode boxedDispatch = (DispatchGeneratorBoxedNode) dispatch;
+            peeled = new PeeledGeneratorLoopBoxedNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getPrimaryNode(), call.getArgumentNodes(),
+                            boxedDispatch.getCheckNode(), orignalLoop);
+        } else {
+            peeled = new PeeledGeneratorLoopNoneNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getCalleeNode(), call.getArgumentNodes(),
+                            dispatch.getGeneratorFunction(), orignalLoop);
+        }
+
+        loop.replace(peeled);
+
+        PNode loopBody = loop.getBody();
+        FrameSlot yieldToSlotInCallerFrame;
+        PNode target = loop.getTarget();
+        yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
+
+        for (YieldNode yield : NodeUtil.findAllNodeInstances(peeled.getGeneratorRoot(), YieldNode.class)) {
+            PNode frameTransfer = FrameTransferNodeFactory.create(yieldToSlotInCallerFrame, yield.getRhs());
+            PNode frameSwapper = new FrameSwappingNode(NodeUtil.cloneNode(loopBody));
+            PNode block = BlockNode.create(frameTransfer, frameSwapper);
+            yield.replace(block);
+        }
+
+        /**
+         * Reset generator expressions in the ungeneratorized function as declared not in generator
+         * frame.
+         */
+        RootNode enclosingRoot = getRootNode();
+        for (GeneratorExpressionNode genexp : NodeUtil.findAllNodeInstances(enclosingRoot, GeneratorExpressionNode.class)) {
+            genexp.setEnclosingFrameGenerator(false);
+        }
+
+        PrintStream ps = System.out;
+        ps.println("[ZipPy] peeled generator " + genfun.getCallTarget() + " in " + getRootNode());
     }
 
     @Override

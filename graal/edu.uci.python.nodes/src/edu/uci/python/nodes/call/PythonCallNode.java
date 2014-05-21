@@ -34,9 +34,13 @@ import org.python.core.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
+import edu.uci.python.nodes.call.CallDispatchNoneNode.LinkedDispatchNoneNode;
 import edu.uci.python.nodes.object.*;
+import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
@@ -51,7 +55,7 @@ public abstract class PythonCallNode extends PNode {
     @Children protected final PNode[] argumentNodes;
     @Children protected final PNode[] keywordNodes;
 
-    protected String calleeName;
+    protected final String calleeName;
     protected final boolean passPrimaryAsTheFirstArgument;
     protected final PythonContext context;
 
@@ -66,8 +70,38 @@ public abstract class PythonCallNode extends PNode {
     }
 
     public static PythonCallNode create(PythonContext context, PNode calleeNode, PNode[] argumentNodes, PNode[] keywords) {
-        return new UninitializedCallNode(context, null, null, calleeNode, argumentNodes, keywords);
+        PNode primaryNode;
+        String calleeName;
+
+        if (calleeNode instanceof HasPrimaryNode) {
+            HasPrimaryNode hasPrimary = (HasPrimaryNode) calleeNode;
+            primaryNode = NodeUtil.cloneNode(hasPrimary.extractPrimary());
+            calleeName = ((HasPrimaryNode) calleeNode).getAttributeId();
+        } else {
+            primaryNode = EmptyNode.create();
+            calleeName = "~unknown";
+        }
+
+        return new UninitializedCallNode(context, primaryNode, calleeName, calleeNode, argumentNodes, keywords);
     }
+
+    public final String getCalleeName() {
+        return calleeName;
+    }
+
+    public final PNode getPrimaryNode() {
+        return primaryNode;
+    }
+
+    public final PNode getCalleeNode() {
+        return calleeNode;
+    }
+
+    public final PNode[] getArgumentNodes() {
+        return argumentNodes;
+    }
+
+    public abstract boolean isInlined();
 
     protected Object rewriteAndExecuteCall(VirtualFrame frame, Object primary, Object callee) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -121,6 +155,11 @@ public abstract class PythonCallNode extends PNode {
             return dispatch.executeCall(frame, (PythonObject) callee, arguments, PKeyword.EMPTY_KEYWORDS);
         }
 
+        if (PythonOptions.IntrinsifyBuiltinCalls && IntrinsifiableBuiltin.isIntrinsifiable(callable)) {
+            BuiltinIntrinsifier intrinsifier = new BuiltinIntrinsifier(context, AlwaysValidAssumption.INSTANCE, AlwaysValidAssumption.INSTANCE, this);
+            intrinsifier.synthesize();
+        }
+
         /**
          * zwei: Non built-in constructors use CallConstructorNode. <br>
          * Built-in constructors use regular BoxedCallNode with no special calling convention.
@@ -148,13 +187,17 @@ public abstract class PythonCallNode extends PNode {
         return dispatch.executeCall(frame, primary, arguments, keywords);
     }
 
-    public static final class BoxedCallNode extends PythonCallNode {
+    public static final class BoxedCallNode extends PythonCallNode implements InlineableCallNode {
 
         @Child protected CallDispatchBoxedNode dispatchNode;
 
         public BoxedCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchBoxedNode dispatch, boolean passPrimary) {
             super(context, calleeName, primary, callee, arguments, keywords, passPrimary);
             dispatchNode = dispatch;
+        }
+
+        public CallDispatchNode getDispatchNode() {
+            return dispatchNode;
         }
 
         @Override
@@ -171,6 +214,21 @@ public abstract class PythonCallNode extends PNode {
             PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             return dispatchNode.executeCall(frame, primary, arguments, keywords);
         }
+
+        @Override
+        public boolean isInlined() {
+            return dispatchNode.isInlined();
+        }
+
+        public RootNode getInlinedCalleeRoot() {
+            assert isInlined();
+            assert dispatchNode instanceof LinkedDispatchBoxedNode;
+            LinkedDispatchBoxedNode linked = (LinkedDispatchBoxedNode) dispatchNode;
+            DirectCallNode direct = linked.getInvokeNode().getDirectCallNode();
+            RootNode root = direct.getCurrentRootNode();
+            assert root != null;
+            return root;
+        }
     }
 
     public static final class UnboxedCallNode extends PythonCallNode {
@@ -182,6 +240,15 @@ public abstract class PythonCallNode extends PNode {
             dispatchNode = dispatch;
         }
 
+        public CallDispatchNode getDispatchNode() {
+            return dispatchNode;
+        }
+
+        @Override
+        public boolean isInlined() {
+            return dispatchNode.isInlined();
+        }
+
         @Override
         public Object execute(VirtualFrame frame) {
             Object primary = primaryNode.execute(frame);
@@ -191,13 +258,22 @@ public abstract class PythonCallNode extends PNode {
         }
     }
 
-    public static final class NoneCallNode extends PythonCallNode {
+    public static final class NoneCallNode extends PythonCallNode implements InlineableCallNode {
 
         @Child protected CallDispatchNoneNode dispatchNode;
 
         public NoneCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords, CallDispatchNoneNode dispatch) {
             super(context, calleeName, primary, callee, arguments, keywords, false);
             this.dispatchNode = dispatch;
+        }
+
+        public CallDispatchNode getDispatchNode() {
+            return dispatchNode;
+        }
+
+        @Override
+        public boolean isInlined() {
+            return dispatchNode.isInlined();
         }
 
         @Override
@@ -214,6 +290,16 @@ public abstract class PythonCallNode extends PNode {
             PKeyword[] keywords = executeKeywordArguments(frame, keywordNodes);
             return dispatchNode.executeCall(frame, callee, arguments, keywords);
         }
+
+        public RootNode getInlinedCalleeRoot() {
+            assert isInlined();
+            assert dispatchNode instanceof LinkedDispatchNoneNode;
+            LinkedDispatchNoneNode linked = (LinkedDispatchNoneNode) dispatchNode;
+            DirectCallNode direct = linked.getInvokeNode().getDirectCallNode();
+            RootNode root = direct.getCurrentRootNode();
+            assert root != null;
+            return root;
+        }
     }
 
     public static final class CallConstructorNode extends PythonCallNode {
@@ -225,6 +311,11 @@ public abstract class PythonCallNode extends PNode {
             super(context, pythonClass.getName(), primary, callee, arguments, keywords, true);
             dispatchNode = dispatch;
             instanceNode = new NewInstanceNode(pythonClass);
+        }
+
+        @Override
+        public boolean isInlined() {
+            return dispatchNode.isInlined();
         }
 
         @Override
@@ -296,6 +387,11 @@ public abstract class PythonCallNode extends PNode {
         }
 
         @Override
+        public boolean isInlined() {
+            return dispatchNode.isInlined();
+        }
+
+        @Override
         public Object execute(VirtualFrame frame) {
             PythonObject primary;
 
@@ -315,6 +411,11 @@ public abstract class PythonCallNode extends PNode {
 
         public CallJythonNode(PythonContext context, String calleeName, PNode primary, PNode callee, PNode[] arguments, PNode[] keywords) {
             super(context, calleeName, primary, callee, arguments, keywords, false);
+        }
+
+        @Override
+        public boolean isInlined() {
+            return false;
         }
 
         @Override
@@ -349,33 +450,23 @@ public abstract class PythonCallNode extends PNode {
         }
 
         @Override
+        public boolean isInlined() {
+            return false;
+        }
+
+        @Override
         public Object execute(VirtualFrame frame) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
-            /**
-             * primaryNode is assigned during the execution of UninitializedNode. For profiling,
-             * another translation step happens. If primaryNode is extracted before execution, it
-             * causes problem for creating wrapper nodes for subscriptIndexNode.
-             */
-            if (calleeNode instanceof HasPrimaryNode) {
-                HasPrimaryNode hasPrimary = (HasPrimaryNode) calleeNode;
-                // primaryNode = NodeUtil.cloneNode(hasPrimary.extractPrimary());
-                primaryNode = hasPrimary.extractPrimary();
-                calleeName = ((HasPrimaryNode) calleeNode).getAttributeId();
-            } else {
-                primaryNode = EmptyNode.INSTANCE;
-                calleeName = "~unknown";
-            }
-
             Object primary = primaryNode.execute(frame);
-
-            if (calleeNode instanceof HasPrimaryNode) {
-                HasPrimaryNode hasPrimary = (HasPrimaryNode) calleeNode;
-                return rewriteAndExecuteCall(frame, primary, hasPrimary.executeWithPrimary(frame, primary));
-            } else {
-                return rewriteAndExecuteCall(frame, primary, calleeNode.execute(frame));
-            }
+            return rewriteAndExecuteCall(frame, primary, calleeNode.execute(frame));
         }
+    }
+
+    public interface InlineableCallNode {
+
+        RootNode getInlinedCalleeRoot();
+
     }
 
 }

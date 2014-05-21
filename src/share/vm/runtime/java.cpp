@@ -32,6 +32,7 @@
 #include "interpreter/bytecodeHistogram.hpp"
 #ifdef GRAAL
 #include "graal/graalCompiler.hpp"
+#include "graal/graalVMToCompiler.hpp"
 #endif
 #include "memory/genCollectedHeap.hpp"
 #include "memory/oopFactory.hpp"
@@ -461,12 +462,6 @@ void before_exit(JavaThread * thread) {
   #define BEFORE_EXIT_DONE    2
   static jint volatile _before_exit_status = BEFORE_EXIT_NOT_RUN;
 
-#ifdef GRAAL
-  if (GraalCompiler::instance() != NULL) {
-    GraalCompiler::instance()->exit();
-  }
-#endif
-
   // Note: don't use a Mutex to guard the entire before_exit(), as
   // JVMTI post_thread_end_event and post_vm_death_event will run native code.
   // A CAS or OSMutex would work just fine but then we need to manipulate
@@ -487,6 +482,15 @@ void before_exit(JavaThread * thread) {
       return;
     }
   }
+
+#ifdef GRAAL
+#ifdef COMPILERGRAAL
+  if (GraalCompiler::instance() != NULL) {
+    GraalCompiler::instance()->shutdown();
+  }
+#endif
+  VMToCompiler::shutdownRuntime();
+#endif
 
   // The only difference between this and Win32's _onexit procs is that
   // this version is invoked before any threads get killed.

@@ -47,7 +47,7 @@ public class IfNode extends StatementNode {
     }
 
     public static IfNode create(CastToBooleanNode condition, PNode then, PNode orelse) {
-        if (orelse != EmptyNode.INSTANCE) {
+        if (!EmptyNode.isEmpty(orelse)) {
             return new IfNode(condition, then, orelse);
         } else {
             return new IfWithoutElseNode(condition, then);
@@ -80,7 +80,7 @@ public class IfNode extends StatementNode {
     public static final class IfWithoutElseNode extends IfNode {
 
         public IfWithoutElseNode(CastToBooleanNode condition, PNode then) {
-            super(condition, then, EmptyNode.INSTANCE);
+            super(condition, then, EmptyNode.create());
         }
 
         @Override

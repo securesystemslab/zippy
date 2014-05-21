@@ -32,7 +32,7 @@ import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
-public class GeneratorIfNode extends IfNode {
+public class GeneratorIfNode extends IfNode implements GeneratorControlNode {
 
     protected final int thenFlagSlot;
     protected final int elseFlagSlot;
@@ -44,7 +44,7 @@ public class GeneratorIfNode extends IfNode {
     }
 
     public static GeneratorIfNode create(CastToBooleanNode condition, PNode then, PNode orelse, int thenFlagSlot, int elseFlagSlot) {
-        if (orelse != EmptyNode.INSTANCE) {
+        if (!EmptyNode.isEmpty(orelse)) {
             return new GeneratorIfNode(condition, then, orelse, thenFlagSlot, elseFlagSlot);
         } else {
             return new GeneratorIfWithoutElseNode(condition, then, thenFlagSlot);
@@ -104,7 +104,7 @@ public class GeneratorIfNode extends IfNode {
          * Both flagSlot getter return the same slot.
          */
         public GeneratorIfWithoutElseNode(CastToBooleanNode condition, PNode then, int thenFlagSlot) {
-            super(condition, then, EmptyNode.INSTANCE, thenFlagSlot, thenFlagSlot);
+            super(condition, then, EmptyNode.create(), thenFlagSlot, thenFlagSlot);
         }
 
         @Override

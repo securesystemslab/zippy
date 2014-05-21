@@ -41,7 +41,7 @@
 #include "runtime/stubRoutines.hpp"
 #include "runtime/thread.inline.hpp"
 #include "graal/graalJavaAccess.hpp"
-#include "graal/graalCompiler.hpp"
+#include "graal/graalRuntime.hpp"
 
 // -----------------------------------------------------
 // Implementation of JavaCallWrapper
@@ -52,7 +52,7 @@ JavaCallWrapper::JavaCallWrapper(methodHandle callee_method, JavaValue* result, 
 
   guarantee(thread->is_Java_thread(), "crucial check - the VM thread cannot and must not escape to Java code");
   assert(!thread->owns_locks(), "must release all locks when leaving VM");
-  guarantee(!thread->is_Compiler_thread(), "cannot make java calls from the compiler");
+  guarantee(thread->can_call_java(), "cannot make java calls from the compiler");
   _result   = result;
 
   // Allocate handle block for Java code. This must be done before we change thread_state to _thread_in_Java_or_stub,
@@ -366,7 +366,7 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, JavaCallArgument
 #endif
 
 
-  assert(!thread->is_Compiler_thread(), "cannot compile from the compiler");
+  assert(thread->can_call_java(), "cannot compile from the compiler");
   if (CompilationPolicy::must_be_compiled(method)) {
     CompileBroker::compile_method(method, InvocationEntryBci,
                                   CompilationPolicy::policy()->initial_compile_level(),
@@ -413,7 +413,7 @@ void JavaCalls::call_helper(JavaValue* result, methodHandle* m, JavaCallArgument
       ((JavaThread*) THREAD)->set_graal_alternate_call_target(nm->verified_entry_point());
       oop graalInstalledCode = nm->graal_installed_code();
       if (graalInstalledCode != NULL && graalInstalledCode->is_a(HotSpotNmethod::klass()) && HotSpotNmethod::isExternal(graalInstalledCode)) {
-        entry_point = GraalCompiler::instance()->get_external_deopt_i2c_entry();
+        entry_point = GraalRuntime::get_external_deopt_i2c_entry();
       } else {
       entry_point = method->adapter()->get_i2c_entry();
       }

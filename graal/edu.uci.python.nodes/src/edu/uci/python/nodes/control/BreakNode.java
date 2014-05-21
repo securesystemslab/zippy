@@ -25,10 +25,12 @@
 package edu.uci.python.nodes.control;
 
 import com.oracle.truffle.api.frame.*;
+
+import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
 
-public final class BreakNode extends StatementNode {
+public final class BreakNode extends StatementNode implements GeneratorControlNode {
 
     @Override
     public Object execute(VirtualFrame frame) {

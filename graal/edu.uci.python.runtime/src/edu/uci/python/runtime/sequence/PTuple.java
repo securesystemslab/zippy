@@ -30,7 +30,7 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
-public abstract class PTuple extends PImmutableSequence {
+public abstract class PTuple extends PImmutableSequence implements Comparable<Object> {
 
     public static PTuple create() {
         return new PObjectTuple(new Object[0]);
@@ -146,6 +146,10 @@ public abstract class PTuple extends PImmutableSequence {
     @Override
     public int index(Object value) {
         throw new UnsupportedOperationException();
+    }
+
+    public int compareTo(Object o) {
+        return SequenceUtil.cmp(this, (PSequence) o);
     }
 
 }

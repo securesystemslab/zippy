@@ -32,25 +32,55 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.object.*;
 
+//@formatter:off
+/**
+ * The layout of an argument array.
+ *
+ *                            +-------------------+
+ * INDEX_DECLARATION_FRAME -> | MaterializedFrame |
+ *                            +-------------------+
+ * INDEX_KEYWORD_ARGUMENTS -> | PKeyword[]        |
+ *                            +-------------------+
+ * INDEX_GENERATOR_FRAME   -> | MaterializedFrame |
+ *                            +-------------------+
+ * USER_ARGUMENTS          -> | arg_0             |
+ *                            | arg_1             |
+ *                            | ...               |
+ *                            | arg_(nArgs-1)     |
+ *                            +-------------------+
+ *
+ * The layout of a generator frame expanded from the figure above.
+ *
+ * MaterializedFrame
+ *       |
+ *       |
+ *       |---- arguments: +-------------------+
+ *                        | MaterializedFrame |
+ *                        +-------------------+
+ *                        | PKeyword[]        |
+ *                        +-------------------+
+ *                        | MaterializedFrame | <- GeneratorArguments
+ *                        +-------------------+
+ *
+ */
+//@formatter:on
 public class PArguments {
 
     public static final int INDEX_DECLARATION_FRAME = 0;
     public static final int INDEX_KEYWORD_ARGUMENTS = 1;
     public static final int INDEX_GENERATOR_FRAME = 2;
-    public static final int INDEX_SPECIAL_ARGUMENTS = 3;
-    public static final int USER_ARGUMENTS_OFFSET = 4;
+    public static final int USER_ARGUMENTS_OFFSET = 3;
 
-    private static final Object[] EMPTY_ARGUMENTS = new Object[]{null, PKeyword.EMPTY_KEYWORDS, null, null};
+    private static final Object[] EMPTY_ARGUMENTS = new Object[]{null, PKeyword.EMPTY_KEYWORDS, null};
 
     public static Object[] empty() {
         return EMPTY_ARGUMENTS;
     }
 
     public static Object[] create() {
-        return new Object[]{null, PKeyword.EMPTY_KEYWORDS, null, null};
+        return new Object[]{null, PKeyword.EMPTY_KEYWORDS, null};
     }
 
     public static Object[] create(int userArgumentLength) {
@@ -150,32 +180,38 @@ public class PArguments {
         return null;
     }
 
-    public static VirtualFrameCargoArguments getVirtualFrameCargoArguments(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], VirtualFrameCargoArguments.class, true);
+    public static VirtualFrame getVirtualFrameCargoArguments(Frame frame) {
+        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_GENERATOR_FRAME], VirtualFrame.class, true);
     }
 
     public static MaterializedFrame getGeneratorFrame(Frame frame) {
         return (MaterializedFrame) frame.getArguments()[INDEX_GENERATOR_FRAME];
     }
 
-    public static GeneratorArguments getGeneratorArguments(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], GeneratorArguments.class, true);
+    public static GeneratorControlData getGeneratorArguments(Frame frame) {
+        MaterializedFrame generatorFrame = getGeneratorFrame(frame);
+        return CompilerDirectives.unsafeCast(generatorFrame.getArguments()[INDEX_GENERATOR_FRAME], GeneratorControlData.class, true);
     }
 
     public static ParallelGeneratorArguments getParallelGeneratorArguments(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_SPECIAL_ARGUMENTS], ParallelGeneratorArguments.class, true);
+        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_GENERATOR_FRAME], ParallelGeneratorArguments.class, true);
     }
 
     public static void setGeneratorFrame(Object[] arguments, MaterializedFrame generatorFrame) {
         arguments[INDEX_GENERATOR_FRAME] = generatorFrame;
     }
 
-    public static void setGeneratorArguments(Object[] arguments, GeneratorArguments generatorArguments) {
-        arguments[INDEX_SPECIAL_ARGUMENTS] = generatorArguments;
+    public static void setGeneratorArguments(Object[] arguments, GeneratorControlData generatorArguments) {
+        MaterializedFrame generatorFrame = (MaterializedFrame) arguments[INDEX_GENERATOR_FRAME];
+        generatorFrame.getArguments()[INDEX_GENERATOR_FRAME] = generatorArguments;
+    }
+
+    public static void setVirtualFrameCargoArguments(Object[] arguments, Frame cargoFrame) {
+        arguments[INDEX_GENERATOR_FRAME] = cargoFrame;
     }
 
     public static void setParallelGeneratorArguments(Object[] arguments, ParallelGeneratorArguments generatorArguments) {
-        arguments[INDEX_SPECIAL_ARGUMENTS] = generatorArguments;
+        arguments[INDEX_GENERATOR_FRAME] = generatorArguments;
     }
 
     /**
@@ -192,44 +228,6 @@ public class PArguments {
 
     public final Object[] packAsObjectArray() {
         return new Object[]{this};
-    }
-
-    public static final class GeneratorArguments {
-
-        // See GeneratorReturnTargetNode, GeneratorIfNode, GeneratorWhileNode.
-        private final boolean[] activeFlags;
-        private final int[] generatorBlockNodeIndices;       // See {@link GeneratorBlockNode}
-        private final PIterator[] generatorForNodeIterators; // See {@link GeneratorForNode}
-
-        public GeneratorArguments(int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
-            this.activeFlags = new boolean[numOfActiveFlags];
-            this.generatorBlockNodeIndices = new int[numOfGeneratorBlockNode];
-            this.generatorForNodeIterators = new PIterator[numOfGeneratorForNode];
-        }
-
-        public boolean getActive(int slot) {
-            return activeFlags[slot];
-        }
-
-        public void setActive(int slot, boolean flag) {
-            activeFlags[slot] = flag;
-        }
-
-        public int getBlockIndexAt(int slot) {
-            return generatorBlockNodeIndices[slot];
-        }
-
-        public void setBlockIndexAt(int slot, int value) {
-            generatorBlockNodeIndices[slot] = value;
-        }
-
-        public PIterator getIteratorAt(int slot) {
-            return generatorForNodeIterators[slot];
-        }
-
-        public void setIteratorAt(int slot, PIterator value) {
-            generatorForNodeIterators[slot] = value;
-        }
     }
 
     /**

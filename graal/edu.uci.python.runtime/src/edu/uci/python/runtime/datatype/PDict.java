@@ -26,6 +26,8 @@ package edu.uci.python.runtime.datatype;
 
 import java.util.*;
 
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.exception.*;
@@ -40,16 +42,21 @@ public final class PDict extends PythonBuiltinObject implements PIterable {
     private final Map<Object, Object> map;
 
     public PDict() {
-        map = new HashMap<>();
+        map = new TreeMap<>();
     }
 
     public PDict(Map<Object, Object> map) {
         this();
-        this.map.putAll(map);
+        addAll(map);
+    }
+
+    @SlowPath
+    private void addAll(Map<Object, Object> mapToAdd) {
+        this.map.putAll(mapToAdd);
     }
 
     public PDict(PIterator iter) {
-        map = new HashMap<>();
+        map = new TreeMap<>();
 
         try {
             while (true) {
@@ -97,12 +104,8 @@ public final class PDict extends PythonBuiltinObject implements PIterable {
         return map;
     }
 
-    public boolean hasKey(Object[] args) {
-        if (args.length == 1) {
-            return this.map.containsKey(args[0]);
-        } else {
-            throw new RuntimeException("invalid arguments for has_key()");
-        }
+    public boolean hasKey(Object key) {
+        return this.map.containsKey(key);
     }
 
     public PIterator __iter__() {

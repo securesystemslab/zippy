@@ -62,9 +62,9 @@ public class PythonOptions {
     public static final boolean GenerateObjectStorage = false;
 
     // Generators
-    public static boolean InlineGeneratorCalls = false;
+    public static boolean InlineGeneratorCalls = true;
 
-    public static boolean OptimizeGeneratorExpressions = false;
+    public static boolean OptimizeGeneratorExpressions = true;
 
     // Parallel Generators
     public static final boolean ParallelizeGeneratorCalls = false;

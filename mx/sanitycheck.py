@@ -160,7 +160,7 @@ pythonMicroBenchmarks = {
 
 pythonBenchmarks = {
     'binarytrees3t'   : '19',
-    'fannkuchredux3t' : '11',
+    #'fannkuchredux3t' : '11',
     'fasta3t'         : '25000000',
     'mandelbrot3t'    : '4000',
     'meteor3t'        : '2098',
@@ -170,7 +170,7 @@ pythonBenchmarks = {
     'euler31-timed'   : '200',
     'euler11-timed'   : '10000',
     'ai-nqueen-timed' : '10',
-    #'pads-eratosthenes-timed' : '100000',
+    'pads-eratosthenes-timed' : '100000',
     'richards3-timed' : '200',
     'bm-float-timed'  : '1000',
     'pypy-chaos-timed': '1000',
@@ -188,7 +188,7 @@ python2Benchmarks = {
     'euler31-timed'   : '200',
     'euler11-timed'   : '10000',
     'ai-nqueen-timed' : '10',
-    #'pads-eratosthenes-timed' : '100000',
+    'pads-eratosthenes-timed' : '100000',
     'richards3-timed' : '200',
     'bm-float-timed'  : '1000',
     'pypy-chaos-timed': '1000',

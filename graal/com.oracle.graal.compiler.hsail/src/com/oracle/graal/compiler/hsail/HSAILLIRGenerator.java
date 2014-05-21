@@ -31,28 +31,16 @@ import static com.oracle.graal.lir.hsail.HSAILCompare.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
-import com.oracle.graal.compiler.gen.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.StandardOp.JumpOp;
+import com.oracle.graal.lir.gen.*;
 import com.oracle.graal.lir.hsail.*;
-import com.oracle.graal.lir.hsail.HSAILArithmetic.ConvertOp;
-import com.oracle.graal.lir.hsail.HSAILArithmetic.Op1Stack;
+import com.oracle.graal.lir.hsail.HSAILArithmetic.Op1Reg;
 import com.oracle.graal.lir.hsail.HSAILArithmetic.Op2Reg;
-import com.oracle.graal.lir.hsail.HSAILArithmetic.Op2Stack;
-import com.oracle.graal.lir.hsail.HSAILArithmetic.ShiftOp;
-import com.oracle.graal.lir.hsail.HSAILControlFlow.CompareBranchOp;
-import com.oracle.graal.lir.hsail.HSAILControlFlow.CondMoveOp;
-import com.oracle.graal.lir.hsail.HSAILControlFlow.FloatCondMoveOp;
-import com.oracle.graal.lir.hsail.HSAILControlFlow.ReturnOp;
-import com.oracle.graal.lir.hsail.HSAILControlFlow.StrategySwitchOp;
-import com.oracle.graal.lir.hsail.HSAILMove.LeaOp;
-import com.oracle.graal.lir.hsail.HSAILMove.MembarOp;
-import com.oracle.graal.lir.hsail.HSAILMove.MoveFromRegOp;
-import com.oracle.graal.lir.hsail.HSAILMove.MoveToRegOp;
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.calc.*;
-import com.oracle.graal.nodes.calc.FloatConvertNode.FloatConvert;
+import com.oracle.graal.lir.hsail.HSAILControlFlow.*;
+import com.oracle.graal.lir.hsail.HSAILMove.*;
 import com.oracle.graal.phases.util.*;
 
 /**
@@ -148,8 +136,7 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
                 finalDisp += asConstant(index).asLong() * scale;
             } else {
                 Value indexRegister;
-                Value convertedIndex;
-                convertedIndex = this.emitSignExtend(index, 32, 64);
+                Value convertedIndex = index.getKind() == Kind.Long ? index : this.emitSignExtend(index, 32, 64);
                 if (scale != 1) {
                     indexRegister = emitUMul(convertedIndex, Constant.forInt(scale));
                 } else {
@@ -265,16 +252,16 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
             case Int:
                 // Note: The Int case also handles the negation of shorts, bytes, and chars because
                 // Java treats these types as ints at the bytecode level.
-                append(new Op1Stack(INEG, result, input));
+                append(new Op1Reg(INEG, result, input));
                 break;
             case Long:
-                append(new Op1Stack(LNEG, result, input));
+                append(new Op1Reg(LNEG, result, input));
                 break;
             case Double:
-                append(new Op1Stack(DNEG, result, input));
+                append(new Op1Reg(DNEG, result, input));
                 break;
             case Float:
-                append(new Op1Stack(FNEG, result, input));
+                append(new Op1Reg(FNEG, result, input));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -296,10 +283,10 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
             case Int:
                 // Note: The Int case also covers other primitive integral types smaller than an int
                 // (char, byte, short) because Java treats these types as ints.
-                append(new Op1Stack(INOT, result, input));
+                append(new Op1Reg(INOT, result, input));
                 break;
             case Long:
-                append(new Op1Stack(LNOT, result, input));
+                append(new Op1Reg(LNOT, result, input));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -312,16 +299,16 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
         Variable result = newVariable(a.getKind());
         switch (a.getKind()) {
             case Int:
-                append(new Op2Stack(IADD, result, a, loadNonConst(b)));
+                append(new Op2Reg(IADD, result, a, loadNonConst(b)));
                 break;
             case Long:
-                append(new Op2Stack(LADD, result, a, loadNonConst(b)));
+                append(new Op2Reg(LADD, result, a, loadNonConst(b)));
                 break;
             case Float:
-                append(new Op2Stack(FADD, result, a, loadNonConst(b)));
+                append(new Op2Reg(FADD, result, a, loadNonConst(b)));
                 break;
             case Double:
-                append(new Op2Stack(DADD, result, a, loadNonConst(b)));
+                append(new Op2Reg(DADD, result, a, loadNonConst(b)));
                 break;
             case Object:
                 throw GraalInternalError.shouldNotReachHere();
@@ -337,19 +324,19 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
         Variable result = newVariable(a.getKind());
         switch (a.getKind()) {
             case Int:
-                append(new Op2Stack(IADD, result, a, loadNonConst(b)));
+                append(new Op2Reg(IADD, result, a, loadNonConst(b)));
                 break;
             case Long:
-                append(new Op2Stack(LADD, result, a, loadNonConst(b)));
+                append(new Op2Reg(LADD, result, a, loadNonConst(b)));
                 break;
             case Float:
-                append(new Op2Stack(FADD, result, a, loadNonConst(b)));
+                append(new Op2Reg(FADD, result, a, loadNonConst(b)));
                 break;
             case Double:
-                append(new Op2Stack(DADD, result, a, loadNonConst(b)));
+                append(new Op2Reg(DADD, result, a, loadNonConst(b)));
                 break;
             case Object:
-                append(new Op2Stack(OADD, result, a, loadNonConst(b)));
+                append(new Op2Reg(OADD, result, a, loadNonConst(b)));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -362,16 +349,16 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
         Variable result = newVariable(a.getKind());
         switch (a.getKind()) {
             case Int:
-                append(new Op2Stack(ISUB, result, a, loadNonConst(b)));
+                append(new Op2Reg(ISUB, result, a, loadNonConst(b)));
                 break;
             case Float:
-                append(new Op2Stack(FSUB, result, a, loadNonConst(b)));
+                append(new Op2Reg(FSUB, result, a, loadNonConst(b)));
                 break;
             case Long:
-                append(new Op2Stack(LSUB, result, a, loadNonConst(b)));
+                append(new Op2Reg(LSUB, result, a, loadNonConst(b)));
                 break;
             case Double:
-                append(new Op2Stack(DSUB, result, a, loadNonConst(b)));
+                append(new Op2Reg(DSUB, result, a, loadNonConst(b)));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -417,57 +404,67 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public Value emitDiv(Value a, Value b, DeoptimizingNode deopting) {
-        Variable result = newVariable(a.getKind());
-        switch (a.getKind()) {
-            case Int:
-                append(new Op2Stack(IDIV, result, a, loadNonConst(b)));
-                break;
-            case Long:
-                append(new Op2Stack(LDIV, result, a, loadNonConst(b)));
-                break;
-            case Float:
-                append(new Op2Stack(FDIV, result, a, loadNonConst(b)));
-                break;
-            case Double:
-                append(new Op2Stack(DDIV, result, a, loadNonConst(b)));
-                break;
-            default:
-                throw GraalInternalError.shouldNotReachHere();
-        }
-        return result;
-
-    }
-
-    @Override
-    public Value emitRem(Value a, Value b, DeoptimizingNode deopting) {
-        Variable result = newVariable(a.getKind());
-        switch (a.getKind()) {
-            case Int:
-                append(new Op2Stack(IREM, result, a, loadNonConst(b)));
-                break;
-            case Long:
-                append(new Op2Stack(LREM, result, a, loadNonConst(b)));
-                break;
-            case Float:
-                append(new Op2Stack(FREM, result, a, loadNonConst(b)));
-                break;
-            case Double:
-                append(new Op2Stack(DREM, result, a, loadNonConst(b)));
-                break;
-            default:
-                throw GraalInternalError.shouldNotReachHere();
-        }
-        return result;
-    }
-
-    @Override
-    public Variable emitUDiv(Value a, Value b, DeoptimizingNode deopting) {
+    public Value emitMulHigh(Value a, Value b) {
         throw GraalInternalError.unimplemented();
     }
 
     @Override
-    public Variable emitURem(Value a, Value b, DeoptimizingNode deopting) {
+    public Value emitUMulHigh(Value a, Value b) {
+        throw GraalInternalError.unimplemented();
+    }
+
+    @Override
+    public Value emitDiv(Value a, Value b, LIRFrameState state) {
+        Variable result = newVariable(a.getKind());
+        switch (a.getKind()) {
+            case Int:
+                append(new Op2Reg(IDIV, result, a, loadNonConst(b)));
+                break;
+            case Long:
+                append(new Op2Reg(LDIV, result, a, loadNonConst(b)));
+                break;
+            case Float:
+                append(new Op2Reg(FDIV, result, a, loadNonConst(b)));
+                break;
+            case Double:
+                append(new Op2Reg(DDIV, result, a, loadNonConst(b)));
+                break;
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
+        return result;
+
+    }
+
+    @Override
+    public Value emitRem(Value a, Value b, LIRFrameState state) {
+        Variable result = newVariable(a.getKind());
+        switch (a.getKind()) {
+            case Int:
+                append(new Op2Reg(IREM, result, a, loadNonConst(b)));
+                break;
+            case Long:
+                append(new Op2Reg(LREM, result, a, loadNonConst(b)));
+                break;
+            case Float:
+                append(new Op2Reg(FREM, result, a, loadNonConst(b)));
+                break;
+            case Double:
+                append(new Op2Reg(DREM, result, a, loadNonConst(b)));
+                break;
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
+        return result;
+    }
+
+    @Override
+    public Variable emitUDiv(Value a, Value b, LIRFrameState state) {
+        throw GraalInternalError.unimplemented();
+    }
+
+    @Override
+    public Variable emitURem(Value a, Value b, LIRFrameState state) {
         throw GraalInternalError.unimplemented();
     }
 
@@ -476,10 +473,10 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
         Variable result = newVariable(a.getKind());
         switch (a.getKind()) {
             case Int:
-                append(new Op2Stack(IAND, result, a, loadNonConst(b)));
+                append(new Op2Reg(IAND, result, a, loadNonConst(b)));
                 break;
             case Long:
-                append(new Op2Stack(LAND, result, a, loadNonConst(b)));
+                append(new Op2Reg(LAND, result, a, loadNonConst(b)));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -492,10 +489,10 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
         Variable result = newVariable(a.getKind());
         switch (a.getKind()) {
             case Int:
-                append(new Op2Stack(IOR, result, a, loadNonConst(b)));
+                append(new Op2Reg(IOR, result, a, loadNonConst(b)));
                 break;
             case Long:
-                append(new Op2Stack(LOR, result, a, loadNonConst(b)));
+                append(new Op2Reg(LOR, result, a, loadNonConst(b)));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -508,10 +505,10 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
         Variable result = newVariable(a.getKind());
         switch (a.getKind()) {
             case Int:
-                append(new Op2Stack(IXOR, result, a, loadNonConst(b)));
+                append(new Op2Reg(IXOR, result, a, loadNonConst(b)));
                 break;
             case Long:
-                append(new Op2Stack(LXOR, result, a, loadNonConst(b)));
+                append(new Op2Reg(LXOR, result, a, loadNonConst(b)));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -685,7 +682,7 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
     }
 
     @Override
-    public void emitDeoptimize(Value actionAndReason, Value speculation, DeoptimizingNode deopting) {
+    public void emitDeoptimize(Value actionAndReason, Value speculation, LIRFrameState state) {
         append(new ReturnOp(Value.ILLEGAL));
     }
 
@@ -723,7 +720,7 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
     @Override
     public Value emitMathAbs(Value input) {
         Variable result = newVariable(input.getPlatformKind());
-        append(new Op1Stack(ABS, result, input));
+        append(new Op1Reg(ABS, result, input));
         return result;
     }
 
@@ -735,7 +732,7 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
      */
     public Value emitMathCeil(Value input) {
         Variable result = newVariable(input.getPlatformKind());
-        append(new Op1Stack(CEIL, result, input));
+        append(new Op1Reg(CEIL, result, input));
         return result;
     }
 
@@ -747,7 +744,7 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
      */
     public Value emitMathFloor(Value input) {
         Variable result = newVariable(input.getPlatformKind());
-        append(new Op1Stack(FLOOR, result, input));
+        append(new Op1Reg(FLOOR, result, input));
         return result;
     }
 
@@ -759,7 +756,7 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
      */
     public Value emitMathRint(Value input) {
         Variable result = newVariable(input.getPlatformKind());
-        append(new Op1Stack(RINT, result, input));
+        append(new Op1Reg(RINT, result, input));
         return result;
     }
 
@@ -772,7 +769,7 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
     @Override
     public Value emitMathSqrt(Value input) {
         Variable result = newVariable(input.getPlatformKind());
-        append(new Op1Stack(SQRT, result, input));
+        append(new Op1Reg(SQRT, result, input));
         return result;
     }
 
@@ -832,7 +829,7 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
      * Graal generates for any switch construct appearing in Java bytecode.
      */
     @Override
-    protected void emitStrategySwitch(Constant[] keyConstants, double[] keyProbabilities, LabelRef[] keyTargets, LabelRef defaultTarget, Variable value) {
+    public void emitStrategySwitch(Constant[] keyConstants, double[] keyProbabilities, LabelRef[] keyTargets, LabelRef defaultTarget, Variable value) {
         emitStrategySwitch(new SwitchStrategy.SequentialStrategy(keyProbabilities, keyConstants), value, keyTargets, defaultTarget);
     }
 
@@ -857,7 +854,7 @@ public abstract class HSAILLIRGenerator extends LIRGenerator {
      * @param key the key that is compared against the key constants in the case statements.
      */
     @Override
-    protected void emitStrategySwitch(SwitchStrategy strategy, Variable key, LabelRef[] keyTargets, LabelRef defaultTarget) {
+    public void emitStrategySwitch(SwitchStrategy strategy, Variable key, LabelRef[] keyTargets, LabelRef defaultTarget) {
         if ((key.getKind() == Kind.Int) || (key.getKind() == Kind.Long)) {
             // Append the LIR instruction for generating compare and branch instructions.
             append(new StrategySwitchOp(strategy, keyTargets, defaultTarget, key));

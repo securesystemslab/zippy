@@ -88,7 +88,7 @@
 #endif
 
 #ifdef GRAAL
-#include "graal/graalCompiler.hpp"
+#include "graal/graalRuntime.hpp"
 #include "graal/graalJavaAccess.hpp"
 #endif
 
@@ -359,7 +359,8 @@ Deoptimization::UnrollBlock* Deoptimization::fetch_unroll_info_helper(JavaThread
 #ifdef ASSERT
   assert(cb->is_deoptimization_stub() ||
          cb->is_uncommon_trap_stub() ||
-         strcmp("Stub<DeoptimizationStub.uncommonTrapHandler>", cb->name()) == 0,
+         strcmp("Stub<DeoptimizationStub.deoptimizationHandler>", cb->name()) == 0 ||
+         strcmp("Stub<UncommonTrapStub.uncommonTrapHandler>", cb->name()) == 0,
          err_msg("unexpected code blob: %s", cb->name()));
 #endif
 #else
@@ -1347,7 +1348,7 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
     ScopeDesc*      trap_scope  = cvf->scope();
     
     if (TraceDeoptimization) {
-      tty->print_cr("  bci=%d pc=%d, relative_pc=%d, method=%s" GRAAL_ONLY(", debug_id=%d"), trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name_and_sig_as_C_string()
+      tty->print_cr("  bci=%d pc=" INTPTR_FORMAT ", relative_pc=%d, method=%s" GRAAL_ONLY(", debug_id=%d"), trap_scope->bci(), fr.pc(), fr.pc() - nm->code_begin(), trap_scope->method()->name_and_sig_as_C_string()
 #ifdef GRAAL
           , debug_id
 #endif

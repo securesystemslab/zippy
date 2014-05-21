@@ -28,7 +28,7 @@ import static com.oracle.graal.hsail.HSAIL.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.hotspot.nodes.type.*;
 import com.oracle.graal.hsail.*;
 
@@ -192,6 +192,14 @@ public class HSAILHotSpotRegisterConfig implements RegisterConfig {
     @Override
     public Register getRegisterForRole(int id) {
         throw new UnsupportedOperationException();
+    }
+
+    public boolean isAllocatableSReg(Register reg) {
+        return (reg.number >= HSAIL.s0.number && reg.number <= HSAIL.s31.number);
+    }
+
+    public boolean isAllocatableDReg(Register reg) {
+        return (reg.number >= HSAIL.d0.number && reg.number <= HSAIL.d15.number);
     }
 
     public HSAILHotSpotRegisterConfig() {

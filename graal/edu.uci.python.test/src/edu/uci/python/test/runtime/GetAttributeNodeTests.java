@@ -64,7 +64,7 @@ public class GetAttributeNodeTests {
         PNode plist = factory.createListLiteral(values);
         PNode getattr = factory.createGetAttribute(plist, "append");
 
-        FunctionRootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), getattr);
+        FunctionRootNode root = new FunctionRootNode(context, "test", false, new FrameDescriptor(), getattr);
         Truffle.getRuntime().createCallTarget(root);
 
         // 1st execute
@@ -142,7 +142,7 @@ public class GetAttributeNodeTests {
         PNode objNode = factory.createObjectLiteral(pbObj);
         PNode getattr = factory.createGetAttribute(objNode, "foo");
 
-        FunctionRootNode root = new FunctionRootNode(context, "test", new FrameDescriptor(), getattr);
+        FunctionRootNode root = new FunctionRootNode(context, "test", false, new FrameDescriptor(), getattr);
         Truffle.getRuntime().createCallTarget(root);
 
         // 1st execute

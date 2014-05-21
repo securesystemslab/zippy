@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -32,37 +32,42 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.generator.ComprehensionNodeFactory.ArrayListAddNodeFactory;
 import edu.uci.python.nodes.generator.ComprehensionNodeFactory.HashSetAddNodeFactory;
+import edu.uci.python.runtime.builtin.*;
+import edu.uci.python.runtime.function.*;
 
-enum IntrinsifiableBuiltin {
+public enum IntrinsifiableBuiltin {
 
-    LIST("list"), TUPLE("tuple"), SET("set");
+    LIST("list"),
+    TUPLE("tuple"),
+    SET("set");
 
     private final String name;
+    private static final Map<String, IntrinsifiableBuiltin> TargetBuiltins = new HashMap<>();
 
-    private static final Map<String, IntrinsifiableBuiltin> TargetBuiltins = getIntrinsifiableBuiltins();
+    static {
+        TargetBuiltins.put(LIST.name, LIST);
+        TargetBuiltins.put(TUPLE.name, TUPLE);
+        TargetBuiltins.put(SET.name, SET);
+    }
 
-    IntrinsifiableBuiltin(String name) {
+    private IntrinsifiableBuiltin(String name) {
         this.name = name;
     }
 
-    String getName() {
+    public String getName() {
         return name;
     }
 
-    static Map<String, IntrinsifiableBuiltin> getIntrinsifiableBuiltins() {
-        Map<String, IntrinsifiableBuiltin> sets = new HashMap<>();
-        sets.put(LIST.name, LIST);
-        sets.put(TUPLE.name, TUPLE);
-        sets.put(SET.name, SET);
-        return sets;
-    }
-
-    static IntrinsifiableBuiltin findIntrinsifiable(String name) {
+    public static IntrinsifiableBuiltin findIntrinsifiable(String name) {
         return TargetBuiltins.get(name);
     }
 
-    static ComprehensionNode createComprehensionNode(IntrinsifiableBuiltin targetBuiltin, FrameSlot targetSlot, PNode comprehension) {
-        switch (targetBuiltin) {
+    public static boolean isIntrinsifiable(PythonCallable callee) {
+        return callee instanceof PythonBuiltinClass && TargetBuiltins.containsKey(callee.getName());
+    }
+
+    public ComprehensionNode createComprehensionNode(FrameSlot targetSlot, PNode comprehension) {
+        switch (this) {
             case LIST:
                 return new ComprehensionNode.ListComprehensionNode(targetSlot, comprehension);
             case TUPLE:
@@ -74,8 +79,8 @@ enum IntrinsifiableBuiltin {
         }
     }
 
-    static PNode createComprehensionAppendNode(IntrinsifiableBuiltin targetBuiltin, FrameSlot targetSlot, PNode comprehension) {
-        switch (targetBuiltin) {
+    public PNode createComprehensionAppendNode(FrameSlot targetSlot, PNode comprehension) {
+        switch (this) {
             case LIST:
                 return ListAppendNodeFactory.create(targetSlot, comprehension);
             case TUPLE:
