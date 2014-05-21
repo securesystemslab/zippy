@@ -58,8 +58,10 @@ public class GeneratorExpressionTranslationTests {
                         "    n = 5\n" + //
                         "    return list(x for x in range(n))\n";
 
-        String result = parseTest(source);
-        assertTrue(result.contains("escapes"));
+        PythonParseResult parsed = getParseResult(source);
+        RootNode root = parsed.getFunctionRoot("foo");
+        GeneratorExpressionNode genexp = NodeUtil.findFirstNodeInstance(root, GeneratorExpressionNode.class);
+        assertTrue(genexp != null);
     }
 
     @Test
@@ -71,8 +73,10 @@ public class GeneratorExpressionTranslationTests {
                         "    ll = (x for x in range(n))\n" + //
                         "    return list(ll)\n";
 
-        String result = parseTest(source);
-        assertTrue(result.contains("escapes"));
+        PythonParseResult parsed = getParseResult(source);
+        RootNode root = parsed.getFunctionRoot("foo");
+        GeneratorExpressionNode genexp = NodeUtil.findFirstNodeInstance(root, GeneratorExpressionNode.class);
+        assertTrue(genexp != null);
     }
 
     @Test
@@ -84,8 +88,10 @@ public class GeneratorExpressionTranslationTests {
                         "    ll = (x for x in range(n))\n" + //
                         "    return ll\n";
 
-        String result = parseTest(source);
-        assertTrue(result.contains("escapes"));
+        PythonParseResult parsed = getParseResult(source);
+        RootNode root = parsed.getFunctionRoot("foo");
+        GeneratorExpressionNode genexp = NodeUtil.findFirstNodeInstance(root, GeneratorExpressionNode.class);
+        assertTrue(genexp != null);
     }
 
     @Test
@@ -98,8 +104,10 @@ public class GeneratorExpressionTranslationTests {
                         "    ll = (x for x in range(n))\n" + //
                         "    LIST[0] = ll\n";
 
-        String result = parseTest(source);
-        assertTrue(result.contains("escapes"));
+        PythonParseResult parsed = getParseResult(source);
+        RootNode root = parsed.getFunctionRoot("foo");
+        GeneratorExpressionNode genexp = NodeUtil.findFirstNodeInstance(root, GeneratorExpressionNode.class);
+        assertTrue(genexp != null);
     }
 
     @Test
@@ -111,8 +119,10 @@ public class GeneratorExpressionTranslationTests {
                         "    ll = (x for x in range(n))\n" + //
                         "    LIST.append(ll)\n";
 
-        String result = parseTest(source);
-        assertTrue(result.contains("escapes"));
+        PythonParseResult parsed = getParseResult(source);
+        RootNode root = parsed.getFunctionRoot("foo");
+        GeneratorExpressionNode genexp = NodeUtil.findFirstNodeInstance(root, GeneratorExpressionNode.class);
+        assertTrue(genexp != null);
     }
 
 }

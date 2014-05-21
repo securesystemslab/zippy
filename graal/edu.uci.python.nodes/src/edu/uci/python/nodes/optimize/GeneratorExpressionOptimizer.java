@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.optimize;
 
+import java.io.*;
 import java.util.*;
 
 import com.oracle.truffle.api.frame.*;
@@ -36,7 +37,6 @@ import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
 import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
 import edu.uci.python.nodes.call.PythonCallNode.NoneCallNode;
 import edu.uci.python.nodes.call.CallDispatchNoneNode.*;
-import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
@@ -58,8 +58,7 @@ public class GeneratorExpressionOptimizer {
     }
 
     public void optimize() {
-        PNode body = functionRoot.getBody();
-        if (body instanceof GeneratorReturnTargetNode) {
+        if (functionRoot.isGenerator()) {
             // Baiout if the current root is a generator root.
             return;
         }
@@ -71,10 +70,9 @@ public class GeneratorExpressionOptimizer {
 
             EscapeAnalyzer escapeAnalyzer = new EscapeAnalyzer(functionRoot, genExp);
 
-            if (escapeAnalyzer.escapes()) {
-                context.getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " escapes current frame");
-            } else {
-                context.getStandardOut().println("[ZipPy] escapse analysis: " + genExp + " does not escape current frame");
+            if (!escapeAnalyzer.escapes()) {
+                PrintStream out = System.out;
+                out.println("[ZipPy] escapse analysis: " + genExp + " does not escape current frame");
                 transform(genExp, escapeAnalyzer);
             }
         }
@@ -87,15 +85,6 @@ public class GeneratorExpressionOptimizer {
              */
             if (genexp.getParent() instanceof GetIteratorNode) {
                 desugarGeneratorExpression(genexp, (GetIteratorNode) genexp.getParent(), false);
-            } else if (genexp.getParent() instanceof CallFunctionInlinedNode) {
-                /**
-                 * Function calls that were just inlined create new opportunities for genexp
-                 * transformation.<br>
-                 * Already transformed genexp, whose parent is of type
-                 * {@link CallGeneratorInlinedNode} should be ignore.
-                 */
-                GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(genexp.getParent(), GetIteratorNode.class);
-                desugarGeneratorExpression(genexp, getIter, true);
             } else if (genexp.getParent() instanceof PythonCallNode) {
                 BoxedCallNode callNode = (BoxedCallNode) genexp.getParent();
                 assert callNode.isInlined();
@@ -161,7 +150,8 @@ public class GeneratorExpressionOptimizer {
         }
 
         genexp.setAsOptimized();
-        context.getStandardOut().println("[ZipPy] genexp optimizer: transform " + genexp + " to inlineable generator call");
+        PrintStream out = System.out;
+        out.println("[ZipPy] genexp optimizer: transform " + genexp + " to inlineable generator call");
     }
 
     /**

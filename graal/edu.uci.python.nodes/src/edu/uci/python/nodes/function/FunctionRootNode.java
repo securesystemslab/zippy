@@ -75,6 +75,10 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
         return functionName;
     }
 
+    public boolean isGenerator() {
+        return isGenerator;
+    }
+
     public PNode getBody() {
         return body;
     }

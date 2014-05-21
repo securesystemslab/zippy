@@ -27,12 +27,9 @@ package edu.uci.python.nodes.optimize;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
 import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
-import edu.uci.python.nodes.call.PythonCallNode.UninitializedCallNode;
-import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.statement.*;
 
@@ -89,18 +86,6 @@ public class EscapeAnalyzer {
                 }
 
                 return !isInlined;
-            } else if (current instanceof InlinedCallNode) {
-                return false;
-            } else if (current instanceof InlineableCallNode) {
-                return true;
-            } else if (current instanceof UninitializedCallNode) {
-                PNode calleeNode = ((UninitializedCallNode) current).getCallee();
-
-                if (calleeNode instanceof ReadGlobalNode) {
-                    return isBuiltinConstructor(((ReadGlobalNode) calleeNode).getAttributeId()) ? false : true;
-                }
-
-                return true;
             } else if (current instanceof ReturnNode) {
                 return true;
             }
@@ -135,15 +120,6 @@ public class EscapeAnalyzer {
 
     private static boolean isStatementNode(Node node) {
         return node instanceof StatementNode || node instanceof WriteNode;
-    }
-
-    /**
-     * TODO: (zwei) remove this nonsense! <br>
-     * A trivial way to identify if the callee is a builtin function. If so, the generator
-     * expression argument to this call is not considered as escaping.
-     */
-    private static boolean isBuiltinConstructor(String name) {
-        return name.equals("frozenset") || name.equals("set") || name.equals("list") || name.equals("dict") || name.equals("sum");
     }
 
 }
