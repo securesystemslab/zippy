@@ -116,11 +116,8 @@ public final class DictBuiltins extends PythonBuiltins {
 
         @Specialization
         public Object get(PDict dict, Object key, Object defaultValue) {
-            if (dict.getMap().get(key) != null) {
-                return dict.getMap().get(key);
-            } else {
-                return defaultValue;
-            }
+            final Object value = dict.getMap().get(key);
+            return value != null ? value : defaultValue;
         }
     }
 

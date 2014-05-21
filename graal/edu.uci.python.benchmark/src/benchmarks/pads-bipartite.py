@@ -36,19 +36,15 @@ def DFS_search(G):
                 parent,children = stack[-1]
                 try:
                     child = next(children)
-                    print('child', child)
                     if child in visited:
-                        print('yielding1 child', child)
                         yield parent,child,nontree
                     else:
-                        print('yielding2 child', child)
                         yield parent,child,forward
                         visited.add(child)
                         stack.append((child,iter(G[child])))
                 except StopIteration:
                     stack.pop()
                     if stack:
-                        print('yielding3 child', child)
                         yield stack[-1][0],parent,reverse
 
             yield v,v,reverse
@@ -64,7 +60,6 @@ def TwoColor(G):
     """
     color = {}
     for v,w,edgetype in DFS_search(G):
-        print('v',v , 'w',w)
         if edgetype is forward:
             color[w] = not color.get(v,False)
         elif edgetype is nontree and color[v] == color[w]:

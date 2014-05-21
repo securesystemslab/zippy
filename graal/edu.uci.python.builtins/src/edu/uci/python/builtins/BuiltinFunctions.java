@@ -775,6 +775,18 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @SuppressWarnings("unused")
         @Specialization
+        public int next(PIntegerIterator iterator, PNone defaultObject) {
+            return iterator.__nextInt__();
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public double next(PDoubleIterator iterator, PNone defaultObject) {
+            return iterator.__nextDouble__();
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
         public Object next(PIterator iterator, PNone defaultObject) {
             return iterator.__next__();
         }
