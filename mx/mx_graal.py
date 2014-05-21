@@ -2093,37 +2093,3 @@ def mx_post_parse_cmd_line(opts):  #
     _vm_prefix = opts.vm_prefix
 
     mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)
-
-def packagejar(classpath, outputFile, mainClass=None, annotationProcessor=None, stripDebug=False):
-    prefix = '' if mx.get_os() != 'windows' else '\\??\\'  # long file name hack
-    print "creating", outputFile
-    filecount, totalsize = 0, 0
-    with zipfile.ZipFile(outputFile, 'w', zipfile.ZIP_DEFLATED) as zf:
-        manifest = "Manifest-Version: 1.0\n"
-        if mainClass != None:
-            manifest += "Main-Class: %s\n\n" % (mainClass)
-        zf.writestr("META-INF/MANIFEST.MF", manifest)
-        if annotationProcessor != None:
-            zf.writestr("META-INF/services/javax.annotation.processing.Processor", annotationProcessor)
-        for cp in classpath:
-            print "+", cp
-            if cp.endswith(".jar"):
-                with zipfile.ZipFile(cp, 'r') as jar:
-                    for arcname in jar.namelist():
-                        if arcname.endswith('/') or arcname == 'META-INF/MANIFEST.MF' or arcname.endswith('.java') or arcname.lower().startswith("license") or arcname in [".project", ".classpath"]:
-                            continue
-                        zf.writestr(arcname, jar.read(arcname))
-            else:
-                for root, _, files in os.walk(cp):
-                    for f in files:
-                        fullname = os.path.join(root, f)
-                        arcname = fullname[len(cp) + 1:].replace('\\', '/')
-                        if f.endswith(".class"):
-                            zf.write(prefix + fullname, arcname)
-
-        for zi in zf.infolist():
-            filecount += 1
-            totalsize += zi.file_size
-    print "%d files (total size: %.2f kB, jar size: %.2f kB)" % (filecount, totalsize / 1e3, os.path.getsize(outputFile) / 1e3)
-    mx.run([mx.exe_suffix(join(mx.java().jdk, 'bin', 'pack200')), '-r'] + (['-G'] if stripDebug else []) + [outputFile])
-    print "repacked jar size: %.2f kB" % (os.path.getsize(outputFile) / 1e3)
