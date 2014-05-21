@@ -44,6 +44,7 @@ import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.function.*;
 import static edu.uci.python.nodes.function.GeneratorFunctionDefinitionNode.*;
 
 public class GeneratorExpressionOptimizer {
@@ -147,7 +148,9 @@ public class GeneratorExpressionOptimizer {
             genDefLoad = (PNode) getIterator.getOperand().copy();
         }
 
-        PNode generatorCallNode = new NoneCallNode(context, genexp.getName(), EmptyNode.create(), genDefLoad, argReads, new PNode[]{}, new UninitializedDispatchNoneNode(genexp.getName(), false));
+        PGeneratorFunction genfun = (PGeneratorFunction) desugaredGenDefNode.execute(null);
+        CallDispatchNoneNode dispatch = new DispatchGeneratorNoneNode(genfun, new UninitializedDispatchNoneNode(genexp.getName(), false));
+        PNode generatorCallNode = new NoneCallNode(context, genexp.getName(), EmptyNode.create(), genDefLoad, argReads, new PNode[]{}, dispatch);
         PNode loadGenerator = getIterator.getOperand();
         loadGenerator.replace(generatorCallNode);
 

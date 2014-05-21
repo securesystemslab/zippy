@@ -25,7 +25,6 @@
 package edu.uci.python.nodes.function;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -71,25 +70,22 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
      */
     public static final class StatelessGeneratorFunctionDefinitionNode extends GeneratorFunctionDefinitionNode {
 
-        @CompilationFinal private PGeneratorFunction cached;
+        private final PGeneratorFunction cached;
 
         public StatelessGeneratorFunctionDefinitionNode(String name, PythonContext context, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, RootCallTarget parallelCallTarget,
                         int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
             super(name, context, arity, EmptyNode.create(), callTarget, frameDescriptor, parallelCallTarget, false, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            cached = new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, null, parallelCallTarget, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
 
         public StatelessGeneratorFunctionDefinitionNode(GeneratorExpressionNode prev) {
             super(prev.getName(), prev.context, Arity.DUMMY, EmptyNode.create(), prev.getCallTarget(), prev.getFrameDescriptor(), null, false, prev.getNumOfActiveFlags(),
                             prev.getNumOfGeneratorBlockNode(), prev.getNumOfGeneratorForNode());
+            cached = new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, null, parallelCallTarget, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            if (cached != null) {
-                return cached;
-            }
-
-            cached = new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, null, parallelCallTarget, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
             return cached;
         }
     }
