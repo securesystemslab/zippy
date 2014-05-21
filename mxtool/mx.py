@@ -2625,6 +2625,10 @@ class Archiver:
             # Atomic on Unix
             shutil.move(self.tmpPath, self.path)
 
+def _archive(args):
+    archive(args)
+    return 0
+
 def archive(args):
     """create jar files for projects and distributions"""
     parser = ArgumentParser(prog='mx archive')
@@ -2642,6 +2646,7 @@ def archive(args):
             p = project(name)
             archives.append(p.make_archive())
 
+    logv("generated archives: " + str(archives))
     return archives
 
 def canonicalizeprojects(args):
@@ -4694,7 +4699,7 @@ _commands = {
     'ideclean': [ideclean, ''],
     'ideinit': [ideinit, ''],
     'intellijinit': [intellijinit, ''],
-    'archive': [archive, '[options]'],
+    'archive': [_archive, '[options]'],
     'projectgraph': [projectgraph, ''],
     'pylint': [pylint, ''],
     'javap': [javap, '<class name patterns>'],
