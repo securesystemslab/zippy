@@ -62,7 +62,9 @@ public class BuiltinFunctionRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        profiler.execute(frame);
+        if (PythonOptions.ProfileCalls) {
+            profiler.execute(frame);
+        }
         return builtinNode.execute(frame);
 
     }

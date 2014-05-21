@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -87,8 +87,7 @@ public final class PObjectTuple extends PTuple {
 
     @Override
     public Object[] getArray() {
-        // TODO Auto-generated method stub
-        return null;
+        return array;
     }
 
     @Override

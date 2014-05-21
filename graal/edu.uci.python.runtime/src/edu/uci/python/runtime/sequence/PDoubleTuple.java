@@ -66,6 +66,16 @@ public final class PDoubleTuple extends PTuple {
         return array[checkedIdx];
     }
 
+// @Override
+// public PIterator __iter__() {
+// if (PythonOptions.UnboxSequenceIteration) {
+// return new PDoubleTupleIterator(this);
+// } else {
+// return new PSequenceIterator(this);
+//
+// }
+// }
+
     @Override
     public int len() {
         return array.length;
@@ -75,7 +85,7 @@ public final class PDoubleTuple extends PTuple {
     public Object[] getArray() {
         Object[] objectArray = new Object[array.length];
         for (int i = 0; i < array.length; i++) {
-            objectArray[i] = new Double(array[i]);
+            objectArray[i] = array[i];
         }
 
         return objectArray;

@@ -205,6 +205,7 @@ public class PythonTreeTranslator extends Visitor {
          */
         FrameDescriptor fd = environment.getCurrentFrame();
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, fd, body);
+        funcRoot.assignSourceSection(source.createSection(node.getText(), (node.getLine() - 1), (node.getCharPositionInLine() + 1), node.getTokenStartIndex(), node.getText().length()));
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
         result.addParsedFunction(name, funcRoot);
 

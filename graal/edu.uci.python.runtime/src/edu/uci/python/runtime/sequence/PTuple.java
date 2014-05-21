@@ -26,7 +26,6 @@ package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
@@ -34,7 +33,7 @@ import edu.uci.python.runtime.sequence.storage.*;
 public abstract class PTuple extends PImmutableSequence {
 
     public static PTuple create() {
-        return new PObjectTuple(null);
+        return new PObjectTuple(new Object[0]);
     }
 
     public static PTuple create(Object[] elements) {
@@ -64,7 +63,6 @@ public abstract class PTuple extends PImmutableSequence {
         }
 
         Object[] values = list.toArray();
-
         if (SequenceStorageFactory.canSpecializeToInt(values)) {
             return new PIntTuple(SequenceStorageFactory.specializeToInt(values));
         } else if (SequenceStorageFactory.canSpecializeToDouble(values)) {
@@ -95,24 +93,6 @@ public abstract class PTuple extends PImmutableSequence {
             return new PStringTuple(SequenceStorageFactory.specializeToString(elements), copy);
         } else {
             return new PObjectTuple(elements);
-        }
-    }
-
-    @Override
-    public PIterator __iter__() {
-        if (PythonOptions.UnboxSequenceIteration) {
-            if (this instanceof PIntTuple) {
-                return new PIntTupleIterator((PIntTuple) this);
-            } else if (this instanceof PDoubleTuple) {
-                return new PDoubleTupleIterator((PDoubleTuple) this);
-            } else if (this instanceof PStringTuple) {
-                return new PStringTupleIterator((PStringTuple) this);
-            } else {
-                return new PSequenceIterator(this);
-            }
-        } else {
-            return new PSequenceIterator(this);
-
         }
     }
 

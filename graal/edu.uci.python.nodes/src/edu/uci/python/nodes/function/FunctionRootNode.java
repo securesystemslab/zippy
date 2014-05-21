@@ -90,7 +90,9 @@ public final class FunctionRootNode extends RootNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        profiler.execute(frame);
+        if (PythonOptions.ProfileCalls) {
+            profiler.execute(frame);
+        }
         return body.execute(frame);
     }
 

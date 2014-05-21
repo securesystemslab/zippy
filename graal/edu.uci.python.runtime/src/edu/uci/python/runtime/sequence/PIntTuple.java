@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,7 @@ package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
 
@@ -90,6 +91,15 @@ public final class PIntTuple extends PTuple {
     }
 
     @Override
+    public PIterator __iter__() {
+        if (PythonOptions.UnboxSequenceIteration) {
+            return new PIntTupleIterator(this);
+        } else {
+            return new PSequenceIterator(this);
+        }
+    }
+
+    @Override
     public int len() {
         return array.length;
     }
@@ -98,7 +108,7 @@ public final class PIntTuple extends PTuple {
     public Object[] getArray() {
         Object[] objectArray = new Object[array.length];
         for (int i = 0; i < array.length; i++) {
-            objectArray[i] = new Integer(array[i]);
+            objectArray[i] = array[i];
         }
 
         return objectArray;

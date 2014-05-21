@@ -95,7 +95,7 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         return tuple.getObjectItem(idx);
     }
 
-    @Specialization(order = 8)
+    @Specialization(order = 10)
     public Object doPRange(PRange primary, int idx) {
         return primary.getItem(idx);
     }
@@ -103,7 +103,7 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     /**
      * PDict lookup using key.
      */
-    @Specialization(order = 9)
+    @Specialization(order = 11)
     public Object doPDict(PDict primary, Object key) {
         return primary.getItem(key);
     }
@@ -111,22 +111,22 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     /**
      * Unboxed array reads.
      */
-    @Specialization(order = 10)
+    @Specialization(order = 12)
     public int doPIntArray(PIntArray primary, int index) {
         return primary.getIntItemInBound(index);
     }
 
-    @Specialization(order = 11)
+    @Specialization(order = 13)
     public double doPDoubleArray(PDoubleArray primary, int index) {
         return primary.getDoubleItemInBound(index);
     }
 
-    @Specialization(order = 12)
+    @Specialization(order = 14)
     public char doPCharArray(PCharArray primary, int index) {
         return primary.getCharItemInBound(index);
     }
 
-    @Specialization(order = 14)
+    @Specialization(order = 15)
     public Object doPArray(PArray primary, int slice) {
         return primary.getItem(slice);
     }

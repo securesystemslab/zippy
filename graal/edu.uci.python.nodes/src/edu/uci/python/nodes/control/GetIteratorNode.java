@@ -27,63 +27,94 @@ package edu.uci.python.nodes.control;
 import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.expression.*;
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 
 public abstract class GetIteratorNode extends UnaryOpNode {
 
-    @Specialization
+    @Specialization(order = 1)
     public Object doPList(PList value) {
         return value.__iter__();
     }
 
-    @Specialization
-    public Object doTuple(PTuple value) {
+    @Specialization(order = 2)
+    public Object doIntTuple(PIntTuple value) {
         return value.__iter__();
     }
 
-    @Specialization
+    @Specialization(order = 3)
+    public Object doDoubleTuple(PDoubleTuple value) {
+        return value.__iter__();
+    }
+
+    @Specialization(order = 4)
+    public Object doStringTuple(PStringTuple value) {
+        return value.__iter__();
+    }
+
+    @Specialization(order = 5)
+    public Object doPRange(PRange value) {
+        return value.__iter__();
+    }
+
+    @Specialization(order = 6)
+    public Object doPIntArray(PIntArray value) {
+        return value.__iter__();
+    }
+
+    @Specialization(order = 7)
+    public Object doPDoubleArray(PDoubleArray value) {
+        return value.__iter__();
+    }
+
+    @Specialization(order = 8)
+    public Object doCharArray(PCharArray value) {
+        return value.__iter__();
+    }
+
+    @Specialization(order = 9)
     public Object doPSequence(PSequence value) {
         return value.__iter__();
     }
 
-    @Specialization
+    @Specialization(order = 10)
     public Object doPBaseSet(PBaseSet value) {
         return value.__iter__();
     }
 
-    @Specialization
+    @Specialization(order = 11)
     public Object doString(String value) {
         return new PStringIterator(value);
     }
 
-    @Specialization
+    @Specialization(order = 12)
     public Object doPDictionary(PDict value) {
         return value.__iter__();
     }
 
-    @Specialization
+    @Specialization(order = 13)
     public Object doPEnumerate(PEnumerate value) {
         return value.__iter__();
     }
 
-    @Specialization
+    @Specialization(order = 14)
     public Object doPZip(PZip value) {
         return value.__iter__();
     }
 
-    @Specialization
+    @Specialization(order = 15)
     public PIntegerIterator doPIntegerIterator(PIntegerIterator value) {
         return value;
     }
 
-    @Specialization
+    @Specialization(order = 16)
     public PIterator doPIterable(PIterable value) {
         return value.__iter__();
     }
 
-    @Specialization
+    @Specialization(order = 17)
     public PIterator doPIterator(PIterator value) {
         return value;
     }

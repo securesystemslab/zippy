@@ -78,7 +78,6 @@ public abstract class ComprehensionNode extends FrameSlotNode {
             setObject(frame, list);
             comprehension.execute(frame);
             return PTuple.create(list.toArray(), false);
-            // return new PTuple(list.toArray(), false);
         }
     }
 
