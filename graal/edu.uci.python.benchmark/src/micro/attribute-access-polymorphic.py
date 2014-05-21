@@ -42,6 +42,9 @@ def dostuff():
 	return total
 
 def measure(num):
+	for i in range(3):
+		dostuff()
+
 	print("Start timing...")
 	start = time.time()
 
