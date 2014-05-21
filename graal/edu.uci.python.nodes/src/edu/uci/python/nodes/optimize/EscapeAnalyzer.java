@@ -28,8 +28,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.call.*;
-import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
-import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.statement.*;
 
@@ -75,17 +73,7 @@ public class EscapeAnalyzer {
             } else if (current instanceof WriteNode) {
                 return true; // Other write nodes
             } else if (current instanceof PythonCallNode) {
-                boolean isInlined = ((PythonCallNode) current).isInlined();
-
-                if (!isInlined && current instanceof BoxedCallNode) {
-                    LinkedDispatchBoxedNode dispatch = (LinkedDispatchBoxedNode) ((BoxedCallNode) current).getDispatchNode();
-                    DirectCallNode callNode = dispatch.getInvokeNode().getDirectCallNode();
-                    if (callNode.isInlinable()) {
-                        callNode.forceInlining();
-                    }
-                }
-
-                return !isInlined;
+                return !((PythonCallNode) current).isInlined();
             } else if (current instanceof ReturnNode) {
                 return true;
             }
