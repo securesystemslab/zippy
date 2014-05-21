@@ -344,9 +344,19 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
     public abstract static class ModuloNode extends BinaryArithmeticNode {
 
-        @Specialization
-        int doInteger(int left, int right) {
+        @Specialization(order = 0, guards = "isLeftNegative")
+        int doIntegerNegative(int left, int right) {
             return (left % right + right) % right;
+        }
+
+        @Specialization(order = 1)
+        int doInteger(int left, int right) {
+            return left % right;
+        }
+
+        @SuppressWarnings("unused")
+        protected static boolean isLeftNegative(int left, int right) {
+            return left < 0;
         }
 
         @Specialization
