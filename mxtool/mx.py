@@ -100,7 +100,7 @@ class Distribution:
                     zf._provenance = {}
                 existingSource = zf._provenance.get(arcname, None)
                 isOverwrite = False
-                if existingSource and existingSource != source and not arcname.endswith('/'):
+                if existingSource and existingSource != source:
                     log('warning: ' + self.path + ': overwriting ' + arcname + '\n  new: ' + source + '\n  old: ' + existingSource)
                     isOverwrite = True
                 zf._provenance[arcname] = source
