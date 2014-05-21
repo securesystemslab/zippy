@@ -38,7 +38,7 @@ def DFS_search(G):
             while stack:
                 parent,children = stack[-1]
                 try:
-                    child = children.__next__()
+                    child = next(children)
                     if child in visited:
                         yield parent,child,nontree
                     else:
@@ -73,7 +73,7 @@ def create_cycle_graph(n):
     return {i:[(i-1)%n,(i+1)%n] for i in range(n)}
 
 def main():
-	graph = create_cycle_graph(4)
+	graph = create_cycle_graph(40)
 	color = TwoColor(graph)
 	print(color)
 

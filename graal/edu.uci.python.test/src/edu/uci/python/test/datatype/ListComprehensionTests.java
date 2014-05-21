@@ -72,4 +72,13 @@ public class ListComprehensionTests {
         assertPrints("[0, 1, 2, 1, 2, 3, 2, 3, 4, 3, 4, 5, 4, 5, 6]\n", source);
     }
 
+    @Test
+    public void dictComp() {
+        String source = "n = 3\n" + //
+                        "dd = {i:[(i-1)%n,(i+1)%n] for i in range(n)}\n" + //
+                        "print(dd)\n";
+
+        assertPrints("{0: [2, 1], 1: [0, 2], 2: [1, 0]}\n", source);
+    }
+
 }

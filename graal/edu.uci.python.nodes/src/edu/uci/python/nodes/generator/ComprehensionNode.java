@@ -33,6 +33,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -138,6 +139,44 @@ public abstract class ComprehensionNode extends FrameSlotNode {
         @SuppressWarnings("unchecked")
         private HashSet<Object> getSet(Frame frame) {
             return CompilerDirectives.unsafeCast(getObject(frame), HashSet.class, true);
+        }
+    }
+
+    public static final class DictComprehensionNode extends ComprehensionNode {
+
+        public DictComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
+            super(frameSlot, comprehension);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            final Map<Object, Object> map = new TreeMap<>();
+            setObject(frame, map);
+            comprehension.execute(frame);
+            return new PDict(map);
+        }
+    }
+
+    @NodeChildren({@NodeChild(value = "key", type = PNode.class), @NodeChild(value = "value", type = PNode.class)})
+    public abstract static class MapPutNode extends FrameSlotNode {
+
+        public MapPutNode(FrameSlot frameSlot) {
+            super(frameSlot);
+        }
+
+        protected MapPutNode(MapPutNode node) {
+            this(node.frameSlot);
+        }
+
+        @Specialization
+        public Object doObject(VirtualFrame frame, Object key, Object value) {
+            getMap(frame).put(key, value);
+            return value;
+        }
+
+        @SuppressWarnings("unchecked")
+        private TreeMap<Object, Object> getMap(Frame frame) {
+            return CompilerDirectives.unsafeCast(getObject(frame), TreeMap.class, true);
         }
     }
 

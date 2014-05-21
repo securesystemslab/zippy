@@ -346,7 +346,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization
         int doInteger(int left, int right) {
-            return left % right;
+            return (left % right + right) % right;
         }
 
         @Specialization

@@ -180,7 +180,7 @@ public class GeneratorTranslator {
             }
 
             node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
-        } else if (node instanceof ElseNode || node instanceof BreakTargetNode) {
+        } else if (node instanceof ElseNode || node instanceof BreakTargetNode || node instanceof TryExceptNode || node instanceof ExceptNode) {
             // do nothing for now
         } else {
             TranslationUtil.notCovered();

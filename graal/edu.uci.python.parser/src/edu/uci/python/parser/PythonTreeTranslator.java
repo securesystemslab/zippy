@@ -691,6 +691,16 @@ public class PythonTreeTranslator extends Visitor {
         return factory.createListComprehension(slot, comp);
     }
 
+    @Override
+    public Object visitDictComp(DictComp node) throws Exception {
+        FrameSlot slot = environment.nextListComprehensionSlot();
+        PNode key = (PNode) visit(node.getInternalKey());
+        PNode value = (PNode) visit(node.getInternalValue());
+        PNode body = factory.createMapPut(environment.getListComprehensionSlot(), key, value);
+        PNode comp = visitComprehensions(node.getInternalGenerators(), body);
+        return factory.createDictComprehension(slot, comp);
+    }
+
     private PNode visitComprehensions(List<comprehension> comprehensions, PNode body) throws Exception {
         assert body != null;
         PNode current = body;
