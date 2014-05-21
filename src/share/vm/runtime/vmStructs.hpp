@@ -127,7 +127,7 @@ public:
 #endif
 
 #ifdef GRAAL
-  static void initHotSpotVMConfig(JNIEnv *env, jobject config);
+  static void initHotSpotVMConfig(oop config);
 #endif
 
 private:

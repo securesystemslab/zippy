@@ -53,12 +53,6 @@
   TRACE_graal_3("CompilerToVM::" #name); \
   GRAAL_VM_ENTRY_MARK; \
 
-// Entry to native method implementation that calls a JNI function
-// and hence cannot transition current thread to '_thread_in_vm'.
-#define C2V_ENTRY(result_type, name, signature) \
-  JNIEXPORT result_type JNICALL c2v_ ## name signature { \
-  TRACE_graal_3("CompilerToVM::" #name); \
-
 #define C2V_END }
 
 extern "C" {
@@ -91,11 +85,11 @@ extern uint64_t gHotSpotVMLongConstantEntryValueOffset;
 extern uint64_t gHotSpotVMLongConstantEntryArrayStride;
 }
 
-C2V_VMENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
-  VMStructs::initHotSpotVMConfig(env, config);
+C2V_VMENTRY(void, initializeConfiguration, (JNIEnv *, jobject, jobject config))
+  VMStructs::initHotSpotVMConfig(JNIHandles::resolve(config));
 C2V_END
 
-C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace_method, jbyteArray result))
+C2V_VMENTRY(jbyteArray, initializeBytecode, (JNIEnv *, jobject, jlong metaspace_method))
   methodHandle method = asMethod(metaspace_method);
   ResourceMark rm;
 
@@ -162,9 +156,9 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
     }
   }
 
-  env->SetByteArrayRegion(result, 0, code_size, reconstituted_code);
-
-  return result;
+  typeArrayOop result_array = oopFactory::new_byteArray(code_size, CHECK_NULL);
+  memcpy(result_array->byte_at_addr(0), reconstituted_code, code_size);
+  return (jbyteArray) JNIHandles::make_local(result_array);
 C2V_END
 
 C2V_VMENTRY(jint, exceptionTableLength, (JNIEnv *, jobject, jlong metaspace_method))
@@ -233,7 +227,7 @@ C2V_VMENTRY(jboolean, shouldInlineMethod,(JNIEnv *, jobject, jlong metaspace_met
   return CompilerOracle::should_inline(method) || method->force_inline();
 C2V_END
 
-C2V_VMENTRY(jlong, lookupType, (JNIEnv *env, jobject, jstring jname, jclass accessing_class, jboolean resolve))
+C2V_VMENTRY(jlong, lookupType, (JNIEnv*, jobject, jstring jname, jclass accessing_class, jboolean resolve))
   ResourceMark rm;
   Handle name = JNIHandles::resolve(jname);
   Symbol* class_name = java_lang_String::as_symbol(name, THREAD);
@@ -258,44 +252,44 @@ C2V_VMENTRY(jlong, lookupType, (JNIEnv *env, jobject, jstring jname, jclass acce
   return (jlong) (address) resolved_klass;
 C2V_END
 
-C2V_VMENTRY(jobject, resolveConstantInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jobject, resolveConstantInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
   oop result = cp->resolve_constant_at(index, CHECK_NULL);
   return JNIHandles::make_local(THREAD, result);
 C2V_END
 
-C2V_VMENTRY(jobject, resolvePossiblyCachedConstantInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jobject, resolvePossiblyCachedConstantInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
   oop result = cp->resolve_possibly_cached_constant_at(index, CHECK_NULL);
   return JNIHandles::make_local(THREAD, result);
 C2V_END
 
-C2V_VMENTRY(jint, lookupNameAndTypeRefIndexInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jint, lookupNameAndTypeRefIndexInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   return cp->name_and_type_ref_index_at(index);
 C2V_END
 
-C2V_VMENTRY(jlong, lookupNameRefInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jlong, lookupNameRefInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   return (jlong) (address) cp->name_ref_at(index);
 C2V_END
 
-C2V_VMENTRY(jlong, lookupSignatureRefInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jlong, lookupSignatureRefInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   return (jlong) (address) cp->signature_ref_at(index);
 C2V_END
 
-C2V_VMENTRY(jint, lookupKlassRefIndexInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jint, lookupKlassRefIndexInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   return cp->klass_ref_index_at(index);
 C2V_END
 
-C2V_VMENTRY(jlong, constantPoolKlassAt, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jlong, constantPoolKlassAt, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
   return (jlong) (address) cp->klass_at(index, THREAD);
 C2V_END
 
-C2V_VMENTRY(jlong, lookupKlassInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
+C2V_VMENTRY(jlong, lookupKlassInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   KlassHandle loading_klass(cp->pool_holder());
   bool is_accessible = false;
@@ -319,13 +313,13 @@ C2V_VMENTRY(jlong, lookupKlassInPool, (JNIEnv *env, jobject, jlong metaspace_con
   return (jlong) CompilerToVM::tag_pointer(klass());
 C2V_END
 
-C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   oop appendix_oop = ConstantPool::appendix_at_if_loaded(cp, index);
   return JNIHandles::make_local(THREAD, appendix_oop);
 C2V_END
 
-C2V_VMENTRY(jlong, lookupMethodInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
+C2V_VMENTRY(jlong, lookupMethodInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   instanceKlassHandle pool_holder(cp->pool_holder());
   Bytecodes::Code bc = (Bytecodes::Code) (((int) opcode) & 0xFF);
@@ -333,12 +327,12 @@ C2V_VMENTRY(jlong, lookupMethodInPool, (JNIEnv *env, jobject, jlong metaspace_co
   return (jlong) (address) method();
 C2V_END
 
-C2V_VMENTRY(jint, constantPoolRemapInstructionOperandFromCache, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jint, constantPoolRemapInstructionOperandFromCache, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
   return cp->remap_instruction_operand_from_cache(index);
 C2V_END
 
-C2V_VMENTRY(jlong, resolveField, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode, jlongArray info_handle))
+C2V_VMENTRY(jlong, resolveField, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode, jlongArray info_handle))
   ResourceMark rm;
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   Bytecodes::Code code = (Bytecodes::Code)(((int) opcode) & 0xFF);
@@ -434,7 +428,7 @@ C2V_VMENTRY(jlong, getClassInitializer, (JNIEnv *, jobject, jlong metaspace_klas
   return (jlong) (address) klass->class_initializer();
 C2V_END
 
-C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv *env, jobject, jlong addr))
+C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv*, jobject, jlong addr))
   address target_addr = (address) addr;
   if (target_addr != 0x0) {
     int64_t off_low = (int64_t)target_addr - ((int64_t)CodeCache::low_bound() + sizeof(int));
@@ -570,7 +564,7 @@ C2V_VMENTRY(jobject, disassembleCodeBlob, (JNIEnv *jniEnv, jobject, jlong codeBl
   return JNIHandles::make_local(result());
 C2V_END
 
-C2V_VMENTRY(jobject, getStackTraceElement, (JNIEnv *env, jobject, jlong metaspace_method, int bci))
+C2V_VMENTRY(jobject, getStackTraceElement, (JNIEnv*, jobject, jlong metaspace_method, int bci))
   ResourceMark rm;
   HandleMark hm;
 
@@ -579,7 +573,7 @@ C2V_VMENTRY(jobject, getStackTraceElement, (JNIEnv *env, jobject, jlong metaspac
   return JNIHandles::make_local(element);
 C2V_END
 
-C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobject args, jobject hotspotInstalledCode))
+C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv*, jobject, jobject args, jobject hotspotInstalledCode))
   ResourceMark rm;
   HandleMark hm;
 
@@ -607,7 +601,7 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobjec
   }
 C2V_END
 
-C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jlong metaspace_method))
+C2V_VMENTRY(jlongArray, getLineNumberTable, (JNIEnv *, jobject, jlong metaspace_method))
   Method* method = (Method*) metaspace_method;
   if (!method->has_linenumber_table()) {
     return NULL;
@@ -619,19 +613,19 @@ C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jlong metaspace
   }
 
   CompressedLineNumberReadStream stream(method->compressed_linenumber_table());
-  jlongArray result = env->NewLongArray(2 * num_entries);
+  typeArrayOop result = oopFactory::new_longArray(2 * num_entries, CHECK_NULL);
 
   int i = 0;
   jlong value;
   while (stream.read_pair()) {
     value = ((long) stream.bci());
-    env->SetLongArrayRegion(result,i,1,&value);
+    result->long_at_put(i, value);
     value = ((long) stream.line());
-    env->SetLongArrayRegion(result,i + 1,1,&value);
+    result->long_at_put(i + 1, value);
     i += 2;
   }
 
-  return result;
+  return (jlongArray) JNIHandles::make_local(result);
 C2V_END
 
 C2V_VMENTRY(jlong, getLocalVariableTableStart, (JNIEnv *, jobject, jlong metaspace_method))
@@ -649,7 +643,7 @@ C2V_VMENTRY(jint, getLocalVariableTableLength, (JNIEnv *, jobject, jlong metaspa
   return method->localvariable_table_length();
 C2V_END
 
-C2V_VMENTRY(void, reprofile, (JNIEnv *env, jobject, jlong metaspace_method))
+C2V_VMENTRY(void, reprofile, (JNIEnv*, jobject, jlong metaspace_method))
   Method* method = asMethod(metaspace_method);
   MethodCounters* mcs = method->method_counters();
   if (mcs != NULL) {
@@ -673,7 +667,7 @@ C2V_VMENTRY(void, reprofile, (JNIEnv *env, jobject, jlong metaspace_method))
 C2V_END
 
 
-C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv *env, jobject, jobject hotspotInstalledCode))
+C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv*, jobject, jobject hotspotInstalledCode))
   jlong nativeMethod = InstalledCode::address(hotspotInstalledCode);
   nmethod* m = (nmethod*)nativeMethod;
   if (m != NULL && !m->is_not_entrant()) {
@@ -684,32 +678,36 @@ C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv *env, jobject, jobject hotspo
   InstalledCode::set_address(hotspotInstalledCode, 0);
 C2V_END
 
-C2V_VMENTRY(jobject, getJavaMirror, (JNIEnv *env, jobject, jlong metaspace_klass))
+C2V_VMENTRY(jobject, getJavaMirror, (JNIEnv*, jobject, jlong metaspace_klass))
   Klass* klass = asKlass(metaspace_klass);
   return JNIHandles::make_local(klass->java_mirror());
 C2V_END
 
-C2V_VMENTRY(jlong, readUnsafeKlassPointer, (JNIEnv *env, jobject, jobject o))
+C2V_VMENTRY(jlong, readUnsafeKlassPointer, (JNIEnv*, jobject, jobject o))
   oop resolved_o = JNIHandles::resolve(o);
   jlong klass = (jlong)(address)resolved_o->klass();
   return klass;
 C2V_END
 
-C2V_VMENTRY(jlongArray, collectCounters, (JNIEnv *env, jobject))
+C2V_VMENTRY(jlongArray, collectCounters, (JNIEnv*, jobject))
   typeArrayOop arrayOop = oopFactory::new_longArray(GraalCounterSize, CHECK_NULL);
   JavaThread::collect_counters(arrayOop);
   return (jlongArray) JNIHandles::make_local(arrayOop);
 C2V_END
 
-C2V_ENTRY(jobject, getGPUs, (JNIEnv *env, jobject))
+// In general we should avoid using regular JNI methods to interact with the JVM but this
+// particular case is just about registering JNI methods so it should be a regular native
+// method.
+JNIEXPORT jobject JNICALL c2v_getGPUs (JNIEnv* env, jobject) {
+  TRACE_graal_3("CompilerToVM::getGPUs" );
 #if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux) || defined(TARGET_OS_FAMILY_windows)
   return Gpu::probe_gpus(env);
 #else
   return env->NewStringUTF("");
 #endif
-C2V_END
+}
 
-C2V_VMENTRY(int, allocateCompileId, (JNIEnv *env, jobject, jlong metaspace_method, int entry_bci))
+C2V_VMENTRY(int, allocateCompileId, (JNIEnv*, jobject, jlong metaspace_method, int entry_bci))
   HandleMark hm;
   ResourceMark rm;
   Method* method = (Method*) metaspace_method;
@@ -717,17 +715,17 @@ C2V_VMENTRY(int, allocateCompileId, (JNIEnv *env, jobject, jlong metaspace_metho
 C2V_END
 
 
-C2V_VMENTRY(jboolean, isMature, (JNIEnv *env, jobject, jlong metaspace_method_data))
+C2V_VMENTRY(jboolean, isMature, (JNIEnv*, jobject, jlong metaspace_method_data))
   MethodData* mdo = asMethodData(metaspace_method_data);
   return mdo != NULL && mdo->is_mature();
 C2V_END
 
-C2V_VMENTRY(jboolean, hasCompiledCodeForOSR, (JNIEnv *env, jobject, jlong metaspace_method, int entry_bci, int comp_level))
+C2V_VMENTRY(jboolean, hasCompiledCodeForOSR, (JNIEnv*, jobject, jlong metaspace_method, int entry_bci, int comp_level))
   Method* method = asMethod(metaspace_method);
   return method->lookup_osr_nmethod_for(entry_bci, comp_level, true) != NULL;
 C2V_END
 
-C2V_VMENTRY(jlong, getTimeStamp, (JNIEnv *env, jobject))
+C2V_VMENTRY(jlong, getTimeStamp, (JNIEnv*, jobject))
   // tty->time_stamp is the time since VM start which should be used
   // for all HotSpot log output when a timestamp is required.
   return tty->time_stamp().milliseconds();
@@ -744,7 +742,7 @@ bool matches(jlongArray methods, Method* method) {
   return false;
 }
 
-C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv *env, jobject compilerToVM, jobject hs_frame, jlongArray methods, jint initialSkip))
+C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv*, jobject compilerToVM, jobject hs_frame, jlongArray methods, jint initialSkip))
   ResourceMark rm;
 
   if (!thread->has_last_Java_frame()) return NULL;
@@ -879,7 +877,7 @@ C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv *env, jobject compilerToVM, jobj
   return NULL;
 C2V_END
 
-C2V_VMENTRY(void, resolveInvokeDynamic, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(void, resolveInvokeDynamic, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   ConstantPool* cp = (ConstantPool*)metaspace_constant_pool;
   CallInfo callInfo;
   LinkResolver::resolve_invokedynamic(callInfo, cp, index, CHECK);
@@ -888,7 +886,7 @@ C2V_VMENTRY(void, resolveInvokeDynamic, (JNIEnv *env, jobject, jlong metaspace_c
 C2V_END
 
 // public native void materializeVirtualObjects(HotSpotStackFrameReference stackFrame, boolean invalidate);
-C2V_VMENTRY(void, materializeVirtualObjects, (JNIEnv *env, jobject, jobject hs_frame, bool invalidate))
+C2V_VMENTRY(void, materializeVirtualObjects, (JNIEnv*, jobject, jobject hs_frame, bool invalidate))
   ResourceMark rm;
 
   if (hs_frame == NULL) {
@@ -1006,7 +1004,7 @@ C2V_END
 #define METASPACE_SYMBOL      "J"
 
 JNINativeMethod CompilerToVM_methods[] = {
-  {CC"initializeBytecode",                           CC"("METASPACE_METHOD"[B)[B",                                             FN_PTR(initializeBytecode)},
+  {CC"initializeBytecode",                           CC"("METASPACE_METHOD")[B",                                               FN_PTR(initializeBytecode)},
   {CC"exceptionTableStart",                          CC"("METASPACE_METHOD")J",                                                FN_PTR(exceptionTableStart)},
   {CC"exceptionTableLength",                         CC"("METASPACE_METHOD")I",                                                FN_PTR(exceptionTableLength)},
   {CC"hasBalancedMonitors",                          CC"("METASPACE_METHOD")Z",                                                FN_PTR(hasBalancedMonitors)},
