@@ -125,7 +125,13 @@ class LinkResolver: AllStatic {
 
  private:
   static void lookup_method_in_klasses          (methodHandle& result, KlassHandle klass, Symbol* name, Symbol* signature, bool checkpolymorphism, bool in_imethod_resolve, TRAPS);
+#ifdef GRAAL
+ public:
+#endif
   static void lookup_instance_method_in_klasses (methodHandle& result, KlassHandle klass, Symbol* name, Symbol* signature, TRAPS);
+#ifdef GRAAL
+ private:
+#endif
   static void lookup_method_in_interfaces       (methodHandle& result, KlassHandle klass, Symbol* name, Symbol* signature, TRAPS);
   static void lookup_polymorphic_method         (methodHandle& result, KlassHandle klass, Symbol* name, Symbol* signature,
                                                  KlassHandle current_klass, Handle *appendix_result_or_null, Handle *method_type_result, TRAPS);
@@ -139,8 +145,14 @@ class LinkResolver: AllStatic {
 
   static void linktime_resolve_static_method    (methodHandle& resolved_method, KlassHandle resolved_klass, Symbol* method_name, Symbol* method_signature, KlassHandle current_klass, bool check_access, TRAPS);
   static void linktime_resolve_special_method   (methodHandle& resolved_method, KlassHandle resolved_klass, Symbol* method_name, Symbol* method_signature, KlassHandle current_klass, bool check_access, TRAPS);
+#ifdef GRAAL
+ public:
+#endif
   static void linktime_resolve_virtual_method   (methodHandle &resolved_method, KlassHandle resolved_klass, Symbol* method_name, Symbol* method_signature,KlassHandle current_klass, bool check_access, TRAPS);
   static void linktime_resolve_interface_method (methodHandle& resolved_method, KlassHandle resolved_klass, Symbol* method_name, Symbol* method_signature, KlassHandle current_klass, bool check_access, TRAPS);
+#ifdef GRAAL
+ private:
+#endif
 
   static void runtime_resolve_special_method    (CallInfo& result, methodHandle resolved_method, KlassHandle resolved_klass, KlassHandle current_klass, bool check_access, TRAPS);
   static void runtime_resolve_virtual_method    (CallInfo& result, methodHandle resolved_method, KlassHandle resolved_klass, Handle recv, KlassHandle recv_klass, bool check_null_and_abstract, TRAPS);

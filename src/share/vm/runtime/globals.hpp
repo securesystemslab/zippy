@@ -256,7 +256,7 @@ struct Flag {
   // number of flags
   static size_t numFlags;
 
-  static Flag* find_flag(const char* name, size_t length, bool allow_locked = false);
+  static Flag* find_flag(const char* name, size_t length, bool allow_locked = false, bool allow_constant = false);
   static Flag* fuzzy_match(const char* name, size_t length, bool allow_locked = false);
 
   void check_writable();
@@ -3058,7 +3058,7 @@ class CommandLineFlags {
           "If non-zero, maximum number of words that malloc/realloc can "   \
           "allocate (for testing only)")                                    \
                                                                             \
-  product(intx, TypeProfileWidth,     2,                                    \
+  product_pd(intx, TypeProfileWidth,                                        \
           "Number of receiver types to record in call/cast profile")        \
                                                                             \
   product_pd(intx, MethodProfileWidth,                                      \

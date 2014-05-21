@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -22,16 +20,32 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.instrument.impl;
+package com.oracle.graal.phases.common.inlining.info.elem;
 
-import com.oracle.truffle.api.*;
+import com.oracle.graal.nodes.FixedWithNextNode;
+import com.oracle.graal.nodes.Invoke;
 
-/**
- * Instrumentation callback for guest language source-related events.
- */
-public interface SourceCallback {
+import java.util.Collections;
 
-    public void startLoading(Source source);
+public class InlineableMacroNode implements Inlineable {
 
-    public void endLoading(Source source);
+    private final Class<? extends FixedWithNextNode> macroNodeClass;
+
+    public InlineableMacroNode(Class<? extends FixedWithNextNode> macroNodeClass) {
+        this.macroNodeClass = macroNodeClass;
+    }
+
+    @Override
+    public int getNodeCount() {
+        return 1;
+    }
+
+    @Override
+    public Iterable<Invoke> getInvokes() {
+        return Collections.emptyList();
+    }
+
+    public Class<? extends FixedWithNextNode> getMacroNodeClass() {
+        return macroNodeClass;
+    }
 }

@@ -2,8 +2,7 @@
 mxversion=1.0
 suite=graal
 
-library@JDK_TOOLS@path=${JAVA_HOME}/lib/tools.jar
-library@JDK_TOOLS@optional=true
+jrelibrary@JFR@jar=jfr.jar
 
 library@JUNIT@path=lib/junit-4.11.jar
 library@JUNIT@urls=http://repo1.maven.org/maven2/junit/junit/4.11/junit-4.11.jar
@@ -33,12 +32,12 @@ library@DACAPO@urls=http://softlayer.dl.sourceforge.net/project/dacapobench/9.12
 library@DACAPO@sha1=2626a9546df09009f6da0df854e6dc1113ef7dd4
 
 library@JACOCOAGENT@path=lib/jacocoagent.jar
-library@JACOCOAGENT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoagent.jar
-library@JACOCOAGENT@sha1=9e2c835289356d86afbf31840f05a0f9007c4e44
+library@JACOCOAGENT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoagent-0.7.1-1.jar
+library@JACOCOAGENT@sha1=2f73a645b02e39290e577ce555f00b02004650b0
 
 library@JACOCOREPORT@path=lib/jacocoreport.jar
-library@JACOCOREPORT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoreport.jar
-library@JACOCOREPORT@sha1=32fb5ba2f12d86c4feb74bcefc17a4e6fad8a323
+library@JACOCOREPORT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoreport-0.7.1-1.jar
+library@JACOCOREPORT@sha1=0c5db714804416dd1df4d8110762136ce3d5c7dc
 
 library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0-20120216.jar
 library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20120216.103539-3.jar
@@ -75,6 +74,7 @@ com.oracle.graal.truffle,\
 com.oracle.graal.truffle.hotspot.amd64,\
 com.oracle.graal.hotspot.sparc,\
 com.oracle.graal.hotspot,\
+com.oracle.graal.hotspot.jfr,\
 com.oracle.graal.hotspot.hsail
 distribution@GRAAL@exclude=FINDBUGS
 
@@ -87,7 +87,7 @@ distribution@TRUFFLE-DSL-PROCESSOR@path=truffle-dsl-processor.jar
 distribution@TRUFFLE-DSL-PROCESSOR@sourcesPath=truffle-dsl-processor-sources.jar
 distribution@TRUFFLE-DSL-PROCESSOR@dependencies=\
 com.oracle.truffle.dsl.processor
-distribution@TRUFFLE-DSL-PROCESSOR@distDependency=TRUFFLE
+distribution@TRUFFLE-DSL-PROCESSOR@distDependencies=TRUFFLE
 
 # graal.api.collections
 project@com.oracle.graal.api.collections@subDir=graal
@@ -182,14 +182,34 @@ project@com.oracle.graal.sparc@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.sparc@javaCompliance=1.8
 project@com.oracle.graal.sparc@workingSets=Graal,SPARC
 
+# graal.hotspotvmconfig
+project@com.oracle.graal.hotspotvmconfig@subDir=graal
+project@com.oracle.graal.hotspotvmconfig@sourceDirs=src
+project@com.oracle.graal.hotspotvmconfig@dependencies=com.oracle.graal.compiler.common
+project@com.oracle.graal.hotspotvmconfig@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspotvmconfig@annotationProcessors=com.oracle.graal.service.processor
+project@com.oracle.graal.hotspotvmconfig@annotationProcessorForDependents=true
+project@com.oracle.graal.hotspotvmconfig@javaCompliance=1.8
+project@com.oracle.graal.hotspotvmconfig@workingSets=Graal,HotSpot
+
 # graal.hotspot
 project@com.oracle.graal.hotspot@subDir=graal
 project@com.oracle.graal.hotspot@sourceDirs=src
-project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.replacements,com.oracle.graal.runtime,com.oracle.graal.printer,com.oracle.graal.baseline
+project@com.oracle.graal.hotspot@dependencies=com.oracle.graal.replacements,com.oracle.graal.runtime,com.oracle.graal.printer,com.oracle.graal.baseline,com.oracle.graal.hotspotvmconfig
 project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replacements.verifier,com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot@javaCompliance=1.8
 project@com.oracle.graal.hotspot@workingSets=Graal,HotSpot
+
+# graal.hotspot.jfr
+project@com.oracle.graal.hotspot.jfr@subDir=graal
+project@com.oracle.graal.hotspot.jfr@sourceDirs=src
+project@com.oracle.graal.hotspot.jfr@dependencies=com.oracle.graal.hotspot,JFR
+project@com.oracle.graal.hotspot.jfr@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot.jfr@annotationProcessors=com.oracle.graal.service.processor
+project@com.oracle.graal.hotspot.jfr@javaCompliance=1.8
+project@com.oracle.graal.hotspot.jfr@profile=
+project@com.oracle.graal.hotspot.jfr@workingSets=Graal,HotSpot
 
 # graal.hotspot.amd64
 project@com.oracle.graal.hotspot.amd64@subDir=graal
@@ -568,7 +588,7 @@ project@com.oracle.graal.printer@workingSets=Graal,Graph
 # graal.test
 project@com.oracle.graal.test@subDir=graal
 project@com.oracle.graal.test@sourceDirs=src
-project@com.oracle.graal.test@dependencies=JUNIT
+project@com.oracle.graal.test@dependencies=JUNIT,com.oracle.graal.debug
 project@com.oracle.graal.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.test@javaCompliance=1.8
 project@com.oracle.graal.test@workingSets=Graal,Test
@@ -652,7 +672,7 @@ project@com.oracle.graal.compiler.hsail@javaCompliance=1.8
 # graal.compiler.hsail.test.infra - HSAIL compiler test infrastructure
 project@com.oracle.graal.compiler.hsail.test.infra@subDir=graal
 project@com.oracle.graal.compiler.hsail.test.infra@sourceDirs=src
-project@com.oracle.graal.compiler.hsail.test.infra@dependencies=com.oracle.graal.hotspot.hsail,JUNIT,OKRA_WITH_SIM
+project@com.oracle.graal.compiler.hsail.test.infra@dependencies=com.oracle.graal.test,com.oracle.graal.hotspot.hsail,OKRA_WITH_SIM
 project@com.oracle.graal.compiler.hsail.test.infra@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler.hsail.test.infra@javaCompliance=1.8
 

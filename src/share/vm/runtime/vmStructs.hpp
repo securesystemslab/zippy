@@ -126,6 +126,10 @@ public:
   static void test();
 #endif
 
+#ifdef GRAAL
+  static void initHotSpotVMConfig(oop config);
+#endif
+
 private:
   // Look up a type in localHotSpotVMTypes using strcmp() (debug build only).
   // Returns 1 if found, 0 if not.
