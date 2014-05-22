@@ -100,9 +100,6 @@ public class PythonTreeTranslator extends Visitor {
         int startColumn = node.getCharPositionInLine() + 1;
         int charIndex = node.getTokenStartIndex();
         int charLength = node.getText().length();
-
-        // System.out.println("ASSIGN SOURCE SECTION line " + startLine + " startColumn " +
-// startColumn + " for " + truffleNode);
         SourceSection sourceSection = source.createSection(identifier, startLine, startColumn, charIndex, charLength);
         truffleNode.assignSourceSection(sourceSection);
         return truffleNode;
