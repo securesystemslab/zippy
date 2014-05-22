@@ -164,6 +164,12 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
         return pop;
     }
 
+    public Object popObject() {
+        Object pop = values[capacity - 1];
+        length--;
+        return pop;
+    }
+
     @Override
     public void reverse() {
         int head = 0;

@@ -99,6 +99,6 @@ def measure():
 
 # warm up
 for i in range(2000):
-    main(5000)
+    main(2000)
 
 measure()

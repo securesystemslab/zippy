@@ -27,6 +27,8 @@ package edu.uci.python.runtime.sequence.storage;
 import java.io.*;
 import java.util.*;
 
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.*;
 
 public final class IntSequenceStorage extends BasicSequenceStorage {
@@ -180,6 +182,12 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
             values[i] = values[i + 1];
         }
 
+        length--;
+        return pop;
+    }
+
+    public int popInt() {
+        int pop = values[capacity - 1];
         length--;
         return pop;
     }

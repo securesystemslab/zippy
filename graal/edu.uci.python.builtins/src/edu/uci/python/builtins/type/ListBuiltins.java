@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -33,6 +33,7 @@ import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 /**
  * @author Gulfem
@@ -108,14 +109,46 @@ public class ListBuiltins extends PythonBuiltins {
     public abstract static class PythonListPopNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization
-        public Object pop(PList list, PNone none) {
+        protected static boolean isIntStore(PList list, PNone index) {
+            return list.getStorage() instanceof IntSequenceStorage;
+        }
+
+        @SuppressWarnings("unused")
+        protected static boolean isDoubleStore(PList list, PNone index) {
+            return list.getStorage() instanceof DoubleSequenceStorage;
+        }
+
+        @SuppressWarnings("unused")
+        protected static boolean isObjectStore(PList list, PNone index) {
+            return list.getStorage() instanceof ObjectSequenceStorage;
+        }
+
+        @Specialization(order = 0, guards = "isIntStore")
+        public int popInt(PList list, @SuppressWarnings("unused") PNone none) {
+            IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
+            return store.popInt();
+        }
+
+        @Specialization(order = 1, guards = "isDoubleStore")
+        public double popDouble(PList list, @SuppressWarnings("unused") PNone none) {
+            DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
+            return store.popDouble();
+        }
+
+        @Specialization(order = 2, guards = "isObjectStore")
+        public Object popObject(PList list, @SuppressWarnings("unused") PNone none) {
+            ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
+            return store.popObject();
+        }
+
+        @Specialization(order = 3)
+        public Object popLast(PList list, @SuppressWarnings("unused") PNone none) {
             Object ret = list.getItem(list.len() - 1);
             list.delItem(list.len() - 1);
             return ret;
         }
 
-        @Specialization
+        @Specialization(order = 4)
         public Object pop(PList list, int index) {
             Object ret = list.getItem(index);
             list.delItem(index);
@@ -123,7 +156,7 @@ public class ListBuiltins extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization
+        @Specialization(order = 5)
         public Object pop(PList list, Object arg) {
             throw new RuntimeException("invalid arguments for pop()");
         }

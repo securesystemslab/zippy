@@ -181,6 +181,12 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
         return pop;
     }
 
+    public double popDouble() {
+        double pop = values[capacity - 1];
+        length--;
+        return pop;
+    }
+
     @Override
     public int index(Object value) {
         if (value instanceof Double) {
