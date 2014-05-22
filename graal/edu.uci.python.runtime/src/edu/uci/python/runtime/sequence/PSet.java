@@ -38,7 +38,7 @@ public final class PSet extends PBaseSet {
         super();
     }
 
-    public PSet(Set<Object> elements) {
+    public PSet(TreeSet<Object> elements) {
         super(elements);
     }
 

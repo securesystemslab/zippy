@@ -131,7 +131,6 @@ def solve(n, i_min, free, curr_board, pieces_left, solutions,
     return
 
 def main(n):
-
     free = frozenset(range(len(board)))
     curr_board = [-1] * len(board)
     pieces_left = list(range(len(pieces)))
@@ -141,6 +140,9 @@ def main(n):
     for i in (0, -1): print_board(solutions[i])
 
 def measure():
+    for i in range(3):
+        main(num)    
+
     print("Start timing...")
     start = time.time()
     main(num)

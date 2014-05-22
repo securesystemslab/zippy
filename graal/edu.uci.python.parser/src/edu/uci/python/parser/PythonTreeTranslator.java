@@ -754,6 +754,7 @@ public class PythonTreeTranslator extends Visitor {
 
     private LoopNode createForInScope(PNode target, PNode iterator, PNode body) {
         GetIteratorNode getIterator = factory.createGetIterator(iterator);
+        getIterator.assignSourceSection(iterator.getSourceSection());
         return ForNodeFactory.create(body, target, getIterator);
     }
 

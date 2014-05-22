@@ -26,6 +26,7 @@ package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
@@ -37,12 +38,16 @@ public abstract class PTuple extends PImmutableSequence implements Comparable<Ob
     }
 
     public static PTuple create(Object[] elements) {
-        if (SequenceStorageFactory.canSpecializeToInt(elements)) {
-            return new PIntTuple(SequenceStorageFactory.specializeToInt(elements));
-        } else if (SequenceStorageFactory.canSpecializeToDouble(elements)) {
-            return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(elements));
-        } else if (SequenceStorageFactory.canSpecializeToString(elements)) {
-            return new PStringTuple(SequenceStorageFactory.specializeToString(elements));
+        if (PythonOptions.UnboxSequenceStorage) {
+            if (SequenceStorageFactory.canSpecializeToInt(elements)) {
+                return new PIntTuple(SequenceStorageFactory.specializeToInt(elements));
+            } else if (SequenceStorageFactory.canSpecializeToDouble(elements)) {
+                return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(elements));
+            } else if (SequenceStorageFactory.canSpecializeToString(elements)) {
+                return new PStringTuple(SequenceStorageFactory.specializeToString(elements));
+            } else {
+                return new PObjectTuple(elements);
+            }
         } else {
             return new PObjectTuple(elements);
         }
@@ -63,12 +68,16 @@ public abstract class PTuple extends PImmutableSequence implements Comparable<Ob
         }
 
         Object[] values = list.toArray();
-        if (SequenceStorageFactory.canSpecializeToInt(values)) {
-            return new PIntTuple(SequenceStorageFactory.specializeToInt(values));
-        } else if (SequenceStorageFactory.canSpecializeToDouble(values)) {
-            return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(values));
-        } else if (SequenceStorageFactory.canSpecializeToString(values)) {
-            return new PStringTuple(SequenceStorageFactory.specializeToString(values));
+        if (PythonOptions.UnboxSequenceStorage) {
+            if (SequenceStorageFactory.canSpecializeToInt(values)) {
+                return new PIntTuple(SequenceStorageFactory.specializeToInt(values));
+            } else if (SequenceStorageFactory.canSpecializeToDouble(values)) {
+                return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(values));
+            } else if (SequenceStorageFactory.canSpecializeToString(values)) {
+                return new PStringTuple(SequenceStorageFactory.specializeToString(values));
+            } else {
+                return new PObjectTuple(values);
+            }
         } else {
             return new PObjectTuple(values);
         }
@@ -85,14 +94,18 @@ public abstract class PTuple extends PImmutableSequence implements Comparable<Ob
      * @param copy whether to copy the elements into a new array or not
      */
     public static PTuple create(Object[] elements, boolean copy) {
-        if (SequenceStorageFactory.canSpecializeToInt(elements)) {
-            return new PIntTuple(SequenceStorageFactory.specializeToInt(elements), copy);
-        } else if (SequenceStorageFactory.canSpecializeToDouble(elements)) {
-            return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(elements), copy);
-        } else if (SequenceStorageFactory.canSpecializeToString(elements)) {
-            return new PStringTuple(SequenceStorageFactory.specializeToString(elements), copy);
+        if (PythonOptions.UnboxSequenceStorage) {
+            if (SequenceStorageFactory.canSpecializeToInt(elements)) {
+                return new PIntTuple(SequenceStorageFactory.specializeToInt(elements), copy);
+            } else if (SequenceStorageFactory.canSpecializeToDouble(elements)) {
+                return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(elements), copy);
+            } else if (SequenceStorageFactory.canSpecializeToString(elements)) {
+                return new PStringTuple(SequenceStorageFactory.specializeToString(elements), copy);
+            } else {
+                return new PObjectTuple(elements, copy);
+            }
         } else {
-            return new PObjectTuple(elements);
+            return new PObjectTuple(elements, copy);
         }
     }
 

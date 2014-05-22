@@ -113,7 +113,7 @@ public abstract class ComprehensionNode extends FrameSlotNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-            final Set<Object> set = new HashSet<>();
+            final TreeSet<Object> set = new TreeSet<>();
             setObject(frame, set);
             comprehension.execute(frame);
             return new PSet(set);
