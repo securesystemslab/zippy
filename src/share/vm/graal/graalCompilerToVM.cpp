@@ -89,12 +89,12 @@ C2V_VMENTRY(void, initializeConfiguration, (JNIEnv *, jobject, jobject config))
   VMStructs::initHotSpotVMConfig(JNIHandles::resolve(config));
 C2V_END
 
-C2V_VMENTRY(jbyteArray, initializeBytecode, (JNIEnv *, jobject, jlong metaspace_method))
+C2V_VMENTRY(jbyteArray, getBytecode, (JNIEnv *, jobject, jlong metaspace_method))
   methodHandle method = asMethod(metaspace_method);
   ResourceMark rm;
 
   int code_size = method->code_size();
-  jbyte* reconstituted_code = NEW_RESOURCE_ARRAY(jbyte, code_size);
+  typeArrayOop reconstituted_code = oopFactory::new_byteArray(code_size, CHECK_NULL);
 
   guarantee(method->method_holder()->is_rewritten(), "Method's holder should be rewritten");
   // iterate over all bytecodes and replace non-Java bytecodes
@@ -106,9 +106,9 @@ C2V_VMENTRY(jbyteArray, initializeBytecode, (JNIEnv *, jobject, jlong metaspace_
     int len = s.instruction_size();
 
     // Restore original byte code.
-    reconstituted_code[bci] = (jbyte) (s.is_wide()? Bytecodes::_wide : code);
+    reconstituted_code->byte_at_put(bci, (jbyte) (s.is_wide()? Bytecodes::_wide : code));
     if (len > 1) {
-      memcpy(&reconstituted_code[bci+1], s.bcp()+1, len-1);
+      memcpy(reconstituted_code->byte_at_addr(bci + 1), s.bcp()+1, len-1);
     }
 
     if (len > 1) {
@@ -124,41 +124,39 @@ C2V_VMENTRY(jbyteArray, initializeBytecode, (JNIEnv *, jobject, jlong metaspace_
         case Bytecodes::_invokestatic:
         case Bytecodes::_invokeinterface:
         case Bytecodes::_invokehandle: {
-          int cp_index = Bytes::get_native_u2((address) &reconstituted_code[bci + 1]);
-          Bytes::put_Java_u2((address) &reconstituted_code[bci + 1], (u2) cp_index);
+          int cp_index = Bytes::get_native_u2((address) reconstituted_code->byte_at_addr(bci + 1));
+          Bytes::put_Java_u2((address) reconstituted_code->byte_at_addr(bci + 1), (u2) cp_index);
           break;
         }
 
         case Bytecodes::_invokedynamic:
-          int cp_index = Bytes::get_native_u4((address) &reconstituted_code[bci + 1]);
-          Bytes::put_Java_u4((address) &reconstituted_code[bci + 1], (u4) cp_index);
+          int cp_index = Bytes::get_native_u4((address) reconstituted_code->byte_at_addr(bci + 1));
+          Bytes::put_Java_u4((address) reconstituted_code->byte_at_addr(bci + 1), (u4) cp_index);
           break;
       }
 
       // Not all ldc byte code are rewritten.
       switch (raw_code) {
         case Bytecodes::_fast_aldc: {
-          int cpc_index = reconstituted_code[bci + 1] & 0xff;
+          int cpc_index = reconstituted_code->byte_at(bci + 1) & 0xff;
           int cp_index = method->constants()->object_to_cp_index(cpc_index);
           assert(cp_index < method->constants()->length(), "sanity check");
-          reconstituted_code[bci + 1] = (jbyte) cp_index;
+          reconstituted_code->byte_at_put(bci + 1, (jbyte) cp_index);
           break;
         }
 
         case Bytecodes::_fast_aldc_w: {
-          int cpc_index = Bytes::get_native_u2((address) &reconstituted_code[bci + 1]);
+          int cpc_index = Bytes::get_native_u2((address) reconstituted_code->byte_at_addr(bci + 1));
           int cp_index = method->constants()->object_to_cp_index(cpc_index);
           assert(cp_index < method->constants()->length(), "sanity check");
-          Bytes::put_Java_u2((address) &reconstituted_code[bci + 1], (u2) cp_index);
+          Bytes::put_Java_u2((address) reconstituted_code->byte_at_addr(bci + 1), (u2) cp_index);
           break;
         }
       }
     }
   }
 
-  typeArrayOop result_array = oopFactory::new_byteArray(code_size, CHECK_NULL);
-  memcpy(result_array->byte_at_addr(0), reconstituted_code, code_size);
-  return (jbyteArray) JNIHandles::make_local(result_array);
+  return (jbyteArray) JNIHandles::make_local(reconstituted_code);
 C2V_END
 
 C2V_VMENTRY(jint, exceptionTableLength, (JNIEnv *, jobject, jlong metaspace_method))
@@ -1004,7 +1002,7 @@ C2V_END
 #define METASPACE_SYMBOL      "J"
 
 JNINativeMethod CompilerToVM_methods[] = {
-  {CC"initializeBytecode",                           CC"("METASPACE_METHOD")[B",                                               FN_PTR(initializeBytecode)},
+  {CC"getBytecode",                                  CC"("METASPACE_METHOD")[B",                                               FN_PTR(getBytecode)},
   {CC"exceptionTableStart",                          CC"("METASPACE_METHOD")J",                                                FN_PTR(exceptionTableStart)},
   {CC"exceptionTableLength",                         CC"("METASPACE_METHOD")I",                                                FN_PTR(exceptionTableLength)},
   {CC"hasBalancedMonitors",                          CC"("METASPACE_METHOD")Z",                                                FN_PTR(hasBalancedMonitors)},
