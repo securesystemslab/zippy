@@ -51,6 +51,12 @@ public class GeneratorTests {
     }
 
     @Test
+    public void loopWithContinue() {
+        Path script = Paths.get("generator-continue-test.py");
+        assertPrints("1\n2\n3\n!!\n4\n5\n", script);
+    }
+
+    @Test
     public void multipleYields() {
         Path script = Paths.get("generator-multiple-yield-test.py");
         assertPrints("1\n3\n2\n1\n", script);

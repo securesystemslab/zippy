@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,17 +22,36 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.control;
+package edu.uci.python.nodes.generator;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.function.*;
 
-public class ContinueNode extends StatementNode {
+public final class GeneratorContinueNode extends StatementNode {
 
+    private final int[] enclosingBlockIndexSlots;
+    private final int[] enclosingIfFlagSlots;
+
+    public GeneratorContinueNode(int[] enclosingBlockIndexSlots, int[] enclosingIfFlagSlots) {
+        this.enclosingBlockIndexSlots = enclosingBlockIndexSlots;
+        this.enclosingIfFlagSlots = enclosingIfFlagSlots;
+    }
+
+    @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
+        for (int indexSlot : enclosingBlockIndexSlots) {
+            PArguments.getGeneratorArguments(frame).setBlockIndexAt(indexSlot, 0);
+        }
+
+        for (int flagSlot : enclosingIfFlagSlots) {
+            PArguments.getGeneratorArguments(frame).setActive(flagSlot, false);
+        }
+
         throw ContinueException.INSTANCE;
     }
 

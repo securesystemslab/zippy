@@ -126,6 +126,32 @@ public class GeneratorTranslator {
             }
         }
 
+        for (ContinueNode cnode : NodeUtil.findAllNodeInstances(root, ContinueNode.class)) {
+            Node current = cnode.getParent();
+            List<Integer> indexSlots = new ArrayList<>();
+            List<Integer> flagSlots = new ArrayList<>();
+
+            while (!(current instanceof LoopNode)) {
+                if (current instanceof GeneratorBlockNode) {
+                    int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
+                    indexSlots.add(indexSlot);
+                } else if (current instanceof GeneratorIfWithoutElseNode) {
+                    GeneratorIfWithoutElseNode ifNode = (GeneratorIfWithoutElseNode) current;
+                    flagSlots.add(ifNode.getThenFlagSlot());
+                } else if (current instanceof GeneratorIfNode) {
+                    GeneratorIfNode ifNode = (GeneratorIfNode) current;
+                    flagSlots.add(ifNode.getThenFlagSlot());
+                    flagSlots.add(ifNode.getElseFlagSlot());
+                }
+
+                current = current.getParent();
+            }
+
+            int[] indexSlotsArray = Ints.toArray(indexSlots);
+            int[] flagSlotsArray = Ints.toArray(flagSlots);
+            cnode.replace(new GeneratorContinueNode(indexSlotsArray, flagSlotsArray));
+        }
+
         return callTarget;
     }
 
