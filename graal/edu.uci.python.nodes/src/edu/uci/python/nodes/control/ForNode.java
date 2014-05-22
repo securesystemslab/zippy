@@ -55,7 +55,7 @@ public abstract class ForNode extends LoopNode {
 
     public abstract PNode getIterator();
 
-    @Specialization
+    @Specialization(order = 1)
     public Object doPRange(VirtualFrame frame, PRangeIterator range) {
         final int start = range.getStart();
         final int stop = range.getStop();
@@ -80,7 +80,57 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization
+    @Specialization(order = 2)
+    public Object doIntegerIterator(VirtualFrame frame, PIntegerIterator iterator) {
+        int count = 0;
+
+        try {
+            while (true) {
+                loopBodyBranch.enter();
+                ((WriteNode) target).executeWrite(frame, iterator.__nextInt__());
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } catch (StopIterationException e) {
+
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
+        }
+
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 3)
+    public Object doDoubleIterator(VirtualFrame frame, PDoubleIterator iterator) {
+        int count = 0;
+
+        try {
+            while (true) {
+                loopBodyBranch.enter();
+                ((WriteNode) target).executeWrite(frame, iterator.__nextDouble__());
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } catch (StopIterationException e) {
+
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
+        }
+
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 5)
     public Object doIterator(VirtualFrame frame, PIterator iterator) {
         int count = 0;
 

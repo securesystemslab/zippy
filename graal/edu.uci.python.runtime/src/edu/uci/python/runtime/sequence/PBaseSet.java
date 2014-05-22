@@ -33,14 +33,15 @@ import edu.uci.python.runtime.standardtype.*;
 
 public abstract class PBaseSet extends PythonBuiltinObject implements PIterable {
 
-    protected final Set<Object> set;
+    protected final TreeSet<Object> set;
 
     public PBaseSet() {
         this.set = new TreeSet<>();
     }
 
     public PBaseSet(Set<Object> elements) {
-        this.set = elements;
+        this.set = new TreeSet<>();
+        this.set.addAll(elements);
     }
 
     public PBaseSet(PIterator iter) {
@@ -86,6 +87,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements PIterable 
         if (this.len() > other.len()) {
             return false;
         }
+
         for (Object p : this.set) {
             if (!other.set.contains(p)) {
                 return false;
@@ -230,16 +232,12 @@ public abstract class PBaseSet extends PythonBuiltinObject implements PIterable 
 
     @Override
     public Object getMax() {
-        Object[] copy = this.set.toArray();
-        Arrays.sort(copy);
-        return copy[copy.length - 1];
+        return this.set.last();
     }
 
     @Override
     public Object getMin() {
-        Object[] copy = this.set.toArray();
-        Arrays.sort(copy);
-        return copy[0];
+        return this.set.first();
     }
 
     @Override

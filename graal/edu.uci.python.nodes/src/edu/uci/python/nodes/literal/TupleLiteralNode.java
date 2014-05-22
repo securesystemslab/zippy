@@ -30,6 +30,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
@@ -84,15 +85,20 @@ public abstract class TupleLiteralNode extends LiteralNode {
                 elements[i] = values[i].execute(frame);
             }
 
-            if (SequenceStorageFactory.canSpecializeToInt(elements)) {
-                replace(new IntTupleLiteralNode(values));
-                return new PIntTuple(SequenceStorageFactory.specializeToInt(elements));
-            } else if (SequenceStorageFactory.canSpecializeToDouble(elements)) {
-                replace(new DoubleTupleLiteralNode(values));
-                return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(elements));
-            } else if (SequenceStorageFactory.canSpecializeToString(elements)) {
-                replace(new StringTupleLiteralNode(values));
-                return new PStringTuple(SequenceStorageFactory.specializeToString(elements));
+            if (PythonOptions.UnboxSequenceStorage) {
+                if (SequenceStorageFactory.canSpecializeToInt(elements)) {
+                    replace(new IntTupleLiteralNode(values));
+                    return new PIntTuple(SequenceStorageFactory.specializeToInt(elements));
+                } else if (SequenceStorageFactory.canSpecializeToDouble(elements)) {
+                    replace(new DoubleTupleLiteralNode(values));
+                    return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(elements));
+                } else if (SequenceStorageFactory.canSpecializeToString(elements)) {
+                    replace(new StringTupleLiteralNode(values));
+                    return new PStringTuple(SequenceStorageFactory.specializeToString(elements));
+                } else {
+                    replace(new ObjectTupleLiteralNode(values));
+                    return new PObjectTuple(elements);
+                }
             } else {
                 replace(new ObjectTupleLiteralNode(values));
                 return new PObjectTuple(elements);

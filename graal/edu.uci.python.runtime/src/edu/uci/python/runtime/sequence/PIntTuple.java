@@ -26,6 +26,8 @@ package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
@@ -135,6 +137,13 @@ public final class PIntTuple extends PTuple {
 
     @Override
     public Object getMin() {
+        int[] copy = Arrays.copyOf(this.array, this.array.length);
+        Arrays.sort(copy);
+        return copy[0];
+    }
+
+    @SlowPath
+    public int getMinInt() {
         int[] copy = Arrays.copyOf(this.array, this.array.length);
         Arrays.sort(copy);
         return copy[0];
