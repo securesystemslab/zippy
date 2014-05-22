@@ -152,6 +152,11 @@ public class PList extends PSequence {
         store.delItemInBound(idx);
     }
 
+    public final void delSlice(PSlice slice) {
+        final int start = slice.getStart();
+        final int stop = slice.getStop();
+    }
+
     @Override
     public final boolean lessThan(PSequence sequence) {
         return false;

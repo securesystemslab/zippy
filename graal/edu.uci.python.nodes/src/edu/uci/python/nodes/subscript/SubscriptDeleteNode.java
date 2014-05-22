@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -29,6 +29,7 @@ import com.oracle.truffle.api.dsl.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.sequence.*;
 
 public abstract class SubscriptDeleteNode extends BinaryOpNode {
 
@@ -41,6 +42,18 @@ public abstract class SubscriptDeleteNode extends BinaryOpNode {
     }
 
     @Specialization(order = 1)
+    public Object doPList(PList primary, int index) {
+        primary.delItem(index);
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 2)
+    public Object doPList(PList primary, PSlice slice) {
+        primary.delSlice(slice);
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 3)
     public Object doPDict(PDict primary, Object key) {
         primary.delItem(key);
         return PNone.NONE;

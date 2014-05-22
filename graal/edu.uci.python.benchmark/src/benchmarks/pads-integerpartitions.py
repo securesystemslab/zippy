@@ -140,7 +140,9 @@ def binary_partitions(n):
         last_nonunit += 1
         while x > 1:
             if len(partition) - last_nonunit - 1 >= x:
+                print('before del partition', partition)
                 del partition[-x+1:]
+                print('after del partition', partition)
                 last_nonunit += 1
                 partition[last_nonunit] = x
             else:
@@ -314,32 +316,40 @@ class PartitionTest(unittest.TestCase):
 
 counts = [1,1,2,3,5,7,11,15,22,30,42,56,77,101,135]
 
+def _sum(iterable):
+    sum = None
+    for i in iterable:
+        if sum is None:
+            sum = i
+        else:
+            sum += i
+
+    return sum
+
 def main(n):
-    result = list(i for i in revlex_partitions(n))
-    return result[-1]
+    # for p in revlex_partitions(n):
+    #     if n != _sum(p):
+    #         return False
 
-def alter(n):
-    for p in revlex_partitions(n):
-        if n != sum(p):
-            return False
+    for p in binary_partitions(n):
+        ret = p
 
-    return True
+    # return True
+    return ret
 
 
 def measure():
-    input = int(sys.argv[1]) #70
+    input = int(sys.argv[1]) #80
 
     print("Start timing...")
     start = time.time()
-    result = alter(input)
+    result = main(input)
     print(result)
     duration = "%.3f\n" % (time.time() - start)
     print("pads-partitions: " + duration)
 
 for i in range(100):
-    alter(40)
-
-# alter(10)
+    main(40)
 
 measure()
     
