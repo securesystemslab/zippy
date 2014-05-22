@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,33 +24,29 @@
  */
 package edu.uci.python.runtime.iterator;
 
+import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.sequence.*;
 
-/**
- * @author Gulfem
- */
+public class PDoubleArrayIterator implements PIterator, PDoubleIterator {
 
-public final class PZipIterator implements PIterator {
+    private final PDoubleArray array;
+    private int index;
 
-    private final PIterator[] iterators;
-
-    public PZipIterator(PIterator[] iterators) {
-        this.iterators = iterators;
+    public PDoubleArrayIterator(PDoubleArray array) {
+        this.array = array;
     }
 
     @Override
-    public Object __next__() throws StopIterationException {
-        /**
-         * StopIterationException is not explicitly thrown, but it can be implicitly thrown and
-         * stops the iteration when the __next__() method is called on one of the iterated objects.
-         */
-        Object[] tupleElements = new Object[iterators.length];
-        for (int i = 0; i < iterators.length; i++) {
-            tupleElements[i] = iterators[i].__next__();
+    public double __nextDouble__() {
+        if (index < array.len()) {
+            return array.getDoubleItemInBound(index++);
         }
 
-        return PTuple.create(tupleElements);
+        throw StopIterationException.INSTANCE;
+    }
+
+    public Object __next__() throws StopIterationException {
+        return __nextDouble__();
     }
 
 }

@@ -25,6 +25,7 @@
 package edu.uci.python.nodes.subscript;
 
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.array.*;
@@ -32,6 +33,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
+@NodeInfo(shortName = "subscript_load_index")
 public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
 
     public PNode makeWriteNode(PNode rhs) {
@@ -74,11 +76,26 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     }
 
     @Specialization(order = 4)
-    public Object doPTuple(PTuple tuple, int idx) {
-        return tuple.getItem(idx);
+    public int doPIntTuple(PIntTuple tuple, int idx) {
+        return tuple.getIntItem(idx);
     }
 
     @Specialization(order = 5)
+    public double doPDoubleTuple(PDoubleTuple tuple, int idx) {
+        return tuple.getDoubleItem(idx);
+    }
+
+    @Specialization(order = 6)
+    public String doPStringTuple(PStringTuple tuple, int idx) {
+        return tuple.getStringItem(idx);
+    }
+
+    @Specialization(order = 7)
+    public Object doPObjectTuple(PObjectTuple tuple, int idx) {
+        return tuple.getObjectItem(idx);
+    }
+
+    @Specialization(order = 10)
     public Object doPRange(PRange primary, int idx) {
         return primary.getItem(idx);
     }
@@ -86,7 +103,7 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     /**
      * PDict lookup using key.
      */
-    @Specialization(order = 6)
+    @Specialization(order = 11)
     public Object doPDict(PDict primary, Object key) {
         final Object result = primary.getItem(key);
         assert result != null;
@@ -96,22 +113,22 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     /**
      * Unboxed array reads.
      */
-    @Specialization(order = 10)
+    @Specialization(order = 12)
     public int doPIntArray(PIntArray primary, int index) {
         return primary.getIntItemInBound(index);
     }
 
-    @Specialization(order = 11)
+    @Specialization(order = 13)
     public double doPDoubleArray(PDoubleArray primary, int index) {
         return primary.getDoubleItemInBound(index);
     }
 
-    @Specialization(order = 12)
+    @Specialization(order = 14)
     public char doPCharArray(PCharArray primary, int index) {
         return primary.getCharItemInBound(index);
     }
 
-    @Specialization(order = 14)
+    @Specialization(order = 15)
     public Object doPArray(PArray primary, int slice) {
         return primary.getItem(slice);
     }

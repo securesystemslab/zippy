@@ -51,6 +51,7 @@ public abstract class ComprehensionNode extends FrameSlotNode {
         throw new UnsupportedOperationException();
     }
 
+    @NodeInfo(shortName = "list_comprehension")
     public static final class ListComprehensionNode extends ComprehensionNode {
 
         public ListComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
@@ -77,7 +78,7 @@ public abstract class ComprehensionNode extends FrameSlotNode {
             final ArrayList<Object> list = new ArrayList<>();
             setObject(frame, list);
             comprehension.execute(frame);
-            return new PTuple(list.toArray(), false);
+            return PTuple.create(list.toArray(), false);
         }
     }
 

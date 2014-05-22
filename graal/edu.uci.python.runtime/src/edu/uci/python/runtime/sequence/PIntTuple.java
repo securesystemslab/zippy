@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,30 +22,46 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.array;
+package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.object.*;
-import edu.uci.python.runtime.sequence.*;
 
-public final class PDoubleArray extends PArray {
+public final class PIntTuple extends PTuple {
 
-    private final double[] array;
+    private final int[] array;
 
-    public PDoubleArray() {
-        array = new double[0];
+    public PIntTuple(int[] elements) {
+        if (elements == null) {
+            array = new int[0];
+        } else {
+            array = new int[elements.length];
+            System.arraycopy(elements, 0, array, 0, elements.length);
+        }
     }
 
-    public PDoubleArray(double[] elements) {
-        if (elements == null) {
-            array = new double[0];
-        } else {
-            array = new double[elements.length];
-            System.arraycopy(elements, 0, array, 0, elements.length);
+    public PIntTuple(PRangeIterator iter) {
+        /**
+         * TODO Can be improved Currently creates a list, and then creates an array
+         */
+
+        final int start = iter.getStart();
+        final int stop = iter.getStop();
+        final int step = iter.getStep();
+
+        int arrayLength = 0;
+        for (int i = start; i < stop; i += step) {
+            arrayLength++;
+        }
+
+        array = new int[arrayLength];
+        int index = 0;
+        for (int i = start; i < stop; i += step) {
+            array[index] = i;
+            index++;
         }
     }
 
@@ -55,79 +71,32 @@ public final class PDoubleArray extends PArray {
      * @param elements the tuple elements
      * @param copy whether to copy the elements into a new array or not
      */
-    private PDoubleArray(double[] elements, boolean copy) {
+    public PIntTuple(int[] elements, boolean copy) {
         if (copy) {
-            array = new double[elements.length];
+            array = new int[elements.length];
             System.arraycopy(elements, 0, array, 0, elements.length);
         } else {
             array = elements;
         }
     }
 
-    public double[] getSequence() {
-        return array;
+    public int getIntItem(int idx) {
+        int checkedIdx = idx;
+
+        if (idx < 0) {
+            checkedIdx += array.length;
+        }
+
+        return array[checkedIdx];
     }
 
     @Override
     public PIterator __iter__() {
         if (PythonOptions.UnboxSequenceIteration) {
-            return new PDoubleArrayIterator(this);
+            return new PIntTupleIterator(this);
         } else {
             return new PSequenceIterator(this);
         }
-    }
-
-    @Override
-    public Object getItem(int idx) {
-        return getDoubleItemInBound(idx);
-    }
-
-    public double getDoubleItemInBound(int idx) {
-        return ObjectLayoutUtil.readDoubleArrayUnsafeAt(array, idx, null);
-    }
-
-    @Override
-    public void setItem(int idx, Object value) {
-        int index = SequenceUtil.normalizeIndex(idx, array.length);
-        setDoubleItemInBound(index, (double) value);
-    }
-
-    public void setDoubleItemInBound(int idx, double value) {
-        ObjectLayoutUtil.writeDoubleArrayUnsafeAt(array, idx, value, null);
-    }
-
-    @Override
-    public PDoubleArray getSlice(PSlice slice) {
-        int length = slice.computeActualIndices(array.length);
-        return getSlice(slice.getStart(), slice.getStop(), slice.getStep(), length);
-    }
-
-    @Override
-    public PDoubleArray getSlice(int start, int stop, int step, int length) {
-        double[] newArray = new double[length];
-
-        if (step == 1) {
-            System.arraycopy(array, start, newArray, 0, stop - start);
-            return new PDoubleArray(newArray, false);
-        }
-        for (int i = start, j = 0; j < length; i += step, j++) {
-            newArray[j] = array[i];
-        }
-        return new PDoubleArray(newArray, false);
-    }
-
-    @Override
-    public Object getMax() {
-        double[] copy = Arrays.copyOf(this.array, this.array.length);
-        Arrays.sort(copy);
-        return copy[copy.length - 1];
-    }
-
-    @Override
-    public Object getMin() {
-        double[] copy = Arrays.copyOf(this.array, this.array.length);
-        Arrays.sort(copy);
-        return copy[0];
     }
 
     @Override
@@ -136,36 +105,77 @@ public final class PDoubleArray extends PArray {
     }
 
     @Override
-    public PArray __add__(PArray other) {
-        PDoubleArray otherArray = (PDoubleArray) other;
-        double[] joined = new double[len() + other.len()];
-        System.arraycopy(array, 0, joined, 0, len());
-        System.arraycopy(otherArray.getSequence(), 0, joined, len(), other.len());
-        return new PDoubleArray(joined);
+    public Object[] getArray() {
+        Object[] objectArray = new Object[array.length];
+        for (int i = 0; i < array.length; i++) {
+            objectArray[i] = array[i];
+        }
+
+        return objectArray;
     }
 
     @Override
-    public PArray __mul__(int value) {
-        double[] newArray = new double[value * array.length];
-        int count = 0;
+    public Object getSlice(PSlice slice) {
+        int length = slice.computeActualIndices(array.length);
+        return getSlice(slice.getStart(), slice.getStop(), slice.getStep(), length);
+    }
 
-        for (int i = 0; i < value; i++) {
-            for (int j = 0; j < array.length; j++) {
-                newArray[count++] = array[j];
-            }
+    @Override
+    public Object getSlice(int start, int stop, int step, int length) {
+        int[] newArray = new int[length];
+        if (step == 1) {
+            System.arraycopy(array, start, newArray, 0, stop - start);
+            return new PIntTuple(newArray, false);
+        }
+        for (int i = start, j = 0; j < length; i += step, j++) {
+            newArray[j] = array[i];
+        }
+        return new PIntTuple(newArray, false);
+    }
+
+    @Override
+    public Object getMin() {
+        int[] copy = Arrays.copyOf(this.array, this.array.length);
+        Arrays.sort(copy);
+        return copy[0];
+    }
+
+    @Override
+    public Object getMax() {
+        int[] copy = Arrays.copyOf(this.array, this.array.length);
+        Arrays.sort(copy);
+        return copy[copy.length - 1];
+    }
+
+    @Override
+    public Object getItem(int idx) {
+        int checkedIdx = idx;
+
+        if (idx < 0) {
+            checkedIdx += array.length;
         }
 
-        return new PDoubleArray(newArray);
+        return array[checkedIdx];
     }
 
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder("(");
         for (int i = 0; i < array.length - 1; i++) {
-            buf.append(array[i] + " ");
+            buf.append(toString(array[i]));
+            buf.append(", ");
         }
-        buf.append(array[array.length - 1]);
+
+        if (array.length > 0) {
+            buf.append(toString(array[array.length - 1]));
+        }
+
+        if (array.length == 1) {
+            buf.append(",");
+        }
+
         buf.append(")");
         return buf.toString();
     }
+
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,60 +22,51 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.function;
+package edu.uci.python.nodes.profiler;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import java.util.*;
+
+import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.runtime.*;
 
 /**
  * @author Gulfem
- * @author zwei
  */
-public class BuiltinFunctionRootNode extends RootNode {
 
-    private final String functionName;
+public class PythonNodeProber implements ASTNodeProber {
 
-    @Child protected PythonBuiltinNode builtinNode;
-    private final PythonBuiltinNode uninitialized;
+    private final PythonContext context;
 
-    @Child private PNode profiler;
+    private static Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments = new HashMap<>();
 
-    public BuiltinFunctionRootNode(String functionName, PythonBuiltinNode builtinNode) {
-        this.functionName = functionName;
-        this.builtinNode = builtinNode;
-        this.uninitialized = NodeUtil.cloneNode(builtinNode);
-        if (PythonOptions.ProfileCalls) {
-            this.profiler = new ProfilerNode(this);
+    public PythonNodeProber(PythonContext context) {
+        this.context = context;
+    }
+
+    public Node probeAs(Node astNode, PhylumTag tag, Object... args) {
+        return astNode;
+    }
+
+    public PythonWrapperNode probeAsStatement(PNode node) {
+        PythonWrapperNode wrapper;
+        if (node instanceof PythonWrapperNode) {
+            wrapper = (PythonWrapperNode) node;
         } else {
-            this.profiler = EmptyNode.create();
+            wrapper = new PythonWrapperNode(context, node);
+            wrapper.getProbe().tagAs(StandardTag.STATEMENT);
+            wrapper.assignSourceSection(node.getSourceSection());
         }
+
+        ProfilerInstrument profilerInstrument = new ProfilerInstrument();
+        wrapper.getProbe().addInstrument(profilerInstrument);
+        wrapperToInstruments.put(wrapper, profilerInstrument);
+        return wrapper;
     }
 
-    @Override
-    public RootNode split() {
-        return new BuiltinFunctionRootNode(functionName, NodeUtil.cloneNode(uninitialized));
+    public static Map<PythonWrapperNode, ProfilerInstrument> getWrapperToInstruments() {
+        return wrapperToInstruments;
     }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        if (PythonOptions.ProfileCalls) {
-            profiler.execute(frame);
-        }
-        return builtinNode.execute(frame);
-
-    }
-
-    public String getFunctionName() {
-        return functionName;
-    }
-
-    @Override
-    public String toString() {
-        return "<builtin function " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
-    }
-
 }
