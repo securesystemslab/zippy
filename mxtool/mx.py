@@ -1847,7 +1847,7 @@ def abort(codeOrMessage):
 
     def is_alive(p):
         if isinstance(p, subprocess.Popen):
-            return p.poll() is not None
+            return p.poll() is None
         assert isinstance(p, multiprocessing.Process), p
         return p.is_alive()
 
