@@ -140,9 +140,6 @@ def main(n):
     for i in (0, -1): print_board(solutions[i])
 
 def measure():
-    for i in range(3):
-        main(num)    
-
     print("Start timing...")
     start = time.time()
     main(num)
