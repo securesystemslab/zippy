@@ -38,12 +38,16 @@ public class YieldNode extends StatementNode {
 
     public YieldNode(PNode right) {
         this.right = right;
-        parentBlockIndexSlot = 0;
+        parentBlockIndexSlot = -1;
     }
 
     public YieldNode(YieldNode prev, int parentBlockIndexSlot) {
         this.right = prev.right;
         this.parentBlockIndexSlot = parentBlockIndexSlot;
+    }
+
+    public final int getParentBlockIndexSlot() {
+        return parentBlockIndexSlot;
     }
 
     public PNode getRhs() {

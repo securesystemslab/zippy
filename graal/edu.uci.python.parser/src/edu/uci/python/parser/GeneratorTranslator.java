@@ -84,13 +84,11 @@ public class GeneratorTranslator {
         assert NodeUtil.findFirstNodeInstance(root, ReadLocalVariableNode.class) == null;
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(root, YieldNode.class)) {
-            int depth = 0;
-            PNode current = yield;
+            replaceYield(yield);
+        }
 
-            while (current.getParent() != root) {
-                current = (PNode) current.getParent();
-                replaceControls(current, yield, depth++);
-            }
+        for (YieldNode yield : NodeUtil.findAllNodeInstances(root, YieldNode.class)) {
+            assert yield.getParentBlockIndexSlot() != -1;
         }
 
         for (GeneratorExpressionNode genexp : NodeUtil.findAllNodeInstances(root, GeneratorExpressionNode.class)) {
@@ -129,6 +127,21 @@ public class GeneratorTranslator {
         }
 
         return callTarget;
+    }
+
+    private void replaceYield(YieldNode yield) {
+        int depth = 0;
+        PNode current = yield;
+
+        while (current.getParent() != root) {
+            current = (PNode) current.getParent();
+            replaceControls(current, yield, depth++);
+        }
+
+        if (yield.getParentBlockIndexSlot() == -1 && yield.getParent() instanceof GeneratorBlockNode) {
+            GeneratorBlockNode block = (GeneratorBlockNode) yield.getParent();
+            yield.replace(new YieldNode(yield, block.getIndexSlot()));
+        }
     }
 
     private void splitArgumentLoads(ReturnTargetNode returnTarget) {
@@ -180,7 +193,8 @@ public class GeneratorTranslator {
             }
 
             node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
-        } else if (node instanceof ElseNode || node instanceof BreakTargetNode || node instanceof TryExceptNode || node instanceof ExceptNode || node instanceof StopIterationTargetNode) {
+        } else if (node instanceof ElseNode || node instanceof BreakTargetNode || node instanceof TryExceptNode || node instanceof ExceptNode || node instanceof StopIterationTargetNode ||
+                        node instanceof ContinueTargetNode) {
             // do nothing for now
         } else {
             TranslationUtil.notCovered();

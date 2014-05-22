@@ -150,7 +150,7 @@ public class NodeFactory {
     }
 
     public StatementNode createYield(PNode right, FrameSlot returnSlot) {
-        return new YieldNode(this.createWriteLocal(right, returnSlot));
+        return new YieldNode(createWriteLocal(right, returnSlot));
     }
 
     public StatementNode createPrint(List<PNode> values, boolean nl, PythonContext context) {
