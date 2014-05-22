@@ -51,6 +51,20 @@ public class ListBuiltins extends PythonBuiltins {
     @Builtin(name = "append", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
     public abstract static class PythonListAppendNode extends PythonBuiltinNode {
 
+        @Specialization(order = 0, guards = "isIntStore")
+        public PList append(PList list, int arg) {
+            IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
+            store.appendInt(arg);
+            return list;
+        }
+
+        @Specialization(order = 1, guards = "isDoubleStore")
+        public PList append(PList list, double arg) {
+            DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
+            store.appendDouble(arg);
+            return list;
+        }
+
         @Specialization
         public PList append(PList list, Object arg) {
             list.append(arg);
@@ -107,21 +121,6 @@ public class ListBuiltins extends PythonBuiltins {
     // list.pop([i])
     @Builtin(name = "pop", minNumOfArguments = 1, maxNumOfArguments = 2)
     public abstract static class PythonListPopNode extends PythonBuiltinNode {
-
-        @SuppressWarnings("unused")
-        protected static boolean isIntStore(PList list, PNone index) {
-            return list.getStorage() instanceof IntSequenceStorage;
-        }
-
-        @SuppressWarnings("unused")
-        protected static boolean isDoubleStore(PList list, PNone index) {
-            return list.getStorage() instanceof DoubleSequenceStorage;
-        }
-
-        @SuppressWarnings("unused")
-        protected static boolean isObjectStore(PList list, PNone index) {
-            return list.getStorage() instanceof ObjectSequenceStorage;
-        }
 
         @Specialization(order = 0, guards = "isIntStore")
         public int popInt(PList list, @SuppressWarnings("unused") PNone none) {

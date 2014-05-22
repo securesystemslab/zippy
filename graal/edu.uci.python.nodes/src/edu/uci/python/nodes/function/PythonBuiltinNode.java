@@ -34,6 +34,8 @@ import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 /**
  * @author Gulfem
@@ -47,6 +49,18 @@ public abstract class PythonBuiltinNode extends PNode {
 
     protected boolean emptyArguments(VirtualFrame frame) {
         return PArguments.getUserArgumentLength(frame) == 0;
+    }
+
+    protected boolean isIntStore(PList list) {
+        return list.getStorage() instanceof IntSequenceStorage;
+    }
+
+    protected boolean isDoubleStore(PList list) {
+        return list.getStorage() instanceof DoubleSequenceStorage;
+    }
+
+    protected boolean isObjectStore(PList list) {
+        return list.getStorage() instanceof ObjectSequenceStorage;
     }
 
     /**
