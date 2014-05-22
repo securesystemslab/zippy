@@ -31,7 +31,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.generator.ComprehensionNodeFactory.ArrayListAddNodeFactory;
-import edu.uci.python.nodes.generator.ComprehensionNodeFactory.HashSetAddNodeFactory;
+import edu.uci.python.nodes.generator.ComprehensionNodeFactory.TreeSetAddNodeFactory;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
 
@@ -86,7 +86,7 @@ public enum IntrinsifiableBuiltin {
             case TUPLE:
                 return ArrayListAddNodeFactory.create(targetSlot, comprehension);
             case SET:
-                return HashSetAddNodeFactory.create(targetSlot, comprehension);
+                return TreeSetAddNodeFactory.create(targetSlot, comprehension);
             default:
                 throw new IllegalStateException();
         }

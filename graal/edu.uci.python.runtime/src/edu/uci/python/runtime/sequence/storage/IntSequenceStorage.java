@@ -27,9 +27,8 @@ package edu.uci.python.runtime.sequence.storage;
 import java.io.*;
 import java.util.*;
 
-import com.oracle.truffle.api.*;
-
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.sequence.*;
 
 public final class IntSequenceStorage extends BasicSequenceStorage {
 
@@ -167,6 +166,13 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         }
 
         length = length > stop ? length : stop;
+    }
+
+    @Override
+    public void delSlice(int start, int stop) {
+        if (stop == SequenceUtil.MISSING_INDEX) {
+            length = start;
+        }
     }
 
     @Override

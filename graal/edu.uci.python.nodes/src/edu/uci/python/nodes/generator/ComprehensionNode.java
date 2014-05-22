@@ -121,13 +121,13 @@ public abstract class ComprehensionNode extends FrameSlotNode {
     }
 
     @NodeChild(value = "rightNode", type = PNode.class)
-    public abstract static class HashSetAddNode extends FrameSlotNode {
+    public abstract static class TreeSetAddNode extends FrameSlotNode {
 
-        public HashSetAddNode(FrameSlot frameSlot) {
+        public TreeSetAddNode(FrameSlot frameSlot) {
             super(frameSlot);
         }
 
-        protected HashSetAddNode(HashSetAddNode node) {
+        protected TreeSetAddNode(TreeSetAddNode node) {
             this(node.frameSlot);
         }
 
@@ -138,8 +138,8 @@ public abstract class ComprehensionNode extends FrameSlotNode {
         }
 
         @SuppressWarnings("unchecked")
-        private HashSet<Object> getSet(Frame frame) {
-            return CompilerDirectives.unsafeCast(getObject(frame), HashSet.class, true);
+        private TreeSet<Object> getSet(Frame frame) {
+            return CompilerDirectives.unsafeCast(getObject(frame), TreeSet.class, true);
         }
     }
 

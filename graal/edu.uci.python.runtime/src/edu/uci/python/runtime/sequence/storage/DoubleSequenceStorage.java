@@ -26,6 +26,8 @@ package edu.uci.python.runtime.sequence.storage;
 
 import java.util.*;
 
+import edu.uci.python.runtime.sequence.*;
+
 public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     private double[] values;
@@ -165,6 +167,13 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
+    public void delSlice(int start, int stop) {
+        if (stop == SequenceUtil.MISSING_INDEX) {
+            length = start;
+        }
+    }
+
+    @Override
     public void delItemInBound(int idx) {
         popInBound(idx);
     }
@@ -273,4 +282,5 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
     public Object getIndicativeValue() {
         return .0;
     }
+
 }

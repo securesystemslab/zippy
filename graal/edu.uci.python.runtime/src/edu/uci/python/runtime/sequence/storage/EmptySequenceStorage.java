@@ -117,6 +117,11 @@ public final class EmptySequenceStorage extends SequenceStorage {
     }
 
     @Override
+    public void delSlice(int start, int stop) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void delItemInBound(int idx) {
         throw new UnsupportedOperationException("Cannot delete from empty storage");
     }

@@ -122,6 +122,15 @@ public class ListTests {
     }
 
     @Test
+    public void delSlice() {
+        String source = "llist = [1,2,3,4]\n" + //
+                        "del llist[3:]\n" + //
+                        "print(llist)\n";
+
+        assertPrints("[1, 2, 3]\n", source);
+    }
+
+    @Test
     public void popItem() {
         String source = "llist = [1,2,3,4]\n" + //
                         "a = llist.pop()\n" + //

@@ -135,8 +135,14 @@ def binary_partitions(n):
             last_nonunit -= 1
             continue
         partition.append(1)
-        x = partition[last_nonunit] = partition[last_nonunit+1] = \
-            partition[last_nonunit] >> 1    # make the split!
+
+        temp0 = partition[last_nonunit] >> 1
+        partition[last_nonunit+1] = temp0
+        partition[last_nonunit] = temp0
+        x = temp0
+        # x = partition[last_nonunit] = partition[last_nonunit+1] = \
+        #     partition[last_nonunit] >> 1    # make the split!
+
         last_nonunit += 1
         while x > 1:
             if len(partition) - last_nonunit - 1 >= x:

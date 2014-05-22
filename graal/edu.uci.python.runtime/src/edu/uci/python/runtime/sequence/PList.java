@@ -1,5 +1,5 @@
 /*
-\ * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2013, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -154,8 +154,10 @@ public class PList extends PSequence {
     }
 
     public final void delSlice(PSlice slice) {
-        final int start = slice.getStart();
+        int start = slice.getStart();
         final int stop = slice.getStop();
+        start = slice.getStart() < 0 ? start += store.length() : start;
+        store.delSlice(start, stop);
     }
 
     @Override
@@ -228,10 +230,6 @@ public class PList extends PSequence {
     }
 
     public final void append(Object value) {
-        if (store instanceof EmptySequenceStorage) {
-            store = store.generalizeFor(value);
-        }
-
         try {
             store.append(value);
         } catch (SequenceStoreException e) {
@@ -243,8 +241,6 @@ public class PList extends PSequence {
                 throw new IllegalStateException();
             }
         }
-
-// appendCounter++;
     }
 
     public final void extend(PList appendee) {

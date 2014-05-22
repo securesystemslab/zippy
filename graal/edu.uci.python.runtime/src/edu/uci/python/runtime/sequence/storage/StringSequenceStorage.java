@@ -26,6 +26,8 @@ package edu.uci.python.runtime.sequence.storage;
 
 import java.util.*;
 
+import edu.uci.python.runtime.sequence.*;
+
 public final class StringSequenceStorage extends BasicSequenceStorage {
 
     private String[] values;
@@ -162,6 +164,13 @@ public final class StringSequenceStorage extends BasicSequenceStorage {
         }
 
         length = length > stop ? length : stop;
+    }
+
+    @Override
+    public void delSlice(int start, int stop) {
+        if (stop == SequenceUtil.MISSING_INDEX) {
+            length = start;
+        }
     }
 
     @Override
