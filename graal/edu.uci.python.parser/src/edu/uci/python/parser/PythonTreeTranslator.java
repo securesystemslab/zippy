@@ -937,12 +937,15 @@ public class PythonTreeTranslator extends Visitor {
          */
         if (excepts.size() == 1 && EmptyNode.isEmpty(orelse)) {
             ExceptHandler handler = (ExceptHandler) excepts.get(0);
-            Name name = (Name) handler.getInternalType();
 
-            if (name.getInternalId().equals("StopIteration")) {
-                List<PNode> exceptbody = visitStatements(handler.getInternalBody());
-                PNode exceptBody = factory.createBlock(exceptbody);
-                return new StopIterationTargetNode(body, exceptBody);
+            if (handler.getInternalType() instanceof Name) {
+                Name name = (Name) handler.getInternalType();
+
+                if (name != null && name.getInternalId().equals("StopIteration")) {
+                    List<PNode> exceptbody = visitStatements(handler.getInternalBody());
+                    PNode exceptBody = factory.createBlock(exceptbody);
+                    return new StopIterationTargetNode(body, exceptBody);
+                }
             }
         }
 
