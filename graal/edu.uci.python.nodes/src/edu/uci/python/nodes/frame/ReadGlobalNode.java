@@ -137,6 +137,11 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
                 return PythonTypesGen.PYTHONTYPES.expectBoolean(specializeAndExecute(frame));
             }
         }
+
+        @Override
+        public Object executeWithPrimary(VirtualFrame frame, Object primary) {
+            return execute(frame);
+        }
     }
 
     public static final class ReadBuiltinDirectNode extends ReadGlobalNode {
@@ -160,6 +165,11 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
             } catch (InvalidAssumptionException e) {
                 return specializeAndExecute(frame);
             }
+        }
+
+        @Override
+        public Object executeWithPrimary(VirtualFrame frame, Object primary) {
+            return execute(frame);
         }
 
         @Override
@@ -196,6 +206,11 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
             return value;
         }
 
+        @Override
+        public Object executeWithPrimary(VirtualFrame frame, Object primary) {
+            return execute(frame);
+        }
+
         @SlowPath
         protected Object slowPathLookup() {
             Object value = PySystemState.builtins.__finditem__(attributeId);
@@ -211,6 +226,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
         public ShapeCheckNode extractShapeCheckNode() {
             throw new UnsupportedOperationException();
         }
+
     }
 
 }

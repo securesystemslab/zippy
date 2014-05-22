@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.object;
 
+import com.oracle.truffle.api.frame.*;
+
 import edu.uci.python.nodes.*;
 
 public interface HasPrimaryNode {
@@ -31,5 +33,7 @@ public interface HasPrimaryNode {
     PNode extractPrimary();
 
     String getAttributeId();
+
+    Object executeWithPrimary(VirtualFrame frame, Object primary);
 
 }

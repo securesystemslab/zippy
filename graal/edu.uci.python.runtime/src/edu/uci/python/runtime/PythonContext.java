@@ -29,8 +29,10 @@ import java.lang.invoke.*;
 import java.util.*;
 import java.util.concurrent.*;
 
+import com.oracle.truffle.api.impl.*;
+import com.oracle.truffle.api.instrument.*;
+import com.oracle.truffle.api.instrument.impl.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.source.*;
 
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
@@ -38,7 +40,7 @@ import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public class PythonContext {
+public class PythonContext extends AbstractExecutionContext {
 
     private PythonModule mainModule;
     private final PythonModule builtinsModule;
@@ -49,7 +51,7 @@ public class PythonContext {
     private final PythonBuiltinClass objectClass;
     private final PythonBuiltinClass moduleClass;
 
-    private final SourceManager sourceManager;
+    // private final SourceManager sourceManager;
     private final PythonParser parser;
     private final ImportManager importManager;
 
@@ -73,7 +75,7 @@ public class PythonContext {
         assert objectClass.usePrivateLayout() && objectClass.getObjectLayout().isEmpty();
         assert moduleClass.usePrivateLayout() && moduleClass.getObjectLayout().isEmpty();
 
-        this.sourceManager = new SourceManager();
+        // this.sourceManager = new SourceManager();
         this.parser = parser;
         this.importManager = new ImportManager(this);
 
@@ -150,10 +152,6 @@ public class PythonContext {
         return parser;
     }
 
-    public SourceManager getSourceManager() {
-        return sourceManager;
-    }
-
     public ImportManager getImportManager() {
         return importManager;
     }
@@ -202,6 +200,27 @@ public class PythonContext {
 
     public void shutdown() {
         executorService.shutdown();
+    }
+
+    public String getLanguageShortName() {
+        return "PYTHON";
+    }
+
+    public void addNodeProber(ASTNodeProber nodeProber) throws IllegalStateException, IllegalArgumentException {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void setASTProber(ASTProber astProber) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    protected void setSourceCallback(SourceCallback sourceCallback) {
+        // TODO Auto-generated method stub
+
     }
 
 }

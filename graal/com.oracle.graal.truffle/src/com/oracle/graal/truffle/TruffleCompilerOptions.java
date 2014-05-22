@@ -104,5 +104,7 @@ public class TruffleCompilerOptions {
     // zwei
     @Option(help = "")
     public static final OptionValue<Boolean> TrufflePrintCompilingAST = new OptionValue<>(false);
+    @Option(help = "")
+    public static final OptionValue<Boolean> TrufflePrintInlinedAST = new OptionValue<>(false);
     // @formatter:on
 }

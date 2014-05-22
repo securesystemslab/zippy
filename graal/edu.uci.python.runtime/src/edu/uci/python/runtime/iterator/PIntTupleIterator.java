@@ -22,16 +22,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.oracle.truffle.api.nodes;
+package edu.uci.python.runtime.iterator;
 
-/**
- * An interface hook that enables notification from the Truffle runtime to the guest languages on
- * inlining events.
- *
- * @author zwei
- */
-public interface GuestRootNode {
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.sequence.*;
 
-    void doAfterInliningPerformed();
+public class PIntTupleIterator implements PIterator, PIntegerIterator {
+
+    private final PIntTuple tuple;
+    private int index;
+
+    public PIntTupleIterator(PIntTuple intTuple) {
+        this.tuple = intTuple;
+    }
+
+    @Override
+    public int __nextInt__() {
+        if (index < tuple.len()) {
+            return tuple.getIntItem(index++);
+        }
+
+        throw StopIterationException.INSTANCE;
+    }
+
+    public Object __next__() throws StopIterationException {
+        return __nextInt__();
+    }
 
 }

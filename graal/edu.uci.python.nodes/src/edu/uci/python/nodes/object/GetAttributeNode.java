@@ -90,8 +90,6 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
         return attributeId;
     }
 
-    public abstract Object executeWithPrimary(VirtualFrame frame, Object primary);
-
     public static class BoxedGetAttributeNode extends GetAttributeNode {
 
         @Child protected DispatchBoxedNode attribute;

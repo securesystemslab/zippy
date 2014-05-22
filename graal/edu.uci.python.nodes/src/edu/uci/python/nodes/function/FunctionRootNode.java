@@ -32,6 +32,7 @@ import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.NodeUtil.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.DispatchGeneratorBoxedNode;
 import edu.uci.python.nodes.call.CallDispatchNoneNode.DispatchGeneratorNoneNode;
@@ -49,7 +50,7 @@ import static edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.*;
  *
  * @author zwei
  */
-public final class FunctionRootNode extends RootNode implements GuestRootNode {
+public final class FunctionRootNode extends RootNode {
 
     private final PythonContext context;
     private final String functionName;
@@ -58,13 +59,20 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
     @Child protected PNode body;
     private PNode uninitializedBody;
 
+    @Child private PNode profiler;
+
     public FunctionRootNode(PythonContext context, String functionName, boolean isGenerator, FrameDescriptor frameDescriptor, PNode body) {
         super(null, frameDescriptor); // SourceSection is not supported yet.
         this.context = context;
         this.functionName = functionName;
         this.isGenerator = isGenerator;
-        this.body = body;
+        this.body = NodeUtil.cloneNode(body);
         this.uninitializedBody = NodeUtil.cloneNode(body);
+        if (PythonOptions.ProfileCalls) {
+            this.profiler = new ProfilerNode(this);
+        } else {
+            this.profiler = EmptyNode.create();
+        }
     }
 
     public PythonContext getContext() {
@@ -73,10 +81,6 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
 
     public String getFunctionName() {
         return functionName;
-    }
-
-    public boolean isGenerator() {
-        return isGenerator;
     }
 
     public PNode getBody() {
@@ -97,37 +101,26 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
 
     @Override
     public FunctionRootNode split() {
-        return new FunctionRootNode(context, functionName, isGenerator, getFrameDescriptor().shallowCopy(), NodeUtil.cloneNode(uninitializedBody));
+        return new FunctionRootNode(context, functionName, isGenerator, getFrameDescriptor().shallowCopy(), uninitializedBody);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         if (CompilerDirectives.inInterpreter()) {
-            optimizeHelper();
+            optimizeGeneratorCalls();
+        }
+        if (PythonOptions.ProfileCalls) {
+            profiler.execute(frame);
         }
         return body.execute(frame);
     }
 
-    @Override
-    public void doAfterInliningPerformed() {
-        if (isGenerator) {
-            return;
-        }
-        optimizeGeneratorCalls();
-    }
-
-    private void optimizeHelper() {
+    protected void optimizeGeneratorCalls() {
         CompilerAsserts.neverPartOfCompilation();
 
-        if (!PythonOptions.InlineGeneratorCalls || isGenerator) {
+        if (CompilerDirectives.inCompiledCode() || !PythonOptions.InlineGeneratorCalls || isGenerator) {
             return;
         }
-
-        optimizeGeneratorCalls();
-    }
-
-    private void optimizeGeneratorCalls() {
-        CompilerAsserts.neverPartOfCompilation();
 
         if (PythonOptions.OptimizeGeneratorExpressions) {
             new GeneratorExpressionOptimizer(this).optimize();

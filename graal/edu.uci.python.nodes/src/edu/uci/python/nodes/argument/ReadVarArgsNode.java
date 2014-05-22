@@ -49,7 +49,7 @@ public final class ReadVarArgsNode extends ReadIndexedArgumentNode {
         final int userArgumentLength = PArguments.getUserArgumentLength(frame);
 
         if (index >= userArgumentLength) {
-            return new PTuple();
+            return PTuple.create();
         } else {
             Object[] varArgs = new Object[userArgumentLength - index];
 
@@ -57,8 +57,7 @@ public final class ReadVarArgsNode extends ReadIndexedArgumentNode {
                 varArgs[i] = PArguments.getArgumentAt(frame, i + index);
             }
 
-            return new PTuple(varArgs);
+            return PTuple.create(varArgs);
         }
     }
-
 }
