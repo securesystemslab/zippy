@@ -83,12 +83,13 @@ def create_cycle_graph(n):
 
 def main(n):
     graph = create_cycle_graph(n)
-    return isBipartite(graph)
+
+    for i in range(20):
+        result = isBipartite(graph)
+    return result
 
 def measure():
-    input = int(sys.argv[1])
-    for i in range(3):
-        main(input)
+    input = int(sys.argv[1]) #100000
 
     print("Start timing...")
     start = time.time()
@@ -98,7 +99,7 @@ def measure():
     print("pads-bipartite: " + duration)
 
 # warm up
-for i in range(2000):
+for i in range(100):
     main(2000)
 
 measure()
