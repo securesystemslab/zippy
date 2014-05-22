@@ -110,10 +110,7 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
 
     @Override
     public void doAfterInliningPerformed() {
-        if (isGenerator) {
-            return;
-        }
-        optimizeGeneratorCalls();
+        optimizeHelper();
     }
 
     private void optimizeHelper() {

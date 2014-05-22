@@ -27,7 +27,7 @@ package edu.uci.python.runtime.iterator;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
-public class PIntegerSequenceIterator implements PIterator, PIntegerIterator {
+public final class PIntegerSequenceIterator implements PIterator, PIntegerIterator {
 
     private final IntSequenceStorage sequence;
     private int index;

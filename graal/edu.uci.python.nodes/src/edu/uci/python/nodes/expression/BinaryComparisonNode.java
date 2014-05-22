@@ -75,6 +75,12 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
             return left.equals(right);
         }
 
+        @SuppressWarnings("unused")
+        @Specialization
+        public boolean doNone(Object left, PNone none) {
+            return left == PNone.NONE;
+        }
+
         /**
          * This is a fix for comparisons involving a PyInteger.
          *
