@@ -46,8 +46,8 @@ _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_h
 """ The VMs that can be built and run along with an optional description. Only VMs with a
     description are listed in the dialogue for setting the default VM (see _get_vm()). """
 _vmChoices = {
-    'graal' : 'All compilation is performed with Graal. This includes bootstrapping Graal itself unless -XX:-BootstrapGraal is used.',
-    'server' : 'Normal compilation is performed with the tiered system (i.e., client + server), Truffle compilation is performed with Graal. Use this for optimal Truffle performance.',
+    'graal' : 'Normal compilation is performed with a tiered system (C1 + Graal), Truffle compilation is performed with Graal.',
+    'server' : 'Normal compilation is performed with a tiered system (C1 + C2), Truffle compilation is performed with Graal. Use this for optimal Truffle performance.',
     'client' : None,  # normal compilation with client compiler, explicit compilation (e.g., by Truffle) with Graal
     'server-nograal' : None,  # all compilation with tiered system (i.e., client + server), Graal omitted
     'client-nograal' : None,  # all compilation with client compiler, Graal omitted
