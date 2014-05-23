@@ -32,14 +32,12 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.CastToBooleanNode.YesNode;
 import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.YesNodeFactory;
-import edu.uci.python.runtime.misc.*;
-import static edu.uci.python.runtime.ArithmeticUtil.*;
 
 public abstract class BinaryBooleanNode extends BinaryOpNode {
 
-    public abstract static class AndNode extends BinaryBooleanNode {
+    @Child protected YesNode booleanCast;
 
-        @Child protected YesNode booleanCast;
+    public abstract static class AndNode extends BinaryBooleanNode {
 
         public AndNode() {
             this.booleanCast = YesNodeFactory.create(EmptyNode.create());
@@ -77,29 +75,17 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
 
     public abstract static class OrNode extends BinaryBooleanNode {
 
-        @ShortCircuit("rightNode")
-        public boolean needsRightNode(boolean left) {
-            return !left;
+        public OrNode() {
+            this.booleanCast = YesNodeFactory.create(EmptyNode.create());
+        }
+
+        protected OrNode(@SuppressWarnings("unused") OrNode prev) {
+            this();
         }
 
         @ShortCircuit("rightNode")
-        public boolean needsRightNode(int left) {
-            return isZero(left);
-        }
-
-        @ShortCircuit("rightNode")
-        public boolean needsRightNode(BigInteger left) {
-            return isZero(left);
-        }
-
-        @ShortCircuit("rightNode")
-        public boolean needsRightNode(double left) {
-            return isZero(left);
-        }
-
-        @ShortCircuit("rightNode")
-        public boolean needsRightNode(Object left) {
-            return !JavaTypeConversions.toBoolean(left);
+        public boolean needsRightNode(VirtualFrame frame, Object left) {
+            return !booleanCast.executeBoolean(frame, left);
         }
 
         @Specialization(order = 0)
