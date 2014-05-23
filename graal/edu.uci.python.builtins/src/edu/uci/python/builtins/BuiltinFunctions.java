@@ -560,6 +560,21 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization(order = 1)
+        public int len(PIntTuple tuple) {
+            return tuple.len();
+        }
+
+        @Specialization(order = 2)
+        public int len(PDoubleTuple tuple) {
+            return tuple.len();
+        }
+
+        @Specialization(order = 3)
+        public int len(PObjectTuple tuple) {
+            return tuple.len();
+        }
+
+        @Specialization(order = 4)
         public int len(PTuple tuple) {
             return tuple.len();
         }
@@ -573,17 +588,17 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 3, guards = "isEmptyStorage")
+        @Specialization(order = 10, guards = "isEmptyStorage")
         public int lenPListEmpty(PList list) {
             return 0;
         }
 
-        @Specialization(order = 4, guards = "isBasicStorage")
+        @Specialization(order = 11, guards = "isBasicStorage")
         public int lenPList(PList list) {
             return list.getStorage().length();
         }
 
-        @Specialization(order = 10)
+        @Specialization(order = 15)
         public int len(PIterable iterable) {
             return iterable.len();
         }
