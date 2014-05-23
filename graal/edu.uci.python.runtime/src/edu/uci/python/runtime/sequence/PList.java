@@ -287,10 +287,10 @@ public class PList extends PSequence {
 
         if (index != -1) {
             return index;
-        } else {
-            CompilerDirectives.transferToInterpreterAndInvalidate();
-            throw Py.ValueError(value + " is not in list");
         }
+
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        throw Py.ValueError(value + " is not in list");
     }
 
     public final void insert(int index, Object value) {

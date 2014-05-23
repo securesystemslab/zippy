@@ -334,24 +334,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
         @Specialization
         public boolean doPSequence(Object left, PSequence right) {
-            boolean has = false;
-            PIterator iter = right.__iter__();
-
-            try {
-                while (true) {
-                    Object item = iter.__next__();
-                    boolean equals = ArithmeticUtil.is(left, item);
-                    if (equals) {
-                        has = true;
-                        break;
-                    }
-
-                }
-            } catch (StopIterationException e) {
-                // fall through
-            }
-
-            return has;
+            return right.index(left) != -1;
         }
 
         @Specialization
@@ -369,31 +352,13 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
         @Specialization
         public boolean doPSequence(Object left, PSequence right) {
-            boolean has = true;
-            PIterator iter = right.__iter__();
-
-            try {
-                while (true) {
-                    Object item = iter.__next__();
-                    boolean equals = ArithmeticUtil.is(left, item);
-                    if (equals) {
-                        has = false;
-                        break;
-                    }
-
-                }
-            } catch (StopIterationException e) {
-                // fall through
-            }
-
-            return has;
+            return right.index(left) == -1;
         }
 
         @Specialization
         public boolean doPDictionary(Object left, PDict right) {
             return !right.hasKey(left);
         }
-
     }
 
 }
