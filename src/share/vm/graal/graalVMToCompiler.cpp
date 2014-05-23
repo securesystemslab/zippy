@@ -94,48 +94,20 @@ Handle VMToCompiler::VMToCompiler_instance() {
   return Handle(JNIHandles::resolve_non_null(_VMToCompiler_instance));
 }
 
-void VMToCompiler::initOptions() {
+void VMToCompiler::setOption(KlassHandle hotSpotOptionsClass, Handle name, Handle option, jchar spec, Handle stringValue, jlong primitiveValue) {
+  assert(!option.is_null(), "npe");
   Thread* THREAD = Thread::current();
-  TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/HotSpotOptions", THREAD);
-  KlassHandle optionsKlass = loadClass(name);
-  optionsKlass->initialize(THREAD);
-  check_pending_exception("Error while calling initOptions");
-}
-
-jboolean VMToCompiler::setOption(Handle option) {
-  assert(!option.is_null(), "");
-  Thread* THREAD = Thread::current();
-  TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/HotSpotOptions", THREAD);
   TempNewSymbol setOption = SymbolTable::new_symbol("setOption", THREAD);
-  TempNewSymbol sig = SymbolTable::new_symbol("(Ljava/lang/String;)Z", THREAD);
-  KlassHandle optionsKlass = loadClass(name);
-  JavaValue result(T_BOOLEAN);
-  JavaCalls::call_static(&result, optionsKlass, setOption, sig, option, THREAD);
+  TempNewSymbol sig = SymbolTable::new_symbol("(Ljava/lang/String;Lcom/oracle/graal/options/OptionValue;CLjava/lang/String;J)V", THREAD);
+  JavaValue result(T_VOID);
+  JavaCallArguments args;
+  args.push_oop(name());
+  args.push_oop(option());
+  args.push_int(spec);
+  args.push_oop(stringValue());
+  args.push_long(primitiveValue);
+  JavaCalls::call_static(&result, hotSpotOptionsClass, setOption, sig, &args, THREAD);
   check_pending_exception("Error while calling setOption");
-  return result.get_jboolean();
-}
-
-void VMToCompiler::finalizeOptions(jboolean ciTime) {
-  Thread* THREAD = Thread::current();
-  TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/HotSpotOptions", THREAD);
-  TempNewSymbol finalizeOptions = SymbolTable::new_symbol("finalizeOptions", THREAD);
-  TempNewSymbol sig = SymbolTable::new_symbol("(Ljava/lang/String;)Z", THREAD);
-  KlassHandle optionsKlass = loadClass(name);
-  JavaValue result(T_VOID);
-  JavaCallArguments args;
-  args.push_int(ciTime);
-  JavaCalls::call_static(&result, optionsKlass, finalizeOptions, vmSymbols::bool_void_signature(), &args, THREAD);
-  check_pending_exception("Error while calling finalizeOptions");
-}
-
-void VMToCompiler::startRuntime() {
-  JavaThread* THREAD = JavaThread::current();
-  JavaValue result(T_VOID);
-  JavaCallArguments args;
-  TempNewSymbol startRuntime = SymbolTable::new_symbol("startRuntime", THREAD);
-  args.push_oop(VMToCompiler_instance());
-  JavaCalls::call_interface(&result, VMToCompiler_klass(), startRuntime, vmSymbols::void_method_signature(), &args, THREAD);
-  check_pending_exception("Error while calling startRuntime");
 }
 
 #ifdef COMPILERGRAAL

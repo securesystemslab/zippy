@@ -46,8 +46,8 @@ _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_h
 """ The VMs that can be built and run along with an optional description. Only VMs with a
     description are listed in the dialogue for setting the default VM (see _get_vm()). """
 _vmChoices = {
-    'graal' : 'All compilation is performed with Graal. This includes bootstrapping Graal itself unless -XX:-BootstrapGraal is used.',
-    'server' : 'Normal compilation is performed with the tiered system (i.e., client + server), Truffle compilation is performed with Graal. Use this for optimal Truffle performance.',
+    'graal' : 'Normal compilation is performed with a tiered system (C1 + Graal), Truffle compilation is performed with Graal.',
+    'server' : 'Normal compilation is performed with a tiered system (C1 + C2), Truffle compilation is performed with Graal. Use this for optimal Truffle performance.',
     'client' : None,  # normal compilation with client compiler, explicit compilation (e.g., by Truffle) with Graal
     'server-nograal' : None,  # all compilation with tiered system (i.e., client + server), Graal omitted
     'client-nograal' : None,  # all compilation with client compiler, Graal omitted
@@ -154,7 +154,7 @@ def clean(args):
         def handleRemoveReadonly(func, path, exc):
             excvalue = exc[1]
             if mx.get_os() == 'windows' and func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
-                os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO) # 0777
+                os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
                 func(path)
             else:
                 raise
@@ -212,7 +212,7 @@ def export(args):
     def _genFileName(archivtype, middle):
         idPrefix = infos['revision'] + '_'
         idSuffix = '.tar.gz'
-        return join(_graal_home, "graalvm_" + archivtype + "_"  + idPrefix + middle + idSuffix)
+        return join(_graal_home, "graalvm_" + archivtype + "_" + idPrefix + middle + idSuffix)
 
     def _genFileArchPlatformName(archivtype, middle):
         return _genFileName(archivtype, infos['platform'] + '_' + infos['architecture'] + '_' + middle)
@@ -484,8 +484,34 @@ def _updateInstalledGraalOptionsFile(jdk):
         if exists(toDelete):
             os.unlink(toDelete)
 
+def _update_HotSpotOptions_inline_hpp(graalJar):
+    p = mx.project('com.oracle.graal.hotspot')
+    mainClass = 'com.oracle.graal.hotspot.HotSpotOptionsLoader'
+    assert exists(join(p.source_dirs()[0], mainClass.replace('.', os.sep) + '.java'))
+    hsSrcGenDir = join(p.source_gen_dir(), 'hotspot')
+    if not exists(hsSrcGenDir):
+        os.makedirs(hsSrcGenDir)
+    path = join(hsSrcGenDir, 'HotSpotOptions.inline.hpp')
+    fd, tmp = tempfile.mkstemp(suffix='', prefix='HotSpotOptions.inline.hpp', dir=hsSrcGenDir)
+    os.close(fd)
+    try:
+        retcode = mx.run_java(['-cp', graalJar, mainClass, tmp], nonZeroIsFatal=False)
+        if retcode != 0:
+            # Suppress the error if it's because the utility class isn't compiled yet
+            with zipfile.ZipFile(graalJar, 'r') as zf:
+                mainClassFile = mainClass.replace('.', '/') + '.class'
+                if mainClassFile not in zf.namelist():
+                    return
+            mx.abort(retcode)
+        with open(tmp) as fp:
+            content = fp.read()
+        mx.update_file(path, content)
+    finally:
+        os.remove(tmp)
+
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
+    _update_HotSpotOptions_inline_hpp(graalJar)
     jdks = _jdksDir()
 
     if exists(jdks):

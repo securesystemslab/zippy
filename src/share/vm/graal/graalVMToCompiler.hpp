@@ -55,17 +55,8 @@ public:
     return _HotSpotGraalRuntime_instance;
   }
 
-  // public static boolean HotSpotOptions.<clinit>();
-  static void initOptions();
-
-  // public static boolean HotSpotOptions.setOption(String option);
-  static jboolean setOption(Handle option);
-
-  // public static void HotSpotOptions.finalizeOptions(boolean ciTime);
-  static void finalizeOptions(jboolean ciTime);
-
-  // public abstract void startRuntime();
-  static void startRuntime();
+  // public static void HotSpotOptions.setOption(String name, OptionValue<?> option, char spec, String stringValue, long primitiveValue);
+  static void setOption(KlassHandle hotSpotOptionsClass, Handle name, Handle option, jchar spec, Handle stringValue, jlong primitiveValue);
 
 #ifdef COMPILERGRAAL
   // public abstract void startCompiler(boolean bootstrapEnabled);
