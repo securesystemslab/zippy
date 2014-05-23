@@ -92,9 +92,6 @@ public abstract class TupleLiteralNode extends LiteralNode {
                 } else if (SequenceStorageFactory.canSpecializeToDouble(elements)) {
                     replace(new DoubleTupleLiteralNode(values));
                     return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(elements));
-                } else if (SequenceStorageFactory.canSpecializeToString(elements)) {
-                    replace(new StringTupleLiteralNode(values));
-                    return new PStringTuple(SequenceStorageFactory.specializeToString(elements));
                 } else {
                     replace(new ObjectTupleLiteralNode(values));
                     return new PObjectTuple(elements);
@@ -161,35 +158,6 @@ public abstract class TupleLiteralNode extends LiteralNode {
             }
 
             return new PDoubleTuple(elements);
-        }
-    }
-
-    public static final class StringTupleLiteralNode extends TupleLiteralNode {
-
-        public StringTupleLiteralNode(PNode[] values) {
-            super(values);
-        }
-
-        @ExplodeLoop
-        @Override
-        public Object execute(VirtualFrame frame) {
-            final String[] elements = new String[values.length];
-
-            for (int i = 0; i < values.length; i++) {
-                try {
-                    elements[i] = values[i].executeString(frame);
-                } catch (UnexpectedResultException e) {
-                    final Object[] evaluated = new Object[i];
-
-                    for (int j = 0; j < i; j++) {
-                        evaluated[j] = elements[j];
-                    }
-
-                    doGeneric(frame, evaluated);
-                }
-            }
-
-            return new PStringTuple(elements);
         }
     }
 

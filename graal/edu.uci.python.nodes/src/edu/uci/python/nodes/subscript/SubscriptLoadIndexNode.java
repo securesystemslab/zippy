@@ -83,11 +83,6 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         return tuple.getDoubleItem(idx);
     }
 
-    @Specialization(order = 6)
-    public String doPStringTuple(PStringTuple tuple, int idx) {
-        return tuple.getStringItem(idx);
-    }
-
     @Specialization(order = 7)
     public Object doPObjectTuple(PObjectTuple tuple, int idx) {
         return tuple.getObjectItem(idx);

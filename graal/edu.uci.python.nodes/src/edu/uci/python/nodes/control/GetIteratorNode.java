@@ -49,11 +49,6 @@ public abstract class GetIteratorNode extends UnaryOpNode {
         return value.__iter__();
     }
 
-    @Specialization(order = 4)
-    public Object doStringTuple(PStringTuple value) {
-        return value.__iter__();
-    }
-
     @Specialization(order = 5)
     public Object doPRange(PRange value) {
         return value.__iter__();

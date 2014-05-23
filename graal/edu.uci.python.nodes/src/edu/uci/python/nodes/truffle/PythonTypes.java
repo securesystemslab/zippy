@@ -53,7 +53,6 @@ import edu.uci.python.runtime.standardtype.*;
                 PList.class, //
                 PIntTuple.class, //
                 PDoubleTuple.class, //
-                PStringTuple.class, //
                 PObjectTuple.class, //
                 PTuple.class, //
                 PRange.class, //

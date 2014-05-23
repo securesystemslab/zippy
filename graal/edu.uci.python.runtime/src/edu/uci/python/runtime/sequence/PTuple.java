@@ -43,8 +43,6 @@ public abstract class PTuple extends PImmutableSequence implements Comparable<Ob
                 return new PIntTuple(SequenceStorageFactory.specializeToInt(elements));
             } else if (SequenceStorageFactory.canSpecializeToDouble(elements)) {
                 return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(elements));
-            } else if (SequenceStorageFactory.canSpecializeToString(elements)) {
-                return new PStringTuple(SequenceStorageFactory.specializeToString(elements));
             } else {
                 return new PObjectTuple(elements);
             }
@@ -73,8 +71,6 @@ public abstract class PTuple extends PImmutableSequence implements Comparable<Ob
                 return new PIntTuple(SequenceStorageFactory.specializeToInt(values));
             } else if (SequenceStorageFactory.canSpecializeToDouble(values)) {
                 return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(values));
-            } else if (SequenceStorageFactory.canSpecializeToString(values)) {
-                return new PStringTuple(SequenceStorageFactory.specializeToString(values));
             } else {
                 return new PObjectTuple(values);
             }
@@ -99,8 +95,6 @@ public abstract class PTuple extends PImmutableSequence implements Comparable<Ob
                 return new PIntTuple(SequenceStorageFactory.specializeToInt(elements), copy);
             } else if (SequenceStorageFactory.canSpecializeToDouble(elements)) {
                 return new PDoubleTuple(SequenceStorageFactory.specializeToDouble(elements), copy);
-            } else if (SequenceStorageFactory.canSpecializeToString(elements)) {
-                return new PStringTuple(SequenceStorageFactory.specializeToString(elements), copy);
             } else {
                 return new PObjectTuple(elements, copy);
             }
