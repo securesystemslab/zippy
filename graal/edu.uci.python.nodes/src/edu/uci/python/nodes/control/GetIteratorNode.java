@@ -104,4 +104,9 @@ public abstract class GetIteratorNode extends UnaryOpNode {
         return value;
     }
 
+    @Generic
+    public PIterator doGeneric(Object value) {
+        throw new RuntimeException("tuple does not support iterable object " + value);
+    }
+
 }
