@@ -50,7 +50,7 @@ public final class PZipIterator implements PIterator {
             tupleElements[i] = iterators[i].__next__();
         }
 
-        return PTuple.create(tupleElements);
+        return new PTuple(tupleElements);
     }
 
 }

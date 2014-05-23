@@ -146,7 +146,7 @@ public class PythonTypesUtil {
             return ((PyLong) value).getValue();
         } else if (value instanceof PyTuple) {
             PyTuple tuple = (PyTuple) value;
-            return PTuple.create(unboxPyObjects(tuple.getArray()));
+            return new PTuple(unboxPyObjects(tuple.getArray()));
         } else if (value instanceof PyList) {
             PyList list = (PyList) value;
             PyObject[] values = list.getArray();

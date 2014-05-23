@@ -86,7 +86,7 @@ public final class DictBuiltins extends PythonBuiltins {
             dict.delItem(key);
             Object nextKey = dict.__iter__().__next__();
             Object nextValue = dict.getItem(nextKey);
-            return PTuple.create(new Object[]{nextKey, nextValue});
+            return new PTuple(new Object[]{nextKey, nextValue});
         }
     }
 

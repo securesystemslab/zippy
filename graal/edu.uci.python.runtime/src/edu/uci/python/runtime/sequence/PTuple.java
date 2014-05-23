@@ -40,43 +40,16 @@ public final class PTuple extends PImmutableSequence implements Comparable<Objec
     }
 
     public PTuple(Object[] elements) {
-        if (elements == null) {
-            array = new Object[0];
-        } else {
-            array = new Object[elements.length];
-            System.arraycopy(elements, 0, array, 0, elements.length);
-        }
-    }
-
-    public static PTuple create() {
-        return new PTuple();
+        assert elements != null;
+        array = elements;
     }
 
     public static PTuple create(Object[] objects) {
         return new PTuple(objects);
     }
 
-    public PTuple(PRangeIterator iter) {
-        /**
-         * TODO Can be improved Currently creates a list, and then creates an array
-         */
-        List<Object> list = new ArrayList<>();
-
-        final int start = iter.getStart();
-        final int stop = iter.getStop();
-        final int step = iter.getStep();
-
-        for (int i = start; i < stop; i += step) {
-            list.add(i);
-        }
-
-        array = list.toArray();
-    }
-
     public PTuple(PIterator iter) {
-        /**
-         * TODO Can be improved Currently creates a list, and then creates an array
-         */
+        // TODO (zwei): Can be improved Currently creates a list, and then creates an array
         List<Object> list = new ArrayList<>();
 
         try {
@@ -88,21 +61,6 @@ public final class PTuple extends PImmutableSequence implements Comparable<Objec
         }
 
         array = list.toArray();
-    }
-
-    /**
-     * Note: This constructor assumes that <code>elements</code> is not null.
-     *
-     * @param elements the tuple elements
-     * @param copy whether to copy the elements into a new array or not
-     */
-    public PTuple(Object[] elements, boolean copy) {
-        if (copy) {
-            array = new Object[elements.length];
-            System.arraycopy(elements, 0, array, 0, elements.length);
-        } else {
-            array = elements;
-        }
     }
 
     public Object[] getArray() {
@@ -136,12 +94,12 @@ public final class PTuple extends PImmutableSequence implements Comparable<Objec
         Object[] newArray = new Object[length];
         if (step == 1) {
             System.arraycopy(array, start, newArray, 0, stop - start);
-            return new PTuple(newArray, false);
+            return new PTuple(newArray);
         }
         for (int i = start, j = 0; j < length; i += step, j++) {
             newArray[j] = array[i];
         }
-        return new PTuple(newArray, false);
+        return new PTuple(newArray);
     }
 
     @Override

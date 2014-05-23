@@ -46,6 +46,7 @@ public class PEnumerateIterator implements PIterator {
          * StopIterationException is not explicitly thrown, but it can be implicitly thrown and
          * stops the iteration when the __next__() method is called on the iterated object.
          */
-        return PTuple.create((new Object[]{index++, iterator.__next__()}));
+        return new PTuple((new Object[]{index++, iterator.__next__()}));
     }
+
 }

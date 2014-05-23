@@ -78,7 +78,7 @@ public class PDictView {
         public Object __next__() throws StopIterationException {
             if (iterator.hasNext()) {
                 Entry<Object, Object> entry = iterator.next();
-                return PTuple.create(new Object[]{entry.getKey(), entry.getValue()});
+                return new PTuple(new Object[]{entry.getKey(), entry.getValue()});
             }
 
             throw StopIterationException.INSTANCE;

@@ -62,7 +62,6 @@ public class PList extends PSequence {
         } catch (StopIterationException e) {
             // fall through
         }
-
     }
 
     @Override

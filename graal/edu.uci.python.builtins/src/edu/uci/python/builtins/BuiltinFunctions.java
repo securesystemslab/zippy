@@ -252,7 +252,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         @Specialization
         public Object dir(PythonModule module) {
             List<String> attributes = module.getAttributeNames();
-            return PTuple.create(attributes.toArray());
+            return new PTuple(attributes.toArray());
         }
 
         @Specialization
@@ -267,7 +267,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 attributes.addAll(superClassAttributes);
             }
 
-            return PTuple.create(attributes.toArray());
+            return new PTuple(attributes.toArray());
         }
 
         public Object dir(Object object) {
@@ -281,18 +281,18 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization
         public PTuple doInt(int a, int b) {
-            return PTuple.create(new Object[]{a / b, a % b});
+            return new PTuple(new Object[]{a / b, a % b});
         }
 
         @Specialization
         public PTuple doBigInteger(BigInteger a, BigInteger b) {
-            return PTuple.create(a.divideAndRemainder(b));
+            return new PTuple(a.divideAndRemainder(b));
         }
 
         @Specialization
         public PTuple doDouble(double a, double b) {
             double q = Math.floor(a / b);
-            return PTuple.create(new Object[]{q, a % b});
+            return new PTuple(new Object[]{q, a % b});
         }
     }
 
@@ -341,7 +341,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 // fall through
             }
 
-            return PTuple.create(filteredElements.toArray());
+            return new PTuple(filteredElements.toArray());
         }
     }
 
