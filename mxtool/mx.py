@@ -3398,13 +3398,12 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             for ap in p.annotation_processors():
                 for dep in dependency(ap).all_deps([], True):
                     if dep.isLibrary():
-                        if not hasattr(dep, 'eclipse.container') and not hasattr(dep, 'eclipse.project'):
-                            # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-                            # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-                            # safest to simply use absolute paths.
-                            path = _make_absolute(dep.get_path(resolve=True), p.suite.dir)
-                            out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
-                            files.append(path)
+                        # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+                        # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+                        # safest to simply use absolute paths.
+                        path = _make_absolute(dep.get_path(resolve=True), p.suite.dir)
+                        out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
+                        files.append(path)
                     elif dep.isProject():
                         out.element('factorypathentry', {'kind' : 'WKSPJAR', 'id' : '/' + dep.name + '/' + dep.name + '.jar', 'enabled' : 'true', 'runInBatchMode' : 'false'})
             out.close('factorypath')
