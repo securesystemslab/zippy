@@ -1673,6 +1673,7 @@ class JavaConfig:
         self.javac = exe_suffix(join(self.jdk, 'bin', 'javac'))
         self.javap = exe_suffix(join(self.jdk, 'bin', 'javap'))
         self.javadoc = exe_suffix(join(self.jdk, 'bin', 'javadoc'))
+        self.pack200 = exe_suffix(join(self.jdk, 'bin', 'pack200'))
         self.toolsjar = join(self.jdk, 'lib', 'tools.jar')
         self._bootclasspath = None
         self._extdirs = None
