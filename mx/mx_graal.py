@@ -976,7 +976,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
         f_testfile.close()
         harness(projectscp, vmArgs)
 
-def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, enable_timing=False, regex=None, color=False, eager_stacktrace=False):
+def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, enable_timing=False, regex=None, color=False, eager_stacktrace=False, gc_after_test=False):
     mxdir = dirname(__file__)
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
@@ -999,6 +999,8 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
         coreArgs.append('-JUnitColor')
     if eager_stacktrace:
         coreArgs.append('-JUnitEagerStackTrace')
+    if gc_after_test:
+        coreArgs.append('-JUnitGCAfterTest')
 
 
     def harness(projectscp, vmArgs):
@@ -1031,6 +1033,7 @@ _unittestHelpSuffix = """
       --regex <regex>        run only testcases matching a regular expression
       --color                enable colors output
       --eager-stacktrace     print stacktrace eagerly
+      --gc-after-test        force a GC after each test
 
     To avoid conflicts with VM options '--' can be used as delimiter.
 
@@ -1073,6 +1076,7 @@ def unittest(args):
     parser.add_argument('--regex', help='run only testcases matching a regular expression', metavar='<regex>')
     parser.add_argument('--color', help='enable color output', action='store_true')
     parser.add_argument('--eager-stacktrace', help='print stacktrace eagerly', action='store_true')
+    parser.add_argument('--gc-after-test', help='force a GC after each test', action='store_true')
 
     ut_args = []
     delimiter = False
