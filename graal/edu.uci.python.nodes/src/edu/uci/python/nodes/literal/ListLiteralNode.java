@@ -73,6 +73,7 @@ public abstract class ListLiteralNode extends LiteralNode {
         @Override
         public Object execute(VirtualFrame frame) {
             transferToInterpreterAndInvalidate();
+
             final Object[] elements = new Object[values.length];
 
             for (int i = 0; i < values.length; i++) {
@@ -83,8 +84,7 @@ public abstract class ListLiteralNode extends LiteralNode {
             SequenceStorage store = list.getStorage();
 
             if (store instanceof EmptySequenceStorage) {
-                replace(new ObjectListLiteralNode(values));
-                // replace(new EmptyListLiteralNode(values));
+                replace(new EmptyListLiteralNode(list, values));
             } else if (store instanceof IntSequenceStorage) {
                 replace(new IntListLiteralNode(values));
             } else if (store instanceof DoubleSequenceStorage) {
@@ -99,16 +99,41 @@ public abstract class ListLiteralNode extends LiteralNode {
         }
     }
 
+    /**
+     * One shot profiling node. It uses the first list to profile its actually storage type, and use
+     * that type info to respecialize itself to a properly typed literal node.
+     *
+     */
     public static final class EmptyListLiteralNode extends ListLiteralNode {
 
-        public EmptyListLiteralNode(PNode[] values) {
+        private final PList profilingList;
+
+        public EmptyListLiteralNode(PList profilingList, PNode[] values) {
             super(values);
+            this.profilingList = profilingList;
             assert values.length == 0;
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            return new PList(EmptySequenceStorage.INSTANCE);
+            transferToInterpreterAndInvalidate();
+
+            SequenceStorage store = profilingList.getStorage();
+            PList newList;
+
+            if (store instanceof EmptySequenceStorage) {
+                newList = (PList) replace(new ObjectListLiteralNode(values)).execute(frame);
+            } else if (store instanceof IntSequenceStorage) {
+                newList = (PList) replace(new IntListLiteralNode(values)).execute(frame);
+            } else if (store instanceof DoubleSequenceStorage) {
+                newList = (PList) replace(new DoubleListLiteralNode(values)).execute(frame);
+            } else if (store instanceof StringSequenceStorage) {
+                newList = (PList) replace(new StringListLiteralNode(values)).execute(frame);
+            } else {
+                newList = (PList) replace(new ObjectListLiteralNode(values)).execute(frame);
+            }
+
+            return newList;
         }
     }
 

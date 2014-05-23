@@ -94,8 +94,7 @@ def binary_partitions(n):
     sum = 0
     while pow <= n:
         pow <<= 1
-    partition = [1]
-    del partition[0]
+    partition = []
     while pow:
         if sum+pow <= n:
             partition.append(pow)
