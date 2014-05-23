@@ -651,17 +651,166 @@ JVM_ENTRY(void, JVM_InitializeGraalNatives(JNIEnv *env, jclass c, jclass c2vmCla
   GraalRuntime::initialize_natives(env, c2vmClass);
 JVM_END
 
-// private static String[] HotSpotOptions.getVMOptions(boolean[] timeCompilations)
-JVM_ENTRY(jobject, JVM_GetGraalOptions(JNIEnv *env, jclass c, jobject timeCompilations))
+// private static boolean HotSpotOptions.parseVMOptions()
+JVM_ENTRY(jboolean, JVM_ParseGraalOptions(JNIEnv *env, jclass c))
   HandleMark hm;
-  int numOptions = Arguments::num_graal_args();
-  objArrayOop options = oopFactory::new_objArray(SystemDictionary::String_klass(),
-      numOptions, CHECK_NULL);
-  objArrayHandle optionsHandle(THREAD, options);
-  for (int i = 0; i < numOptions; i++) {
-    Handle option = java_lang_String::create_from_str(Arguments::graal_args_array()[i], CHECK_NULL);
-    optionsHandle->obj_at_put(i, option());
-  }
-  ((typeArrayOop) JNIHandles::resolve(timeCompilations))->bool_at_put(0, CITime || CITimeEach);
-  return JNIHandles::make_local(THREAD, optionsHandle());
+  KlassHandle hotSpotOptionsClass(THREAD, java_lang_Class::as_Klass(JNIHandles::resolve_non_null(c)));
+  return GraalRuntime::parse_arguments(hotSpotOptionsClass, CHECK_false);
 JVM_END
+
+bool GraalRuntime::parse_arguments(KlassHandle hotSpotOptionsClass, TRAPS) {
+  ResourceMark rm(THREAD);
+
+  // Process option overrides from graal.options first
+  parse_graal_options_file(hotSpotOptionsClass, CHECK_false);
+
+  // Now process options on the command line
+  int numOptions = Arguments::num_graal_args();
+  for (int i = 0; i < numOptions; i++) {
+    char* arg = Arguments::graal_args_array()[i];
+    parse_argument(hotSpotOptionsClass, arg, CHECK_false);
+  }
+  return CITime || CITimeEach;
+}
+
+void GraalRuntime::parse_argument(KlassHandle hotSpotOptionsClass, char* arg, TRAPS) {
+  char first = arg[0];
+  char* name;
+  size_t name_len;
+  Handle name_handle;
+  bool valid = true;
+  if (first == '+' || first == '-') {
+    name = arg + 1;
+    name_len = strlen(name);
+    name_handle = java_lang_String::create_from_str(name, CHECK);
+    valid = set_option(hotSpotOptionsClass, name, name_len, name_handle, arg, CHECK);
+  } else {
+    char* sep = strchr(arg, '=');
+    if (sep != NULL) {
+      name = arg;
+      name_len = sep - name;
+      // Temporarily replace '=' with NULL to create the Java string for the option name
+      *sep = '\0';
+      name_handle = java_lang_String::create_from_str(arg, THREAD);
+      *sep = '=';
+      if (HAS_PENDING_EXCEPTION) {
+        return;
+      }
+      valid = set_option(hotSpotOptionsClass, name, name_len, name_handle, sep + 1, CHECK);
+    } else {
+      char buf[200];
+      jio_snprintf(buf, sizeof(buf), "Value for option %s must use '-G:%s=<value>' format", arg, arg);
+      THROW_MSG(vmSymbols::java_lang_InternalError(), buf);
+    }
+  }
+
+  if (!valid) {
+    VMToCompiler::setOption(hotSpotOptionsClass, name_handle, Handle(), ' ', Handle(), 0L);
+    char buf[200];
+    jio_snprintf(buf, sizeof(buf), "Invalid Graal option %s", arg);
+    THROW_MSG(vmSymbols::java_lang_InternalError(), buf);
+  }
+}
+
+void GraalRuntime::parse_graal_options_file(KlassHandle hotSpotOptionsClass, TRAPS) {
+  const char* home = Arguments::get_java_home();
+  int path_len = strlen(home) + strlen("/lib/graal.options") + 1;
+  char* path = NEW_RESOURCE_ARRAY_IN_THREAD(THREAD, char, path_len);
+  char sep = os::file_separator()[0];
+  sprintf(path, "%s%clib%cgraal.options", home, sep, sep);
+
+  struct stat st;
+  if (os::stat(path, &st) == 0) {
+    int file_handle = os::open(path, 0, 0);
+    if (file_handle != -1) {
+      char* buffer = NEW_RESOURCE_ARRAY_IN_THREAD(THREAD, char, st.st_size);
+      int num_read = (int) os::read(file_handle, (char*) buffer, st.st_size);
+      if (num_read == -1) {
+        warning("Error reading file %s due to %s", path, strerror(errno));
+      } else if (num_read != st.st_size) {
+        warning("Only read %d of %d bytes from %s", num_read, st.st_size, path);
+      }
+      os::close(file_handle);
+      if (num_read == st.st_size) {
+        char* line = buffer;
+        int lineNo = 1;
+        while (line - buffer < num_read) {
+          char* nl = strchr(line, '\n');
+          if (nl != NULL) {
+            *nl = '\0';
+          }
+          parse_argument(hotSpotOptionsClass, line, THREAD);
+          if (HAS_PENDING_EXCEPTION) {
+            warning("Error in %s:%d", path, lineNo);
+            return;
+          }
+          if (nl != NULL) {
+            line = nl + 1;
+            lineNo++;
+          } else {
+            // File without newline at the end
+            break;
+          }
+        }
+      }
+    } else {
+      warning("Error opening file %s due to %s", path, strerror(errno));
+    }
+  }
+}
+
+jlong GraalRuntime::parse_primitive_option_value(char spec, Handle name, const char* value, TRAPS) {
+  union {
+    jint i;
+    jlong l;
+    double d;
+  } uu;
+  uu.l = 0L;
+  char dummy;
+  switch (spec) {
+    case 'd':
+    case 'f': {
+      if (sscanf(value, "%lf%c", &uu.d, &dummy) == 1) {
+        return uu.l;
+      }
+      break;
+    }
+    case 'i': {
+      if (sscanf(value, "%d%c", &uu.i, &dummy) == 1) {
+        return uu.l;
+      }
+      break;
+    }
+    default:
+      ShouldNotReachHere();
+  }
+  ResourceMark rm(THREAD);
+  char buf[200];
+  jio_snprintf(buf, sizeof(buf), "Invalid %s value for Graal option %s: %s", (spec == 'i' ? "numeric" : "float/double"), java_lang_String::as_utf8_string(name()), value);
+  THROW_MSG_(vmSymbols::java_lang_InternalError(), buf, 0L);
+}
+
+Handle GraalRuntime::get_OptionValue(const char* declaringClass, const char* fieldName, const char* fieldSig, TRAPS) {
+  TempNewSymbol name = SymbolTable::new_symbol(declaringClass, THREAD);
+  Klass* klass = SystemDictionary::resolve_or_fail(name, true, CHECK_NH);
+
+  // The class has been loaded so the field and signature should already be in the symbol
+  // table.  If they're not there, the field doesn't exist.
+  TempNewSymbol fieldname = SymbolTable::probe(fieldName, (int)strlen(fieldName));
+  TempNewSymbol signame = SymbolTable::probe(fieldSig, (int)strlen(fieldSig));
+  if (fieldname == NULL || signame == NULL) {
+    THROW_MSG_(vmSymbols::java_lang_NoSuchFieldError(), (char*) fieldName, Handle());
+  }
+  // Make sure class is initialized before handing id's out to fields
+  klass->initialize(CHECK_NH);
+
+  fieldDescriptor fd;
+  if (!InstanceKlass::cast(klass)->find_field(fieldname, signame, true, &fd)) {
+    THROW_MSG_(vmSymbols::java_lang_NoSuchFieldError(), (char*) fieldName, Handle());
+  }
+
+  Handle ret = klass->java_mirror()->obj_field(fd.offset());
+  return ret;
+}
+
+#include "HotSpotOptions.inline.hpp"
