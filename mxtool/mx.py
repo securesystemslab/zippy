@@ -1514,14 +1514,19 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
         stderr = err if not callable(err) else subprocess.PIPE
         p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn, creationflags=creationflags, env=env)
         sub = _addSubprocess(p, args)
+        joiners = []
         if callable(out):
             t = Thread(target=redirect, args=(p.stdout, out))
             # Don't make the reader thread a daemon otherwise output can be droppped
             t.start()
+            joiners.append(t)
         if callable(err):
             t = Thread(target=redirect, args=(p.stderr, err))
             # Don't make the reader thread a daemon otherwise output can be droppped
             t.start()
+            joiners.append(t)
+        for t in joiners:
+            t.join()
         if timeout is None or timeout == 0:
             retcode = waitOn(p)
         else:
