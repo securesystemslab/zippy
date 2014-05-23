@@ -1,15 +1,11 @@
-# zwei 10/09/13
-# arithmetic ops (partially extracted from spectralnorm)
+# zwei 05/23/14
+# modulo ops
 import time
 
 def docompute(num):
 	for i in range(num):
 		sum = 0
 		j = 0
-
-		# if i == 0:
-		# 	i += 1
-
 		while j < i:
 			if i % 3 == 0:
 				temp = 1
