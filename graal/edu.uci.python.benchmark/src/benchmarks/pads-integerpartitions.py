@@ -94,7 +94,8 @@ def binary_partitions(n):
     sum = 0
     while pow <= n:
         pow <<= 1
-    partition = []
+    partition = [1]
+    del partition[0]
     while pow:
         if sum+pow <= n:
             partition.append(pow)
@@ -146,9 +147,7 @@ def binary_partitions(n):
         last_nonunit += 1
         while x > 1:
             if len(partition) - last_nonunit - 1 >= x:
-                print('before del partition', partition)
                 del partition[-x+1:]
-                print('after del partition', partition)
                 last_nonunit += 1
                 partition[last_nonunit] = x
             else:
@@ -317,9 +316,6 @@ class PartitionTest(unittest.TestCase):
 # if __name__ == "__main__":
 #     unittest.main()
 
-# for i in fixed_length_partitions(10, 5):
-#     print(i)
-
 counts = [1,1,2,3,5,7,11,15,22,30,42,56,77,101,135]
 
 def _sum(iterable):
@@ -345,7 +341,7 @@ def main(n):
 
 
 def measure():
-    input = int(sys.argv[1]) #80
+    input = int(sys.argv[1]) #700
 
     print("Start timing...")
     start = time.time()
@@ -355,7 +351,7 @@ def measure():
     print("pads-partitions: " + duration)
 
 for i in range(100):
-    main(40)
+    main(400)
 
 measure()
     

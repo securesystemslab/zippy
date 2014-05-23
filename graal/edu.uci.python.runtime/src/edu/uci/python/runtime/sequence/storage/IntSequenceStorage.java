@@ -177,7 +177,11 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delItemInBound(int idx) {
-        popInBound(idx);
+        if (values.length - 1 == idx) {
+            popInt();
+        } else {
+            popInBound(idx);
+        }
     }
 
     @Override
