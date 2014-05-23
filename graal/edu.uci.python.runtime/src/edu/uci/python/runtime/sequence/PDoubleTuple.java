@@ -29,8 +29,9 @@ import java.util.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
-public final class PDoubleTuple extends PTuple {
+public class PDoubleTuple extends PImmutableSequence {
 
     private final double[] array;
 
@@ -83,7 +84,6 @@ public final class PDoubleTuple extends PTuple {
         return array.length;
     }
 
-    @Override
     public Object[] getArray() {
         Object[] objectArray = new Object[array.length];
         for (int i = 0; i < array.length; i++) {
@@ -155,6 +155,24 @@ public final class PDoubleTuple extends PTuple {
 
         buf.append(")");
         return buf.toString();
+    }
+
+    @Override
+    public int index(Object value) {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+    @Override
+    public SequenceStorage getStorage() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public boolean lessThan(PSequence sequence) {
+        // TODO Auto-generated method stub
+        return false;
     }
 
 }

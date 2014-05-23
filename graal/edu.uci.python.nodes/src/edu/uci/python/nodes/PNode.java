@@ -111,18 +111,6 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPList(execute(frame));
     }
 
-    public PIntTuple executePIntTuple(VirtualFrame frame) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectPIntTuple(execute(frame));
-    }
-
-    public PDoubleTuple executePDoubleTuple(VirtualFrame frame) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectPDoubleTuple(execute(frame));
-    }
-
-    public PObjectTuple executePObjectTuple(VirtualFrame frame) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectPObjectTuple(execute(frame));
-    }
-
     public PTuple executePTuple(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPTuple(execute(frame));
     }

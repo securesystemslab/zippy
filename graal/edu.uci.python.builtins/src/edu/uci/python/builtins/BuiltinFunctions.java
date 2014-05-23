@@ -559,21 +559,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return arg.length();
         }
 
-        @Specialization(order = 1)
-        public int len(PIntTuple tuple) {
-            return tuple.len();
-        }
-
-        @Specialization(order = 2)
-        public int len(PDoubleTuple tuple) {
-            return tuple.len();
-        }
-
-        @Specialization(order = 3)
-        public int len(PObjectTuple tuple) {
-            return tuple.len();
-        }
-
         @Specialization(order = 4)
         public int len(PTuple tuple) {
             return tuple.len();

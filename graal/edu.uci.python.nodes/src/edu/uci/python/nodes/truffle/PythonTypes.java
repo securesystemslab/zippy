@@ -51,9 +51,6 @@ import edu.uci.python.runtime.standardtype.*;
                 PythonClass.class, //
                 PDict.class, //
                 PList.class, //
-                PIntTuple.class, //
-                PDoubleTuple.class, //
-                PObjectTuple.class, //
                 PTuple.class, //
                 PRange.class, //
                 PIntArray.class, //

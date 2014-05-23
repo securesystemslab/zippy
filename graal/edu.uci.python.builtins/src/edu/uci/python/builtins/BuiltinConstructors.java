@@ -539,17 +539,17 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         @Specialization(order = 1)
         public PTuple tuple(String arg) {
-            return PTuple.create(new PStringIterator(arg));
+            return new PTuple(new PStringIterator(arg));
         }
 
         @Specialization(order = 2)
         public PTuple tuple(PIterable iterable) {
-            return PTuple.create(iterable.__iter__());
+            return new PTuple(iterable.__iter__());
         }
 
         @Specialization(order = 3)
         public PTuple tuple(PIterator iterator) {
-            return PTuple.create(iterator);
+            return new PTuple(iterator);
         }
 
         @Specialization

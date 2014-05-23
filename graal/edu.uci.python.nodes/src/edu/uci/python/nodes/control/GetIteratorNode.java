@@ -39,16 +39,6 @@ public abstract class GetIteratorNode extends UnaryOpNode {
         return value.__iter__();
     }
 
-    @Specialization(order = 2)
-    public Object doIntTuple(PIntTuple value) {
-        return value.__iter__();
-    }
-
-    @Specialization(order = 3)
-    public Object doDoubleTuple(PDoubleTuple value) {
-        return value.__iter__();
-    }
-
     @Specialization(order = 5)
     public Object doPRange(PRange value) {
         return value.__iter__();

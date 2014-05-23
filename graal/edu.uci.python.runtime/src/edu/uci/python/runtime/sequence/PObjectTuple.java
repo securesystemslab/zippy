@@ -27,8 +27,9 @@ package edu.uci.python.runtime.sequence;
 import java.util.*;
 
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
-public final class PObjectTuple extends PTuple {
+public class PObjectTuple extends PImmutableSequence {
 
     private final Object[] array;
 
@@ -86,11 +87,6 @@ public final class PObjectTuple extends PTuple {
     }
 
     @Override
-    public Object[] getArray() {
-        return array;
-    }
-
-    @Override
     public Object getItem(int idx) {
         int checkedIdx = idx;
 
@@ -138,6 +134,24 @@ public final class PObjectTuple extends PTuple {
 
         buf.append(")");
         return buf.toString();
+    }
+
+    @Override
+    public int index(Object value) {
+        // TODO Auto-generated method stub
+        return 0;
+    }
+
+    @Override
+    public SequenceStorage getStorage() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public boolean lessThan(PSequence sequence) {
+        // TODO Auto-generated method stub
+        return false;
     }
 
 }

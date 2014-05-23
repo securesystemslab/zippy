@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.profiler;
 
+import java.io.*;
 import java.util.*;
 import java.util.Map.*;
 
@@ -46,12 +47,13 @@ public class ProfilerResultPrinter {
          * to the beginning of the string, minus sign adds padding to the right
          */
 
-        System.out.format("%-50s", "Node");
-        System.out.format("%-20s", "Counter");
-        System.out.format("%-15s", "Line");
-        System.out.format("%-15s", "Column");
-        System.out.println();
-        System.out.println("=============                                     ===============     ==========     ==========");
+        PrintStream out = System.out;
+        out.format("%-50s", "Node");
+        out.format("%-20s", "Counter");
+        out.format("%-15s", "Line");
+        out.format("%-15s", "Column");
+        out.println();
+        out.println("=============                                     ===============     ==========     ==========");
 
         @SuppressWarnings("rawtypes")
         Iterator it = sorted.entrySet().iterator();
@@ -62,11 +64,11 @@ public class ProfilerResultPrinter {
             ProfilerInstrument instrument = entry.getValue();
 
             Node child = wrapper.getChild();
-            System.out.format("%-50s", child.getClass().getSimpleName());
-            System.out.format("%15s", instrument.getCounter());
-            System.out.format("%15s", child.getSourceSection().getStartLine());
-            System.out.format("%15s", child.getSourceSection().getStartColumn());
-            System.out.println();
+            out.format("%-50s", child.getClass().getSimpleName());
+            out.format("%15s", instrument.getCounter());
+            out.format("%15s", child.getSourceSection().getStartLine());
+            out.format("%15s", child.getSourceSection().getStartColumn());
+            out.println();
 
         }
     }
@@ -89,7 +91,7 @@ public class ProfilerResultPrinter {
     }
 
     /**
-     * "FUNCTION NAME"(13 char) + "10 space" + "INVOCATION COUNTS"(27 char)
+     * "FUNCTION NAME"(13 char) + "10 space" + "INVOCATION COUNTS"(27 char).
      */
 
     public static void printFunctionInvocationProfilerResults() {

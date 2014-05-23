@@ -73,19 +73,9 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         return list.getItem(idx);
     }
 
-    @Specialization(order = 4)
-    public int doPIntTuple(PIntTuple tuple, int idx) {
-        return tuple.getIntItem(idx);
-    }
-
-    @Specialization(order = 5)
-    public double doPDoubleTuple(PDoubleTuple tuple, int idx) {
-        return tuple.getDoubleItem(idx);
-    }
-
     @Specialization(order = 7)
-    public Object doPObjectTuple(PObjectTuple tuple, int idx) {
-        return tuple.getObjectItem(idx);
+    public Object doPTuple(PTuple tuple, int idx) {
+        return tuple.getItem(idx);
     }
 
     @Specialization(order = 10)

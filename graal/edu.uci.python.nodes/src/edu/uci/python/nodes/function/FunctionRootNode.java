@@ -59,7 +59,7 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
     @Child protected PNode body;
     private PNode uninitializedBody;
 
-    @Child private PNode profiler;
+    @Child protected PNode profiler;
 
     public FunctionRootNode(PythonContext context, String functionName, boolean isGenerator, FrameDescriptor frameDescriptor, PNode body) {
         super(null, frameDescriptor); // SourceSection is not supported yet.
