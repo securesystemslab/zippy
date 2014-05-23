@@ -253,34 +253,23 @@ public class PArguments {
         private final BlockingQueue<Object> blockingQueue;
         private final SingleProducerCircularBuffer buffer;
         private final Queue<Object> queue;
-        private final DisruptorRingBufferHandler ringBuffer;
 
         public ParallelGeneratorArguments(BlockingQueue<Object> queue) {
             this.blockingQueue = queue;
             this.buffer = null;
             this.queue = null;
-            this.ringBuffer = null;
         }
 
         public ParallelGeneratorArguments(SingleProducerCircularBuffer buffer) {
             this.blockingQueue = null;
             this.buffer = buffer;
             this.queue = null;
-            this.ringBuffer = null;
         }
 
         public ParallelGeneratorArguments(Queue<Object> queue) {
             this.blockingQueue = null;
             this.buffer = null;
             this.queue = queue;
-            this.ringBuffer = null;
-        }
-
-        public ParallelGeneratorArguments(DisruptorRingBufferHandler ringBuffer) {
-            this.blockingQueue = null;
-            this.buffer = null;
-            this.queue = null;
-            this.ringBuffer = ringBuffer;
         }
 
         public BlockingQueue<Object> getBlockingQueue() {
@@ -295,10 +284,6 @@ public class PArguments {
 
         public Queue<Object> getQueue() {
             return queue;
-        }
-
-        public DisruptorRingBufferHandler getRingBuffer() {
-            return ringBuffer;
         }
     }
 

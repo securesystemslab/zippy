@@ -29,10 +29,7 @@ import java.math.*;
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
