@@ -315,22 +315,7 @@ public class PList extends PSequence {
 
         PList otherList = (PList) other;
         SequenceStorage otherStore = otherList.getStorage();
-
-        if (store.length() != otherStore.length()) {
-            return false;
-        }
-
-        for (int i = 0; i < store.length(); i++) {
-            Object l = store.getItemInBound(i);
-            Object r = otherStore.getItemInBound(i);
-            boolean isTheSame = ArithmeticUtil.is(l, r);
-
-            if (!isTheSame) {
-                return false;
-            }
-        }
-
-        return true;
+        return store.equals(otherStore);
     }
 
     @Override

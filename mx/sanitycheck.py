@@ -171,6 +171,7 @@ pythonBenchmarks = {
     'euler11-timed'   : '10000',
     'ai-nqueen-timed' : '10',
     'pads-eratosthenes-timed' : '100000',
+    'pads-integerpartitions' : '700',
     'richards3-timed' : '200',
     'bm-float-timed'  : '1000',
     'pypy-chaos-timed': '1000',

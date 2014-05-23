@@ -60,6 +60,8 @@ public abstract class SequenceStorage {
 
     public abstract void sort();
 
+    public abstract boolean equals(SequenceStorage other);
+
     public abstract SequenceStorage generalizeFor(Object value);
 
     public abstract Object getIndicativeValue();

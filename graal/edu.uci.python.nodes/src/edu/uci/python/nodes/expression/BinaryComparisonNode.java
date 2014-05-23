@@ -122,6 +122,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
 
         @Specialization
+        boolean doPList(PList left, PList right) {
+            return !left.equals(right);
+        }
+
+        @Specialization
         public boolean doPythonClass(PythonClass left, PythonClass right) {
             return !left.equals(right);
         }

@@ -73,6 +73,10 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
         return boxed;
     }
 
+    protected double[] getInternalDoubleArray() {
+        return values;
+    }
+
     @Override
     public Object[] getCopyOfInternalArray() {
         return getInternalArray();
@@ -281,6 +285,22 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
     @Override
     public Object getIndicativeValue() {
         return .0;
+    }
+
+    @Override
+    public boolean equals(SequenceStorage other) {
+        if (other.length() != length()) {
+            return false;
+        }
+
+        double[] otherArray = ((DoubleSequenceStorage) other).getInternalDoubleArray();
+        for (int i = 0; i < length(); i++) {
+            if (values[i] != otherArray[i]) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }

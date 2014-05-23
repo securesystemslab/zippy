@@ -209,4 +209,14 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
     public Object getIndicativeValue() {
         return null;
     }
+
+    @Override
+    public boolean equals(SequenceStorage other) {
+        if (other.length() != length()) {
+            return false;
+        }
+
+        return Arrays.equals(values, other.getInternalArray());
+    }
+
 }

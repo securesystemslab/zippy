@@ -149,4 +149,9 @@ public final class EmptySequenceStorage extends SequenceStorage {
     public void sort() {
     }
 
+    @Override
+    public boolean equals(SequenceStorage other) {
+        return other == EmptySequenceStorage.INSTANCE;
+    }
+
 }

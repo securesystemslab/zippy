@@ -75,6 +75,10 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         return boxed;
     }
 
+    protected int[] getInternalIntArray() {
+        return values;
+    }
+
     @Override
     public Object[] getCopyOfInternalArray() {
         return getInternalArray();
@@ -292,6 +296,22 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     @Override
     public Object getIndicativeValue() {
         return 0;
+    }
+
+    @Override
+    public boolean equals(SequenceStorage other) {
+        if (other.length() != length()) {
+            return false;
+        }
+
+        int[] otherArray = ((IntSequenceStorage) other).getInternalIntArray();
+        for (int i = 0; i < length(); i++) {
+            if (values[i] != otherArray[i]) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }

@@ -315,27 +315,10 @@ class PartitionTest(unittest.TestCase):
 # if __name__ == "__main__":
 #     unittest.main()
 
-counts = [1,1,2,3,5,7,11,15,22,30,42,56,77,101,135]
-
-def _sum(iterable):
-    sum = None
-    for i in iterable:
-        if sum is None:
-            sum = i
-        else:
-            sum += i
-
-    return sum
-
 def main(n):
-    # for p in revlex_partitions(n):
-    #     if n != _sum(p):
-    #         return False
-
     for p in binary_partitions(n):
-        ret = p
+        ret = len(p)
 
-    # return True
     return ret
 
 
@@ -349,8 +332,7 @@ def measure():
     duration = "%.3f\n" % (time.time() - start)
     print("pads-partitions: " + duration)
 
-for i in range(100):
+for i in range(50):
     main(400)
 
 measure()
-    
