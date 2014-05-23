@@ -35,7 +35,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     private int[] values;
 
     public IntSequenceStorage() {
-        values = new int[]{};
+        values = new int[4];
     }
 
     public IntSequenceStorage(int[] elements) {
