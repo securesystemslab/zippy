@@ -130,9 +130,10 @@ public abstract class PBaseSet extends PythonBuiltinObject implements PIterable 
 
     // intersection
     public PBaseSet intersection(PBaseSet other) {
-        PBaseSet newSet = cloneThisSet();
-        newSet.set.retainAll(other.set);
-        return newSet;
+        boolean set1IsLarger = set.size() > other.set.size();
+        PBaseSet cloneSet = (set1IsLarger ? other.cloneThisSet() : this.cloneThisSet());
+        cloneSet.set.retainAll(set1IsLarger ? this.set : other.set);
+        return cloneSet;
     }
 
     public PBaseSet intersection(PIterator other) {
