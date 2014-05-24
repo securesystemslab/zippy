@@ -580,7 +580,8 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization(order = 11, guards = "isBasicStorage")
         public int lenPList(PList list) {
-            return list.getStorage().length();
+            BasicSequenceStorage store = (BasicSequenceStorage) list.getStorage();
+            return store.length();
         }
 
         @Specialization(order = 15)

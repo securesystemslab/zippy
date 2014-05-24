@@ -19,7 +19,7 @@ def LengthLimitedLyndonWords(s,n):
         m = len(w)
         while len(w) < n:               # repeat word to fill exactly n syms
             w.append(w[-m])
-        while w and w[-1] == s - 1:     # delete trailing z's
+        while len(w) > 0 and w[-1] == s - 1:     # delete trailing z's
             w.pop()
 
 def LyndonWordsWithLength(s,n):
