@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -22,16 +20,34 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.instrument.impl;
+package com.oracle.graal.hotspotvmconfig;
 
-import com.oracle.truffle.api.*;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * Instrumentation callback for guest language source-related events.
+ * Refers to a C++ flag in the VM.
  */
-public interface SourceCallback {
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface HotSpotVMFlag {
 
-    public void startLoading(Source source);
+    /**
+     * Returns the name of this flag.
+     *
+     * @return name of flag.
+     */
+    String name();
 
-    public void endLoading(Source source);
+    /**
+     * List of architectures where this constant is required. Names are derived from
+     * {@link HotSpotVMConfig#getHostArchitectureName()}. An empty list implies that the constant is
+     * required on all architectures.
+     */
+    @SuppressWarnings("javadoc")
+    String[] archs() default {};
+
+    boolean optional() default false;
 }

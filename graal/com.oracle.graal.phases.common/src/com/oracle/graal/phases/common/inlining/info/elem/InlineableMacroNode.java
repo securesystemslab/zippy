@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,38 +20,32 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.hotspot;
+package com.oracle.graal.phases.common.inlining.info.elem;
 
-import java.lang.annotation.*;
+import com.oracle.graal.nodes.FixedWithNextNode;
+import com.oracle.graal.nodes.Invoke;
 
-/**
- * Refers to a C++ type in the VM.
- */
-@Target(ElementType.FIELD)
-@Retention(RetentionPolicy.RUNTIME)
-public @interface HotSpotVMType {
+import java.util.Collections;
 
-    /**
-     * Types of information this annotation can return.
-     */
-    enum Type {
-        /**
-         * Returns the size of the type (C++ {@code sizeof()}).
-         */
-        SIZE;
+public class InlineableMacroNode implements Inlineable {
+
+    private final Class<? extends FixedWithNextNode> macroNodeClass;
+
+    public InlineableMacroNode(Class<? extends FixedWithNextNode> macroNodeClass) {
+        this.macroNodeClass = macroNodeClass;
     }
 
-    /**
-     * Specifies what type of information to return.
-     *
-     * @see Type
-     */
-    Type get();
+    @Override
+    public int getNodeCount() {
+        return 1;
+    }
 
-    /**
-     * Returns the name of the type.
-     *
-     * @return name of type
-     */
-    String name();
+    @Override
+    public Iterable<Invoke> getInvokes() {
+        return Collections.emptyList();
+    }
+
+    public Class<? extends FixedWithNextNode> getMacroNodeClass() {
+        return macroNodeClass;
+    }
 }

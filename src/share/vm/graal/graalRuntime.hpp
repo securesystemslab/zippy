@@ -31,12 +31,55 @@
 class GraalRuntime: public CHeapObj<mtCompiler> {
  private:
 
-  static address   _external_deopt_i2c_entry;
+  static address _external_deopt_i2c_entry;
+
+  /**
+   * Reads the OptionValue object from a specified static field.
+   *
+   * @throws LinkageError if the field could not be resolved
+   */
+  static Handle get_OptionValue(const char* declaringClass, const char* fieldName, const char* fieldSig, TRAPS);
+
+  /**
+   * Parses the string form of a numeric, float or double option into a jlong (using raw bits for floats/doubles).
+   *
+   * @param spec 'i', 'f' or 'd' (see HotSpotOptions.setOption())
+   * @param name name option option
+   * @param value string value to parse
+   * @throws InternalError if value could not be parsed according to spec
+   */
+  static jlong parse_primitive_option_value(char spec, Handle name, const char* value, TRAPS);
+
+  /**
+   * Loads default option value overrides from a <jre_home>/lib/graal.options if it exists. Each
+   * line in this file must have the format of a Graal command line option without the
+   * leading "-G:" prefix. These option values are set prior to processing of any Graal
+   * options present on the command line.
+   */
+  static void parse_graal_options_file(KlassHandle hotSpotOptionsClass, TRAPS);
+
+  /**
+   * Parses a given argument and sets the denoted Graal option.
+   *
+   * @throws InternalError if there was a problem parsing or setting the option
+   */
+  static void parse_argument(KlassHandle hotSpotOptionsClass, char* arg, TRAPS);
+
+  /**
+   * Searches for a Graal option denoted by a given name and sets it value.
+   *
+   * @returns true if the option was found
+   * @throws InternalError if there was a problem setting the option's value
+   */
+  static bool set_option(KlassHandle hotSpotOptionsClass, const char* name, int name_len, Handle name_handle, const char* value, TRAPS);
 
  public:
 
   static void initialize_natives(JNIEnv *env, jclass c2vmClass);
   static BufferBlob* initialize_buffer_blob();
+
+  static bool parse_arguments(KlassHandle hotSpotOptionsClass, TRAPS);
+
   static BasicType kindToBasicType(jchar ch);
   static address create_external_deopt_i2c();
   static address get_external_deopt_i2c_entry() {return _external_deopt_i2c_entry;}

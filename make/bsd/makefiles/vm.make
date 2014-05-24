@@ -229,6 +229,7 @@ ifneq ($(INCLUDE_GRAAL), true)
 else
   GRAAL_SPECIFIC_FILES   :=
   GRAAL_SPECIFIC_GPU_FILES  :=
+  Src_Dirs_I += $(HS_COMMON_SRC)/../graal/com.oracle.graal.hotspot/src_gen/hotspot
 endif
 
 # Always exclude these.

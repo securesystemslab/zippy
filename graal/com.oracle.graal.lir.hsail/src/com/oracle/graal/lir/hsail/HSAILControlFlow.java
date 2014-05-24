@@ -84,11 +84,6 @@ public class HSAILControlFlow {
         /**
          * Generates the code for this switch op.
          *
-         * The keys for switch statements in Java bytecode for of type int. However, Graal also
-         * generates a TypeSwitchNode (for method dispatch) which triggers the invocation of these
-         * routines with keys of type Long or Object. Currently we only support the
-         * IntegerSwitchNode so we throw an exception if the key isn't of type int.
-         *
          * @param crb the CompilationResultBuilder
          * @param masm the HSAIL assembler
          */
@@ -100,13 +95,13 @@ public class HSAILControlFlow {
                     switch (key.getKind()) {
                         case Int:
                         case Long:
+                        case Object:
                             // Generate cascading compare and branches for each case.
                             masm.emitCompare(key.getKind(), key, keyConstants[index], HSAILCompare.conditionToString(condition), false, false);
                             masm.cbr(masm.nameOf(target));
                             break;
-                        case Object:
                         default:
-                            throw new GraalInternalError("switch only supported for int");
+                            throw new GraalInternalError("switch not supported for kind " + key.getKind());
                     }
                 }
             };
@@ -146,13 +141,15 @@ public class HSAILControlFlow {
         protected MetaAccessProvider metaAccessProvider;
         protected String emitName;
         protected int codeBufferPos = -1;
+        private final boolean emitInfopoint;
 
-        public DeoptimizeOp(Value actionAndReason, LIRFrameState frameState, String emitName, MetaAccessProvider metaAccessProvider) {
+        public DeoptimizeOp(Value actionAndReason, LIRFrameState frameState, String emitName, boolean emitInfopoint, MetaAccessProvider metaAccessProvider) {
             super(Value.ILLEGAL);   // return with no ret value
             this.actionAndReason = actionAndReason;
             this.frameState = frameState;
             this.emitName = emitName;
             this.metaAccessProvider = metaAccessProvider;
+            this.emitInfopoint = emitInfopoint;
         }
 
         @Override
@@ -186,8 +183,12 @@ public class HSAILControlFlow {
             masm.emitMov(Kind.Int, codeBufferOffsetReg, Constant.forInt(codeBufferPos));
             masm.emitJumpToLabelName(masm.getDeoptLabelName());
 
-            // now record the debuginfo
-            crb.recordInfopoint(codeBufferPos, frameState, InfopointReason.IMPLICIT_EXCEPTION);
+            // Now record the debuginfo. If HSAIL deoptimization is off,
+            // no debuginfo is emitted and the kernel will return without
+            // a deoptimization.
+            if (emitInfopoint) {
+                crb.recordInfopoint(codeBufferPos, frameState, InfopointReason.IMPLICIT_EXCEPTION);
+            }
         }
 
         public LIRFrameState getFrameState() {

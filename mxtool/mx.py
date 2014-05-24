@@ -34,6 +34,7 @@ Full documentation can be found at https://wiki.openjdk.java.net/display/Graal/T
 """
 
 import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
+import multiprocessing
 import textwrap
 import socket
 import tarfile
@@ -63,7 +64,7 @@ _warn = False
 A distribution is a jar or zip file containing the output from one or more Java projects.
 """
 class Distribution:
-    def __init__(self, suite, name, path, sourcesPath, deps, excludedDependencies, distDependencies):
+    def __init__(self, suite, name, path, sourcesPath, deps, mainClass, excludedDependencies, distDependencies):
         self.suite = suite
         self.name = name
         self.path = path.replace('/', os.sep)
@@ -71,6 +72,7 @@ class Distribution:
         self.sourcesPath = _make_absolute(sourcesPath.replace('/', os.sep), suite.dir) if sourcesPath else None
         self.deps = deps
         self.update_listeners = set()
+        self.mainClass = mainClass
         self.excludedDependencies = excludedDependencies
         self.distDependencies = distDependencies
 
@@ -98,9 +100,17 @@ class Distribution:
                 if not hasattr(zf, '_provenance'):
                     zf._provenance = {}
                 existingSource = zf._provenance.get(arcname, None)
-                if existingSource and existingSource != source and not arcname.endswith('/'):
-                    log('warning: ' + self.path + ': overwriting ' + arcname + '\n  new: ' + source + '\n  old: ' + existingSource)
+                isOverwrite = False
+                if existingSource and existingSource != source:
+                    log('warning: ' + self.path + ': avoid overwrite of ' + arcname + '\n  new: ' + source + '\n  old: ' + existingSource)
+                    isOverwrite = True
                 zf._provenance[arcname] = source
+                return isOverwrite
+
+            if self.mainClass:
+                manifest = "Manifest-Version: 1.0\nMain-Class: %s\n\n" % (self.mainClass)
+                if not overwriteCheck(arc.zf, "META-INF/MANIFEST.MF", "project files"):
+                    arc.zf.writestr("META-INF/MANIFEST.MF", manifest)
 
             for dep in self.sorted_deps(includeLibs=True):
                 if dep.isLibrary():
@@ -117,13 +127,13 @@ class Distribution:
                                     assert '/' not in service
                                     services.setdefault(service, []).extend(lp.read(arcname).splitlines())
                                 else:
-                                    overwriteCheck(arc.zf, arcname, lpath + '!' + arcname)
-                                    arc.zf.writestr(arcname, lp.read(arcname))
+                                    if not overwriteCheck(arc.zf, arcname, lpath + '!' + arcname):
+                                        arc.zf.writestr(arcname, lp.read(arcname))
                     if srcArc.zf and libSourcePath:
                         with zipfile.ZipFile(libSourcePath, 'r') as lp:
                             for arcname in lp.namelist():
-                                overwriteCheck(srcArc.zf, arcname, lpath + '!' + arcname)
-                                srcArc.zf.writestr(arcname, lp.read(arcname))
+                                if not overwriteCheck(srcArc.zf, arcname, lpath + '!' + arcname):
+                                    srcArc.zf.writestr(arcname, lp.read(arcname))
                 elif dep.isProject():
                     p = dep
 
@@ -157,8 +167,8 @@ class Distribution:
                         else:
                             for f in files:
                                 arcname = join(relpath, f).replace(os.sep, '/')
-                                overwriteCheck(arc.zf, arcname, join(root, f))
-                                arc.zf.write(join(root, f), arcname)
+                                if not overwriteCheck(arc.zf, arcname, join(root, f)):
+                                    arc.zf.write(join(root, f), arcname)
                     if srcArc.zf:
                         sourceDirs = p.source_dirs()
                         if p.source_gen_dir():
@@ -169,8 +179,8 @@ class Distribution:
                                 for f in files:
                                     if f.endswith('.java'):
                                         arcname = join(relpath, f).replace(os.sep, '/')
-                                        overwriteCheck(srcArc.zf, arcname, join(root, f))
-                                        srcArc.zf.write(join(root, f), arcname)
+                                        if not overwriteCheck(srcArc.zf, arcname, join(root, f)):
+                                            srcArc.zf.write(join(root, f), arcname)
 
             for service, providers in services.iteritems():
                 arcname = 'META-INF/services/' + service
@@ -822,9 +832,10 @@ class Suite:
             path = attrs.pop('path')
             sourcesPath = attrs.pop('sourcesPath', None)
             deps = pop_list(attrs, 'dependencies')
+            mainClass = attrs.pop('mainClass', None)
             exclDeps = pop_list(attrs, 'exclude')
             distDeps = pop_list(attrs, 'distDependencies')
-            d = Distribution(self, name, path, sourcesPath, deps, exclDeps, distDeps)
+            d = Distribution(self, name, path, sourcesPath, deps, mainClass, exclDeps, distDeps)
             d.__dict__.update(attrs)
             self.dists.append(d)
 
@@ -1232,7 +1243,7 @@ def classpath_walk(names=None, resolve=True, includeSelf=True, includeBootClassp
                     entryPath = zi.filename
                     yield zf, entryPath
 
-def sorted_deps(projectNames=None, includeLibs=False, includeAnnotationProcessors=False):
+def sorted_deps(projectNames=None, includeLibs=False, includeJreLibs=False, includeAnnotationProcessors=False):
     """
     Gets projects and libraries sorted such that dependencies
     are before the projects that depend on them. Unless 'includeLibs' is
@@ -1240,12 +1251,12 @@ def sorted_deps(projectNames=None, includeLibs=False, includeAnnotationProcessor
     """
     projects = projects_from_names(projectNames)
 
-    return sorted_project_deps(projects, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
+    return sorted_project_deps(projects, includeLibs=includeLibs, includeJreLibs=includeJreLibs, includeAnnotationProcessors=includeAnnotationProcessors)
 
-def sorted_project_deps(projects, includeLibs=False, includeAnnotationProcessors=False):
+def sorted_project_deps(projects, includeLibs=False, includeJreLibs=False, includeAnnotationProcessors=False):
     deps = []
     for p in projects:
-        p.all_deps(deps, includeLibs=includeLibs, includeAnnotationProcessors=includeAnnotationProcessors)
+        p.all_deps(deps, includeLibs=includeLibs, includeJreLibs=includeJreLibs, includeAnnotationProcessors=includeAnnotationProcessors)
     return deps
 
 def _handle_missing_java_home():
@@ -1502,14 +1513,19 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
         stderr = err if not callable(err) else subprocess.PIPE
         p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn, creationflags=creationflags, env=env)
         sub = _addSubprocess(p, args)
+        joiners = []
         if callable(out):
             t = Thread(target=redirect, args=(p.stdout, out))
-            t.daemon = True  # thread dies with the program
+            # Don't make the reader thread a daemon otherwise output can be droppped
             t.start()
+            joiners.append(t)
         if callable(err):
             t = Thread(target=redirect, args=(p.stderr, err))
-            t.daemon = True  # thread dies with the program
+            # Don't make the reader thread a daemon otherwise output can be droppped
             t.start()
+            joiners.append(t)
+        for t in joiners:
+            t.join()
         if timeout is None or timeout == 0:
             retcode = waitOn(p)
         else:
@@ -1661,6 +1677,7 @@ class JavaConfig:
         self.javac = exe_suffix(join(self.jdk, 'bin', 'javac'))
         self.javap = exe_suffix(join(self.jdk, 'bin', 'javap'))
         self.javadoc = exe_suffix(join(self.jdk, 'bin', 'javadoc'))
+        self.pack200 = exe_suffix(join(self.jdk, 'bin', 'pack200'))
         self.toolsjar = join(self.jdk, 'lib', 'tools.jar')
         self._bootclasspath = None
         self._extdirs = None
@@ -1833,14 +1850,22 @@ def abort(codeOrMessage):
     if _opts.killwithsigquit:
         _send_sigquit()
 
+    def is_alive(p):
+        if isinstance(p, subprocess.Popen):
+            return p.poll() is None
+        assert isinstance(p, multiprocessing.Process), p
+        return p.is_alive()
+
     for p, args in _currentSubprocesses:
-        try:
-            if get_os() == 'windows':
-                p.terminate()
-            else:
-                _kill_process_group(p.pid, signal.SIGKILL)
-        except BaseException as e:
-            log('error while killing subprocess {} "{}": {}'.format(p.pid, ' '.join(args), e))
+        if is_alive(p):
+            try:
+                if get_os() == 'windows':
+                    p.terminate()
+                else:
+                    _kill_process_group(p.pid, signal.SIGKILL)
+            except BaseException as e:
+                if is_alive(p):
+                    log('error while killing subprocess {} "{}": {}'.format(p.pid, ' '.join(args), e))
 
     if _opts and _opts.verbose:
         import traceback
@@ -2247,6 +2272,7 @@ def build(args, parser=None):
             failed = []
             for t in tasks:
                 t.proc.join()
+                _removeSubprocess(t.sub)
                 if t.proc.exitcode != 0:
                     failed.append(t)
             return failed
@@ -2257,7 +2283,6 @@ def build(args, parser=None):
                 if t.proc.is_alive():
                     active.append(t)
                 else:
-                    _removeSubprocess(t.sub)
                     if t.proc.exitcode != 0:
                         return ([], joinTasks(tasks))
             return (active, [])
@@ -2284,10 +2309,10 @@ def build(args, parser=None):
                 t._d = None
             return sorted(tasks, compareTasks)
 
-        import multiprocessing
         cpus = multiprocessing.cpu_count()
         worklist = sortWorklist(tasks.values())
         active = []
+        failed = []
         while len(worklist) != 0:
             while True:
                 active, failed = checkTasks(active)
@@ -2300,7 +2325,12 @@ def build(args, parser=None):
                 else:
                     break
 
+            if len(failed) != 0:
+                break
+
             def executeTask(task):
+                # Clear sub-process list cloned from parent process
+                del _currentSubprocesses[:]
                 task.execute()
 
             def depsDone(task):
@@ -2320,7 +2350,12 @@ def build(args, parser=None):
                     break
 
             worklist = sortWorklist(worklist)
-        joinTasks(active)
+
+        failed += joinTasks(active)
+        if len(failed):
+            for t in failed:
+                log('Compiling {} failed'.format(t.proj.name))
+            abort('{} Java compilation tasks failed'.format(len(failed)))
 
     for dist in _dists.values():
         archive(['@' + dist.name])
@@ -2613,6 +2648,10 @@ class Archiver:
             # Atomic on Unix
             shutil.move(self.tmpPath, self.path)
 
+def _archive(args):
+    archive(args)
+    return 0
+
 def archive(args):
     """create jar files for projects and distributions"""
     parser = ArgumentParser(prog='mx archive')
@@ -2630,6 +2669,7 @@ def archive(args):
             p = project(name)
             archives.append(p.make_archive())
 
+    logv("generated archives: " + str(archives))
     return archives
 
 def canonicalizeprojects(args):
@@ -2938,7 +2978,7 @@ def projectgraph(args, suite=None):
         igv.close('properties')
         igv.open('graph', {'name' : 'dependencies'})
         igv.open('nodes')
-        for p in sorted_deps(includeLibs=True):
+        for p in sorted_deps(includeLibs=True, includeJreLibs=True):
             ident = len(ids)
             ids[p.name] = str(ident)
             igv.open('node', {'id' : str(ident)})
@@ -3363,13 +3403,12 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             for ap in p.annotation_processors():
                 for dep in dependency(ap).all_deps([], True):
                     if dep.isLibrary():
-                        if not hasattr(dep, 'eclipse.container') and not hasattr(dep, 'eclipse.project'):
-                            # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-                            # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-                            # safest to simply use absolute paths.
-                            path = _make_absolute(dep.get_path(resolve=True), p.suite.dir)
-                            out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
-                            files.append(path)
+                        # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+                        # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+                        # safest to simply use absolute paths.
+                        path = _make_absolute(dep.get_path(resolve=True), p.suite.dir)
+                        out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
+                        files.append(path)
                     elif dep.isProject():
                         out.element('factorypathentry', {'kind' : 'WKSPJAR', 'id' : '/' + dep.name + '/' + dep.name + '.jar', 'enabled' : 'true', 'runInBatchMode' : 'false'})
             out.close('factorypath')
@@ -4682,7 +4721,7 @@ _commands = {
     'ideclean': [ideclean, ''],
     'ideinit': [ideinit, ''],
     'intellijinit': [intellijinit, ''],
-    'archive': [archive, '[options]'],
+    'archive': [_archive, '[options]'],
     'projectgraph': [projectgraph, ''],
     'pylint': [pylint, ''],
     'javap': [javap, '<class name patterns>'],

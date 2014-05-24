@@ -211,10 +211,11 @@ public interface ResolvedJavaType extends JavaType, ModifiersProvider {
      * {@link #findUniqueConcreteMethod(ResolvedJavaMethod)}.
      *
      * @param method the method to select the implementation of
+     * @param callerType the caller or context type used to perform access checks
      * @return the concrete method that would be selected at runtime, or {@code null} if there is no
      *         concrete implementation of {@code method} in this type or any of its superclasses
      */
-    ResolvedJavaMethod resolveMethod(ResolvedJavaMethod method);
+    ResolvedJavaMethod resolveMethod(ResolvedJavaMethod method, ResolvedJavaType callerType);
 
     /**
      * Given a {@link ResolvedJavaMethod} A, returns a concrete {@link ResolvedJavaMethod} B that is
@@ -244,6 +245,14 @@ public interface ResolvedJavaType extends JavaType, ModifiersProvider {
      * @return an array of instance fields
      */
     ResolvedJavaField[] getInstanceFields(boolean includeSuperclasses);
+
+    /**
+     * Returns the static fields of this class, including
+     * {@linkplain ResolvedJavaField#isInternal() internal} fields. A zero-length array is returned
+     * for array and primitive types. The order of fields returned by this method is stable. That
+     * is, for a single JVM execution the same order is returned each time this method is called.
+     */
+    ResolvedJavaField[] getStaticFields();
 
     /**
      * Returns the annotation for the specified type of this class, if such an annotation is

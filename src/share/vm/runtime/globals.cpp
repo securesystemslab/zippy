@@ -477,12 +477,12 @@ inline bool str_equal(const char* s, const char* q, size_t len) {
 }
 
 // Search the flag table for a named flag
-Flag* Flag::find_flag(const char* name, size_t length, bool allow_locked) {
+Flag* Flag::find_flag(const char* name, size_t length, bool allow_locked, bool allow_constant) {
   for (Flag* current = &flagTable[0]; current->_name != NULL; current++) {
     if (str_equal(current->_name, name, length)) {
       // Found a matching entry.
       // Don't report notproduct and develop flags in product builds.
-      if (current->is_constant_in_binary()) {
+      if (current->is_constant_in_binary() && !allow_constant) {
         return NULL;
       }
       // Report locked flags only if allowed.

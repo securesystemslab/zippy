@@ -39,7 +39,7 @@ import com.oracle.graal.nodes.type.*;
 /**
  * Implements a type check against a compile-time known type.
  */
-public final class CheckCastNode extends FixedWithNextNode implements Canonicalizable, Lowerable, Virtualizable, ValueProxy {
+public class CheckCastNode extends FixedWithNextNode implements Canonicalizable, Lowerable, Virtualizable, ValueProxy {
 
     @Input private ValueNode object;
     private final ResolvedJavaType type;
@@ -132,8 +132,9 @@ public final class CheckCastNode extends FixedWithNextNode implements Canonicali
 
     @Override
     public boolean inferStamp() {
-        if (stamp() instanceof ObjectStamp && object().stamp() instanceof ObjectStamp) {
-            return updateStamp(((ObjectStamp) object().stamp()).castTo((ObjectStamp) stamp()));
+        if (object().stamp() instanceof ObjectStamp) {
+            ObjectStamp castStamp = (ObjectStamp) StampFactory.declared(type);
+            return updateStamp(((ObjectStamp) object().stamp()).castTo(castStamp));
         }
         return false;
     }

@@ -137,18 +137,36 @@ public class MethodCallTargetNode extends CallTargetNode implements IterableNode
                 return this;
             }
 
-            assert targetMethod.getDeclaringClass().asExactType() == null : "should have been handled by canBeStaticallyBound";
-
             // check if the type of the receiver can narrow the result
             ValueNode receiver = receiver();
             ResolvedJavaType type = StampTool.typeOrNull(receiver);
-            if (type != null) {
+            if (type != null && (invoke().stateAfter() != null || invoke().stateDuring() != null)) {
                 // either the holder class is exact, or the receiver object has an exact type
-                ResolvedJavaMethod resolvedMethod = type.resolveMethod(targetMethod);
+                ResolvedJavaMethod resolvedMethod = type.resolveMethod(targetMethod, invoke().getContextType());
                 if (resolvedMethod != null && (resolvedMethod.canBeStaticallyBound() || StampTool.isExactType(receiver))) {
                     invokeKind = InvokeKind.Special;
                     targetMethod = resolvedMethod;
                     return this;
+                }
+                if (tool.assumptions() != null && tool.assumptions().useOptimisticAssumptions()) {
+                    ResolvedJavaType uniqueConcreteType = type.findUniqueConcreteSubtype();
+                    if (uniqueConcreteType != null) {
+                        ResolvedJavaMethod methodFromUniqueType = uniqueConcreteType.resolveMethod(targetMethod, invoke().getContextType());
+                        if (methodFromUniqueType != null) {
+                            tool.assumptions().recordConcreteSubtype(type, uniqueConcreteType);
+                            invokeKind = InvokeKind.Special;
+                            targetMethod = methodFromUniqueType;
+                            return this;
+                        }
+                    }
+
+                    ResolvedJavaMethod uniqueConcreteMethod = type.findUniqueConcreteMethod(targetMethod);
+                    if (uniqueConcreteMethod != null) {
+                        tool.assumptions().recordConcreteMethod(targetMethod, type, uniqueConcreteMethod);
+                        invokeKind = InvokeKind.Special;
+                        targetMethod = uniqueConcreteMethod;
+                        return this;
+                    }
                 }
             }
         }

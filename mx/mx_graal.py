@@ -46,8 +46,8 @@ _vmSourcesAvailable = exists(join(_graal_home, 'make')) and exists(join(_graal_h
 """ The VMs that can be built and run along with an optional description. Only VMs with a
     description are listed in the dialogue for setting the default VM (see _get_vm()). """
 _vmChoices = {
-    'graal' : 'All compilation is performed with Graal. This includes bootstrapping Graal itself unless -XX:-BootstrapGraal is used.',
-    'server' : 'Normal compilation is performed with the tiered system (i.e., client + server), Truffle compilation is performed with Graal. Use this for optimal Truffle performance.',
+    'graal' : 'Normal compilation is performed with a tiered system (C1 + Graal), Truffle compilation is performed with Graal.',
+    'server' : 'Normal compilation is performed with a tiered system (C1 + C2), Truffle compilation is performed with Graal. Use this for optimal Truffle performance.',
     'client' : None,  # normal compilation with client compiler, explicit compilation (e.g., by Truffle) with Graal
     'server-nograal' : None,  # all compilation with tiered system (i.e., client + server), Graal omitted
     'client-nograal' : None,  # all compilation with client compiler, Graal omitted
@@ -154,7 +154,7 @@ def clean(args):
         def handleRemoveReadonly(func, path, exc):
             excvalue = exc[1]
             if mx.get_os() == 'windows' and func in (os.rmdir, os.remove) and excvalue.errno == errno.EACCES:
-                os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO) # 0777
+                os.chmod(path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
                 func(path)
             else:
                 raise
@@ -212,7 +212,7 @@ def export(args):
     def _genFileName(archivtype, middle):
         idPrefix = infos['revision'] + '_'
         idSuffix = '.tar.gz'
-        return join(_graal_home, "graalvm_" + archivtype + "_"  + idPrefix + middle + idSuffix)
+        return join(_graal_home, "graalvm_" + archivtype + "_" + idPrefix + middle + idSuffix)
 
     def _genFileArchPlatformName(archivtype, middle):
         return _genFileName(archivtype, infos['platform'] + '_' + infos['architecture'] + '_' + middle)
@@ -484,8 +484,27 @@ def _updateInstalledGraalOptionsFile(jdk):
         if exists(toDelete):
             os.unlink(toDelete)
 
+def _update_HotSpotOptions_inline_hpp(graalJar):
+    p = mx.project('com.oracle.graal.hotspot')
+    mainClass = 'com.oracle.graal.hotspot.HotSpotOptionsLoader'
+    assert exists(join(p.source_dirs()[0], mainClass.replace('.', os.sep) + '.java'))
+    hsSrcGenDir = join(p.source_gen_dir(), 'hotspot')
+    if not exists(hsSrcGenDir):
+        os.makedirs(hsSrcGenDir)
+    tmp = StringIO.StringIO()
+    retcode = mx.run_java(['-cp', graalJar, mainClass], out=tmp.write, nonZeroIsFatal=False)
+    if retcode != 0:
+        # Suppress the error if it's because the utility class isn't compiled yet
+        with zipfile.ZipFile(graalJar, 'r') as zf:
+            mainClassFile = mainClass.replace('.', '/') + '.class'
+            if mainClassFile not in zf.namelist():
+                return
+        mx.abort(retcode)
+    mx.update_file(join(hsSrcGenDir, 'HotSpotOptions.inline.hpp'), tmp.getvalue())
+
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
+    _update_HotSpotOptions_inline_hpp(graalJar)
     jdks = _jdksDir()
 
     if exists(jdks):
@@ -690,7 +709,7 @@ def build(args, vm=None):
             mustBuild = False
             timestamp = os.path.getmtime(timestampFile)
             sources = []
-            for d in ['src', 'make']:
+            for d in ['src', 'make', join('graal', 'com.oracle.graal.hotspot', 'src_gen', 'hotspot')]:
                 for root, dirnames, files in os.walk(join(_graal_home, d)):
                     # ignore <graal>/src/share/tools
                     if root == join(_graal_home, 'src', 'share'):
@@ -1588,7 +1607,7 @@ def makejmhdeps(args):
                     if not mx.library(name, fatalIfMissing=False):
                         mx.log('Skipping ' + groupId + '.' + artifactId + '.jar as ' + name + ' cannot be resolved')
                         return
-        d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=deps, excludedDependencies=[], distDependencies=[])
+        d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=deps, mainClass=None, excludedDependencies=[], distDependencies=[])
         d.make_archive()
         cmd = ['mvn', 'install:install-file', '-DgroupId=' + groupId, '-DartifactId=' + artifactId,
                '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar', '-Dfile=' + d.path]
@@ -2156,37 +2175,3 @@ def mx_post_parse_cmd_line(opts):  #
     _vm_prefix = opts.vm_prefix
 
     mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)
-
-def packagejar(classpath, outputFile, mainClass=None, annotationProcessor=None, stripDebug=False):
-    prefix = '' if mx.get_os() != 'windows' else '\\??\\'  # long file name hack
-    print "creating", outputFile
-    filecount, totalsize = 0, 0
-    with zipfile.ZipFile(outputFile, 'w', zipfile.ZIP_DEFLATED) as zf:
-        manifest = "Manifest-Version: 1.0\n"
-        if mainClass != None:
-            manifest += "Main-Class: %s\n\n" % (mainClass)
-        zf.writestr("META-INF/MANIFEST.MF", manifest)
-        if annotationProcessor != None:
-            zf.writestr("META-INF/services/javax.annotation.processing.Processor", annotationProcessor)
-        for cp in classpath:
-            print "+", cp
-            if cp.endswith(".jar"):
-                with zipfile.ZipFile(cp, 'r') as jar:
-                    for arcname in jar.namelist():
-                        if arcname.endswith('/') or arcname == 'META-INF/MANIFEST.MF' or arcname.endswith('.java') or arcname.lower().startswith("license") or arcname in [".project", ".classpath"]:
-                            continue
-                        zf.writestr(arcname, jar.read(arcname))
-            else:
-                for root, _, files in os.walk(cp):
-                    for f in files:
-                        fullname = os.path.join(root, f)
-                        arcname = fullname[len(cp) + 1:].replace('\\', '/')
-                        if f.endswith(".class"):
-                            zf.write(prefix + fullname, arcname)
-
-        for zi in zf.infolist():
-            filecount += 1
-            totalsize += zi.file_size
-    print "%d files (total size: %.2f kB, jar size: %.2f kB)" % (filecount, totalsize / 1e3, os.path.getsize(outputFile) / 1e3)
-    mx.run([mx.exe_suffix(join(mx.java().jdk, 'bin', 'pack200')), '-r'] + (['-G'] if stripDebug else []) + [outputFile])
-    print "repacked jar size: %.2f kB" % (os.path.getsize(outputFile) / 1e3)

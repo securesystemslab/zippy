@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,7 +20,7 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.phases.common.inlining.walker;
+package com.oracle.graal.phases.common.inlining.info.elem;
 
 import com.oracle.graal.api.meta.Constant;
 import com.oracle.graal.api.meta.ResolvedJavaMethod;
@@ -35,23 +35,12 @@ import com.oracle.graal.phases.tiers.HighTierContext;
 
 import static com.oracle.graal.compiler.common.GraalOptions.OptCanonicalizer;
 
-/**
- * The workings of {@link InliningData} include delving into a callsite to explore inlining
- * opportunities. The utilities used for that are grouped in this class.
- */
-public class DepthSearchUtil {
+public class InlineableGraph implements Inlineable {
 
-    private DepthSearchUtil() {
-        // no instances
-    }
+    private final StructuredGraph graph;
 
-    public static InliningUtil.Inlineable getInlineableElement(final ResolvedJavaMethod method, Invoke invoke, HighTierContext context, CanonicalizerPhase canonicalizer) {
-        Class<? extends FixedWithNextNode> macroNodeClass = InliningUtil.getMacroNodeClass(context.getReplacements(), method);
-        if (macroNodeClass != null) {
-            return new InliningUtil.InlineableMacroNode(macroNodeClass);
-        } else {
-            return new InliningUtil.InlineableGraph(buildGraph(method, invoke, context, canonicalizer));
-        }
+    public InlineableGraph(final ResolvedJavaMethod method, final Invoke invoke, final HighTierContext context, CanonicalizerPhase canonicalizer) {
+        this.graph = buildGraph(method, invoke, context, canonicalizer);
     }
 
     private static StructuredGraph buildGraph(final ResolvedJavaMethod method, final Invoke invoke, final HighTierContext context, CanonicalizerPhase canonicalizer) {
@@ -145,5 +134,19 @@ public class DepthSearchUtil {
             context.getGraphCache().put(newGraph.method(), newGraph.copy());
         }
         return newGraph;
+    }
+
+    @Override
+    public int getNodeCount() {
+        return graph.getNodeCount();
+    }
+
+    @Override
+    public Iterable<Invoke> getInvokes() {
+        return graph.getInvokes();
+    }
+
+    public StructuredGraph getGraph() {
+        return graph;
     }
 }

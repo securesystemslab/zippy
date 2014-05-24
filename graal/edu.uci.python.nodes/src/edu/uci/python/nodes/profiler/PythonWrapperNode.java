@@ -56,19 +56,22 @@ public class PythonWrapperNode extends PNode implements Wrapper {
         this.probe = context.getProbe(child.getSourceSection());
     }
 
+    /**
+     * FIXME: (zwei) disabled temporarily while merging with upstream.
+     */
     @Override
     public Object execute(VirtualFrame frame) {
-        probe.notifyEnter(child, frame);
+// probe.notifyEnter(child, frame);
 
         Object result;
 
         try {
             result = child.execute(frame);
-            probe.notifyLeave(child, frame, result);
+// probe.notifyLeave(child, frame, result);
         } catch (KillException e) {
             throw (e);
         } catch (Exception e) {
-            probe.notifyLeaveExceptional(child, frame, e);
+// probe.notifyLeaveExceptional(child, frame, e);
             throw (e);
         }
 

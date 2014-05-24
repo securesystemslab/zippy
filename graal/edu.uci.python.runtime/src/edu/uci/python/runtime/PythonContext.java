@@ -29,9 +29,8 @@ import java.lang.invoke.*;
 import java.util.*;
 import java.util.concurrent.*;
 
-import com.oracle.truffle.api.impl.*;
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.instrument.*;
-import com.oracle.truffle.api.instrument.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.builtin.*;
@@ -40,7 +39,7 @@ import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public class PythonContext extends AbstractExecutionContext {
+public class PythonContext extends ExecutionContext {
 
     private PythonModule mainModule;
     private final PythonModule builtinsModule;
@@ -200,17 +199,9 @@ public class PythonContext extends AbstractExecutionContext {
         executorService.shutdown();
     }
 
+    @Override
     public String getLanguageShortName() {
         return "PYTHON";
-    }
-
-    public void addNodeProber(ASTNodeProber nodeProber) throws IllegalStateException, IllegalArgumentException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void setASTProber(ASTProber astProber) {
-        throw new UnsupportedOperationException();
     }
 
     @Override

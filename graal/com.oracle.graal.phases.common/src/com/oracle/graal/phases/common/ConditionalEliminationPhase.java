@@ -710,7 +710,9 @@ public class ConditionalEliminationPhase extends Phase {
                     if (nonNull) {
                         replacementAnchor = searchAnchor(GraphUtil.unproxify(object), type);
                     }
-                    replacementAnchor = BeginNode.prevBegin(checkCast);
+                    if (replacementAnchor == null) {
+                        replacementAnchor = BeginNode.prevBegin(checkCast);
+                    }
                     PiNode piNode;
                     if (isNull) {
                         ConstantNode nullObject = ConstantNode.defaultForKind(Kind.Object, graph);
@@ -815,7 +817,7 @@ public class ConditionalEliminationPhase extends Phase {
                     if (receiver != null && (callTarget.invokeKind() == InvokeKind.Interface || callTarget.invokeKind() == InvokeKind.Virtual)) {
                         ResolvedJavaType type = state.getNodeType(receiver);
                         if (!Objects.equals(type, StampTool.typeOrNull(receiver))) {
-                            ResolvedJavaMethod method = type.resolveMethod(callTarget.targetMethod());
+                            ResolvedJavaMethod method = type.resolveMethod(callTarget.targetMethod(), invoke.getContextType());
                             if (method != null) {
                                 if (method.canBeStaticallyBound() || type.isFinal()) {
                                     callTarget.setInvokeKind(InvokeKind.Special);

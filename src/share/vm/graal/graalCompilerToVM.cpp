@@ -53,12 +53,6 @@
   TRACE_graal_3("CompilerToVM::" #name); \
   GRAAL_VM_ENTRY_MARK; \
 
-// Entry to native method implementation that calls a JNI function
-// and hence cannot transition current thread to '_thread_in_vm'.
-#define C2V_ENTRY(result_type, name, signature) \
-  JNIEXPORT result_type JNICALL c2v_ ## name signature { \
-  TRACE_graal_3("CompilerToVM::" #name); \
-
 #define C2V_END }
 
 extern "C" {
@@ -91,133 +85,16 @@ extern uint64_t gHotSpotVMLongConstantEntryValueOffset;
 extern uint64_t gHotSpotVMLongConstantEntryArrayStride;
 }
 
-// helpers used to set fields in the HotSpotVMConfig object
-static jfieldID getFieldID(JNIEnv* env, jobject obj, const char* name, const char* sig) {
-  jfieldID id = env->GetFieldID(env->GetObjectClass(obj), name, sig);
-  if (id == NULL) {
-    fatal(err_msg("field not found: %s (%s)", name, sig));
-  }
-  return id;
-}
-
-C2V_ENTRY(void, initializeConfiguration, (JNIEnv *env, jobject, jobject config))
-
-#define set_boolean(name, value) do { env->SetBooleanField(config, getFieldID(env, config, name, "Z"), value); } while (0)
-#define set_int(name, value) do { env->SetIntField(config, getFieldID(env, config, name, "I"), value); } while (0)
-#define set_long(name, value) do { env->SetLongField(config, getFieldID(env, config, name, "J"), value); } while (0)
-#define set_address(name, value) do { set_long(name, (jlong) value); } while (0)
-
-  guarantee(HeapWordSize == sizeof(char*), "Graal assumption that HeadWordSize == machine word size is wrong");
-
-  set_address("gHotSpotVMStructs", gHotSpotVMStructs);
-  set_long("gHotSpotVMStructEntryTypeNameOffset",   gHotSpotVMStructEntryTypeNameOffset);
-  set_long("gHotSpotVMStructEntryFieldNameOffset",  gHotSpotVMStructEntryFieldNameOffset);
-  set_long("gHotSpotVMStructEntryTypeStringOffset", gHotSpotVMStructEntryTypeStringOffset);
-  set_long("gHotSpotVMStructEntryIsStaticOffset",   gHotSpotVMStructEntryIsStaticOffset);
-  set_long("gHotSpotVMStructEntryOffsetOffset",     gHotSpotVMStructEntryOffsetOffset);
-  set_long("gHotSpotVMStructEntryAddressOffset",    gHotSpotVMStructEntryAddressOffset);
-  set_long("gHotSpotVMStructEntryArrayStride",      gHotSpotVMStructEntryArrayStride);
-
-  set_address("gHotSpotVMTypes", gHotSpotVMTypes);
-  set_long("gHotSpotVMTypeEntryTypeNameOffset",       gHotSpotVMTypeEntryTypeNameOffset);
-  set_long("gHotSpotVMTypeEntrySuperclassNameOffset", gHotSpotVMTypeEntrySuperclassNameOffset);
-  set_long("gHotSpotVMTypeEntryIsOopTypeOffset",      gHotSpotVMTypeEntryIsOopTypeOffset);
-  set_long("gHotSpotVMTypeEntryIsIntegerTypeOffset",  gHotSpotVMTypeEntryIsIntegerTypeOffset);
-  set_long("gHotSpotVMTypeEntryIsUnsignedOffset",     gHotSpotVMTypeEntryIsUnsignedOffset);
-  set_long("gHotSpotVMTypeEntrySizeOffset",           gHotSpotVMTypeEntrySizeOffset);
-  set_long("gHotSpotVMTypeEntryArrayStride",          gHotSpotVMTypeEntryArrayStride);
-
-  set_address("gHotSpotVMIntConstants", gHotSpotVMIntConstants);
-  set_long("gHotSpotVMIntConstantEntryNameOffset",  gHotSpotVMIntConstantEntryNameOffset);
-  set_long("gHotSpotVMIntConstantEntryValueOffset", gHotSpotVMIntConstantEntryValueOffset);
-  set_long("gHotSpotVMIntConstantEntryArrayStride", gHotSpotVMIntConstantEntryArrayStride);
-
-  set_address("gHotSpotVMLongConstants", gHotSpotVMLongConstants);
-  set_long("gHotSpotVMLongConstantEntryNameOffset",  gHotSpotVMLongConstantEntryNameOffset);
-  set_long("gHotSpotVMLongConstantEntryValueOffset", gHotSpotVMLongConstantEntryValueOffset);
-  set_long("gHotSpotVMLongConstantEntryArrayStride", gHotSpotVMLongConstantEntryArrayStride);
-
-  //------------------------------------------------------------------------------------------------
-
-  set_int("arrayLengthOffset", arrayOopDesc::length_offset_in_bytes());
-
-  set_int("extraStackEntries", Method::extra_stack_entries());
-
-  set_int("tlabAlignmentReserve", (int32_t)ThreadLocalAllocBuffer::alignment_reserve());
-  set_long("heapTopAddress", (jlong)(address) Universe::heap()->top_addr());
-  set_long("heapEndAddress", (jlong)(address) Universe::heap()->end_addr());
-
-  set_boolean("inlineContiguousAllocationSupported", !CMSIncrementalMode && Universe::heap()->supports_inline_contig_alloc());
-
-  set_long("verifyOopMask", Universe::verify_oop_mask());
-  set_long("verifyOopBits", Universe::verify_oop_bits());
-
-  set_int("instanceKlassVtableStartOffset", InstanceKlass::vtable_start_offset() * HeapWordSize);
-
-  //------------------------------------------------------------------------------------------------
-
-  set_address("registerFinalizerAddress", SharedRuntime::register_finalizer);
-  set_address("exceptionHandlerForReturnAddressAddress", SharedRuntime::exception_handler_for_return_address);
-  set_address("osrMigrationEndAddress", SharedRuntime::OSR_migration_end);
-
-  set_address("javaTimeMillisAddress", CAST_FROM_FN_PTR(address, os::javaTimeMillis));
-  set_address("javaTimeNanosAddress", CAST_FROM_FN_PTR(address, os::javaTimeNanos));
-  set_address("arithmeticSinAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dsin));
-  set_address("arithmeticCosAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dcos));
-  set_address("arithmeticTanAddress", CAST_FROM_FN_PTR(address, SharedRuntime::dtan));
-
-  set_address("newInstanceAddress", GraalRuntime::new_instance);
-  set_address("newArrayAddress", GraalRuntime::new_array);
-  set_address("newMultiArrayAddress", GraalRuntime::new_multi_array);
-  set_address("dynamicNewArrayAddress", GraalRuntime::dynamic_new_array);
-  set_address("dynamicNewInstanceAddress", GraalRuntime::dynamic_new_instance);
-  set_address("threadIsInterruptedAddress", GraalRuntime::thread_is_interrupted);
-  set_address("vmMessageAddress", GraalRuntime::vm_message);
-  set_address("identityHashCodeAddress", GraalRuntime::identity_hash_code);
-  set_address("exceptionHandlerForPcAddress", GraalRuntime::exception_handler_for_pc);
-  set_address("monitorenterAddress", GraalRuntime::monitorenter);
-  set_address("monitorexitAddress", GraalRuntime::monitorexit);
-  set_address("createNullPointerExceptionAddress", GraalRuntime::create_null_exception);
-  set_address("createOutOfBoundsExceptionAddress", GraalRuntime::create_out_of_bounds_exception);
-  set_address("logPrimitiveAddress", GraalRuntime::log_primitive);
-  set_address("logObjectAddress", GraalRuntime::log_object);
-  set_address("logPrintfAddress", GraalRuntime::log_printf);
-  set_address("vmErrorAddress", GraalRuntime::vm_error);
-  set_address("loadAndClearExceptionAddress", GraalRuntime::load_and_clear_exception);
-  set_address("writeBarrierPreAddress", GraalRuntime::write_barrier_pre);
-  set_address("writeBarrierPostAddress", GraalRuntime::write_barrier_post);
-  set_address("validateObject", GraalRuntime::validate_object);
-
-  set_address("deoptimizationFetchUnrollInfo", Deoptimization::fetch_unroll_info);
-  set_address("deoptimizationUncommonTrap", Deoptimization::uncommon_trap);
-  set_address("deoptimizationUnpackFrames", Deoptimization::unpack_frames);
-
-  //------------------------------------------------------------------------------------------------
-
-  set_int("graalCountersThreadOffset", in_bytes(JavaThread::graal_counters_offset()));
-  set_int("graalCountersSize", (jint) GraalCounterSize);
-
-  //------------------------------------------------------------------------------------------------
-
-  set_long("dllLoad", (jlong) os::dll_load);
-  set_long("dllLookup", (jlong) os::dll_lookup);
-  #if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux)
-  set_long("rtldDefault", (jlong) RTLD_DEFAULT);
-  #endif
-
-#undef set_boolean
-#undef set_int
-#undef set_long
-#undef set_address
-
+C2V_VMENTRY(void, initializeConfiguration, (JNIEnv *, jobject, jobject config))
+  VMStructs::initHotSpotVMConfig(JNIHandles::resolve(config));
 C2V_END
 
-C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace_method, jbyteArray result))
+C2V_VMENTRY(jbyteArray, getBytecode, (JNIEnv *, jobject, jlong metaspace_method))
   methodHandle method = asMethod(metaspace_method);
   ResourceMark rm;
 
   int code_size = method->code_size();
-  jbyte* reconstituted_code = NEW_RESOURCE_ARRAY(jbyte, code_size);
+  typeArrayOop reconstituted_code = oopFactory::new_byteArray(code_size, CHECK_NULL);
 
   guarantee(method->method_holder()->is_rewritten(), "Method's holder should be rewritten");
   // iterate over all bytecodes and replace non-Java bytecodes
@@ -229,9 +106,9 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
     int len = s.instruction_size();
 
     // Restore original byte code.
-    reconstituted_code[bci] = (jbyte) (s.is_wide()? Bytecodes::_wide : code);
+    reconstituted_code->byte_at_put(bci, (jbyte) (s.is_wide()? Bytecodes::_wide : code));
     if (len > 1) {
-      memcpy(&reconstituted_code[bci+1], s.bcp()+1, len-1);
+      memcpy(reconstituted_code->byte_at_addr(bci + 1), s.bcp()+1, len-1);
     }
 
     if (len > 1) {
@@ -247,41 +124,39 @@ C2V_ENTRY(jbyteArray, initializeBytecode, (JNIEnv *env, jobject, jlong metaspace
         case Bytecodes::_invokestatic:
         case Bytecodes::_invokeinterface:
         case Bytecodes::_invokehandle: {
-          int cp_index = Bytes::get_native_u2((address) &reconstituted_code[bci + 1]);
-          Bytes::put_Java_u2((address) &reconstituted_code[bci + 1], (u2) cp_index);
+          int cp_index = Bytes::get_native_u2((address) reconstituted_code->byte_at_addr(bci + 1));
+          Bytes::put_Java_u2((address) reconstituted_code->byte_at_addr(bci + 1), (u2) cp_index);
           break;
         }
 
         case Bytecodes::_invokedynamic:
-          int cp_index = Bytes::get_native_u4((address) &reconstituted_code[bci + 1]);
-          Bytes::put_Java_u4((address) &reconstituted_code[bci + 1], (u4) cp_index);
+          int cp_index = Bytes::get_native_u4((address) reconstituted_code->byte_at_addr(bci + 1));
+          Bytes::put_Java_u4((address) reconstituted_code->byte_at_addr(bci + 1), (u4) cp_index);
           break;
       }
 
       // Not all ldc byte code are rewritten.
       switch (raw_code) {
         case Bytecodes::_fast_aldc: {
-          int cpc_index = reconstituted_code[bci + 1] & 0xff;
+          int cpc_index = reconstituted_code->byte_at(bci + 1) & 0xff;
           int cp_index = method->constants()->object_to_cp_index(cpc_index);
           assert(cp_index < method->constants()->length(), "sanity check");
-          reconstituted_code[bci + 1] = (jbyte) cp_index;
+          reconstituted_code->byte_at_put(bci + 1, (jbyte) cp_index);
           break;
         }
 
         case Bytecodes::_fast_aldc_w: {
-          int cpc_index = Bytes::get_native_u2((address) &reconstituted_code[bci + 1]);
+          int cpc_index = Bytes::get_native_u2((address) reconstituted_code->byte_at_addr(bci + 1));
           int cp_index = method->constants()->object_to_cp_index(cpc_index);
           assert(cp_index < method->constants()->length(), "sanity check");
-          Bytes::put_Java_u2((address) &reconstituted_code[bci + 1], (u2) cp_index);
+          Bytes::put_Java_u2((address) reconstituted_code->byte_at_addr(bci + 1), (u2) cp_index);
           break;
         }
       }
     }
   }
 
-  env->SetByteArrayRegion(result, 0, code_size, reconstituted_code);
-
-  return result;
+  return (jbyteArray) JNIHandles::make_local(reconstituted_code);
 C2V_END
 
 C2V_VMENTRY(jint, exceptionTableLength, (JNIEnv *, jobject, jlong metaspace_method))
@@ -350,7 +225,7 @@ C2V_VMENTRY(jboolean, shouldInlineMethod,(JNIEnv *, jobject, jlong metaspace_met
   return CompilerOracle::should_inline(method) || method->force_inline();
 C2V_END
 
-C2V_VMENTRY(jlong, lookupType, (JNIEnv *env, jobject, jstring jname, jclass accessing_class, jboolean resolve))
+C2V_VMENTRY(jlong, lookupType, (JNIEnv*, jobject, jstring jname, jclass accessing_class, jboolean resolve))
   ResourceMark rm;
   Handle name = JNIHandles::resolve(jname);
   Symbol* class_name = java_lang_String::as_symbol(name, THREAD);
@@ -375,44 +250,44 @@ C2V_VMENTRY(jlong, lookupType, (JNIEnv *env, jobject, jstring jname, jclass acce
   return (jlong) (address) resolved_klass;
 C2V_END
 
-C2V_VMENTRY(jobject, resolveConstantInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jobject, resolveConstantInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
   oop result = cp->resolve_constant_at(index, CHECK_NULL);
   return JNIHandles::make_local(THREAD, result);
 C2V_END
 
-C2V_VMENTRY(jobject, resolvePossiblyCachedConstantInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jobject, resolvePossiblyCachedConstantInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
   oop result = cp->resolve_possibly_cached_constant_at(index, CHECK_NULL);
   return JNIHandles::make_local(THREAD, result);
 C2V_END
 
-C2V_VMENTRY(jint, lookupNameAndTypeRefIndexInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jint, lookupNameAndTypeRefIndexInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   return cp->name_and_type_ref_index_at(index);
 C2V_END
 
-C2V_VMENTRY(jlong, lookupNameRefInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jlong, lookupNameRefInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   return (jlong) (address) cp->name_ref_at(index);
 C2V_END
 
-C2V_VMENTRY(jlong, lookupSignatureRefInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jlong, lookupSignatureRefInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   return (jlong) (address) cp->signature_ref_at(index);
 C2V_END
 
-C2V_VMENTRY(jint, lookupKlassRefIndexInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jint, lookupKlassRefIndexInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   return cp->klass_ref_index_at(index);
 C2V_END
 
-C2V_VMENTRY(jlong, constantPoolKlassAt, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jlong, constantPoolKlassAt, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
   return (jlong) (address) cp->klass_at(index, THREAD);
 C2V_END
 
-C2V_VMENTRY(jlong, lookupKlassInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
+C2V_VMENTRY(jlong, lookupKlassInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   KlassHandle loading_klass(cp->pool_holder());
   bool is_accessible = false;
@@ -436,13 +311,13 @@ C2V_VMENTRY(jlong, lookupKlassInPool, (JNIEnv *env, jobject, jlong metaspace_con
   return (jlong) CompilerToVM::tag_pointer(klass());
 C2V_END
 
-C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jobject, lookupAppendixInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   oop appendix_oop = ConstantPool::appendix_at_if_loaded(cp, index);
   return JNIHandles::make_local(THREAD, appendix_oop);
 C2V_END
 
-C2V_VMENTRY(jlong, lookupMethodInPool, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
+C2V_VMENTRY(jlong, lookupMethodInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   instanceKlassHandle pool_holder(cp->pool_holder());
   Bytecodes::Code bc = (Bytecodes::Code) (((int) opcode) & 0xFF);
@@ -450,12 +325,12 @@ C2V_VMENTRY(jlong, lookupMethodInPool, (JNIEnv *env, jobject, jlong metaspace_co
   return (jlong) (address) method();
 C2V_END
 
-C2V_VMENTRY(jint, constantPoolRemapInstructionOperandFromCache, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jint, constantPoolRemapInstructionOperandFromCache, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   ConstantPool* cp = (ConstantPool*) metaspace_constant_pool;
   return cp->remap_instruction_operand_from_cache(index);
 C2V_END
 
-C2V_VMENTRY(jlong, resolveField, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode, jlongArray info_handle))
+C2V_VMENTRY(jlong, resolveField, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index, jbyte opcode, jlongArray info_handle))
   ResourceMark rm;
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
   Bytecodes::Code code = (Bytecodes::Code)(((int) opcode) & 0xFF);
@@ -468,11 +343,76 @@ C2V_VMENTRY(jlong, resolveField, (JNIEnv *env, jobject, jlong metaspace_constant
   return (jlong) (address) result.field_holder();
 C2V_END
 
-C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jlong metaspace_klass, jstring name, jstring signature))
+C2V_VMENTRY(jint, getVtableIndexForInterface, (JNIEnv *, jobject, jlong metaspace_klass, jlong metaspace_method))
   Klass* klass = (Klass*) metaspace_klass;
-  Symbol* name_symbol = java_lang_String::as_symbol(JNIHandles::resolve(name), THREAD);
-  Symbol* signature_symbol = java_lang_String::as_symbol(JNIHandles::resolve(signature), THREAD);
-  return (jlong) (address) klass->lookup_method(name_symbol, signature_symbol);
+  Method* method = (Method*) metaspace_method;
+  assert(!klass->is_interface(), "");
+  return LinkResolver::vtable_index_of_interface_method(klass, method);
+C2V_END
+
+C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jlong metaspace_klass_receiver, jlong metaspace_method, jlong metaspace_klass_caller))
+  Klass* recv_klass = (Klass*) metaspace_klass_receiver;
+  Klass* caller_klass = (Klass*) metaspace_klass_caller;
+  Method* method = (Method*) metaspace_method;
+
+  if (recv_klass->oop_is_array() || (InstanceKlass::cast(recv_klass)->is_linked())) {
+    Klass* holder_klass = method->method_holder();
+    Symbol* method_name = method->name();
+    Symbol* method_signature = method->signature();
+
+
+    if (holder_klass->is_interface()) {
+      // do link-time resolution to check all access rules.
+      methodHandle resolved_method;
+      LinkResolver::linktime_resolve_interface_method(resolved_method, holder_klass, method_name, method_signature, caller_klass, true, CHECK_AND_CLEAR_0);
+      if (resolved_method->is_private()) {
+        return (jlong) NULL;
+      }
+      assert(recv_klass->is_subtype_of(holder_klass), "");
+      // do actual lookup
+      methodHandle sel_method;
+      LinkResolver::lookup_instance_method_in_klasses(sel_method, recv_klass,
+                resolved_method->name(),
+                resolved_method->signature(), CHECK_AND_CLEAR_0);
+      return (jlong) (address) sel_method();
+    } else {
+      // do link-time resolution to check all access rules.
+      methodHandle resolved_method;
+      LinkResolver::linktime_resolve_virtual_method(resolved_method, holder_klass, method_name, method_signature, caller_klass, true, CHECK_AND_CLEAR_0);
+      // do actual lookup (see LinkResolver::runtime_resolve_virtual_method)
+      int vtable_index = Method::invalid_vtable_index;
+      Method* selected_method;
+
+      if (resolved_method->method_holder()->is_interface()) { // miranda method
+        vtable_index = LinkResolver::vtable_index_of_interface_method(holder_klass, resolved_method);
+        assert(vtable_index >= 0 , "we should have valid vtable index at this point");
+
+        InstanceKlass* inst = InstanceKlass::cast(recv_klass);
+        selected_method = inst->method_at_vtable(vtable_index);
+      } else {
+        // at this point we are sure that resolved_method is virtual and not
+        // a miranda method; therefore, it must have a valid vtable index.
+        assert(!resolved_method->has_itable_index(), "");
+        vtable_index = resolved_method->vtable_index();
+        // We could get a negative vtable_index for final methods,
+        // because as an optimization they are they are never put in the vtable,
+        // unless they override an existing method.
+        // If we do get a negative, it means the resolved method is the the selected
+        // method, and it can never be changed by an override.
+        if (vtable_index == Method::nonvirtual_vtable_index) {
+          assert(resolved_method->can_be_statically_bound(), "cannot override this method");
+          selected_method = resolved_method();
+        } else {
+          // recv_klass might be an arrayKlassOop but all vtables start at
+          // the same place. The cast is to avoid virtual call and assertion.
+          InstanceKlass* inst = (InstanceKlass*)recv_klass;
+          selected_method = inst->method_at_vtable(vtable_index);
+        }
+      }
+      return (jlong) (address) selected_method;
+    }
+  }
+  return (jlong) NULL;
 C2V_END
 
 C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jlong metaspace_klass))
@@ -486,7 +426,7 @@ C2V_VMENTRY(jlong, getClassInitializer, (JNIEnv *, jobject, jlong metaspace_klas
   return (jlong) (address) klass->class_initializer();
 C2V_END
 
-C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv *env, jobject, jlong addr))
+C2V_VMENTRY(jlong, getMaxCallTargetOffset, (JNIEnv*, jobject, jlong addr))
   address target_addr = (address) addr;
   if (target_addr != 0x0) {
     int64_t off_low = (int64_t)target_addr - ((int64_t)CodeCache::low_bound() + sizeof(int));
@@ -622,7 +562,7 @@ C2V_VMENTRY(jobject, disassembleCodeBlob, (JNIEnv *jniEnv, jobject, jlong codeBl
   return JNIHandles::make_local(result());
 C2V_END
 
-C2V_VMENTRY(jobject, getStackTraceElement, (JNIEnv *env, jobject, jlong metaspace_method, int bci))
+C2V_VMENTRY(jobject, getStackTraceElement, (JNIEnv*, jobject, jlong metaspace_method, int bci))
   ResourceMark rm;
   HandleMark hm;
 
@@ -631,7 +571,7 @@ C2V_VMENTRY(jobject, getStackTraceElement, (JNIEnv *env, jobject, jlong metaspac
   return JNIHandles::make_local(element);
 C2V_END
 
-C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobject args, jobject hotspotInstalledCode))
+C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv*, jobject, jobject args, jobject hotspotInstalledCode))
   ResourceMark rm;
   HandleMark hm;
 
@@ -659,7 +599,7 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv *env, jobject, jobjec
   }
 C2V_END
 
-C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jlong metaspace_method))
+C2V_VMENTRY(jlongArray, getLineNumberTable, (JNIEnv *, jobject, jlong metaspace_method))
   Method* method = (Method*) metaspace_method;
   if (!method->has_linenumber_table()) {
     return NULL;
@@ -671,19 +611,19 @@ C2V_ENTRY(jlongArray, getLineNumberTable, (JNIEnv *env, jobject, jlong metaspace
   }
 
   CompressedLineNumberReadStream stream(method->compressed_linenumber_table());
-  jlongArray result = env->NewLongArray(2 * num_entries);
+  typeArrayOop result = oopFactory::new_longArray(2 * num_entries, CHECK_NULL);
 
   int i = 0;
   jlong value;
   while (stream.read_pair()) {
     value = ((long) stream.bci());
-    env->SetLongArrayRegion(result,i,1,&value);
+    result->long_at_put(i, value);
     value = ((long) stream.line());
-    env->SetLongArrayRegion(result,i + 1,1,&value);
+    result->long_at_put(i + 1, value);
     i += 2;
   }
 
-  return result;
+  return (jlongArray) JNIHandles::make_local(result);
 C2V_END
 
 C2V_VMENTRY(jlong, getLocalVariableTableStart, (JNIEnv *, jobject, jlong metaspace_method))
@@ -701,7 +641,7 @@ C2V_VMENTRY(jint, getLocalVariableTableLength, (JNIEnv *, jobject, jlong metaspa
   return method->localvariable_table_length();
 C2V_END
 
-C2V_VMENTRY(void, reprofile, (JNIEnv *env, jobject, jlong metaspace_method))
+C2V_VMENTRY(void, reprofile, (JNIEnv*, jobject, jlong metaspace_method))
   Method* method = asMethod(metaspace_method);
   MethodCounters* mcs = method->method_counters();
   if (mcs != NULL) {
@@ -725,7 +665,7 @@ C2V_VMENTRY(void, reprofile, (JNIEnv *env, jobject, jlong metaspace_method))
 C2V_END
 
 
-C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv *env, jobject, jobject hotspotInstalledCode))
+C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv*, jobject, jobject hotspotInstalledCode))
   jlong nativeMethod = InstalledCode::address(hotspotInstalledCode);
   nmethod* m = (nmethod*)nativeMethod;
   if (m != NULL && !m->is_not_entrant()) {
@@ -736,32 +676,36 @@ C2V_VMENTRY(void, invalidateInstalledCode, (JNIEnv *env, jobject, jobject hotspo
   InstalledCode::set_address(hotspotInstalledCode, 0);
 C2V_END
 
-C2V_VMENTRY(jobject, getJavaMirror, (JNIEnv *env, jobject, jlong metaspace_klass))
+C2V_VMENTRY(jobject, getJavaMirror, (JNIEnv*, jobject, jlong metaspace_klass))
   Klass* klass = asKlass(metaspace_klass);
   return JNIHandles::make_local(klass->java_mirror());
 C2V_END
 
-C2V_VMENTRY(jlong, readUnsafeKlassPointer, (JNIEnv *env, jobject, jobject o))
+C2V_VMENTRY(jlong, readUnsafeKlassPointer, (JNIEnv*, jobject, jobject o))
   oop resolved_o = JNIHandles::resolve(o);
   jlong klass = (jlong)(address)resolved_o->klass();
   return klass;
 C2V_END
 
-C2V_VMENTRY(jlongArray, collectCounters, (JNIEnv *env, jobject))
+C2V_VMENTRY(jlongArray, collectCounters, (JNIEnv*, jobject))
   typeArrayOop arrayOop = oopFactory::new_longArray(GraalCounterSize, CHECK_NULL);
   JavaThread::collect_counters(arrayOop);
   return (jlongArray) JNIHandles::make_local(arrayOop);
 C2V_END
 
-C2V_ENTRY(jobject, getGPUs, (JNIEnv *env, jobject))
+// In general we should avoid using regular JNI methods to interact with the JVM but this
+// particular case is just about registering JNI methods so it should be a regular native
+// method.
+JNIEXPORT jobject JNICALL c2v_getGPUs (JNIEnv* env, jobject) {
+  TRACE_graal_3("CompilerToVM::getGPUs" );
 #if defined(TARGET_OS_FAMILY_bsd) || defined(TARGET_OS_FAMILY_linux) || defined(TARGET_OS_FAMILY_windows)
   return Gpu::probe_gpus(env);
 #else
   return env->NewStringUTF("");
 #endif
-C2V_END
+}
 
-C2V_VMENTRY(int, allocateCompileId, (JNIEnv *env, jobject, jlong metaspace_method, int entry_bci))
+C2V_VMENTRY(int, allocateCompileId, (JNIEnv*, jobject, jlong metaspace_method, int entry_bci))
   HandleMark hm;
   ResourceMark rm;
   Method* method = (Method*) metaspace_method;
@@ -769,17 +713,17 @@ C2V_VMENTRY(int, allocateCompileId, (JNIEnv *env, jobject, jlong metaspace_metho
 C2V_END
 
 
-C2V_VMENTRY(jboolean, isMature, (JNIEnv *env, jobject, jlong metaspace_method_data))
+C2V_VMENTRY(jboolean, isMature, (JNIEnv*, jobject, jlong metaspace_method_data))
   MethodData* mdo = asMethodData(metaspace_method_data);
   return mdo != NULL && mdo->is_mature();
 C2V_END
 
-C2V_VMENTRY(jboolean, hasCompiledCodeForOSR, (JNIEnv *env, jobject, jlong metaspace_method, int entry_bci, int comp_level))
+C2V_VMENTRY(jboolean, hasCompiledCodeForOSR, (JNIEnv*, jobject, jlong metaspace_method, int entry_bci, int comp_level))
   Method* method = asMethod(metaspace_method);
   return method->lookup_osr_nmethod_for(entry_bci, comp_level, true) != NULL;
 C2V_END
 
-C2V_VMENTRY(jlong, getTimeStamp, (JNIEnv *env, jobject))
+C2V_VMENTRY(jlong, getTimeStamp, (JNIEnv*, jobject))
   // tty->time_stamp is the time since VM start which should be used
   // for all HotSpot log output when a timestamp is required.
   return tty->time_stamp().milliseconds();
@@ -796,7 +740,7 @@ bool matches(jlongArray methods, Method* method) {
   return false;
 }
 
-C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv *env, jobject compilerToVM, jobject hs_frame, jlongArray methods, jint initialSkip))
+C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv*, jobject compilerToVM, jobject hs_frame, jlongArray methods, jint initialSkip))
   ResourceMark rm;
 
   if (!thread->has_last_Java_frame()) return NULL;
@@ -931,7 +875,7 @@ C2V_VMENTRY(jobject, getNextStackFrame, (JNIEnv *env, jobject compilerToVM, jobj
   return NULL;
 C2V_END
 
-C2V_VMENTRY(void, resolveInvokeDynamic, (JNIEnv *env, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(void, resolveInvokeDynamic, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   ConstantPool* cp = (ConstantPool*)metaspace_constant_pool;
   CallInfo callInfo;
   LinkResolver::resolve_invokedynamic(callInfo, cp, index, CHECK);
@@ -940,7 +884,7 @@ C2V_VMENTRY(void, resolveInvokeDynamic, (JNIEnv *env, jobject, jlong metaspace_c
 C2V_END
 
 // public native void materializeVirtualObjects(HotSpotStackFrameReference stackFrame, boolean invalidate);
-C2V_VMENTRY(void, materializeVirtualObjects, (JNIEnv *env, jobject, jobject hs_frame, bool invalidate))
+C2V_VMENTRY(void, materializeVirtualObjects, (JNIEnv*, jobject, jobject hs_frame, bool invalidate))
   ResourceMark rm;
 
   if (hs_frame == NULL) {
@@ -1058,58 +1002,59 @@ C2V_END
 #define METASPACE_SYMBOL      "J"
 
 JNINativeMethod CompilerToVM_methods[] = {
-  {CC"initializeBytecode",                           CC"("METASPACE_METHOD"[B)[B",                                     FN_PTR(initializeBytecode)},
-  {CC"exceptionTableStart",                          CC"("METASPACE_METHOD")J",                                        FN_PTR(exceptionTableStart)},
-  {CC"exceptionTableLength",                         CC"("METASPACE_METHOD")I",                                        FN_PTR(exceptionTableLength)},
-  {CC"hasBalancedMonitors",                          CC"("METASPACE_METHOD")Z",                                        FN_PTR(hasBalancedMonitors)},
-  {CC"findUniqueConcreteMethod",                     CC"("METASPACE_METHOD")"METASPACE_METHOD,                         FN_PTR(findUniqueConcreteMethod)},
-  {CC"getKlassImplementor",                          CC"("METASPACE_KLASS")"METASPACE_KLASS,                           FN_PTR(getKlassImplementor)},
-  {CC"getStackTraceElement",                         CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                     FN_PTR(getStackTraceElement)},
-  {CC"methodIsIgnoredBySecurityStackWalk",           CC"("METASPACE_METHOD")Z",                                        FN_PTR(methodIsIgnoredBySecurityStackWalk)},
-  {CC"doNotInlineOrCompile",                         CC"("METASPACE_METHOD")V",                                        FN_PTR(doNotInlineOrCompile)},
-  {CC"canInlineMethod",                              CC"("METASPACE_METHOD")Z",                                        FN_PTR(canInlineMethod)},
-  {CC"shouldInlineMethod",                           CC"("METASPACE_METHOD")Z",                                        FN_PTR(shouldInlineMethod)},
-  {CC"lookupType",                                   CC"("STRING CLASS"Z)"METASPACE_KLASS,                             FN_PTR(lookupType)},
-  {CC"resolveConstantInPool",                        CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(resolveConstantInPool)},
-  {CC"resolvePossiblyCachedConstantInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(resolvePossiblyCachedConstantInPool)},
-  {CC"lookupNameRefInPool",                          CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_SYMBOL,                 FN_PTR(lookupNameRefInPool)},
-  {CC"lookupNameAndTypeRefIndexInPool",              CC"("METASPACE_CONSTANT_POOL"I)I",                                FN_PTR(lookupNameAndTypeRefIndexInPool)},
-  {CC"lookupSignatureRefInPool",                     CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_SYMBOL,                 FN_PTR(lookupSignatureRefInPool)},
-  {CC"lookupKlassRefIndexInPool",                    CC"("METASPACE_CONSTANT_POOL"I)I",                                FN_PTR(lookupKlassRefIndexInPool)},
-  {CC"constantPoolKlassAt",                          CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_KLASS,                  FN_PTR(constantPoolKlassAt)},
-  {CC"lookupKlassInPool",                            CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_KLASS,                  FN_PTR(lookupKlassInPool)},
-  {CC"lookupAppendixInPool",                         CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                           FN_PTR(lookupAppendixInPool)},
-  {CC"lookupMethodInPool",                           CC"("METASPACE_CONSTANT_POOL"IB)"METASPACE_METHOD,                FN_PTR(lookupMethodInPool)},
-  {CC"constantPoolRemapInstructionOperandFromCache", CC"("METASPACE_CONSTANT_POOL"I)I",                                FN_PTR(constantPoolRemapInstructionOperandFromCache)},
-  {CC"resolveField",                                 CC"("METASPACE_CONSTANT_POOL"IB[J)"METASPACE_KLASS,               FN_PTR(resolveField)},
-  {CC"resolveInvokeDynamic",                         CC"("METASPACE_CONSTANT_POOL"I)V",                                FN_PTR(resolveInvokeDynamic)},
-  {CC"resolveMethod",                                CC"("METASPACE_KLASS STRING STRING")"METASPACE_METHOD,            FN_PTR(resolveMethod)},
-  {CC"getClassInitializer",                          CC"("METASPACE_KLASS")"METASPACE_METHOD,                          FN_PTR(getClassInitializer)},
-  {CC"hasFinalizableSubclass",                       CC"("METASPACE_KLASS")Z",                                         FN_PTR(hasFinalizableSubclass)},
-  {CC"getMaxCallTargetOffset",                       CC"(J)J",                                                         FN_PTR(getMaxCallTargetOffset)},
-  {CC"getMetaspaceMethod",                           CC"("CLASS"I)"METASPACE_METHOD,                                   FN_PTR(getMetaspaceMethod)},
-  {CC"initializeConfiguration",                      CC"("HS_CONFIG")V",                                               FN_PTR(initializeConfiguration)},
-  {CC"installCode0",                                 CC"("HS_COMPILED_CODE INSTALLED_CODE SPECULATION_LOG")I",         FN_PTR(installCode0)},
-  {CC"notifyCompilationStatistics",                  CC"(I"HS_RESOLVED_METHOD"ZIJJ"INSTALLED_CODE")V",                 FN_PTR(notifyCompilationStatistics)},
-  {CC"printCompilationStatistics",                   CC"(ZZ)V",                                                        FN_PTR(printCompilationStatistics)},
-  {CC"resetCompilationStatistics",                   CC"()V",                                                          FN_PTR(resetCompilationStatistics)},
-  {CC"disassembleCodeBlob",                          CC"(J)"STRING,                                                    FN_PTR(disassembleCodeBlob)},
-  {CC"executeCompiledMethodVarargs",                 CC"(["OBJECT INSTALLED_CODE")"OBJECT,                             FN_PTR(executeCompiledMethodVarargs)},
-  {CC"getLineNumberTable",                           CC"("METASPACE_METHOD")[J",                                       FN_PTR(getLineNumberTable)},
-  {CC"getLocalVariableTableStart",                   CC"("METASPACE_METHOD")J",                                        FN_PTR(getLocalVariableTableStart)},
-  {CC"getLocalVariableTableLength",                  CC"("METASPACE_METHOD")I",                                        FN_PTR(getLocalVariableTableLength)},
-  {CC"reprofile",                                    CC"("METASPACE_METHOD")V",                                        FN_PTR(reprofile)},
-  {CC"invalidateInstalledCode",                      CC"("INSTALLED_CODE")V",                                          FN_PTR(invalidateInstalledCode)},
-  {CC"getJavaMirror",                                CC"("METASPACE_KLASS")"CLASS,                                     FN_PTR(getJavaMirror)},
-  {CC"readUnsafeKlassPointer",                       CC"("OBJECT")J",                                                  FN_PTR(readUnsafeKlassPointer)},
-  {CC"collectCounters",                              CC"()[J",                                                         FN_PTR(collectCounters)},
-  {CC"getGPUs",                                      CC"()"STRING,                                                     FN_PTR(getGPUs)},
-  {CC"allocateCompileId",                            CC"("METASPACE_METHOD"I)I",                                       FN_PTR(allocateCompileId)},
-  {CC"isMature",                                     CC"("METASPACE_METHOD_DATA")Z",                                   FN_PTR(isMature)},
-  {CC"hasCompiledCodeForOSR",                        CC"("METASPACE_METHOD"II)Z",                                      FN_PTR(hasCompiledCodeForOSR)},
-  {CC"getTimeStamp",                                 CC"()J",                                                          FN_PTR(getTimeStamp)},
-  {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF "[JI)"HS_STACK_FRAME_REF,                 FN_PTR(getNextStackFrame)},
-  {CC"materializeVirtualObjects",                    CC"("HS_STACK_FRAME_REF"Z)V",                                     FN_PTR(materializeVirtualObjects)},
+  {CC"getBytecode",                                  CC"("METASPACE_METHOD")[B",                                               FN_PTR(getBytecode)},
+  {CC"exceptionTableStart",                          CC"("METASPACE_METHOD")J",                                                FN_PTR(exceptionTableStart)},
+  {CC"exceptionTableLength",                         CC"("METASPACE_METHOD")I",                                                FN_PTR(exceptionTableLength)},
+  {CC"hasBalancedMonitors",                          CC"("METASPACE_METHOD")Z",                                                FN_PTR(hasBalancedMonitors)},
+  {CC"findUniqueConcreteMethod",                     CC"("METASPACE_METHOD")"METASPACE_METHOD,                                 FN_PTR(findUniqueConcreteMethod)},
+  {CC"getKlassImplementor",                          CC"("METASPACE_KLASS")"METASPACE_KLASS,                                   FN_PTR(getKlassImplementor)},
+  {CC"getStackTraceElement",                         CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                             FN_PTR(getStackTraceElement)},
+  {CC"methodIsIgnoredBySecurityStackWalk",           CC"("METASPACE_METHOD")Z",                                                FN_PTR(methodIsIgnoredBySecurityStackWalk)},
+  {CC"doNotInlineOrCompile",                         CC"("METASPACE_METHOD")V",                                                FN_PTR(doNotInlineOrCompile)},
+  {CC"canInlineMethod",                              CC"("METASPACE_METHOD")Z",                                                FN_PTR(canInlineMethod)},
+  {CC"shouldInlineMethod",                           CC"("METASPACE_METHOD")Z",                                                FN_PTR(shouldInlineMethod)},
+  {CC"lookupType",                                   CC"("STRING CLASS"Z)"METASPACE_KLASS,                                     FN_PTR(lookupType)},
+  {CC"resolveConstantInPool",                        CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                                   FN_PTR(resolveConstantInPool)},
+  {CC"resolvePossiblyCachedConstantInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                                   FN_PTR(resolvePossiblyCachedConstantInPool)},
+  {CC"lookupNameRefInPool",                          CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_SYMBOL,                         FN_PTR(lookupNameRefInPool)},
+  {CC"lookupNameAndTypeRefIndexInPool",              CC"("METASPACE_CONSTANT_POOL"I)I",                                        FN_PTR(lookupNameAndTypeRefIndexInPool)},
+  {CC"lookupSignatureRefInPool",                     CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_SYMBOL,                         FN_PTR(lookupSignatureRefInPool)},
+  {CC"lookupKlassRefIndexInPool",                    CC"("METASPACE_CONSTANT_POOL"I)I",                                        FN_PTR(lookupKlassRefIndexInPool)},
+  {CC"constantPoolKlassAt",                          CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_KLASS,                          FN_PTR(constantPoolKlassAt)},
+  {CC"lookupKlassInPool",                            CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_KLASS,                          FN_PTR(lookupKlassInPool)},
+  {CC"lookupAppendixInPool",                         CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                                   FN_PTR(lookupAppendixInPool)},
+  {CC"lookupMethodInPool",                           CC"("METASPACE_CONSTANT_POOL"IB)"METASPACE_METHOD,                        FN_PTR(lookupMethodInPool)},
+  {CC"constantPoolRemapInstructionOperandFromCache", CC"("METASPACE_CONSTANT_POOL"I)I",                                        FN_PTR(constantPoolRemapInstructionOperandFromCache)},
+  {CC"resolveField",                                 CC"("METASPACE_CONSTANT_POOL"IB[J)"METASPACE_KLASS,                       FN_PTR(resolveField)},
+  {CC"resolveInvokeDynamic",                         CC"("METASPACE_CONSTANT_POOL"I)V",                                        FN_PTR(resolveInvokeDynamic)},
+  {CC"resolveMethod",                                CC"("METASPACE_KLASS METASPACE_METHOD METASPACE_KLASS")"METASPACE_METHOD, FN_PTR(resolveMethod)},
+  {CC"getVtableIndexForInterface",                   CC"("METASPACE_KLASS METASPACE_METHOD")I",                                FN_PTR(getVtableIndexForInterface)},
+  {CC"getClassInitializer",                          CC"("METASPACE_KLASS")"METASPACE_METHOD,                                  FN_PTR(getClassInitializer)},
+  {CC"hasFinalizableSubclass",                       CC"("METASPACE_KLASS")Z",                                                 FN_PTR(hasFinalizableSubclass)},
+  {CC"getMaxCallTargetOffset",                       CC"(J)J",                                                                 FN_PTR(getMaxCallTargetOffset)},
+  {CC"getMetaspaceMethod",                           CC"("CLASS"I)"METASPACE_METHOD,                                           FN_PTR(getMetaspaceMethod)},
+  {CC"initializeConfiguration",                      CC"("HS_CONFIG")V",                                                       FN_PTR(initializeConfiguration)},
+  {CC"installCode0",                                 CC"("HS_COMPILED_CODE INSTALLED_CODE SPECULATION_LOG")I",                 FN_PTR(installCode0)},
+  {CC"notifyCompilationStatistics",                  CC"(I"HS_RESOLVED_METHOD"ZIJJ"INSTALLED_CODE")V",                         FN_PTR(notifyCompilationStatistics)},
+  {CC"printCompilationStatistics",                   CC"(ZZ)V",                                                                FN_PTR(printCompilationStatistics)},
+  {CC"resetCompilationStatistics",                   CC"()V",                                                                  FN_PTR(resetCompilationStatistics)},
+  {CC"disassembleCodeBlob",                          CC"(J)"STRING,                                                            FN_PTR(disassembleCodeBlob)},
+  {CC"executeCompiledMethodVarargs",                 CC"(["OBJECT INSTALLED_CODE")"OBJECT,                                     FN_PTR(executeCompiledMethodVarargs)},
+  {CC"getLineNumberTable",                           CC"("METASPACE_METHOD")[J",                                               FN_PTR(getLineNumberTable)},
+  {CC"getLocalVariableTableStart",                   CC"("METASPACE_METHOD")J",                                                FN_PTR(getLocalVariableTableStart)},
+  {CC"getLocalVariableTableLength",                  CC"("METASPACE_METHOD")I",                                                FN_PTR(getLocalVariableTableLength)},
+  {CC"reprofile",                                    CC"("METASPACE_METHOD")V",                                                FN_PTR(reprofile)},
+  {CC"invalidateInstalledCode",                      CC"("INSTALLED_CODE")V",                                                  FN_PTR(invalidateInstalledCode)},
+  {CC"getJavaMirror",                                CC"("METASPACE_KLASS")"CLASS,                                             FN_PTR(getJavaMirror)},
+  {CC"readUnsafeKlassPointer",                       CC"("OBJECT")J",                                                          FN_PTR(readUnsafeKlassPointer)},
+  {CC"collectCounters",                              CC"()[J",                                                                 FN_PTR(collectCounters)},
+  {CC"getGPUs",                                      CC"()"STRING,                                                             FN_PTR(getGPUs)},
+  {CC"allocateCompileId",                            CC"("METASPACE_METHOD"I)I",                                               FN_PTR(allocateCompileId)},
+  {CC"isMature",                                     CC"("METASPACE_METHOD_DATA")Z",                                           FN_PTR(isMature)},
+  {CC"hasCompiledCodeForOSR",                        CC"("METASPACE_METHOD"II)Z",                                              FN_PTR(hasCompiledCodeForOSR)},
+  {CC"getTimeStamp",                                 CC"()J",                                                                  FN_PTR(getTimeStamp)},
+  {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF "[JI)"HS_STACK_FRAME_REF,                         FN_PTR(getNextStackFrame)},
+  {CC"materializeVirtualObjects",                    CC"("HS_STACK_FRAME_REF"Z)V",                                             FN_PTR(materializeVirtualObjects)},
 };
 
 int CompilerToVM_methods_count() {
