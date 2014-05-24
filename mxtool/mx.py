@@ -1514,14 +1514,19 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
         stderr = err if not callable(err) else subprocess.PIPE
         p = subprocess.Popen(args, cwd=cwd, stdout=stdout, stderr=stderr, preexec_fn=preexec_fn, creationflags=creationflags, env=env)
         sub = _addSubprocess(p, args)
+        joiners = []
         if callable(out):
             t = Thread(target=redirect, args=(p.stdout, out))
             # Don't make the reader thread a daemon otherwise output can be droppped
             t.start()
+            joiners.append(t)
         if callable(err):
             t = Thread(target=redirect, args=(p.stderr, err))
             # Don't make the reader thread a daemon otherwise output can be droppped
             t.start()
+            joiners.append(t)
+        for t in joiners:
+            t.join()
         if timeout is None or timeout == 0:
             retcode = waitOn(p)
         else:
@@ -1673,6 +1678,7 @@ class JavaConfig:
         self.javac = exe_suffix(join(self.jdk, 'bin', 'javac'))
         self.javap = exe_suffix(join(self.jdk, 'bin', 'javap'))
         self.javadoc = exe_suffix(join(self.jdk, 'bin', 'javadoc'))
+        self.pack200 = exe_suffix(join(self.jdk, 'bin', 'pack200'))
         self.toolsjar = join(self.jdk, 'lib', 'tools.jar')
         self._bootclasspath = None
         self._extdirs = None
@@ -1847,7 +1853,7 @@ def abort(codeOrMessage):
 
     def is_alive(p):
         if isinstance(p, subprocess.Popen):
-            return p.poll() is not None
+            return p.poll() is None
         assert isinstance(p, multiprocessing.Process), p
         return p.is_alive()
 
@@ -3398,13 +3404,12 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             for ap in p.annotation_processors():
                 for dep in dependency(ap).all_deps([], True):
                     if dep.isLibrary():
-                        if not hasattr(dep, 'eclipse.container') and not hasattr(dep, 'eclipse.project'):
-                            # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-                            # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-                            # safest to simply use absolute paths.
-                            path = _make_absolute(dep.get_path(resolve=True), p.suite.dir)
-                            out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
-                            files.append(path)
+                        # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+                        # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+                        # safest to simply use absolute paths.
+                        path = _make_absolute(dep.get_path(resolve=True), p.suite.dir)
+                        out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
+                        files.append(path)
                     elif dep.isProject():
                         out.element('factorypathentry', {'kind' : 'WKSPJAR', 'id' : '/' + dep.name + '/' + dep.name + '.jar', 'enabled' : 'true', 'runInBatchMode' : 'false'})
             out.close('factorypath')
