@@ -35,13 +35,18 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     private int[] values;
 
     public IntSequenceStorage() {
-        values = new int[]{};
+        values = new int[4];
     }
 
     public IntSequenceStorage(int[] elements) {
-        this.values = elements;
+        if (elements.length == 0) {
+            values = new int[4];
+        } else {
+            this.values = elements;
+        }
+
+        capacity = values.length;
         length = elements.length;
-        capacity = elements.length;
     }
 
     @Override

@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -27,38 +27,29 @@ package edu.uci.python.nodes.expression;
 import java.math.BigInteger;
 
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.misc.*;
-
-import static edu.uci.python.runtime.ArithmeticUtil.*;
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.expression.CastToBooleanNode.YesNode;
+import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.YesNodeFactory;
 
 public abstract class BinaryBooleanNode extends BinaryOpNode {
 
+    @Child protected YesNode booleanCast;
+
     public abstract static class AndNode extends BinaryBooleanNode {
 
-        @ShortCircuit("rightNode")
-        public boolean needsRightNode(boolean left) {
-            return left;
+        public AndNode() {
+            this.booleanCast = YesNodeFactory.create(EmptyNode.create());
+        }
+
+        protected AndNode(@SuppressWarnings("unused") AndNode prev) {
+            this();
         }
 
         @ShortCircuit("rightNode")
-        public boolean needsRightNode(int left) {
-            return isNotZero(left);
-        }
-
-        @ShortCircuit("rightNode")
-        public boolean needsRightNode(BigInteger left) {
-            return isNotZero(left);
-        }
-
-        @ShortCircuit("rightNode")
-        public boolean needsRightNode(double left) {
-            return isNotZero(left);
-        }
-
-        @ShortCircuit("rightNode")
-        public boolean needsRightNode(Object left) {
-            return JavaTypeConversions.toBoolean(left);
+        public boolean needsRightNode(VirtualFrame frame, Object left) {
+            return booleanCast.executeBoolean(frame, left);
         }
 
         @Specialization(order = 0)
@@ -84,29 +75,17 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
 
     public abstract static class OrNode extends BinaryBooleanNode {
 
-        @ShortCircuit("rightNode")
-        public boolean needsRightNode(boolean left) {
-            return !left;
+        public OrNode() {
+            this.booleanCast = YesNodeFactory.create(EmptyNode.create());
+        }
+
+        protected OrNode(@SuppressWarnings("unused") OrNode prev) {
+            this();
         }
 
         @ShortCircuit("rightNode")
-        public boolean needsRightNode(int left) {
-            return isZero(left);
-        }
-
-        @ShortCircuit("rightNode")
-        public boolean needsRightNode(BigInteger left) {
-            return isZero(left);
-        }
-
-        @ShortCircuit("rightNode")
-        public boolean needsRightNode(double left) {
-            return isZero(left);
-        }
-
-        @ShortCircuit("rightNode")
-        public boolean needsRightNode(Object left) {
-            return !JavaTypeConversions.toBoolean(left);
+        public boolean needsRightNode(VirtualFrame frame, Object left) {
+            return !booleanCast.executeBoolean(frame, left);
         }
 
         @Specialization(order = 0)

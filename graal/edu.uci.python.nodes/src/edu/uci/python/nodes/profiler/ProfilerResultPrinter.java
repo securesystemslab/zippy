@@ -137,7 +137,9 @@ public class ProfilerResultPrinter {
             }
 
             printInvocationCount(functionName, profilerResult);
+            // CheckStyle: stop system..print check
             System.out.println();
+            // CheckStyle: resume system..print check
         } else if (profilerResult < 0) {
             throw new RuntimeException("Profiler result can't be less than 0: " + profilerResult + " for " + profiledRootNode);
         }
