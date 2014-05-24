@@ -101,10 +101,11 @@ public class ProfilerResultPrinter {
         }
 
         // CheckStyle: stop system..print check
-        System.out.format("%-23s", "Function Name");
-        System.out.format("%-27s", "Number of Calls");
-        System.out.println();
-        System.out.println("=============          ===============");
+        PrintStream out = System.out;
+        out.format("%-23s", "Function Name");
+        out.format("%-27s", "Number of Calls");
+        out.println();
+        out.println("=============          ===============");
         // CheckStyle: resume system..print check
 
         for (int i = 0; i < profiledNodes.size(); i++) {
@@ -138,7 +139,8 @@ public class ProfilerResultPrinter {
 
             printInvocationCount(functionName, profilerResult);
             // CheckStyle: stop system..print check
-            System.out.println();
+            PrintStream out = System.out;
+            out.println();
             // CheckStyle: resume system..print check
         } else if (profilerResult < 0) {
             throw new RuntimeException("Profiler result can't be less than 0: " + profilerResult + " for " + profiledRootNode);

@@ -36,6 +36,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 public abstract class CastToBooleanNode extends UnaryOpNode {
 
@@ -50,38 +51,37 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
 
     public abstract static class YesNode extends CastToBooleanNode {
 
-        @Specialization
+        @Specialization(order = 1)
         boolean doInteger(int operand) {
             return operand != 0;
         }
 
-        @Specialization
+        @Specialization(order = 2)
         boolean doBigInteger(BigInteger operand) {
             return operand.compareTo(BigInteger.ZERO) != 0;
         }
 
-        @Specialization
+        @Specialization(order = 3)
         boolean doDouble(double operand) {
             return operand != 0;
         }
 
-        @Specialization
+        @Specialization(order = 4)
         boolean doBoolean(boolean operand) {
             return operand;
         }
 
-        @Specialization
+        @Specialization(order = 5)
         boolean doString(String operand) {
             return operand.length() != 0;
         }
 
-        @SuppressWarnings("unused")
-        @Specialization(guards = "isNone")
-        boolean doNone(Object operand) {
+        @Specialization(order = 6, guards = "isNone")
+        boolean doNone(@SuppressWarnings("unused") Object operand) {
             return false;
         }
 
-        @Specialization
+        @Specialization(order = 10)
         boolean doPythonObject(PythonObject object) {
             Object boolAttribute = object.getAttribute("__bool__");
             if (boolAttribute != null && boolAttribute instanceof PFunction) {
@@ -97,17 +97,28 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
             }
         }
 
-        @Specialization
+        @Specialization(order = 11)
         boolean doPTuple(PTuple operand) {
             return operand.len() != 0;
         }
 
-        @Specialization
+        @Specialization(order = 12, guards = "isEmptyStorage")
+        public boolean doPListEmpty(@SuppressWarnings("unused") PList list) {
+            return false;
+        }
+
+        @Specialization(order = 13, guards = "isBasicStorage")
+        public boolean doPListBasic(PList list) {
+            BasicSequenceStorage store = (BasicSequenceStorage) list.getStorage();
+            return store.length() != 0;
+        }
+
+        @Specialization(order = 14)
         boolean doPList(PList operand) {
             return operand.len() != 0;
         }
 
-        @Specialization
+        @Specialization(order = 15)
         boolean doPDictionary(PDict operand) {
             return operand.len() != 0;
         }
@@ -180,11 +191,6 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
 
             return false;
         }
-
-    }
-
-    static boolean isNone(Object value) {
-        return value == PNone.NONE;
     }
 
 }

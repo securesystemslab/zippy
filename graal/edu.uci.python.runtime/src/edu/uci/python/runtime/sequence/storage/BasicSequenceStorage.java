@@ -27,10 +27,10 @@ package edu.uci.python.runtime.sequence.storage;
 public abstract class BasicSequenceStorage extends SequenceStorage {
 
     // nominated storage length
-    int length;
+    protected int length;
 
     // physical storage length
-    int capacity;
+    protected int capacity;
 
     @Override
     public final int length() {
