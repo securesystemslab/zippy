@@ -48,11 +48,11 @@ public final class GeneratorWhileNode extends WhileNode implements GeneratorCont
     }
 
     private boolean isActive(VirtualFrame frame) {
-        return PArguments.getGeneratorArguments(frame).getActive(flagSlot);
+        return PArguments.getControlData(frame).getActive(flagSlot);
     }
 
     private void setActive(VirtualFrame frame, boolean flag) {
-        PArguments.getGeneratorArguments(frame).setActive(flagSlot, flag);
+        PArguments.getControlData(frame).setActive(flagSlot, flag);
     }
 
     private void incrementCounter() {
