@@ -122,7 +122,7 @@ public abstract class ListLiteralNode extends LiteralNode {
             PList newList;
 
             if (store instanceof EmptySequenceStorage) {
-                newList = (PList) replace(new EmptyListLiteralNode()).execute(frame);
+                newList = (PList) replace(new ObjectListLiteralNode(values)).execute(frame);
             } else if (store instanceof IntSequenceStorage) {
                 newList = (PList) replace(new IntListLiteralNode(values)).execute(frame);
             } else if (store instanceof DoubleSequenceStorage) {
@@ -134,18 +134,6 @@ public abstract class ListLiteralNode extends LiteralNode {
             }
 
             return newList;
-        }
-    }
-
-    public static final class EmptyListLiteralNode extends ListLiteralNode {
-
-        public EmptyListLiteralNode() {
-            super(new PNode[]{});
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            return new PList(EmptySequenceStorage.INSTANCE);
         }
     }
 
