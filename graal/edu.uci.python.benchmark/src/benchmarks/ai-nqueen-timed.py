@@ -61,7 +61,7 @@ def measure():
     start = time.time()
     print(main(queen_count)[-1])
     duration = "%.3f\n" % (time.time() - start)
-    print("ai-nqueen: " + duration)
+    print("bm-ai: " + duration)
 
 # warm up
 for i in range(1500): #1500
