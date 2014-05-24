@@ -60,11 +60,11 @@ public class GeneratorIfNode extends IfNode implements GeneratorControlNode {
     }
 
     protected boolean isActive(VirtualFrame frame, int flagSlot) {
-        return PArguments.getGeneratorArguments(frame).getActive(flagSlot);
+        return PArguments.getControlData(frame).getActive(flagSlot);
     }
 
     protected void setActive(VirtualFrame frame, int flagSlot, boolean value) {
-        PArguments.getGeneratorArguments(frame).setActive(flagSlot, value);
+        PArguments.getControlData(frame).setActive(flagSlot, value);
     }
 
     protected final Object executeThen(VirtualFrame frame) {

@@ -46,14 +46,14 @@ public final class GeneratorBreakNode extends StatementNode {
     @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
-        PArguments.getGeneratorArguments(frame).setIteratorAt(targetLoopIteratorSlot, null);
+        PArguments.getControlData(frame).setIteratorAt(targetLoopIteratorSlot, null);
 
         for (int indexSlot : enclosingBlockIndexSlots) {
-            PArguments.getGeneratorArguments(frame).setBlockIndexAt(indexSlot, 0);
+            PArguments.getControlData(frame).setBlockIndexAt(indexSlot, 0);
         }
 
         for (int flagSlot : enclosingIfFlagSlots) {
-            PArguments.getGeneratorArguments(frame).setActive(flagSlot, false);
+            PArguments.getControlData(frame).setActive(flagSlot, false);
         }
 
         throw BreakException.INSTANCE;

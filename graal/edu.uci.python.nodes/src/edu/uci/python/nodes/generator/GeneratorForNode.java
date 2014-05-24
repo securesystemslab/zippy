@@ -55,11 +55,11 @@ public final class GeneratorForNode extends LoopNode implements GeneratorControl
     }
 
     private PIterator getIterator(VirtualFrame frame) {
-        return PArguments.getGeneratorArguments(frame).getIteratorAt(iteratorSlot);
+        return PArguments.getControlData(frame).getIteratorAt(iteratorSlot);
     }
 
     private void setIterator(VirtualFrame frame, PIterator value) {
-        PArguments.getGeneratorArguments(frame).setIteratorAt(iteratorSlot, value);
+        PArguments.getControlData(frame).setIteratorAt(iteratorSlot, value);
     }
 
     private Object doReturn(VirtualFrame frame) {

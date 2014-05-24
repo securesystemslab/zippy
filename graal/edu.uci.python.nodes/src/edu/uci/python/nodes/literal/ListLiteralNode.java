@@ -84,7 +84,7 @@ public abstract class ListLiteralNode extends LiteralNode {
             SequenceStorage store = list.getStorage();
 
             if (store instanceof EmptySequenceStorage) {
-                replace(new EmptyListLiteralNode(list, values));
+                replace(new ProfilingEmptyListLiteralNode(list, values));
             } else if (store instanceof IntSequenceStorage) {
                 replace(new IntListLiteralNode(values));
             } else if (store instanceof DoubleSequenceStorage) {
@@ -104,11 +104,11 @@ public abstract class ListLiteralNode extends LiteralNode {
      * that type info to respecialize itself to a properly typed literal node.
      *
      */
-    public static final class EmptyListLiteralNode extends ListLiteralNode {
+    public static final class ProfilingEmptyListLiteralNode extends ListLiteralNode {
 
         private final PList profilingList;
 
-        public EmptyListLiteralNode(PList profilingList, PNode[] values) {
+        public ProfilingEmptyListLiteralNode(PList profilingList, PNode[] values) {
             super(values);
             this.profilingList = profilingList;
             assert values.length == 0;
@@ -122,7 +122,7 @@ public abstract class ListLiteralNode extends LiteralNode {
             PList newList;
 
             if (store instanceof EmptySequenceStorage) {
-                newList = (PList) replace(new ObjectListLiteralNode(values)).execute(frame);
+                newList = (PList) replace(new EmptyListLiteralNode()).execute(frame);
             } else if (store instanceof IntSequenceStorage) {
                 newList = (PList) replace(new IntListLiteralNode(values)).execute(frame);
             } else if (store instanceof DoubleSequenceStorage) {
@@ -134,6 +134,18 @@ public abstract class ListLiteralNode extends LiteralNode {
             }
 
             return newList;
+        }
+    }
+
+    public static final class EmptyListLiteralNode extends ListLiteralNode {
+
+        public EmptyListLiteralNode() {
+            super(new PNode[]{});
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return new PList(EmptySequenceStorage.INSTANCE);
         }
     }
 

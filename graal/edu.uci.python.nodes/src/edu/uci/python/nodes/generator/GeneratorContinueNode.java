@@ -45,11 +45,11 @@ public final class GeneratorContinueNode extends StatementNode {
     @Override
     public Object execute(VirtualFrame frame) {
         for (int indexSlot : enclosingBlockIndexSlots) {
-            PArguments.getGeneratorArguments(frame).setBlockIndexAt(indexSlot, 0);
+            PArguments.getControlData(frame).setBlockIndexAt(indexSlot, 0);
         }
 
         for (int flagSlot : enclosingIfFlagSlots) {
-            PArguments.getGeneratorArguments(frame).setActive(flagSlot, false);
+            PArguments.getControlData(frame).setActive(flagSlot, false);
         }
 
         throw ContinueException.INSTANCE;

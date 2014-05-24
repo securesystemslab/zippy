@@ -48,7 +48,7 @@ public class PGenerator implements PIterator {
         MaterializedFrame generatorFrame = Truffle.getRuntime().createMaterializedFrame(PArguments.create(), frameDescriptor);
         PArguments.setDeclarationFrame(arguments, declarationFrame);
         PArguments.setGeneratorFrame(arguments, generatorFrame);
-        PArguments.setGeneratorArguments(arguments, generatorArgs);
+        PArguments.setControlData(arguments, generatorArgs);
 
         if (PythonOptions.ProfileGeneratorCalls) {
             return new PProfilingGenerator(name, callTarget, frameDescriptor, arguments, context);

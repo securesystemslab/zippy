@@ -53,23 +53,28 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
         }
 
         @Specialization(order = 0)
-        boolean doBoolean(boolean left, boolean hasRight, boolean right) {
-            return hasRight ? right : left;
+        boolean doBoolean(boolean left, boolean needsRight, boolean right) {
+            return needsRight ? right : left;
         }
 
         @Specialization(order = 1)
-        public int doInteger(int left, boolean hasRight, int right) {
-            return hasRight ? right : left;
+        public int doInteger(int left, boolean needsRight, int right) {
+            return needsRight ? right : left;
         }
 
         @Specialization(order = 2)
-        public BigInteger doBigInteger(BigInteger left, boolean hasRight, BigInteger right) {
-            return hasRight ? right : left;
+        public BigInteger doBigInteger(BigInteger left, boolean needsRight, BigInteger right) {
+            return needsRight ? right : left;
         }
 
         @Specialization(order = 3)
-        public double doDouble(double left, boolean hasRight, double right) {
-            return hasRight ? right : left;
+        public double doDouble(double left, boolean needsRight, double right) {
+            return needsRight ? right : left;
+        }
+
+        @Specialization(order = 4)
+        public Object doObject(Object left, boolean needsRight, boolean right) {
+            return needsRight ? right : left;
         }
     }
 
