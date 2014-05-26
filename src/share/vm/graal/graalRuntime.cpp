@@ -683,7 +683,7 @@ void GraalRuntime::parse_argument(KlassHandle hotSpotOptionsClass, char* arg, TR
     name = arg + 1;
     name_len = strlen(name);
     name_handle = java_lang_String::create_from_str(name, CHECK);
-    valid = set_option(hotSpotOptionsClass, name, name_len, name_handle, arg, CHECK);
+    valid = set_option(hotSpotOptionsClass, name, (int)name_len, name_handle, arg, CHECK);
   } else {
     char* sep = strchr(arg, '=');
     if (sep != NULL) {
@@ -696,7 +696,7 @@ void GraalRuntime::parse_argument(KlassHandle hotSpotOptionsClass, char* arg, TR
       if (HAS_PENDING_EXCEPTION) {
         return;
       }
-      valid = set_option(hotSpotOptionsClass, name, name_len, name_handle, sep + 1, CHECK);
+      valid = set_option(hotSpotOptionsClass, name, (int)name_len, name_handle, sep + 1, CHECK);
     } else {
       char buf[200];
       jio_snprintf(buf, sizeof(buf), "Value for option %s must use '-G:%s=<value>' format", arg, arg);
@@ -714,7 +714,7 @@ void GraalRuntime::parse_argument(KlassHandle hotSpotOptionsClass, char* arg, TR
 
 void GraalRuntime::parse_graal_options_file(KlassHandle hotSpotOptionsClass, TRAPS) {
   const char* home = Arguments::get_java_home();
-  int path_len = strlen(home) + strlen("/lib/graal.options") + 1;
+  int path_len = (int)strlen(home) + (int)strlen("/lib/graal.options") + 1;
   char* path = NEW_RESOURCE_ARRAY_IN_THREAD(THREAD, char, path_len);
   char sep = os::file_separator()[0];
   sprintf(path, "%s%clib%cgraal.options", home, sep, sep);
