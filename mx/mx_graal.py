@@ -488,19 +488,19 @@ def _update_HotSpotOptions_inline_hpp(graalJar):
     p = mx.project('com.oracle.graal.hotspot')
     mainClass = 'com.oracle.graal.hotspot.HotSpotOptionsLoader'
     assert exists(join(p.source_dirs()[0], mainClass.replace('.', os.sep) + '.java'))
-    hsSrcGenDir = join(p.source_gen_dir(), 'hotspot')
-    if not exists(hsSrcGenDir):
-        os.makedirs(hsSrcGenDir)
-    tmp = StringIO.StringIO()
-    retcode = mx.run_java(['-cp', graalJar, mainClass], out=tmp.write, nonZeroIsFatal=False)
-    if retcode != 0:
-        # Suppress the error if it's because the utility class isn't compiled yet
+
+    def mainClassExists():
         with zipfile.ZipFile(graalJar, 'r') as zf:
             mainClassFile = mainClass.replace('.', '/') + '.class'
-            if mainClassFile not in zf.namelist():
-                return
-        mx.abort(retcode)
-    mx.update_file(join(hsSrcGenDir, 'HotSpotOptions.inline.hpp'), tmp.getvalue())
+            return mainClassFile in zf.namelist()
+
+    if mainClassExists():
+        hsSrcGenDir = join(p.source_gen_dir(), 'hotspot')
+        if not exists(hsSrcGenDir):
+            os.makedirs(hsSrcGenDir)
+        tmp = StringIO.StringIO()
+        mx.run_java(['-cp', graalJar, mainClass], out=tmp.write)
+        mx.update_file(join(hsSrcGenDir, 'HotSpotOptions.inline.hpp'), tmp.getvalue())
 
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
