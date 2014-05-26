@@ -1525,8 +1525,11 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
             # Don't make the reader thread a daemon otherwise output can be droppped
             t.start()
             joiners.append(t)
-        for t in joiners:
-            t.join()
+        while any([t.is_alive() for t in joiners]):
+            # Need to use timeout otherwise all signals (including CTRL-C) are blocked
+            # see: http://bugs.python.org/issue1167930
+            for t in joiners:
+                t.join(10)
         if timeout is None or timeout == 0:
             retcode = waitOn(p)
         else:
