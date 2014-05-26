@@ -484,27 +484,21 @@ def _updateInstalledGraalOptionsFile(jdk):
         if exists(toDelete):
             os.unlink(toDelete)
 
-def _update_HotSpotOptions_inline_hpp(graalJar):
-    p = mx.project('com.oracle.graal.hotspot')
-    mainClass = 'com.oracle.graal.hotspot.HotSpotOptionsLoader'
-    assert exists(join(p.source_dirs()[0], mainClass.replace('.', os.sep) + '.java'))
-
-    def mainClassExists():
-        with zipfile.ZipFile(graalJar, 'r') as zf:
-            mainClassFile = mainClass.replace('.', '/') + '.class'
-            return mainClassFile in zf.namelist()
-
-    if mainClassExists():
-        hsSrcGenDir = join(p.source_gen_dir(), 'hotspot')
+def _update_graalRuntime_inline_hpp(graalJar):
+    p = mx.project('com.oracle.graal.hotspot.codegen')
+    mainClass = 'com.oracle.graal.hotspot.codegen.GenGraalRuntimeInlineHpp'
+    if exists(join(p.output_dir(), mainClass.replace('.', os.sep) + '.class')):
+        hsSrcGenDir = join(mx.project('com.oracle.graal.hotspot').source_gen_dir(), 'hotspot')
         if not exists(hsSrcGenDir):
             os.makedirs(hsSrcGenDir)
+
         tmp = StringIO.StringIO()
-        mx.run_java(['-cp', graalJar, mainClass], out=tmp.write)
-        mx.update_file(join(hsSrcGenDir, 'HotSpotOptions.inline.hpp'), tmp.getvalue())
+        mx.run_java(['-cp', '{}{}{}'.format(graalJar, os.pathsep, p.output_dir()), mainClass], out=tmp.write)
+        mx.update_file(join(hsSrcGenDir, 'graalRuntime.inline.hpp'), tmp.getvalue())
 
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
-    _update_HotSpotOptions_inline_hpp(graalJar)
+    _update_graalRuntime_inline_hpp(graalJar)
     jdks = _jdksDir()
 
     if exists(jdks):

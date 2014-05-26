@@ -641,6 +641,13 @@ JVM_ENTRY(jobject, JVM_GetGraalRuntime(JNIEnv *env, jclass c))
   return VMToCompiler::get_HotSpotGraalRuntime_jobject();
 JVM_END
 
+// private static String[] Graal.getServiceImpls(Class service)
+JVM_ENTRY(jobject, JVM_GetGraalServiceImpls(JNIEnv *env, jclass c, jclass serviceClass))
+  HandleMark hm;
+  KlassHandle serviceKlass(THREAD, java_lang_Class::as_Klass(JNIHandles::resolve_non_null(serviceClass)));
+  return JNIHandles::make_local(THREAD, GraalRuntime::get_service_impls(serviceKlass, THREAD)());
+JVM_END
+
 // private static TruffleRuntime Truffle.createRuntime()
 JVM_ENTRY(jobject, JVM_CreateTruffleRuntime(JNIEnv *env, jclass c))
   return JNIHandles::make_local(VMToCompiler::create_HotSpotTruffleRuntime()());
@@ -813,4 +820,16 @@ Handle GraalRuntime::get_OptionValue(const char* declaringClass, const char* fie
   return ret;
 }
 
-#include "HotSpotOptions.inline.hpp"
+Handle GraalRuntime::create_Service(const char* name, TRAPS) {
+  TempNewSymbol kname = SymbolTable::new_symbol(name, THREAD);
+  Klass* k = SystemDictionary::resolve_or_fail(kname, true, CHECK_NH);
+  instanceKlassHandle klass(THREAD, k);
+  klass->initialize(CHECK_NH);
+  klass->check_valid_for_instantiation(true, CHECK_NH);
+  JavaValue result(T_VOID);
+  instanceHandle service = klass->allocate_instance_handle(CHECK_NH);
+  JavaCalls::call_special(&result, service, klass, vmSymbols::object_initializer_name(), vmSymbols::void_method_signature(), THREAD);
+  return service;
+}
+
+#include "graalRuntime.inline.hpp"
