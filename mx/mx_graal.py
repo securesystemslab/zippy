@@ -1834,7 +1834,7 @@ def jacocoreport(args):
         out = args[0]
     elif len(args) > 1:
         mx.abort('jacocoreport takes only one argument : an output directory')
-    mx.run_java(['-jar', jacocoreport.get_path(True), '-in', 'jacoco.exec', '-g', join(_graal_home, 'graal'), out])
+    mx.run_java(['-jar', jacocoreport.get_path(True), '--in', 'jacoco.exec', '--out', out] + [p.dir for p in mx.projects()])
 
 def sl(args):
     """run an SL program"""
