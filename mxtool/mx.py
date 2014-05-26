@@ -1887,7 +1887,7 @@ def download(path, urls, verbose=False):
         os.makedirs(d)
 
 
-    if not path.endswith(os.sep):
+    if sys.stderr.isatty() and not path.endswith(os.sep):
         # Try it with the Java tool first since it can show a progress counter
         myDir = dirname(__file__)
         javaSource = join(myDir, 'URLConnectionDownload.java')
