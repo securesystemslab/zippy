@@ -66,6 +66,7 @@ library@VECMATH@urls=http://mirrors.ibiblio.org/pub/mirrors/maven/java3d/jars/ve
 library@VECMATH@sha1=a0ae4f51da409fa0c20fa0ca59e6bbc9413ae71d
 
 distribution@GRAAL@path=graal.jar
+distribution@GRAAL@subDir=graal
 distribution@GRAAL@sourcesPath=graal.src.zip
 distribution@GRAAL@dependencies=\
 com.oracle.graal.hotspot.amd64,\
@@ -79,11 +80,13 @@ com.oracle.graal.hotspot.hsail
 distribution@GRAAL@exclude=FINDBUGS
 
 distribution@TRUFFLE@path=truffle.jar
+distribution@TRUFFLE@subDir=graal
 distribution@TRUFFLE@sourcesPath=truffle-sources.jar
 distribution@TRUFFLE@dependencies=\
 com.oracle.truffle.api.dsl
 
 distribution@TRUFFLE-DSL-PROCESSOR@path=truffle-dsl-processor.jar
+distribution@TRUFFLE-DSL-PROCESSOR@subDir=graal
 distribution@TRUFFLE-DSL-PROCESSOR@sourcesPath=truffle-dsl-processor-sources.jar
 distribution@TRUFFLE-DSL-PROCESSOR@dependencies=\
 com.oracle.truffle.dsl.processor
