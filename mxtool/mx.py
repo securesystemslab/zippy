@@ -1525,8 +1525,9 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
             # Don't make the reader thread a daemon otherwise output can be droppped
             t.start()
             joiners.append(t)
-        for t in joiners:
-            t.join()
+        while any([t.is_alive() for t in joiners]):
+            for t in joiners:
+                t.join(10)
         if timeout is None or timeout == 0:
             retcode = waitOn(p)
         else:
@@ -3340,10 +3341,6 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             refreshFile = os.path.relpath(join(p.dir, p.name + '.jar'), logicalWorkspaceRoot)
             _genEclipseBuilder(out, p, 'Jar', 'archive ' + p.name, refresh=True, refreshFile=refreshFile, relevantResources=[binFolder], async=True, xmlIndent='', xmlStandalone='no')
 
-        if projToDist.has_key(p.name):
-            dist, distDeps = projToDist[p.name]
-            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist', 'archive @' + dist.name, relevantResources=[binFolder], logToFile=True, refresh=False, async=True)
-
         out.close('buildSpec')
         out.open('natures')
         out.element('nature', data='org.eclipse.jdt.core.javanature')
@@ -3421,6 +3418,41 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
 
     _zip_files(files, suite.dir, configZip.path)
     _zip_files(libFiles, suite.dir, configLibsZip)
+
+    # Create an Eclipse project for each distribution that will create/update the archive
+    # for the distribution whenever any project of the distribution is updated.
+    for dist in suite.dists:
+        name = dist.name
+        # TODO: Support 'subDir' attribute in mx/projects?
+        projectDir = join(suite.dir, dist.name + '.dist')
+        if not exists(projectDir):
+            os.makedirs(projectDir)
+        distProjects = [d for d in dist.sorted_deps() if d.isProject()]
+        relevantResources = []
+        for p in distProjects:
+            for srcDir in p.source_dirs():
+                relevantResources.append(join(p.name, os.path.relpath(srcDir, p.dir)))
+            relevantResources.append(join(p.name, os.path.relpath(p.output_dir(), p.dir)))
+        out = XMLDoc()
+        out.open('projectDescription')
+        out.element('name', data=dist.name)
+        out.element('comment', data='Updates ' + dist.path + ' if a project dependency of ' + dist.name + ' is updated')
+        out.open('projects')
+        for p in distProjects:
+            out.element('project', data=p.name)
+        out.close('projects')
+        out.open('buildSpec')
+        dist.dir = projectDir
+        dist.javaCompliance = max([p.javaCompliance for p in distProjects])
+        _genEclipseBuilder(out, dist, 'Create' + dist.name + 'Dist', 'archive @' + dist.name, relevantResources=relevantResources, logToFile=True, refresh=False, async=True)
+        out.close('buildSpec')
+        out.open('natures')
+        out.element('nature', data='org.eclipse.jdt.core.javanature')
+        out.close('natures')
+        out.close('projectDescription')
+        projectFile = join(projectDir, '.project')
+        update_file(projectFile, out.xml(indent='\t', newl='\n'))
+        files.append(projectFile)
 
 def _zip_files(files, baseDir, zipPath):
     fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(zipPath), dir=baseDir)
