@@ -166,6 +166,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return ExactMath.multiplyExact(left, right);
         }
 
+        @SlowPath
         @Specialization(order = 1)
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.multiply(right);

@@ -96,7 +96,17 @@
 			<locationURI>PARENT-1-PROJECT_LOC/src/os_cpu/bsd_x86/vm</locationURI>
 		</link>
 		<link>
-			<name>generated</name>
+			<name>generated_compiler1</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/build/linux/linux_amd64_compiler1/generated</locationURI>
+		</link>
+		<link>
+			<name>generated_compiler2</name>
+			<type>2</type>
+			<locationURI>PARENT-1-PROJECT_LOC/build/linux/linux_amd64_compiler2/generated</locationURI>
+		</link>
+		<link>
+			<name>generated_graal</name>
 			<type>2</type>
 			<locationURI>PARENT-1-PROJECT_LOC/build/linux/linux_amd64_graal/generated</locationURI>
 		</link>

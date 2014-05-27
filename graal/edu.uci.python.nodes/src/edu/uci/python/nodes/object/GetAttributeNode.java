@@ -29,6 +29,7 @@ import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -276,20 +277,25 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
 
         @Override
         public Object executeWithPrimary(VirtualFrame frame, Object primary) {
-            PyObject pyObj = (PyObject) primary;
-            return unboxPyObject(pyObj.__findattr__(attributeId));
+            PyObject pyobj = (PyObject) primary;
+            return findAttr(pyobj);
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            PyObject pyObj;
+            PyObject pyobj;
             try {
-                pyObj = primaryNode.executePyObject(frame);
+                pyobj = primaryNode.executePyObject(frame);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return specializeAndExecute(frame, e.getResult());
             }
-            return unboxPyObject(pyObj.__findattr__(attributeId));
+            return findAttr(pyobj);
+        }
+
+        @SlowPath
+        private Object findAttr(PyObject pyobj) {
+            return unboxPyObject(pyobj.__findattr__(attributeId));
         }
     }
 

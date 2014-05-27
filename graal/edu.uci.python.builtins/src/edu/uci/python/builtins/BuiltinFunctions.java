@@ -286,7 +286,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization
         public PTuple doBigInteger(BigInteger a, BigInteger b) {
-            return new PTuple(a.divideAndRemainder(b));
+            return new PTuple(divideAndRemainderSlowStub(a, b));
+        }
+
+        @SlowPath
+        private static BigInteger[] divideAndRemainderSlowStub(BigInteger a, BigInteger b) {
+            return a.divideAndRemainder(b);
         }
 
         @Specialization

@@ -32,7 +32,7 @@ import edu.uci.python.runtime.sequence.*;
 
 public final class TupleLiteralNode extends LiteralNode {
 
-    @Children protected final PNode[] values;
+    @Children private final PNode[] values;
 
     public TupleLiteralNode(PNode[] values) {
         this.values = values;
@@ -40,7 +40,7 @@ public final class TupleLiteralNode extends LiteralNode {
 
     @ExplodeLoop
     @Override
-    public PTuple execute(VirtualFrame frame) {
+    public Object execute(VirtualFrame frame) {
         final Object[] elements = new Object[values.length];
 
         for (int i = 0; i < values.length; i++) {

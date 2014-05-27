@@ -73,9 +73,19 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
    */
   static bool set_option(KlassHandle hotSpotOptionsClass, const char* name, int name_len, Handle name_handle, const char* value, TRAPS);
 
+  /**
+   * Instantiates Service object, calls its default constructor and returns it.
+   *
+   * @param name the name of a class implementing com.oracle.graal.api.runtime.Service
+   */
+  static Handle create_Service(const char* name, TRAPS);
+
  public:
 
   static void initialize_natives(JNIEnv *env, jclass c2vmClass);
+
+  static Handle get_service_impls(KlassHandle serviceKlass, TRAPS);
+
   static BufferBlob* initialize_buffer_blob();
 
   static bool parse_arguments(KlassHandle hotSpotOptionsClass, TRAPS);
