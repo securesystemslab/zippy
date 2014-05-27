@@ -32,7 +32,7 @@ import edu.uci.python.runtime.sequence.*;
 
 public final class TupleLiteralNode extends LiteralNode {
 
-    @Children protected final PNode[] values;
+    @Children private final PNode[] values;
 
     public TupleLiteralNode(PNode[] values) {
         this.values = values;
