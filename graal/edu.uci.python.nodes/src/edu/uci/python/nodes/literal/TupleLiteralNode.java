@@ -40,7 +40,7 @@ public final class TupleLiteralNode extends LiteralNode {
 
     @ExplodeLoop
     @Override
-    public PTuple execute(VirtualFrame frame) {
+    public Object execute(VirtualFrame frame) {
         final Object[] elements = new Object[values.length];
 
         for (int i = 0; i < values.length; i++) {
