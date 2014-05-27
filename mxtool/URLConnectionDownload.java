@@ -42,9 +42,11 @@ public class URLConnectionDownload {
 	 *            successful one
 	 */
     public static void main(String[] args) {
-    	File path = new File(args[0]);
-    	String[] urls = new String[args.length - 1];
-    	System.arraycopy(args, 1, urls, 0, urls.length);
+        File path = new File(args[0]);
+        boolean verbose = args[1].equals("-v");
+        int offset = verbose ? 2 : 1;
+        String[] urls = new String[args.length - offset];
+        System.arraycopy(args, offset, urls, 0, urls.length);
 
         File parent = path.getParentFile();
         makeDirectory(parent);
@@ -92,8 +94,10 @@ public class URLConnectionDownload {
                 int n = 0;
                 while ((read = in.read(buf)) != -1) {
                     n += read;
-                    long percent = ((long) n * 100 / size);
-                    System.err.print("\r " + n + " bytes " + (size == -1 ? "" : " (" + percent + "%)"));
+                    if (verbose) {
+                        long percent = ((long) n * 100 / size);
+                        System.err.print("\r " + n + " bytes " + (size == -1 ? "" : " (" + percent + "%)"));
+                    }
                     out.write(buf, 0, read);
                 }
                 System.err.println();

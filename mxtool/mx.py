@@ -1887,14 +1887,17 @@ def download(path, urls, verbose=False):
         os.makedirs(d)
 
 
-    if sys.stderr.isatty() and not path.endswith(os.sep):
+    if not path.endswith(os.sep):
         # Try it with the Java tool first since it can show a progress counter
         myDir = dirname(__file__)
         javaSource = join(myDir, 'URLConnectionDownload.java')
         javaClass = join(myDir, 'URLConnectionDownload.class')
         if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
             subprocess.check_call([java().javac, '-d', myDir, javaSource])
-        if run([java().java, '-cp', myDir, 'URLConnectionDownload', path] + urls, nonZeroIsFatal=False) == 0:
+        verbose = []
+        if sys.stderr.isatty():
+            verbose.append("-v")
+        if run([java().java, '-cp', myDir, 'URLConnectionDownload', path] + verbose + urls, nonZeroIsFatal=False) == 0:
             return
 
     def url_open(url):
