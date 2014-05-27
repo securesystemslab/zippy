@@ -32,6 +32,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.CastToBooleanNode.YesNode;
 import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.YesNodeFactory;
+import edu.uci.python.runtime.datatype.*;
 
 public abstract class BinaryBooleanNode extends BinaryOpNode {
 
@@ -72,9 +73,10 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
             return needsRight ? right : left;
         }
 
+        @SuppressWarnings("unused")
         @Specialization(order = 4)
-        public Object doObject(Object left, boolean needsRight, boolean right) {
-            return needsRight ? right : left;
+        public boolean doNone(PNone left, boolean hasRight, double right) {
+            return false;
         }
     }
 
