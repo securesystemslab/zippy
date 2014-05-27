@@ -33,7 +33,7 @@ Version 1.x supports a single suite of projects.
 Full documentation can be found at https://wiki.openjdk.java.net/display/Graal/The+mx+Tool
 """
 
-import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
+import sys, os, errno, time, subprocess, shlex, types, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
 import multiprocessing
 import textwrap
 import socket
@@ -1886,63 +1886,18 @@ def download(path, urls, verbose=False):
     if d != '' and not exists(d):
         os.makedirs(d)
 
+    assert not path.endswith(os.sep)
 
-    if not path.endswith(os.sep):
-        # Try it with the Java tool first since it can show a progress counter
-        myDir = dirname(__file__)
-        javaSource = join(myDir, 'URLConnectionDownload.java')
-        javaClass = join(myDir, 'URLConnectionDownload.class')
-        if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
-            subprocess.check_call([java().javac, '-d', myDir, javaSource])
-        verbose = []
-        if sys.stderr.isatty():
-            verbose.append("-v")
-        if run([java().java, '-cp', myDir, 'URLConnectionDownload', path] + verbose + urls, nonZeroIsFatal=False) == 0:
-            return
-
-    def url_open(url):
-        userAgent = 'Mozilla/5.0 (compatible)'
-        headers = {'User-Agent' : userAgent}
-        req = urllib2.Request(url, headers=headers)
-        return urllib2.urlopen(req)
-
-    for url in urls:
-        try:
-            if verbose:
-                log('Downloading ' + url + ' to ' + path)
-            if url.startswith('zip:') or url.startswith('jar:'):
-                i = url.find('!/')
-                if i == -1:
-                    abort('Zip or jar URL does not contain "!/": ' + url)
-                url, _, entry = url[len('zip:'):].partition('!/')
-                with contextlib.closing(url_open(url)) as f:
-                    data = f.read()
-                    zipdata = StringIO.StringIO(f.read())
-
-                zf = zipfile.ZipFile(zipdata, 'r')
-                data = zf.read(entry)
-                with open(path, 'wb') as f:
-                    f.write(data)
-            else:
-                with contextlib.closing(url_open(url)) as f:
-                    data = f.read()
-                if path.endswith(os.sep):
-                    # Scrape directory listing for relative URLs
-                    hrefs = re.findall(r' href="([^"]*)"', data)
-                    if len(hrefs) != 0:
-                        for href in hrefs:
-                            if not '/' in href:
-                                download(join(path, href), [url + href], verbose)
-                    else:
-                        log('no locals hrefs scraped from ' + url)
-                else:
-                    with open(path, 'wb') as f:
-                        f.write(data)
-            return
-        except IOError as e:
-            log('Error reading from ' + url + ': ' + str(e))
-        except zipfile.BadZipfile as e:
-            log('Error in zip file downloaded from ' + url + ': ' + str(e))
+    myDir = dirname(__file__)
+    javaSource = join(myDir, 'URLConnectionDownload.java')
+    javaClass = join(myDir, 'URLConnectionDownload.class')
+    if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
+        subprocess.check_call([java().javac, '-d', myDir, javaSource])
+    verbose = []
+    if sys.stderr.isatty():
+        verbose.append("-v")
+    if run([java().java, '-cp', myDir, 'URLConnectionDownload', path] + verbose + urls, nonZeroIsFatal=False) == 0:
+        return
 
     abort('Could not download to ' + path + ' from any of the following URLs:\n\n    ' +
               '\n    '.join(urls) + '\n\nPlease use a web browser to do the download manually')
