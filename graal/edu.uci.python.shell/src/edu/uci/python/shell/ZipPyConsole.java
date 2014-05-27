@@ -28,6 +28,7 @@ import org.python.core.*;
 import org.python.util.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.source.*;
 
 import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.profiler.*;
@@ -43,7 +44,7 @@ public class ZipPyConsole extends InteractiveConsole {
         PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser);
 
         try {
-            Source source = context.getSourceManager().get(name);
+            Source source = SourceFactory.fromFile(name);
             execfile(context, source);
         } finally {
             context.shutdown();

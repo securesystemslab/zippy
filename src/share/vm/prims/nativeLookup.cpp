@@ -126,6 +126,7 @@ extern "C" {
 #ifdef GRAAL
   void     JNICALL JVM_InitializeGraalNatives(JNIEnv *env, jclass c, jclass compilerToVMClass);
   jobject  JNICALL JVM_GetGraalRuntime(JNIEnv *env, jclass c);
+  jobject  JNICALL JVM_GetGraalServiceImpls(JNIEnv *env, jclass c);
   jobject  JNICALL JVM_CreateTruffleRuntime(JNIEnv *env, jclass c);
   jboolean JNICALL JVM_ParseGraalOptions(JNIEnv *env, jclass hotspotOptionsClass);
 #endif
@@ -141,6 +142,7 @@ static JNINativeMethod lookup_special_native_methods[] = {
   { CC"Java_sun_hotspot_WhiteBox_registerNatives",                 NULL, FN_PTR(JVM_RegisterWhiteBoxMethods)     },
 #ifdef GRAAL
   { CC"Java_com_oracle_graal_api_runtime_Graal_initializeRuntime",   NULL, FN_PTR(JVM_GetGraalRuntime)             },
+  { CC"Java_com_oracle_graal_api_runtime_Services_getServiceImpls",  NULL, FN_PTR(JVM_GetGraalServiceImpls)        },
   { CC"Java_com_oracle_truffle_api_Truffle_createRuntime",           NULL, FN_PTR(JVM_CreateTruffleRuntime)        },
   { CC"Java_com_oracle_graal_hotspot_HotSpotGraalRuntime_init",      NULL, FN_PTR(JVM_InitializeGraalNatives)      },
   { CC"Java_com_oracle_graal_hotspot_HotSpotOptions_parseVMOptions", NULL, FN_PTR(JVM_ParseGraalOptions)           },

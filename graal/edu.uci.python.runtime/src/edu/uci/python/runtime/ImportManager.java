@@ -30,6 +30,7 @@ import java.util.*;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.source.*;
 
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -202,7 +203,7 @@ public class ImportManager {
 
         if (file.exists()) {
             PythonModule importedModule = new PythonModule(context, moduleName, path);
-            Source source = context.getSourceManager().get(path);
+            Source source = SourceFactory.fromFile(path);
             importedModules.put(path, importedModule);
             PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source);
             if (parsedModule != null) {
