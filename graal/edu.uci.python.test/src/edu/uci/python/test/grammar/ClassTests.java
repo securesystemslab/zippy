@@ -170,4 +170,17 @@ public class ClassTests {
                         "foo.boo()\n";
         assertPrints("200\n", source);
     }
+
+    @Test
+    public void chainedAssignmentWithObject() {
+        String source = "class Foo:\n" + //
+                        "  def __init__(self, num):\n" + //
+                        "    self.num = num\n" + //
+                        "    self.child = None\n" + //
+                        "a = Foo(1)\n" + //
+                        "b = a.child = Foo(2)\n" + //
+                        "b.num = 4\n" + //
+                        "print(a.child.num)\n";
+        assertPrints("4\n", source);
+    }
 }

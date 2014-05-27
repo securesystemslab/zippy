@@ -78,6 +78,8 @@ public final class BuiltinConstructors extends PythonBuiltins {
         public boolean bool(Object object) {
             if (object instanceof PNone) {
                 return false;
+            } else if (object instanceof PythonObject) {
+                return true;
             }
             return JavaTypeConversions.toBoolean(object);
         }
