@@ -78,6 +78,10 @@ public abstract class SetDispatchNode extends Node {
                 depth++;
             }
 
+            if (!primary.getStableAssumption().isValid()) {
+                primary.syncObjectLayoutWithClass();
+            }
+
             if (depth < PythonOptions.AttributeAccessInlineCacheMaxDepth) {
                 primary.setAttribute(attributeId, value);
                 StorageLocation location = primary.getOwnValidLocation(attributeId);
