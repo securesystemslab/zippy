@@ -155,4 +155,19 @@ public class ClassTests {
         assertPrints("arg True\nmsg 1 is not less than 2\n", source);
     }
 
+    @Test
+    public void classAttributeAsArgTest() {
+        String source = "class Foo:\n" + //
+                        "  def __init__(self, num):\n" + //
+                        "    self.num = num\n" + //
+                        "  def showNum(self,num):\n" + //
+                        "    bar = [100,200]\n" + //
+                        "    print(bar[num])\n" + //
+                        "  def boo(self):\n" + //
+                        "    self.showNum(self.num)\n" + //
+                        "\n" + //
+                        "foo = Foo(1)\n" + //
+                        "foo.boo()\n";
+        assertPrints("200\n", source);
+    }
 }
