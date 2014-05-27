@@ -59,6 +59,10 @@
 #include "services/threadService.hpp"
 #include "utilities/dtrace.hpp"
 #include "utilities/macros.hpp"
+#ifdef GRAAL
+#include "classfile/javaAssertions.hpp"
+#include "graal/graalVMToCompiler.hpp"
+#endif
 #if INCLUDE_ALL_GCS
 #include "gc_implementation/concurrentMarkSweep/cmsOopClosures.inline.hpp"
 #include "gc_implementation/g1/g1CollectedHeap.inline.hpp"
@@ -1205,6 +1209,15 @@ void InstanceKlass::call_class_initializer_impl(instanceKlassHandle this_oop, TR
 #ifdef GRAAL
   if (this_oop->is_subtype_of(SystemDictionary::Node_klass())) {
     if (this_oop() != SystemDictionary::Node_klass()) {
+      if (!VMToCompiler::is_HotSpotGraalRuntime_initialized() && JavaAssertions::systemClassDefault() == false) {
+        // We want to ensure that the process of initializing HotSpotGraalRuntime
+        // is fast since it executes at VM startup. We must avoid triggering
+        // class initialization of any Node classes during this process.
+        ResourceMark rm;
+        char buf[200];
+        jio_snprintf(buf, sizeof(buf), "Node subclass %s must not be initialized before HotSpotGraalRuntime is initialized", this_oop->name()->as_C_string());
+        THROW_MSG(vmSymbols::java_lang_InternalError(), buf);
+      }
       // Create the NodeClass for a Node subclass.
       TempNewSymbol sig = SymbolTable::new_symbol("(Ljava/lang/Class;)Lcom/oracle/graal/graph/NodeClass;", CHECK);
       JavaValue result(T_OBJECT);
