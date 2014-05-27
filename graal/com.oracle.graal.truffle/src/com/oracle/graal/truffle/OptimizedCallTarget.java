@@ -57,6 +57,7 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
     @CompilationFinal private Assumption profiledReturnTypeAssumption;
 
     private final RootNode rootNode;
+    private int countdown = 5;
 
     public final RootNode getRootNode() {
         return rootNode;
@@ -256,6 +257,11 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
         // zwei
         if (rootNode instanceof GuestRootNode) {
             ((GuestRootNode) rootNode).doAfterInliningPerformed();
+        }
+
+        if (countdown > 0) {
+            inliningPerformed = false;
+            countdown--;
         }
     }
 
