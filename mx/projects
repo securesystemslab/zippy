@@ -204,13 +204,13 @@ project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replaceme
 project@com.oracle.graal.hotspot@javaCompliance=1.8
 project@com.oracle.graal.hotspot@workingSets=Graal,HotSpot
 
-# graal.hotspot.codegen
-project@com.oracle.graal.hotspot.codegen@subDir=graal
-project@com.oracle.graal.hotspot.codegen@sourceDirs=src
-project@com.oracle.graal.hotspot.codegen@dependencies=com.oracle.graal.hotspot
-project@com.oracle.graal.hotspot.codegen@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.hotspot.codegen@javaCompliance=1.8
-project@com.oracle.graal.hotspot.codegen@workingSets=Graal,HotSpot
+# graal.hotspot.sourcegen
+project@com.oracle.graal.hotspot.sourcegen@subDir=graal
+project@com.oracle.graal.hotspot.sourcegen@sourceDirs=src
+project@com.oracle.graal.hotspot.sourcegen@dependencies=com.oracle.graal.hotspot
+project@com.oracle.graal.hotspot.sourcegen@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot.sourcegen@javaCompliance=1.8
+project@com.oracle.graal.hotspot.sourcegen@workingSets=Graal,HotSpot
 
 # graal.hotspot.jfr
 project@com.oracle.graal.hotspot.jfr@subDir=graal

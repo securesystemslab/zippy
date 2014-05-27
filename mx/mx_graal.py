@@ -485,8 +485,8 @@ def _updateInstalledGraalOptionsFile(jdk):
             os.unlink(toDelete)
 
 def _update_graalRuntime_inline_hpp(graalJar):
-    p = mx.project('com.oracle.graal.hotspot.codegen')
-    mainClass = 'com.oracle.graal.hotspot.codegen.GenGraalRuntimeInlineHpp'
+    p = mx.project('com.oracle.graal.hotspot.sourcegen')
+    mainClass = 'com.oracle.graal.hotspot.sourcegen.GenGraalRuntimeInlineHpp'
     if exists(join(p.output_dir(), mainClass.replace('.', os.sep) + '.class')):
         hsSrcGenDir = join(mx.project('com.oracle.graal.hotspot').source_gen_dir(), 'hotspot')
         if not exists(hsSrcGenDir):
