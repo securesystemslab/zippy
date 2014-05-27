@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<?fileVersion 4.0.0?>
-
-<cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
+<?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
 	<storageModule moduleId="org.eclipse.cdt.core.settings">
 		<cconfiguration id="cdt.managedbuild.toolchain.gnu.solaris.base.945602881">
 			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.toolchain.gnu.solaris.base.945602881" moduleId="org.eclipse.cdt.core.settings" name="Default">
@@ -27,7 +25,9 @@
 							</builder>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1094883386" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.1342888057" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base">
-								<option id="gnu.cpp.compiler.option.include.paths.801956928" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths"/>
+								<option id="gnu.cpp.compiler.option.include.paths.801956928" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/com.oracle.graal.hotspot/src_gen/hotspot}&quot;"/>
+								</option>
 								<option id="gnu.cpp.compiler.option.preprocessor.def.634868600" name="Defined symbols (-D)" superClass="gnu.cpp.compiler.option.preprocessor.def" valueType="definedSymbols">
 									<listOptionValue builtIn="false" value="_LP64=1"/>
 									<listOptionValue builtIn="false" value="COMPILER1=1"/>
@@ -74,11 +74,6 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<fileInfo id="cdt.managedbuild.toolchain.gnu.solaris.base.945602881.426128354" name="addnode.cpp" rcbsApplicability="disable" resourcePath="vm/opto/addnode.cpp" toolsToInvoke="cdt.managedbuild.tool.gnu.cpp.compiler.base.1342888057.211119144">
-						<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.base.1342888057.211119144" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.base.1342888057">
-							<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.202578082" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
-						</tool>
-					</fileInfo>
 					<sourceEntries>
 						<entry excluding="cpu/vm/templateTable_x86_32.cpp|cpu/vm/templateInterpreter_x86_32.cpp|cpu/vm/stubRoutines_x86_32.cpp|cpu/vm/stubGenerator_x86_32.cpp|cpu/vm/sharedRuntime_x86_32.cpp|cpu/vm/jniFastGetField_x86_32.cpp|cpu/vm/interpreterRT_x86_32.cpp|cpu/vm/interpreter_x86_32.cpp|cpu/vm/interp_masm_x86_32.cpp|cpu/vm/vtableStubs_x86_32.cpp" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name=""/>
 					</sourceEntries>
