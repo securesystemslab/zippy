@@ -33,6 +33,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.CastToBooleanNode.YesNode;
 import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.YesNodeFactory;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.object.*;
 
 public abstract class BinaryBooleanNode extends BinaryOpNode {
 
@@ -75,8 +76,19 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
 
         @SuppressWarnings("unused")
         @Specialization(order = 4)
-        public boolean doNone(PNone left, boolean hasRight, double right) {
+        public boolean doNone(PNone left, boolean needsRight, Object right) {
             return false;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 5)
+        public boolean doPythonObject(PythonObject left, boolean needsRight, boolean right) {
+            return needsRight ? right : true;
+        }
+
+        @Specialization(order = 6)
+        public PythonObject doPythonObject(PythonObject left, boolean needsRight, PythonObject right) {
+            return needsRight ? right : left;
         }
     }
 
