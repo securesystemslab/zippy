@@ -101,6 +101,11 @@ public class PythonTreeTranslator extends Visitor {
         int charIndex = node.getTokenStartIndex();
         int charLength = node.getText().length();
         SourceSection sourceSection = source.createSection(identifier, startLine, startColumn, charIndex, charLength);
+
+// int tokenStartIndex = node.getTokenStartIndex();
+// int tokenStopIndex = node.getTokenStopIndex();
+// int charLength = node.getTokenStopIndex() - node.getTokenStartIndex();
+// SourceSection sourceSection = source.createSection(identifier, tokenStartIndex, charLength);
         truffleNode.assignSourceSection(sourceSection);
         return truffleNode;
     }
@@ -463,6 +468,7 @@ public class PythonTreeTranslator extends Visitor {
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
+
             return createSingleImportFromStatement(aliases.get(0), node.getInternalModule(), node.getInternalLevel());
         }
 
@@ -575,7 +581,7 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitAugAssign(AugAssign node) throws Exception {
         PNode target = (PNode) visit(node.getInternalTarget());
         PNode value = (PNode) visit(node.getInternalValue());
-        PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), target, value);
+        PNode binaryOp = assignSource(node, factory.createBinaryOperation(node.getInternalOp(), target, value));
         ReadNode read = factory.duplicate(target, ReadNode.class);
         return assignSource(node, read.makeWriteNode(binaryOp));
     }
@@ -607,7 +613,11 @@ public class PythonTreeTranslator extends Visitor {
         List<cmpopType> ops = node.getInternalOps();
         PNode left = (PNode) visit(node.getInternalLeft());
         List<PNode> rights = walkExprList(node.getInternalComparators());
-        return assignSource(node, createComparisonOperations(left, ops, rights));
+
+        /**
+         * Source is assigned in createComparisonOperations
+         */
+        return createComparisonOperations(left, ops, rights);
     }
 
     public PNode createComparisonOperations(PNode left, List<cmpopType> ops, List<PNode> rights) {
@@ -618,7 +628,10 @@ public class PythonTreeTranslator extends Visitor {
          * Simple comparison.
          */
         if (ops.size() == 1 && rights.size() == 1) {
-            return factory.createComparisonOperation(ops.get(0), leftOp, rightOp);
+            // return factory.createComparisonOperation(ops.get(0), leftOp, rightOp);
+            PNode comparisonNode = factory.createComparisonOperation(ops.get(0), leftOp, rightOp);
+            comparisonNode.assignSourceSection(leftOp.getSourceSection());
+            return comparisonNode;
         }
 
         /**
@@ -631,23 +644,31 @@ public class PythonTreeTranslator extends Visitor {
             if (i == rights.size() - 1) {
                 // Guard to prevent creating a temp variable for rightOp in the last comparison
                 newComparison = factory.createComparisonOperation(ops.get(i), leftOp, rightOp);
+                newComparison.assignSourceSection(leftOp.getSourceSection());
             } else {
                 if (!(rightOp instanceof LiteralNode || rightOp instanceof ReadNode)) {
                     ReadNode tempVar = environment.makeTempLocalVariable();
                     assignment = tempVar.makeWriteNode(rights.get(i));
                     rightOp = (PNode) tempVar;
                     newComparison = factory.createComparisonOperation(ops.get(i), leftOp, rightOp);
+                    newComparison.assignSourceSection(leftOp.getSourceSection());
                     newComparison = factory.createBlock(assignment, newComparison);
                 } else {
                     // Atomic comparison
                     newComparison = factory.createComparisonOperation(ops.get(i), leftOp, rightOp);
+                    newComparison.assignSourceSection(leftOp.getSourceSection());
                 }
+
                 leftOp = factory.duplicate(rightOp, PNode.class);
             }
             if (i == 0) {
                 currentCompare = newComparison;
+                // currentCompare.assignSourceSection(newComparison.getSourceSection());
             } else {
+                PNode oldCurrentCompare = currentCompare;
                 currentCompare = AndNodeFactory.create(currentCompare, newComparison);
+                currentCompare.clearSourceSection();
+                currentCompare.assignSourceSection(oldCurrentCompare.getSourceSection());
             }
         }
 

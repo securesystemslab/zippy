@@ -837,7 +837,7 @@ project@edu.uci.python.nodes@workingSets=Truffle,Python
 # python.parser
 project@edu.uci.python.parser@subDir=graal
 project@edu.uci.python.parser@sourceDirs=src
-project@edu.uci.python.parser@dependencies=edu.uci.python.nodes,JYTHON
+project@edu.uci.python.parser@dependencies=edu.uci.python.nodes,edu.uci.python.builtins,JYTHON
 project@edu.uci.python.parser@checkstyle=edu.uci.python.runtime
 project@edu.uci.python.parser@javaCompliance=1.7
 project@edu.uci.python.parser@workingSets=Truffle,Python
