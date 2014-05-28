@@ -51,14 +51,14 @@ public class ListBuiltins extends PythonBuiltins {
     @Builtin(name = "append", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
     public abstract static class PythonListAppendNode extends PythonBuiltinNode {
 
-        @Specialization(order = 0, guards = "isIntStore")
+        @Specialization(order = 0, guards = "isIntStorage")
         public PList append(PList list, int arg) {
             IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
             store.appendInt(arg);
             return list;
         }
 
-        @Specialization(order = 1, guards = "isDoubleStore")
+        @Specialization(order = 1, guards = "isDoubleStorage")
         public PList append(PList list, double arg) {
             DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
             store.appendDouble(arg);
@@ -122,19 +122,19 @@ public class ListBuiltins extends PythonBuiltins {
     @Builtin(name = "pop", minNumOfArguments = 1, maxNumOfArguments = 2)
     public abstract static class PythonListPopNode extends PythonBuiltinNode {
 
-        @Specialization(order = 0, guards = "isIntStore")
+        @Specialization(order = 0, guards = "isIntStorage")
         public int popInt(PList list, @SuppressWarnings("unused") PNone none) {
             IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
             return store.popInt();
         }
 
-        @Specialization(order = 1, guards = "isDoubleStore")
+        @Specialization(order = 1, guards = "isDoubleStorage")
         public double popDouble(PList list, @SuppressWarnings("unused") PNone none) {
             DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
             return store.popDouble();
         }
 
-        @Specialization(order = 2, guards = "isObjectStore")
+        @Specialization(order = 2, guards = "isObjectStorage")
         public Object popObject(PList list, @SuppressWarnings("unused") PNone none) {
             ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
             return store.popObject();

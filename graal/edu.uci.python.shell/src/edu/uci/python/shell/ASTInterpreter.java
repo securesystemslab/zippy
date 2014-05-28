@@ -45,8 +45,10 @@ public class ASTInterpreter {
             pt.translate(result, root);
 
             if (PythonOptions.PrintAST) {
+                // CheckStyle: stop system..print check
                 System.out.println("============= " + "After Adding Wrapper Nodes" + " ============= ");
                 result.printAST();
+                // CheckStyle: resume system..print check
             }
         }
 
