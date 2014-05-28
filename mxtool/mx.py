@@ -33,7 +33,7 @@ Version 1.x supports a single suite of projects.
 Full documentation can be found at https://wiki.openjdk.java.net/display/Graal/The+mx+Tool
 """
 
-import sys, os, errno, time, subprocess, shlex, types, urllib2, contextlib, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
+import sys, os, errno, time, subprocess, shlex, types, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
 import multiprocessing
 import textwrap
 import socket
@@ -1525,8 +1525,11 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
             # Don't make the reader thread a daemon otherwise output can be droppped
             t.start()
             joiners.append(t)
-        for t in joiners:
-            t.join()
+        while any([t.is_alive() for t in joiners]):
+            # Need to use timeout otherwise all signals (including CTRL-C) are blocked
+            # see: http://bugs.python.org/issue1167930
+            for t in joiners:
+                t.join(10)
         if timeout is None or timeout == 0:
             retcode = waitOn(p)
         else:
@@ -1883,60 +1886,18 @@ def download(path, urls, verbose=False):
     if d != '' and not exists(d):
         os.makedirs(d)
 
+    assert not path.endswith(os.sep)
 
-    if not path.endswith(os.sep):
-        # Try it with the Java tool first since it can show a progress counter
-        myDir = dirname(__file__)
-        javaSource = join(myDir, 'URLConnectionDownload.java')
-        javaClass = join(myDir, 'URLConnectionDownload.class')
-        if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
-            subprocess.check_call([java().javac, '-d', myDir, javaSource])
-        if run([java().java, '-cp', myDir, 'URLConnectionDownload', path] + urls, nonZeroIsFatal=False) == 0:
-            return
-
-    def url_open(url):
-        userAgent = 'Mozilla/5.0 (compatible)'
-        headers = {'User-Agent' : userAgent}
-        req = urllib2.Request(url, headers=headers)
-        return urllib2.urlopen(req)
-
-    for url in urls:
-        try:
-            if verbose:
-                log('Downloading ' + url + ' to ' + path)
-            if url.startswith('zip:') or url.startswith('jar:'):
-                i = url.find('!/')
-                if i == -1:
-                    abort('Zip or jar URL does not contain "!/": ' + url)
-                url, _, entry = url[len('zip:'):].partition('!/')
-                with contextlib.closing(url_open(url)) as f:
-                    data = f.read()
-                    zipdata = StringIO.StringIO(f.read())
-
-                zf = zipfile.ZipFile(zipdata, 'r')
-                data = zf.read(entry)
-                with open(path, 'wb') as f:
-                    f.write(data)
-            else:
-                with contextlib.closing(url_open(url)) as f:
-                    data = f.read()
-                if path.endswith(os.sep):
-                    # Scrape directory listing for relative URLs
-                    hrefs = re.findall(r' href="([^"]*)"', data)
-                    if len(hrefs) != 0:
-                        for href in hrefs:
-                            if not '/' in href:
-                                download(join(path, href), [url + href], verbose)
-                    else:
-                        log('no locals hrefs scraped from ' + url)
-                else:
-                    with open(path, 'wb') as f:
-                        f.write(data)
-            return
-        except IOError as e:
-            log('Error reading from ' + url + ': ' + str(e))
-        except zipfile.BadZipfile as e:
-            log('Error in zip file downloaded from ' + url + ': ' + str(e))
+    myDir = dirname(__file__)
+    javaSource = join(myDir, 'URLConnectionDownload.java')
+    javaClass = join(myDir, 'URLConnectionDownload.class')
+    if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
+        subprocess.check_call([java().javac, '-d', myDir, javaSource])
+    verbose = []
+    if sys.stderr.isatty():
+        verbose.append("-v")
+    if run([java().java, '-cp', myDir, 'URLConnectionDownload', path] + verbose + urls, nonZeroIsFatal=False) == 0:
+        return
 
     abort('Could not download to ' + path + ' from any of the following URLs:\n\n    ' +
               '\n    '.join(urls) + '\n\nPlease use a web browser to do the download manually')
@@ -3340,10 +3301,6 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             refreshFile = os.path.relpath(join(p.dir, p.name + '.jar'), logicalWorkspaceRoot)
             _genEclipseBuilder(out, p, 'Jar', 'archive ' + p.name, refresh=True, refreshFile=refreshFile, relevantResources=[binFolder], async=True, xmlIndent='', xmlStandalone='no')
 
-        if projToDist.has_key(p.name):
-            dist, distDeps = projToDist[p.name]
-            _genEclipseBuilder(out, p, 'Create' + dist.name + 'Dist', 'archive @' + dist.name, relevantResources=[binFolder], logToFile=True, refresh=False, async=True)
-
         out.close('buildSpec')
         out.open('natures')
         out.element('nature', data='org.eclipse.jdt.core.javanature')
@@ -3421,6 +3378,43 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
 
     _zip_files(files, suite.dir, configZip.path)
     _zip_files(libFiles, suite.dir, configLibsZip)
+
+    # Create an Eclipse project for each distribution that will create/update the archive
+    # for the distribution whenever any project of the distribution is updated.
+    for dist in suite.dists:
+        name = dist.name
+        if hasattr(dist, 'subDir'):
+            projectDir = join(suite.dir, dist.subDir, dist.name + '.dist')
+        else:
+            projectDir = join(suite.dir, dist.name + '.dist')
+        if not exists(projectDir):
+            os.makedirs(projectDir)
+        distProjects = [d for d in dist.sorted_deps() if d.isProject()]
+        relevantResources = []
+        for p in distProjects:
+            for srcDir in p.source_dirs():
+                relevantResources.append(join(p.name, os.path.relpath(srcDir, p.dir)))
+            relevantResources.append(join(p.name, os.path.relpath(p.output_dir(), p.dir)))
+        out = XMLDoc()
+        out.open('projectDescription')
+        out.element('name', data=dist.name)
+        out.element('comment', data='Updates ' + dist.path + ' if a project dependency of ' + dist.name + ' is updated')
+        out.open('projects')
+        for p in distProjects:
+            out.element('project', data=p.name)
+        out.close('projects')
+        out.open('buildSpec')
+        dist.dir = projectDir
+        dist.javaCompliance = max([p.javaCompliance for p in distProjects])
+        _genEclipseBuilder(out, dist, 'Create' + dist.name + 'Dist', 'archive @' + dist.name, relevantResources=relevantResources, logToFile=True, refresh=False, async=True)
+        out.close('buildSpec')
+        out.open('natures')
+        out.element('nature', data='org.eclipse.jdt.core.javanature')
+        out.close('natures')
+        out.close('projectDescription')
+        projectFile = join(projectDir, '.project')
+        update_file(projectFile, out.xml(indent='\t', newl='\n'))
+        files.append(projectFile)
 
 def _zip_files(files, baseDir, zipPath):
     fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(zipPath), dir=baseDir)

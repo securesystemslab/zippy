@@ -44,6 +44,9 @@ private:
   static Handle VMToCompiler_instance();
 
 public:
+
+  static bool is_HotSpotGraalRuntime_initialized() { return _HotSpotGraalRuntime_instance != NULL; }
+
   // Gets the singleton HotSpotGraalRuntime instance, initializing it if necessary
   static Handle get_HotSpotGraalRuntime();
 

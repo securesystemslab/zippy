@@ -280,9 +280,10 @@ public final class BciBlockMapping {
         this.method = method;
         exceptionHandlers = method.getExceptionHandlers();
         stream = new BytecodeStream(method.getCode());
-        this.blockMap = new BciBlock[method.getCodeSize()];
+        int codeSize = method.getCodeSize();
+        this.blockMap = new BciBlock[codeSize];
         this.blocks = new ArrayList<>();
-        this.loopHeaders = new BciBlock[64];
+        this.loopHeaders = new BciBlock[codeSize < 64 ? codeSize : 64];
     }
 
     /**
@@ -780,7 +781,7 @@ public final class BciBlockMapping {
         for (BciBlock successor : block.getSuccessors()) {
             // Recursively process successors.
             loops |= computeBlockOrder(successor);
-            if (block.visited && successor.active) {
+            if (successor.active) {
                 // Reached block via backward branch.
                 block.isLoopEnd = true;
             }

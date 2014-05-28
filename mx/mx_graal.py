@@ -484,27 +484,21 @@ def _updateInstalledGraalOptionsFile(jdk):
         if exists(toDelete):
             os.unlink(toDelete)
 
-def _update_HotSpotOptions_inline_hpp(graalJar):
-    p = mx.project('com.oracle.graal.hotspot')
-    mainClass = 'com.oracle.graal.hotspot.HotSpotOptionsLoader'
-    assert exists(join(p.source_dirs()[0], mainClass.replace('.', os.sep) + '.java'))
-    hsSrcGenDir = join(p.source_gen_dir(), 'hotspot')
-    if not exists(hsSrcGenDir):
-        os.makedirs(hsSrcGenDir)
-    tmp = StringIO.StringIO()
-    retcode = mx.run_java(['-cp', graalJar, mainClass], out=tmp.write, nonZeroIsFatal=False)
-    if retcode != 0:
-        # Suppress the error if it's because the utility class isn't compiled yet
-        with zipfile.ZipFile(graalJar, 'r') as zf:
-            mainClassFile = mainClass.replace('.', '/') + '.class'
-            if mainClassFile not in zf.namelist():
-                return
-        mx.abort(retcode)
-    mx.update_file(join(hsSrcGenDir, 'HotSpotOptions.inline.hpp'), tmp.getvalue())
+def _update_graalRuntime_inline_hpp(graalJar):
+    p = mx.project('com.oracle.graal.hotspot.sourcegen')
+    mainClass = 'com.oracle.graal.hotspot.sourcegen.GenGraalRuntimeInlineHpp'
+    if exists(join(p.output_dir(), mainClass.replace('.', os.sep) + '.class')):
+        hsSrcGenDir = join(mx.project('com.oracle.graal.hotspot').source_gen_dir(), 'hotspot')
+        if not exists(hsSrcGenDir):
+            os.makedirs(hsSrcGenDir)
+
+        tmp = StringIO.StringIO()
+        mx.run_java(['-cp', '{}{}{}'.format(graalJar, os.pathsep, p.output_dir()), mainClass], out=tmp.write)
+        mx.update_file(join(hsSrcGenDir, 'graalRuntime.inline.hpp'), tmp.getvalue())
 
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
-    _update_HotSpotOptions_inline_hpp(graalJar)
+    _update_graalRuntime_inline_hpp(graalJar)
     jdks = _jdksDir()
 
     if exists(jdks):
@@ -976,7 +970,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
         f_testfile.close()
         harness(projectscp, vmArgs)
 
-def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, enable_timing=False, regex=None, color=False, eager_stacktrace=False):
+def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, enable_timing=False, regex=None, color=False, eager_stacktrace=False, gc_after_test=False):
     mxdir = dirname(__file__)
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
@@ -999,6 +993,8 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
         coreArgs.append('-JUnitColor')
     if eager_stacktrace:
         coreArgs.append('-JUnitEagerStackTrace')
+    if gc_after_test:
+        coreArgs.append('-JUnitGCAfterTest')
 
 
     def harness(projectscp, vmArgs):
@@ -1031,6 +1027,7 @@ _unittestHelpSuffix = """
       --regex <regex>        run only testcases matching a regular expression
       --color                enable colors output
       --eager-stacktrace     print stacktrace eagerly
+      --gc-after-test        force a GC after each test
 
     To avoid conflicts with VM options '--' can be used as delimiter.
 
@@ -1073,6 +1070,7 @@ def unittest(args):
     parser.add_argument('--regex', help='run only testcases matching a regular expression', metavar='<regex>')
     parser.add_argument('--color', help='enable color output', action='store_true')
     parser.add_argument('--eager-stacktrace', help='print stacktrace eagerly', action='store_true')
+    parser.add_argument('--gc-after-test', help='force a GC after each test', action='store_true')
 
     ut_args = []
     delimiter = False
@@ -1830,7 +1828,7 @@ def jacocoreport(args):
         out = args[0]
     elif len(args) > 1:
         mx.abort('jacocoreport takes only one argument : an output directory')
-    mx.run_java(['-jar', jacocoreport.get_path(True), '-in', 'jacoco.exec', '-g', join(_graal_home, 'graal'), out])
+    mx.run_java(['-jar', jacocoreport.get_path(True), '--in', 'jacoco.exec', '--out', out] + [p.dir for p in mx.projects()])
 
 def sl(args):
     """run an SL program"""
