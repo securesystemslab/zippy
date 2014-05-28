@@ -59,6 +59,12 @@ public class ProfilerTranslator implements NodeVisitor {
             createWrapperNode((PNode) node);
         } else if (node instanceof DictLiteralNode) {
             createWrapperNode((PNode) node);
+// } else if (node instanceof WriteNode) {
+// createWrapperNode((PNode) node);
+// } else if (node instanceof ReadLocalVariableNode) {
+// createWrapperNode((PNode) node);
+// } else if (node instanceof BinaryOpNode) {
+// createWrapperNode((PNode) node);
         } else if (node instanceof SubscriptLoadIndexNode) {
             createWrapperNode((PNode) node);
         } else if (node instanceof SubscriptStoreIndexNode) {
@@ -69,12 +75,20 @@ public class ProfilerTranslator implements NodeVisitor {
             createWrapperNode((PNode) node);
         } else if (node instanceof ListComprehensionNode) {
             createWrapperNode((PNode) node);
+// } else if (node instanceof InNode) {
+// createWrapperNode((PNode) node);
+// } else if (node instanceof NotInNode) {
+// createWrapperNode((PNode) node);
+// } else if (node instanceof IfNode) {
+// createWrapperNode((PNode) node);
         }
-
         return true;
     }
 
     private PythonWrapperNode createWrapperNode(PNode node) {
+        if (node.getSourceSection() == null) {
+            throw new RuntimeException("SOURCE IS NOT ASSIGNED " + node + " " + node.getClass());
+        }
         PythonWrapperNode wrapperNode = astProber.probeAsStatement(node);
         node.replace(wrapperNode);
         wrapperNode.adoptChildren();
