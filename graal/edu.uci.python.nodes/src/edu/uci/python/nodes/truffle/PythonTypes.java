@@ -65,6 +65,7 @@ import edu.uci.python.runtime.standardtype.*;
                 PZip.class, //
                 PSlice.class, //
                 PRangeIterator.class, //
+                PSequenceIterator.class, //
                 PDoubleIterator.class, //
                 PIntegerIterator.class, //
                 PIterator.class, //

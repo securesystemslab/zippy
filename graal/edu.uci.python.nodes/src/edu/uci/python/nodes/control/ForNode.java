@@ -130,6 +130,31 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
+    @Specialization(order = 4)
+    public Object doIterator(VirtualFrame frame, PSequenceIterator iterator) {
+        int count = 0;
+
+        try {
+            while (true) {
+                loopBodyBranch.enter();
+                ((WriteNode) target).executeWrite(frame, iterator.__next__());
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } catch (StopIterationException e) {
+
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
+        }
+
+        return PNone.NONE;
+    }
+
     @Specialization(order = 5)
     public Object doIterator(VirtualFrame frame, PIterator iterator) {
         int count = 0;

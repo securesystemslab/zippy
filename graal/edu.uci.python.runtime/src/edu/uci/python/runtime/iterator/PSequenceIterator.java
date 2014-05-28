@@ -60,6 +60,6 @@ public class PSequenceIterator implements PIterator {
 
             throw StopIterationException.INSTANCE;
         }
-
     }
+
 }
