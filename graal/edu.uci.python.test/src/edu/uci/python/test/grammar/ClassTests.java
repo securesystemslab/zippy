@@ -183,4 +183,5 @@ public class ClassTests {
                         "print(a.child.num)\n";
         assertPrints("4\n", source);
     }
+
 }

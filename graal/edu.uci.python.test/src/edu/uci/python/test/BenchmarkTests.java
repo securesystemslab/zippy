@@ -47,27 +47,10 @@ public class BenchmarkTests {
         assertPrints("3\n3\n3\n", script);
     }
 
-// @Test
-// public void chaosBench() {
-// Path script = Paths.get("py3_chaos.py");
-// assertPrints("", script);
-// }
+    // @Test
+    public void deltablueBench() {
+        Path script = Paths.get("deltablue.py");
+        assertPrints("", script);
+    }
 
-// @Test
-// public void goBench() {
-// Path script = Paths.get("py3_go.py");
-// assertPrints("", script);
-// }
-//
-// @Test
-// public void deltablueBench() {
-// Path script = Paths.get("deltablue.py");
-// assertPrints("", script);
-// }
-//
-// @Test
-// public void pidigitsBench() {
-// Path script = Paths.get("py3_pidigits.py");
-// assertPrints("", script);
-// }
 }

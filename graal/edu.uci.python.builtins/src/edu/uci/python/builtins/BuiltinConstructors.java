@@ -75,12 +75,17 @@ public final class BuiltinConstructors extends PythonBuiltins {
         }
 
         @Specialization
+        public boolean bool(@SuppressWarnings("unused") PNone arg) {
+            return false;
+        }
+
+        @Specialization
+        public boolean bool(@SuppressWarnings("unused") PythonObject object) {
+            return true;
+        }
+
+        @Generic
         public boolean bool(Object object) {
-            if (object instanceof PNone) {
-                return false;
-            } else if (object instanceof PythonObject) {
-                return true;
-            }
             return JavaTypeConversions.toBoolean(object);
         }
     }
