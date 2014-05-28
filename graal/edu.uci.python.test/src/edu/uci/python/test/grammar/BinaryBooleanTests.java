@@ -36,6 +36,7 @@ public class BinaryBooleanTests {
         assertPrints("0\n", "print(2 and 0)");
         assertPrints("0\n", "print(0 and 12953285437432947239)");
         assertPrints("9.9292\n", "print(2.4343 and 9.9292)");
+        assertPrints("\n", "print(None and 8)");
     }
 
     @Test
@@ -44,6 +45,7 @@ public class BinaryBooleanTests {
         assertPrints("2\n", "print(2 or 0)");
         assertPrints("12953285437432947239\n", "print(0 or 12953285437432947239)");
         assertPrints("2.4343\n", "print(2.4343 or 9.9292)");
+        assertPrints("8\n", "print(None or 8)");
     }
 
 }

@@ -435,5 +435,12 @@ def main(n):
         times.append(t2 - t1)
     return times
 
+def measure(n):
+    print("Start timing...")
+    start = time.time()
+    main(n)
+    duration = "%.3f\n" % (time.time() - start)
+    print("go: " + duration)
 
-main(int(sys.argv[1]))
+
+measure(int(sys.argv[1]))

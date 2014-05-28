@@ -108,6 +108,7 @@ pythonTestBenchmarks = {
     'richards3'     : '3',
     'bm-ai'         : '0',
     'pidigits'      : '0',
+    'pypy-go'       : '1',
 }
 
 python2MicroBenchmarks = {

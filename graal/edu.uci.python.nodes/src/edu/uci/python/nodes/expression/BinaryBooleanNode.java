@@ -32,7 +32,6 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.CastToBooleanNode.YesNode;
 import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.YesNodeFactory;
-import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.object.*;
 
 public abstract class BinaryBooleanNode extends BinaryOpNode {
@@ -76,14 +75,13 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
 
         @SuppressWarnings("unused")
         @Specialization(order = 4)
-        public boolean doNone(PNone left, boolean needsRight, Object right) {
-            return false;
-        }
-
-        @SuppressWarnings("unused")
-        @Specialization(order = 5)
         public boolean doPythonObject(PythonObject left, boolean needsRight, boolean right) {
             return needsRight ? right : true;
+        }
+
+        @Specialization(order = 5)
+        public Object doObject(Object left, boolean needsRight, boolean right) {
+            return needsRight ? right : left;
         }
 
         @Specialization(order = 6)
@@ -108,23 +106,28 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
         }
 
         @Specialization(order = 0)
-        public boolean doBoolean(boolean left, boolean hasRight, boolean right) {
-            return hasRight ? right : left;
+        public boolean doBoolean(boolean left, boolean needsRight, boolean right) {
+            return needsRight ? right : left;
         }
 
         @Specialization(order = 1)
-        public int doInteger(int left, boolean hasRight, int right) {
-            return hasRight ? right : left;
+        public int doInteger(int left, boolean needsRight, int right) {
+            return needsRight ? right : left;
         }
 
         @Specialization(order = 2)
-        public BigInteger doBigInteger(BigInteger left, boolean hasRight, BigInteger right) {
-            return hasRight ? right : left;
+        public BigInteger doBigInteger(BigInteger left, boolean needsRight, BigInteger right) {
+            return needsRight ? right : left;
         }
 
         @Specialization(order = 3)
-        public double doDouble(double left, boolean hasRight, double right) {
-            return hasRight ? right : left;
+        public double doDouble(double left, boolean needsRight, double right) {
+            return needsRight ? right : left;
+        }
+
+        @Specialization(order = 4)
+        public Object doObject(Object left, boolean needsRight, Object right) {
+            return needsRight ? right : left;
         }
     }
 
