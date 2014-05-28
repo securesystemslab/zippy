@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,23 +27,20 @@ package edu.uci.python.runtime.iterator;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.sequence.*;
 
-public final class PSequenceIterator implements PIterator {
+public final class PSequenceReverseIterator implements PIterator {
 
     protected final PSequence sequence;
     protected int index;
 
-    public PSequenceIterator(PSequence sequence) {
+    public PSequenceReverseIterator(PSequence sequence) {
         this.sequence = sequence;
-    }
-
-    public PSequence getSeqence() {
-        return sequence;
+        this.index = sequence.len() - 1;
     }
 
     @Override
     public Object __next__() throws StopIterationException {
-        if (index < sequence.len()) {
-            return sequence.getItem(index++);
+        if (index >= 0) {
+            return sequence.getItem(index--);
         }
 
         throw StopIterationException.INSTANCE;

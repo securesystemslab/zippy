@@ -916,7 +916,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization
         public PIterator reversed(PSequence sequence) {
-            return new PSequenceIterator.PSequenceReverseIterator(sequence);
+            return new PSequenceReverseIterator(sequence);
         }
     }
 
