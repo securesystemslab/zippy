@@ -31,6 +31,7 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.source.*;
 
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.optimize.*;
@@ -86,7 +87,7 @@ public class PythonParserImpl implements PythonParser {
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
 
-        Source source = context.getSourceManager().get("(test)", expression);
+        Source source = SourceFactory.fromText(expression, "(test)");
         PythonTreeTranslator ptt = new PythonTreeTranslator(context, environment, module, source);
         return ptt.translate(node);
     }

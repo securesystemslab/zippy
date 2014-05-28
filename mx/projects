@@ -24,7 +24,8 @@ library@CHECKSTYLE@path=lib/checkstyle-5.5-all.jar
 library@CHECKSTYLE@urls=jar:http://sourceforge.net/projects/checkstyle/files/checkstyle/5.5/checkstyle-5.5-bin.zip/download!/checkstyle-5.5/checkstyle-5.5-all.jar
 
 library@FINDBUGS@path=lib/findbugs-3.0.0-dev-20131204-e3cbbd5.jar
-library@FINDBUGS@urls=jar:http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0-dev-20131204-e3cbbd5.zip/download!/findbugs-3.0.0-dev-20131204-e3cbbd5/lib/findbugs.jar
+#library@FINDBUGS@urls=jar:http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0-dev-20131204-e3cbbd5.zip/download!/findbugs-3.0.0-dev-20131204-e3cbbd5/lib/findbugs.jar
+library@FINDBUGS@urls=jar:https://dl.dropboxusercontent.com/u/366091/findbugs-3.0.0-dev-20131204-e3cbbd5.jar
 library@FINDBUGS@sha1=539fdc73ef5f65a85c94687f6ec77dcd8493f8c1
 
 library@DACAPO@path=lib/dacapo-9.12-bach.jar
@@ -36,8 +37,8 @@ library@JACOCOAGENT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoagent-0.7.1
 library@JACOCOAGENT@sha1=2f73a645b02e39290e577ce555f00b02004650b0
 
 library@JACOCOREPORT@path=lib/jacocoreport.jar
-library@JACOCOREPORT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoreport-0.7.1-1.jar
-library@JACOCOREPORT@sha1=0c5db714804416dd1df4d8110762136ce3d5c7dc
+library@JACOCOREPORT@urls=http://lafo.ssw.uni-linz.ac.at/jacoco/jacocoreport-0.7.1-2.jar
+library@JACOCOREPORT@sha1=a630436391832d697a12c8f7daef8655d7a1efd2
 
 library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0-20120216.jar
 library@DACAPO_SCALA@urls=http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20120216.103539-3.jar
@@ -75,6 +76,7 @@ library@ASM@path=lib/asm-5.0.2.jar
 library@ASM@urls=http://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-all/5.0.2/asm-all-5.0.2.jar
 
 distribution@GRAAL@path=graal.jar
+distribution@GRAAL@subDir=graal
 distribution@GRAAL@sourcesPath=graal.src.zip
 distribution@GRAAL@dependencies=\
 com.oracle.graal.hotspot.amd64,\
@@ -88,11 +90,13 @@ com.oracle.graal.hotspot.hsail
 distribution@GRAAL@exclude=FINDBUGS
 
 distribution@TRUFFLE@path=truffle.jar
+distribution@TRUFFLE@subDir=graal
 distribution@TRUFFLE@sourcesPath=truffle-sources.jar
 distribution@TRUFFLE@dependencies=\
 com.oracle.truffle.api.dsl
 
 distribution@TRUFFLE-DSL-PROCESSOR@path=truffle-dsl-processor.jar
+distribution@TRUFFLE-DSL-PROCESSOR@subDir=graal
 distribution@TRUFFLE-DSL-PROCESSOR@sourcesPath=truffle-dsl-processor-sources.jar
 distribution@TRUFFLE-DSL-PROCESSOR@dependencies=\
 com.oracle.truffle.dsl.processor
@@ -209,6 +213,14 @@ project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replacements.verifier,com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot@javaCompliance=1.8
 project@com.oracle.graal.hotspot@workingSets=Graal,HotSpot
+
+# graal.hotspot.codegen
+project@com.oracle.graal.hotspot.codegen@subDir=graal
+project@com.oracle.graal.hotspot.codegen@sourceDirs=src
+project@com.oracle.graal.hotspot.codegen@dependencies=com.oracle.graal.hotspot
+project@com.oracle.graal.hotspot.codegen@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot.codegen@javaCompliance=1.8
+project@com.oracle.graal.hotspot.codegen@workingSets=Graal,HotSpot
 
 # graal.hotspot.jfr
 project@com.oracle.graal.hotspot.jfr@subDir=graal

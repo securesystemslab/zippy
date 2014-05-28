@@ -53,9 +53,7 @@ public final class PMethod extends PythonBuiltinObject implements PythonCallable
     }
 
     public Object call(Object[] arguments) {
-        Object[] processed = PArguments.insertSelf(arguments, self);
-        PArguments.setDeclarationFrame(processed, function.getDeclarationFrame());
-        return callTarget.call(processed);
+        return callTarget.call(arguments);
     }
 
     /**

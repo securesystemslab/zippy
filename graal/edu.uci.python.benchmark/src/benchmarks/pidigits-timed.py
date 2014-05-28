@@ -40,6 +40,6 @@ def measure():
 
 # warm up
 for i in range(2000):
-    pidigits(150)
+    pidigits(300)
 
 measure()

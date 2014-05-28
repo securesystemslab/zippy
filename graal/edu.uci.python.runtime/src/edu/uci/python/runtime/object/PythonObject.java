@@ -68,7 +68,7 @@ public abstract class PythonObject {
 
     public final void syncObjectLayoutWithClass() {
         if (objectLayout != pythonClass.getInstanceObjectLayout()) {
-            objectLayout = pythonClass.getInstanceObjectLayout();
+            updateLayout(pythonClass.getInstanceObjectLayout());
         }
     }
 
