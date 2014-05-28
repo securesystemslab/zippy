@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,31 +20,21 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package com.oracle.graal.nodes.java;
 
-package com.oracle.graal.replacements.amd64;
-
-import static com.oracle.graal.compiler.common.GraalOptions.*;
-
-import java.util.*;
-
-import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.api.replacements.*;
-import com.oracle.graal.api.runtime.*;
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.graal.replacements.*;
 
 /**
- * Method substitutions that are VM-independent but AMD64-dependent.
+ * The foreign call descriptors used by nodes in this package.
+ * <p>
+ * Using a separate class for such descriptors prevents an access from triggering unwanted class
+ * initialization during runtime initialization.
  */
-@ServiceProvider(ReplacementsProvider.class)
-public class AMD64Substitutions implements ReplacementsProvider {
+public class ForeignCallDescriptors {
 
-    public void registerReplacements(MetaAccessProvider metaAccess, LoweringProvider lowerer, SnippetReflectionProvider snippetReflection, Replacements replacements, TargetDescription target) {
-        if (Intrinsify.getValue()) {
-            replacements.registerSubstitutions(Arrays.class, ArraysSubstitutions.class);
-            replacements.registerSubstitutions(String.class, StringSubstitutions.class);
-        }
-    }
+    /**
+     * @see RegisterFinalizerNode
+     */
+    public static final ForeignCallDescriptor REGISTER_FINALIZER = new ForeignCallDescriptor("registerFinalizer", void.class, Object.class);
 
 }

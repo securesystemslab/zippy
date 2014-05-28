@@ -88,9 +88,9 @@ public class IntervalWalker {
     IntervalWalker(LinearScan allocator, Interval unhandledFixed, Interval unhandledAny) {
         this.allocator = allocator;
 
-        unhandledLists = new RegisterBindingLists(unhandledFixed, unhandledAny);
-        activeLists = new RegisterBindingLists(Interval.EndMarker, Interval.EndMarker);
-        inactiveLists = new RegisterBindingLists(Interval.EndMarker, Interval.EndMarker);
+        unhandledLists = new RegisterBindingLists(unhandledFixed, unhandledAny, Interval.EndMarker);
+        activeLists = new RegisterBindingLists(Interval.EndMarker, Interval.EndMarker, Interval.EndMarker);
+        inactiveLists = new RegisterBindingLists(Interval.EndMarker, Interval.EndMarker, Interval.EndMarker);
         currentPosition = -1;
     }
 
@@ -221,6 +221,9 @@ public class IntervalWalker {
             // set currentPosition prior to call of walkTo
             currentPosition = opId;
 
+            // update unhandled stack intervals
+            updateUnhandledStackIntervals(opId);
+
             // call walkTo even if currentPosition == id
             walkTo(State.Active, opId);
             walkTo(State.Inactive, opId);
@@ -237,6 +240,9 @@ public class IntervalWalker {
         currentPosition = toOpId;
 
         if (currentPosition <= allocator.maxOpId()) {
+            // update unhandled stack intervals
+            updateUnhandledStackIntervals(toOpId);
+
             // call walkTo if still in range
             walkTo(State.Active, toOpId);
             walkTo(State.Inactive, toOpId);
@@ -250,4 +256,29 @@ public class IntervalWalker {
             Debug.log("interval moved from %s to %s: %s", from, to, interval.logString(allocator));
         }
     }
+
+    /**
+     * Move {@linkplain #unhandledLists unhandled} stack intervals to
+     * {@linkplain IntervalWalker #activeLists active}.
+     *
+     * Note that for {@linkplain RegisterBinding#Fixed fixed} and {@linkplain RegisterBinding#Any
+     * any} intervals this is done in {@link #nextInterval(int)}.
+     */
+    private void updateUnhandledStackIntervals(int opId) {
+        Interval currentInterval = unhandledLists.get(RegisterBinding.Stack);
+        while (currentInterval != Interval.EndMarker && currentInterval.from() <= opId) {
+            Interval next = currentInterval.next;
+            if (currentInterval.to() > opId) {
+                currentInterval.state = State.Active;
+                activeLists.addToListSortedByCurrentFromPositions(RegisterBinding.Stack, currentInterval);
+                intervalMoved(currentInterval, State.Unhandled, State.Active);
+            } else {
+                currentInterval.state = State.Handled;
+                intervalMoved(currentInterval, State.Unhandled, State.Handled);
+            }
+            currentInterval = next;
+        }
+        unhandledLists.set(RegisterBinding.Stack, currentInterval);
+    }
+
 }

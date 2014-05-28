@@ -1396,7 +1396,12 @@ public final class LinearScan {
             notPrecoloredIntervals = result.second;
 
             // allocate cpu registers
-            LinearScanWalker lsw = new LinearScanWalker(this, precoloredIntervals, notPrecoloredIntervals);
+            LinearScanWalker lsw;
+            if (OptimizingLinearScanWalker.Options.LSRAOptimization.getValue()) {
+                lsw = new OptimizingLinearScanWalker(this, precoloredIntervals, notPrecoloredIntervals);
+            } else {
+                lsw = new LinearScanWalker(this, precoloredIntervals, notPrecoloredIntervals);
+            }
             lsw.walk();
             lsw.finishAllocation();
         }
@@ -2057,7 +2062,7 @@ public final class LinearScan {
                 int numUsePos = usePosList.size();
                 for (int useIdx = 0; useIdx < numUsePos; useIdx++) {
                     Interval.RegisterPriority priority = usePosList.registerPriority(useIdx);
-                    if (priority.greaterEqual(Interval.RegisterPriority.ShouldHaveRegister)) {
+                    if (priority == Interval.RegisterPriority.ShouldHaveRegister) {
                         return null;
                     }
                 }
