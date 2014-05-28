@@ -32,7 +32,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.object.*;
 
 //@formatter:off
 /**
@@ -129,7 +128,7 @@ public class PArguments {
     }
 
     @ExplodeLoop
-    public static Object[] insertSelf(Object[] arguments, PythonObject self) {
+    public static Object[] insertSelf(Object[] arguments, Object self) {
         final int userArgumentLength = arguments.length - USER_ARGUMENTS_OFFSET;
         Object[] results = create(userArgumentLength + 1);
         results[USER_ARGUMENTS_OFFSET] = self;
@@ -231,7 +230,7 @@ public class PArguments {
     }
 
     /**
-     * Carry the {@link VirtualFrame} into a inlined Python function.<br>
+     * Carry the {@link VirtualFrame} into an inlined Python function.<br>
      * Should only be used within a complete Truffle compilation unit and never escape it.
      */
     public static final class VirtualFrameCargoArguments extends PArguments {
