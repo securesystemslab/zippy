@@ -57,6 +57,13 @@ public abstract class ForNode extends LoopNode {
 
     public abstract PNode getIterator();
 
+    @Override
+    protected final void reportLoopCount(int count) {
+        if (CompilerDirectives.inInterpreter()) {
+            super.reportLoopCount(count);
+        }
+    }
+
     @Specialization(order = 1)
     public Object doPRange(VirtualFrame frame, PRangeIterator range) {
         final int start = range.getStart();
@@ -73,10 +80,7 @@ public abstract class ForNode extends LoopNode {
             }
         }
 
-        if (CompilerDirectives.inInterpreter()) {
-            reportLoopCount(count);
-        }
-
+        reportLoopCount(count);
         return PNone.NONE;
     }
 
@@ -96,10 +100,7 @@ public abstract class ForNode extends LoopNode {
             }
         }
 
-        if (CompilerDirectives.inInterpreter()) {
-            reportLoopCount(count);
-        }
-
+        reportLoopCount(count);
         return PNone.NONE;
     }
 
@@ -120,9 +121,7 @@ public abstract class ForNode extends LoopNode {
         } catch (StopIterationException e) {
 
         } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+            reportLoopCount(count);
         }
 
         return PNone.NONE;
@@ -145,9 +144,7 @@ public abstract class ForNode extends LoopNode {
         } catch (StopIterationException e) {
 
         } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+            reportLoopCount(count);
         }
 
         return PNone.NONE;
@@ -170,10 +167,7 @@ public abstract class ForNode extends LoopNode {
             }
         }
 
-        if (CompilerDirectives.inInterpreter()) {
-            reportLoopCount(count);
-        }
-
+        reportLoopCount(count);
         return PNone.NONE;
     }
 
@@ -193,10 +187,7 @@ public abstract class ForNode extends LoopNode {
             }
         }
 
-        if (CompilerDirectives.inInterpreter()) {
-            reportLoopCount(count);
-        }
-
+        reportLoopCount(count);
         return PNone.NONE;
     }
 
@@ -217,9 +208,7 @@ public abstract class ForNode extends LoopNode {
         } catch (StopIterationException e) {
 
         } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+            reportLoopCount(count);
         }
 
         return PNone.NONE;
