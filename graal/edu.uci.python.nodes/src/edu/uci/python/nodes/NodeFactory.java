@@ -313,7 +313,7 @@ public class NodeFactory {
         return IndexNodeFactory.create(operand);
     }
 
-    public PNode createSubscriptLoad(PNode primary, PNode slice) {
+    public PNode createSubscriptLoadSlice(PNode primary, PNode slice) {
         return SubscriptLoadSliceNodeFactory.create(primary, slice);
     }
 

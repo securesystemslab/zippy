@@ -48,13 +48,13 @@ public class ProfilerResultPrinter {
          */
 
         PrintStream out = System.out;
-        out.format("%-40s", "Node");
+        out.format("%-50s", "Node");
         out.format("%-20s", "Counter");
-        out.format("%-10s", "Line");
+        out.format("%-9s", "Line");
         out.format("%-11s", "Column");
-        out.format("%-10s", "Length");
+        out.format("%-11s", "Length");
         out.println();
-        out.println("=============                           ===============     =====     ======     ======");
+        out.println("=============                                     ===============     ====     ======     ======");
 
         @SuppressWarnings("rawtypes")
         Iterator it = sorted.entrySet().iterator();
@@ -65,11 +65,11 @@ public class ProfilerResultPrinter {
             ProfilerInstrument instrument = entry.getValue();
 
             Node child = wrapper.getChild();
-            out.format("%-40s", child.getClass().getSimpleName());
+            out.format("%-50s", child.getClass().getSimpleName());
             out.format("%15s", instrument.getCounter());
-            out.format("%10s", child.getSourceSection().getStartLine());
+            out.format("%9s", child.getSourceSection().getStartLine());
             out.format("%11s", child.getSourceSection().getStartColumn());
-            out.format("%10s", child.getSourceSection().getCharLength());
+            out.format("%11s", child.getSourceSection().getCharLength());
             out.println();
 
         }

@@ -60,8 +60,15 @@ public class ProfilerTranslator implements NodeVisitor {
             createWrapperNode((PNode) node);
         } else if (node instanceof BinaryComparisonNode) {
             createWrapperNode((PNode) node);
+        } else if (node instanceof SubscriptLoadIndexNode) {
+            createWrapperNode((PNode) node);
+        } else if (node instanceof SubscriptStoreIndexNode) {
+            createWrapperNode((PNode) node);
+        } else if (node instanceof SubscriptLoadSliceNode) {
+            createWrapperNode((PNode) node);
+        } else if (node instanceof SubscriptStoreSliceNode) {
+            createWrapperNode((PNode) node);
         }
-
 // if (node instanceof ListLiteralNode) {
 // createWrapperNode((PNode) node);
 // } else if (node instanceof TupleLiteralNode) {

@@ -758,9 +758,13 @@ public class PythonTreeTranslator extends Visitor {
          * column will be the same, so the sourceSections are going to be equal.
          */
         if (!(node.getInternalSlice() instanceof Slice)) {
-            return assignSourceFromNode(slice, factory.createSubscriptLoadIndex(primaryNode, sliceNode));
+            PNode subscriptLoadIndexNode = factory.createSubscriptLoadIndex(primaryNode, sliceNode);
+            // return assignSourceFromChildren(subscriptLoadIndexNode, primaryNode, sliceNode);
+            assignSourceFromChildren(subscriptLoadIndexNode, primaryNode, sliceNode);
+            return subscriptLoadIndexNode;
         } else {
-            return assignSourceFromNode(slice, factory.createSubscriptLoad(primaryNode, sliceNode));
+            PNode subscriptLoadSliceNode = factory.createSubscriptLoadSlice(primaryNode, sliceNode);
+            return assignSourceFromChildren(subscriptLoadSliceNode, primaryNode, sliceNode);
         }
     }
 
