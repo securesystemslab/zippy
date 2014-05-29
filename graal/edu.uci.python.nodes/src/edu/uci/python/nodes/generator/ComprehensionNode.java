@@ -33,6 +33,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
+import edu.uci.python.nodes.literal.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
@@ -54,19 +55,21 @@ public abstract class ComprehensionNode extends FrameSlotNode {
     @NodeInfo(shortName = "list_comprehension")
     public static final class ListComprehensionNode extends ComprehensionNode {
 
+        @Child protected PNode list;
         @Child protected PNode write;
 
         public ListComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
             super(frameSlot, comprehension);
+            list = new ListLiteralNode.UninitializedListLiteralNode(new PNode[]{});
             write = WriteLocalVariableNodeFactory.create(frameSlot, EmptyNode.create());
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            final PList list = new PList();
-            ((WriteNode) write).executeWrite(frame, list);
+            final PList newList = (PList) list.execute(frame);
+            ((WriteNode) write).executeWrite(frame, newList);
             comprehension.execute(frame);
-            return list;
+            return newList;
         }
     }
 
