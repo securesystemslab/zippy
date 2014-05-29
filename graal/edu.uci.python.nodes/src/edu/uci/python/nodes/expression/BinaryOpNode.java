@@ -41,6 +41,9 @@ public abstract class BinaryOpNode extends PNode {
 
     public abstract PNode getRightNode();
 
+    /**
+     * Special method dispatch.
+     */
     @CompilationFinal @Child protected CallDispatchSpecialNode dispatch;
 
     protected static final boolean isEitherOperandPythonObject(Object left, Object right) {
@@ -54,11 +57,6 @@ public abstract class BinaryOpNode extends PNode {
         }
 
         return dispatch.executeCall(frame, left, right);
-    }
-
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + "(" + getLeftNode() + ", " + getRightNode() + ")";
     }
 
 }

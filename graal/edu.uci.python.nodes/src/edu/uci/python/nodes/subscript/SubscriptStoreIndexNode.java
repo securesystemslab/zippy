@@ -39,7 +39,7 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
         return SubscriptLoadIndexNodeFactory.create(getPrimary(), getSlice());
     }
 
-    @Specialization(order = 1, guards = "isIntStore")
+    @Specialization(order = 1, guards = "isIntStorage")
     public Object doPListInt(PList primary, int idx, int value) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
         final int index = SequenceUtil.normalizeIndex(idx, store.length());
@@ -47,7 +47,7 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 2, guards = "isDoubleStore")
+    @Specialization(order = 2, guards = "isDoubleStorage")
     public Object doPListDouble(PList primary, int idx, double value) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
         final int index = SequenceUtil.normalizeIndex(idx, store.length());

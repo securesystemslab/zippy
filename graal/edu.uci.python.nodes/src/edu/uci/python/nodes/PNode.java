@@ -39,6 +39,7 @@ import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtype.*;
 
 @TypeSystemReference(PythonTypes.class)
@@ -221,6 +222,17 @@ public abstract class PNode extends Node {
 
     public void executeVoid(VirtualFrame frame) {
         execute(frame);
+    }
+
+    /**
+     * Specialization guards.
+     */
+    protected static boolean isIntStorage(PList list) {
+        return list.getStorage() instanceof IntSequenceStorage;
+    }
+
+    protected static boolean isDoubleStorage(PList list) {
+        return list.getStorage() instanceof DoubleSequenceStorage;
     }
 
 }
