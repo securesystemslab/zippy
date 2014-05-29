@@ -31,10 +31,21 @@ import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 public abstract class GetIteratorNode extends UnaryOpNode {
 
-    @Specialization(order = 1)
+    @Specialization(order = 1, guards = "isIntStorage")
+    public Object doPListInt(PList value) {
+        return new PIntegerSequenceIterator((IntSequenceStorage) value.getStorage());
+    }
+
+    @Specialization(order = 2, guards = "isDoubleStorage")
+    public Object doPListDouble(PList value) {
+        return new PDoubleSequenceIterator((DoubleSequenceStorage) value.getStorage());
+    }
+
+    @Specialization(order = 4)
     public Object doPList(PList value) {
         return value.__iter__();
     }

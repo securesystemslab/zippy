@@ -36,6 +36,10 @@ public final class PIntegerSequenceIterator implements PIterator, PIntegerIterat
         this.sequence = sequence;
     }
 
+    public IntSequenceStorage getSequenceStorage() {
+        return sequence;
+    }
+
     @Override
     public int __nextInt__() {
         if (index < sequence.length()) {
