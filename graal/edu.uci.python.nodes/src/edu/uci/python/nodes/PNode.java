@@ -243,4 +243,19 @@ public abstract class PNode extends Node {
         return list.getStorage() instanceof DoubleSequenceStorage;
     }
 
+    protected static boolean isObjectStorage(PList list) {
+        return list.getStorage() instanceof ObjectSequenceStorage;
+    }
+
+    protected static boolean isObjectStorageIterator(PSequenceIterator iterator) {
+        PSequence sequence = iterator.getSeqence();
+
+        if (sequence instanceof PList) {
+            PList list = (PList) sequence;
+            return list.getStorage() instanceof ObjectSequenceStorage;
+        }
+
+        return false;
+    }
+
 }

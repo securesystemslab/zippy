@@ -153,7 +153,31 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 6)
+    @Specialization(order = 6, guards = "isObjectStorageIterator")
+    public Object doObjectStorageIterator(VirtualFrame frame, PSequenceIterator iterator) {
+        int count = 0;
+        int index = 0;
+        PList list = (PList) iterator.getSeqence();
+        ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
+
+        while (index < store.length()) {
+            loopBodyBranch.enter();
+            ((WriteNode) target).executeWrite(frame, store.getItemInBound(index++));
+            body.executeVoid(frame);
+
+            if (CompilerDirectives.inInterpreter()) {
+                count++;
+            }
+        }
+
+        if (CompilerDirectives.inInterpreter()) {
+            reportLoopCount(count);
+        }
+
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 7)
     public Object doIterator(VirtualFrame frame, PSequenceIterator iterator) {
         int count = 0;
         int index = 0;
@@ -176,7 +200,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 7)
+    @Specialization(order = 8)
     public Object doIterator(VirtualFrame frame, PIterator iterator) {
         int count = 0;
 
