@@ -183,7 +183,6 @@ public class PythonTreeTranslator extends Visitor {
 
     private Object visitFunctionDefinition(FunctionDef node) throws Exception {
         String name = node.getInternalName();
-
         /**
          * translate default arguments in FunctionDef's declaring scope.
          */
@@ -537,7 +536,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitName(Name node) throws Exception {
         if (isBoolOrNone(node)) {
-            return getBoolOrNode(node);
+            return assignSourceFromNode(node, getBoolOrNode(node));
         }
 
         if (isParam(node)) {
@@ -618,7 +617,24 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> values = walkExprList(node.getInternalValues());
         PNode left = values.get(0);
         List<PNode> rights = values.subList(1, values.size());
-        return assignSourceFromNode(node, factory.createBooleanOperations(left, op, rights));
+        /**
+         * Source is assigned in createBooleanOperations
+         */
+        return createBooleanOperations(left, op, rights);
+    }
+
+    private PNode createBooleanOperations(PNode left, boolopType operator, List<PNode> rights) {
+        PNode current = factory.createBooleanOperation(operator, left, rights.get(0));
+        assignSourceFromChildren(current, left, rights.get(0));
+
+        for (int i = 1; i < rights.size(); i++) {
+            PNode right = rights.get(i);
+            PNode previousNode = current;
+            current = factory.createBooleanOperation(operator, current, right);
+            assignSourceFromChildren(current, previousNode, right);
+        }
+
+        return current;
     }
 
     @Override
@@ -635,7 +651,7 @@ public class PythonTreeTranslator extends Visitor {
         return createComparisonOperations(leftExpr, left, ops, rightExprs, rights);
     }
 
-    public PNode createComparisonOperations(expr leftExpr, PNode left, List<cmpopType> ops, List<expr> rightExprs, List<PNode> rights) {
+    private PNode createComparisonOperations(expr leftExpr, PNode left, List<cmpopType> ops, List<expr> rightExprs, List<PNode> rights) {
         PNode assignment = null;
         PNode leftOp = left;
         expr leftExprOp = leftExpr;
