@@ -832,6 +832,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
     @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
     public abstract static class PrintNode extends PythonBuiltinNode {
 
+        @SlowPath
         @Specialization
         public Object print(PTuple values, Object[] keywords) {
             String sep = null;

@@ -306,4 +306,5 @@ public class BuiltinFunctionTests {
         String source = "a = 1;print('a=',a)";
         assertPrintContains("a= 1", source);
     }
+
 }
