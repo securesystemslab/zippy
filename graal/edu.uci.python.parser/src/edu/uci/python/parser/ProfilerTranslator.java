@@ -27,6 +27,7 @@ package edu.uci.python.parser;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.generator.ComprehensionNode.ListComprehensionNode;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.profiler.*;
@@ -51,37 +52,47 @@ public class ProfilerTranslator implements NodeVisitor {
 
     @Override
     public boolean visit(Node node) {
-        if (node instanceof ListLiteralNode) {
+        if (node instanceof BinaryArithmeticNode) {
             createWrapperNode((PNode) node);
-        } else if (node instanceof TupleLiteralNode) {
+        } else if (node instanceof BinaryBitwiseNode) {
             createWrapperNode((PNode) node);
-        } else if (node instanceof SetLiteralNode) {
+        } else if (node instanceof BinaryBooleanNode) {
             createWrapperNode((PNode) node);
-        } else if (node instanceof DictLiteralNode) {
+        } else if (node instanceof BinaryComparisonNode) {
             createWrapperNode((PNode) node);
+        }
+
+// if (node instanceof ListLiteralNode) {
+// createWrapperNode((PNode) node);
+// } else if (node instanceof TupleLiteralNode) {
+// createWrapperNode((PNode) node);
+// } else if (node instanceof SetLiteralNode) {
+// createWrapperNode((PNode) node);
+// } else if (node instanceof DictLiteralNode) {
+// createWrapperNode((PNode) node);
 // } else if (node instanceof WriteNode) {
 // createWrapperNode((PNode) node);
 // } else if (node instanceof ReadLocalVariableNode) {
 // createWrapperNode((PNode) node);
 // } else if (node instanceof BinaryOpNode) {
 // createWrapperNode((PNode) node);
-        } else if (node instanceof SubscriptLoadIndexNode) {
-            createWrapperNode((PNode) node);
-        } else if (node instanceof SubscriptStoreIndexNode) {
-            createWrapperNode((PNode) node);
-        } else if (node instanceof SubscriptLoadSliceNode) {
-            createWrapperNode((PNode) node);
-        } else if (node instanceof SubscriptStoreSliceNode) {
-            createWrapperNode((PNode) node);
-        } else if (node instanceof ListComprehensionNode) {
-            createWrapperNode((PNode) node);
+// } else if (node instanceof SubscriptLoadIndexNode) {
+// createWrapperNode((PNode) node);
+// } else if (node instanceof SubscriptStoreIndexNode) {
+// createWrapperNode((PNode) node);
+// } else if (node instanceof SubscriptLoadSliceNode) {
+// createWrapperNode((PNode) node);
+// } else if (node instanceof SubscriptStoreSliceNode) {
+// createWrapperNode((PNode) node);
+// } else if (node instanceof ListComprehensionNode) {
+// createWrapperNode((PNode) node);
 // } else if (node instanceof InNode) {
 // createWrapperNode((PNode) node);
 // } else if (node instanceof NotInNode) {
 // createWrapperNode((PNode) node);
 // } else if (node instanceof IfNode) {
 // createWrapperNode((PNode) node);
-        }
+// }
         return true;
     }
 
