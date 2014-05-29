@@ -759,9 +759,7 @@ public class PythonTreeTranslator extends Visitor {
          */
         if (!(node.getInternalSlice() instanceof Slice)) {
             PNode subscriptLoadIndexNode = factory.createSubscriptLoadIndex(primaryNode, sliceNode);
-            // return assignSourceFromChildren(subscriptLoadIndexNode, primaryNode, sliceNode);
-            assignSourceFromChildren(subscriptLoadIndexNode, primaryNode, sliceNode);
-            return subscriptLoadIndexNode;
+            return assignSourceFromChildren(subscriptLoadIndexNode, primaryNode, sliceNode);
         } else {
             PNode subscriptLoadSliceNode = factory.createSubscriptLoadSlice(primaryNode, sliceNode);
             return assignSourceFromChildren(subscriptLoadSliceNode, primaryNode, sliceNode);
@@ -1096,13 +1094,14 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitDelete(Delete node) throws Exception {
         /**
-         * TODO Delete node has not been implemented
+         * TODO Delete node has not been fully implemented
          */
         PNode target = (PNode) visit(node.getInternalTargets().get(0));
 
         if (target instanceof SubscriptLoadNode) {
             SubscriptLoadNode load = (SubscriptLoadNode) target;
-            return assignSourceFromNode(node, SubscriptDeleteNodeFactory.create(load.getPrimary(), load.getSlice()));
+            SubscriptDeleteNode subscriptDeleteNode = SubscriptDeleteNodeFactory.create(load.getPrimary(), load.getSlice());
+            return assignSourceFromNode(node, subscriptDeleteNode);
         } else {
             return assignSourceFromNode(node, DeleteNodeFactory.create(target));
         }
