@@ -47,20 +47,31 @@ public abstract class PythonBuiltinNode extends PNode {
 
     public abstract PythonContext getContext();
 
-    protected boolean emptyArguments(VirtualFrame frame) {
+    /**
+     * Argument guards.
+     */
+    protected static boolean emptyArguments(VirtualFrame frame) {
         return PArguments.getUserArgumentLength(frame) == 0;
     }
 
-    protected boolean isIntStore(PList list) {
+    protected static boolean isIntStorage(PList list) {
         return list.getStorage() instanceof IntSequenceStorage;
     }
 
-    protected boolean isDoubleStore(PList list) {
+    protected static boolean isDoubleStorage(PList list) {
         return list.getStorage() instanceof DoubleSequenceStorage;
     }
 
-    protected boolean isObjectStore(PList list) {
+    protected static boolean isObjectStorage(PList list) {
         return list.getStorage() instanceof ObjectSequenceStorage;
+    }
+
+    protected static boolean isBasicStorage(PList list) {
+        return list.getStorage() instanceof BasicSequenceStorage;
+    }
+
+    protected static boolean isEmptyStorage(PList list) {
+        return list.getStorage() instanceof EmptySequenceStorage;
     }
 
     /**

@@ -931,15 +931,27 @@ public class PythonTreeTranslator extends Visitor {
          * However, we cannot distinguish between a real tuple parameter and an artificial one. The
          * real fix should be in the parser.
          */
-        List<expr> exprs = node.getInternalValues();
-        if (exprs.size() == 1 && exprs.get(0) instanceof Tuple) {
-            Tuple tuple = (Tuple) exprs.get(0);
-            List<PNode> values = walkExprList(tuple.getInternalElts());
-            return assignSourceFromNode(node, factory.createPrint(values, node.getInternalNl(), context));
+        if (!PythonOptions.UsePrintFunction) {
+            Name print = new Name(node.getToken(), "print", expr_contextType.Load);
+            List<expr> exprs = node.getInternalValues();
+            if (exprs.size() == 1 && exprs.get(0) instanceof Tuple) {
+                Tuple tuple = (Tuple) node.getInternalValues().get(0);
+                exprs = tuple.getInternalElts();
+            }
+
+            Call call = new Call(node.getToken(), print, exprs, new ArrayList<keyword>(), null, null);
+            return visitCall(call);
         } else {
-            List<PNode> values = walkExprList(node.getInternalValues());
-            StatementNode newNode = factory.createPrint(values, node.getInternalNl(), context);
-            return assignSourceFromNode(node, newNode);
+            List<expr> exprs = node.getInternalValues();
+            if (exprs.size() == 1 && exprs.get(0) instanceof Tuple) {
+                Tuple tuple = (Tuple) exprs.get(0);
+                List<PNode> values = walkExprList(tuple.getInternalElts());
+                return assignSourceFromNode(node, factory.createPrint(values, node.getInternalNl(), context));
+            } else {
+                List<PNode> values = walkExprList(node.getInternalValues());
+                StatementNode newNode = factory.createPrint(values, node.getInternalNl(), context);
+                return assignSourceFromNode(node, newNode);
+            }
         }
     }
 

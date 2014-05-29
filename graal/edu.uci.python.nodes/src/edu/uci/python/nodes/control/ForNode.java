@@ -33,6 +33,7 @@ import edu.uci.python.nodes.frame.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.sequence.*;
 
 @NodeChild(value = "iterator", type = GetIteratorNode.class)
 public abstract class ForNode extends LoopNode {
@@ -133,11 +134,13 @@ public abstract class ForNode extends LoopNode {
     @Specialization(order = 4)
     public Object doIterator(VirtualFrame frame, PSequenceIterator iterator) {
         int count = 0;
+        int index = 0;
+        PSequence sequence = iterator.getSeqence();
 
         try {
-            while (true) {
+            while (index < sequence.len()) {
                 loopBodyBranch.enter();
-                ((WriteNode) target).executeWrite(frame, iterator.__next__());
+                ((WriteNode) target).executeWrite(frame, sequence.getItem(index++));
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {

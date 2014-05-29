@@ -569,21 +569,31 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return tuple.len();
         }
 
-        protected static final boolean isBasicStorage(PList list) {
-            return list.getStorage() instanceof BasicSequenceStorage;
-        }
-
-        protected static final boolean isEmptyStorage(PList list) {
-            return list.getStorage() instanceof EmptySequenceStorage;
-        }
-
         @SuppressWarnings("unused")
         @Specialization(order = 10, guards = "isEmptyStorage")
         public int lenPListEmpty(PList list) {
             return 0;
         }
 
-        @Specialization(order = 11, guards = "isBasicStorage")
+        @Specialization(order = 11, guards = "isIntStorage")
+        public int lenPListInt(PList list) {
+            IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
+            return store.length();
+        }
+
+        @Specialization(order = 12, guards = "isDoubleStorage")
+        public int lenPListDouble(PList list) {
+            DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
+            return store.length();
+        }
+
+        @Specialization(order = 13, guards = "isObjectStorage")
+        public int lenPListObject(PList list) {
+            ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
+            return store.length();
+        }
+
+        @Specialization(order = 14, guards = "isBasicStorage")
         public int lenPList(PList list) {
             BasicSequenceStorage store = (BasicSequenceStorage) list.getStorage();
             return store.length();
@@ -822,6 +832,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
     @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
     public abstract static class PrintNode extends PythonBuiltinNode {
 
+        @SlowPath
         @Specialization
         public Object print(PTuple values, Object[] keywords) {
             String sep = null;
@@ -906,7 +917,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization
         public PIterator reversed(PSequence sequence) {
-            return new PSequenceIterator.PSequenceReverseIterator(sequence);
+            return new PSequenceReverseIterator(sequence);
         }
     }
 

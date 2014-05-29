@@ -46,21 +46,9 @@ public class PythonParserImpl implements PythonParser {
 
     @Override
     public PythonParseResult parse(PythonContext context, PythonModule module, Source source) {
-        org.python.antlr.base.mod node;
         InputStream istream = new ByteArrayInputStream(source.getCode().getBytes());
         String filename = source.getPath();
-
-        if (!PythonOptions.UsePrintFunction) {
-            // enable printing flag for python's builtin function (v3.x) in parser.
-
-            String print = "from __future__ import print_function \n";
-            InputStream printFlag = new ByteArrayInputStream(print.getBytes());
-            InputStream withPrintFlag = new SequenceInputStream(printFlag, istream);
-
-            node = ParserFacade.parse(withPrintFlag, CompileMode.exec, filename, cookCompilerFlags());
-        } else {
-            node = ParserFacade.parse(istream, CompileMode.exec, filename, cookCompilerFlags());
-        }
+        org.python.antlr.base.mod node = ParserFacade.parse(istream, CompileMode.exec, filename, cookCompilerFlags());
 
         TranslationEnvironment environment = new TranslationEnvironment(context, module);
         ScopeTranslator ptp = new ScopeTranslator(environment);

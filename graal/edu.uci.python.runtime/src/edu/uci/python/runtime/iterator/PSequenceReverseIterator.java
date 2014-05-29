@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,37 +22,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.shell;
+package edu.uci.python.runtime.iterator;
 
-import com.oracle.truffle.api.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.sequence.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.parser.*;
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.function.*;
+public final class PSequenceReverseIterator implements PIterator {
 
-public class ASTInterpreter {
+    protected final PSequence sequence;
+    protected int index;
 
-    public static void interpret(PythonParseResult result) {
-        ModuleNode root = (ModuleNode) result.getModuleRoot();
-        RootCallTarget module = Truffle.getRuntime().createCallTarget(root);
-        // Added here because createCallTarget adopts all children, i.e. adds all parent
-        // relationships. In order to be able create wrapper nodes, and replace nodes with wrapper
-        // nodes, we need parent relationship
+    public PSequenceReverseIterator(PSequence sequence) {
+        this.sequence = sequence;
+        this.index = sequence.len() - 1;
+    }
 
-        if (PythonOptions.AddProfilingInstrumentation) {
-            ProfilerTranslator pt = new ProfilerTranslator(result.getContext());
-            pt.translate(result, root);
-
-            if (PythonOptions.PrintAST) {
-                // CheckStyle: stop system..print check
-                System.out.println("============= " + "After Adding Wrapper Nodes" + " ============= ");
-                result.printAST();
-                // CheckStyle: resume system..print check
-            }
+    @Override
+    public Object __next__() throws StopIterationException {
+        if (index >= 0) {
+            return sequence.getItem(index--);
         }
 
-        module.call(PArguments.empty());
+        throw StopIterationException.INSTANCE;
     }
 
 }

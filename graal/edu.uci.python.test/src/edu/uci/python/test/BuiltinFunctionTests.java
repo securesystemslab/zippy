@@ -301,4 +301,10 @@ public class BuiltinFunctionTests {
         assertPrints("foo is a fool\n", source);
     }
 
+    @Test
+    public void printTest() {
+        String source = "a = 1;print('a=',a)";
+        assertPrintContains("a= 1", source);
+    }
+
 }
