@@ -54,14 +54,17 @@ public abstract class ComprehensionNode extends FrameSlotNode {
     @NodeInfo(shortName = "list_comprehension")
     public static final class ListComprehensionNode extends ComprehensionNode {
 
+        @Child protected PNode write;
+
         public ListComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
             super(frameSlot, comprehension);
+            write = WriteLocalVariableNodeFactory.create(frameSlot, EmptyNode.create());
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
             final PList list = new PList();
-            setObject(frame, list);
+            ((WriteNode) write).executeWrite(frame, list);
             comprehension.execute(frame);
             return list;
         }

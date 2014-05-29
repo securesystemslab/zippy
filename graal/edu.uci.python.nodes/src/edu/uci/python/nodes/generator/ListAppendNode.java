@@ -24,40 +24,25 @@
  */
 package edu.uci.python.nodes.generator;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.frame.*;
+import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
 /**
  * Implements LIST_APPEND bytecode in CPython.
  */
-@NodeChild(value = "rightNode", type = PNode.class)
-public abstract class ListAppendNode extends FrameSlotNode {
-
-    public abstract PNode getRightNode();
-
-    public ListAppendNode(FrameSlot frameSlot) {
-        super(frameSlot);
-    }
-
-    protected ListAppendNode(ListAppendNode node) {
-        this(node.frameSlot);
-    }
+public abstract class ListAppendNode extends BinaryOpNode {
 
     @Specialization
-    public boolean doBoolean(VirtualFrame frame, boolean right) {
-        getPList(frame).append(right);
+    public boolean doBoolean(PList list, boolean right) {
+        list.append(right);
         return right;
     }
 
     @Specialization
-    public int doInteger(VirtualFrame frame, int right) {
-        PList list = getPList(frame);
+    public int doInteger(PList list, int right) {
         SequenceStorage store = list.getStorage();
 
         if (store instanceof IntSequenceStorage) {
@@ -70,8 +55,7 @@ public abstract class ListAppendNode extends FrameSlotNode {
     }
 
     @Specialization
-    public double doDouble(VirtualFrame frame, double right) {
-        PList list = getPList(frame);
+    public double doDouble(PList list, double right) {
         SequenceStorage store = list.getStorage();
 
         if (store instanceof IntSequenceStorage) {
@@ -84,13 +68,9 @@ public abstract class ListAppendNode extends FrameSlotNode {
     }
 
     @Specialization
-    public Object doObject(VirtualFrame frame, Object right) {
-        getPList(frame).append(right);
+    public Object doObject(PList list, Object right) {
+        list.append(right);
         return right;
-    }
-
-    protected final PList getPList(Frame frame) {
-        return CompilerDirectives.unsafeCast(getObject(frame), PList.class, true);
     }
 
 }

@@ -87,10 +87,11 @@ public class AssignmentTranslator {
      */
     private PNode makeChainedAssignment(PNode right, List<PNode> targets) throws Exception {
         List<PNode> assignments = new ArrayList<>();
-        ReadNode rightVal = environment.makeTempLocalVariable();
-        assignments.add(rightVal.makeWriteNode(right));
+        ReadNode tempvar = environment.makeTempLocalVariable();
+        assignments.add(tempvar.makeWriteNode(right));
+
         for (PNode target : targets) {
-            assignments.add(makeSingleAssignment(target, (PNode) rightVal));
+            assignments.add(makeSingleAssignment(target, (PNode) tempvar));
         }
 
         return factory.createBlock(assignments);
