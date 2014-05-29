@@ -60,23 +60,23 @@ public class AssignmentTranslator {
 
             if (isDecomposable(rhs)) {
                 PNode multiAssignmentNode = makeMultiAssignment(targets, decompose(rhs));
-                return translator.assignSource(node, multiAssignmentNode);
+                return translator.assignSourceFromNode(node, multiAssignmentNode);
             } else {
                 PNode unpackingAssignmentNode = makeUnpackingAssignment(targets, rhs);
-                return translator.assignSource(node, unpackingAssignmentNode);
+                return translator.assignSourceFromNode(node, unpackingAssignmentNode);
             }
         }
 
         /**
          * Single or chained-assignment.
          */
-        PNode right = (PNode) translator.visit(node.getInternalValue());
-        List<PNode> targets = translator.walkExprList(node.getInternalTargets());
+        List<PNode> targets = translator.walkExprList(lhs);
+        PNode right = (PNode) translator.visit(rhs);
 
         if (targets.size() == 1) {
-            return translator.assignSource(node, makeSingleAssignment(targets.get(0), right));
+            return translator.assignSourceFromNode(node, makeSingleAssignment(targets.get(0), right));
         } else {
-            return translator.assignSource(node, makeChainedAssignment(right, targets));
+            return translator.assignSourceFromNode(node, makeChainedAssignment(lhs, targets, right));
         }
     }
 
@@ -85,13 +85,17 @@ public class AssignmentTranslator {
      * Transform a = b = 42 <br>
      * To: a = 42; b = 42..
      */
-    private PNode makeChainedAssignment(PNode right, List<PNode> targets) throws Exception {
+    private PNode makeChainedAssignment(List<expr> targetExpressions, List<PNode> targets, PNode right) throws Exception {
         List<PNode> assignments = new ArrayList<>();
         ReadNode tempvar = environment.makeTempLocalVariable();
         assignments.add(tempvar.makeWriteNode(right));
 
-        for (PNode target : targets) {
-            assignments.add(makeSingleAssignment(target, (PNode) tempvar));
+        for (int i = 0; i < targets.size(); i++) {
+            expr targetExpression = targetExpressions.get(i);
+            PNode target = targets.get(i);
+            PNode writeNode = makeSingleAssignment(target, (PNode) tempvar);
+            translator.assignSourceFromNode(targetExpression, writeNode);
+            assignments.add(writeNode);
         }
 
         return factory.createBlock(assignments);
@@ -100,8 +104,10 @@ public class AssignmentTranslator {
     /**
      * Multi-assignment: <br>
      * Transform a, b = c, d. <br>
-     * To: temp_c = c; temp_d = d; a = temp_c; b = temp_d
+     * To: temp_c = c; temp_d = d; a = temp_c; b = temp_d <br>
+     * for each assignment in multiassignment, sourcesection is assigned in walkTarget method
      */
+
     private PNode makeMultiAssignment(List<expr> lhs, List<expr> rhs) throws Exception {
         if (lhs.size() != rhs.size()) {
             throw new IllegalStateException("Unbalanced multi-assignment");
@@ -137,11 +143,15 @@ public class AssignmentTranslator {
 
         if (isDecomposable(target)) {
             PNode tempVar = (PNode) environment.makeTempLocalVariable();
-            writes.add(translator.assignSource(target, makeSingleAssignment(tempVar, rightHandSide)));
+            PNode writeNode = makeSingleAssignment(tempVar, rightHandSide);
+            translator.assignSourceFromNode(target, writeNode);
+            writes.add(writeNode);
             List<PNode> intermediateTargets = walkTargetList(decompose(target), factory.duplicate(tempVar, PNode.class));
             writes.addAll(intermediateTargets);
         } else {
-            writes.add(translator.assignSource(target, makeSingleAssignment((PNode) translator.visit(target), rightHandSide)));
+            PNode writeNode = makeSingleAssignment((PNode) translator.visit(target), rightHandSide);
+            translator.assignSourceFromNode(target, writeNode);
+            writes.add(writeNode);
         }
 
         return writes;
@@ -158,14 +168,18 @@ public class AssignmentTranslator {
         for (int i = 0; i < lhs.size(); i++) {
             expr target = lhs.get(i);
             PNode splitRhs = factory.createSubscriptLoadIndex(factory.duplicate(rightHandSide, PNode.class), factory.createIntegerLiteral(i));
-            translator.assignSource(target, splitRhs);
+            translator.assignSourceFromNode(target, splitRhs);
 
             if (isDecomposable(target)) {
                 PNode tempVar = (PNode) environment.makeTempLocalVariable();
-                writes.add(translator.assignSource(target, makeSingleAssignment(tempVar, splitRhs)));
+                PNode writeNode = makeSingleAssignment(tempVar, splitRhs);
+                translator.assignSourceFromNode(target, writeNode);
+                writes.add(writeNode);
                 additionalWrites.addAll(walkTargetList(decompose(target), factory.duplicate(tempVar, PNode.class)));
             } else {
-                writes.add(translator.assignSource(target, makeSingleAssignment((PNode) translator.visit(target), splitRhs)));
+                PNode writeNode = makeSingleAssignment((PNode) translator.visit(target), splitRhs);
+                translator.assignSourceFromNode(target, writeNode);
+                writes.add(writeNode);
             }
         }
 

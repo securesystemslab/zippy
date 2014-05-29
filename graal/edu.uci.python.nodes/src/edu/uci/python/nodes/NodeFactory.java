@@ -263,17 +263,6 @@ public class NodeFactory {
         }
     }
 
-    public PNode createBinaryOperations(PNode left, operatorType op, List<PNode> rights) {
-        PNode current = createBinaryOperation(op, left, rights.get(0));
-
-        for (int i = 1; i < rights.size(); i++) {
-            PNode right = rights.get(i);
-            current = createBinaryOperation(op, current, right);
-        }
-
-        return current;
-    }
-
     public PNode createComparisonOperation(cmpopType operator, PNode left, PNode right) {
         switch (operator) {
             case Eq:
@@ -301,7 +290,7 @@ public class NodeFactory {
         }
     }
 
-    PNode createBooleanOperation(boolopType operator, PNode left, PNode right) {
+    public PNode createBooleanOperation(boolopType operator, PNode left, PNode right) {
         switch (operator) {
             case And:
                 return AndNodeFactory.create(left, right);
@@ -310,17 +299,6 @@ public class NodeFactory {
             default:
                 throw new RuntimeException("unexpected operation: " + operator);
         }
-    }
-
-    public PNode createBooleanOperations(PNode left, boolopType operator, List<PNode> rights) {
-        PNode current = createBooleanOperation(operator, left, rights.get(0));
-
-        for (int i = 1; i < rights.size(); i++) {
-            PNode right = rights.get(i);
-            current = createBooleanOperation(operator, current, right);
-        }
-
-        return current;
     }
 
     public PNode createGetAttribute(PNode primary, String name) {
