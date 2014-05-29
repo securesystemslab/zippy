@@ -38,30 +38,24 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
 
-public abstract class ComprehensionNode extends FrameSlotNode {
+public abstract class ComprehensionNode extends PNode {
 
+    @Child protected PNode write;
     @Child protected PNode comprehension;
 
     public ComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
-        super(frameSlot);
+        write = WriteLocalVariableNodeFactory.create(frameSlot, EmptyNode.create());
         this.comprehension = comprehension;
-    }
-
-    @Override
-    public final Object executeWrite(VirtualFrame frame, Object value) {
-        throw new UnsupportedOperationException();
     }
 
     @NodeInfo(shortName = "list_comprehension")
     public static final class ListComprehensionNode extends ComprehensionNode {
 
         @Child protected PNode list;
-        @Child protected PNode write;
 
         public ListComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
             super(frameSlot, comprehension);
             list = new ListLiteralNode.UninitializedListLiteralNode(new PNode[]{});
-            write = WriteLocalVariableNodeFactory.create(frameSlot, EmptyNode.create());
         }
 
         @Override
@@ -82,7 +76,7 @@ public abstract class ComprehensionNode extends FrameSlotNode {
         @Override
         public Object execute(VirtualFrame frame) {
             final ArrayList<Object> list = new ArrayList<>();
-            setObject(frame, list);
+            ((WriteNode) write).executeWrite(frame, list);
             comprehension.execute(frame);
             return new PTuple(list.toArray());
         }
@@ -120,7 +114,7 @@ public abstract class ComprehensionNode extends FrameSlotNode {
         @Override
         public Object execute(VirtualFrame frame) {
             final TreeSet<Object> set = new TreeSet<>();
-            setObject(frame, set);
+            ((WriteNode) write).executeWrite(frame, set);
             comprehension.execute(frame);
             return new PSet(set);
         }
@@ -158,7 +152,7 @@ public abstract class ComprehensionNode extends FrameSlotNode {
         @Override
         public Object execute(VirtualFrame frame) {
             final Map<Object, Object> map = new TreeMap<>();
-            setObject(frame, map);
+            ((WriteNode) write).executeWrite(frame, map);
             comprehension.execute(frame);
             return new PDict(map);
         }
