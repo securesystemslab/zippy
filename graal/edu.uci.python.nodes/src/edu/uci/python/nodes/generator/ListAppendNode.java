@@ -24,40 +24,38 @@
  */
 package edu.uci.python.nodes.generator;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.frame.*;
+import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
 /**
  * Implements LIST_APPEND bytecode in CPython.
  */
-@NodeChild(value = "rightNode", type = PNode.class)
-public abstract class ListAppendNode extends FrameSlotNode {
-
-    public abstract PNode getRightNode();
-
-    public ListAppendNode(FrameSlot frameSlot) {
-        super(frameSlot);
-    }
-
-    protected ListAppendNode(ListAppendNode node) {
-        this(node.frameSlot);
-    }
+public abstract class ListAppendNode extends BinaryOpNode {
 
     @Specialization
-    public boolean doBoolean(VirtualFrame frame, boolean right) {
-        getPList(frame).append(right);
+    public boolean doBoolean(PList list, boolean right) {
+        list.append(right);
         return right;
     }
 
-    @Specialization
-    public int doInteger(VirtualFrame frame, int right) {
-        PList list = getPList(frame);
+    @Specialization(order = 1, guards = "isEmptyStorage")
+    public int doEmptyStorage(PList list, int right) {
+        list.append(right);
+        return right;
+    }
+
+    @Specialization(order = 2, guards = "isIntStorage")
+    public int doIntStorage(PList list, int right) {
+        IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
+        store.appendInt(right);
+        return right;
+    }
+
+    @Specialization(order = 3)
+    public int doInteger(PList list, int right) {
         SequenceStorage store = list.getStorage();
 
         if (store instanceof IntSequenceStorage) {
@@ -69,12 +67,18 @@ public abstract class ListAppendNode extends FrameSlotNode {
         return right;
     }
 
-    @Specialization
-    public double doDouble(VirtualFrame frame, double right) {
-        PList list = getPList(frame);
+    @Specialization(order = 4, guards = "isDoubleStorage")
+    public double doDoubleStorage(PList list, double right) {
+        DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
+        store.appendDouble(right);
+        return right;
+    }
+
+    @Specialization(order = 5)
+    public double doDouble(PList list, double right) {
         SequenceStorage store = list.getStorage();
 
-        if (store instanceof IntSequenceStorage) {
+        if (store instanceof DoubleSequenceStorage) {
             ((DoubleSequenceStorage) store).appendDouble(right);
         } else {
             list.append(right);
@@ -84,13 +88,9 @@ public abstract class ListAppendNode extends FrameSlotNode {
     }
 
     @Specialization
-    public Object doObject(VirtualFrame frame, Object right) {
-        getPList(frame).append(right);
+    public Object doObject(PList list, Object right) {
+        list.append(right);
         return right;
-    }
-
-    protected final PList getPList(Frame frame) {
-        return CompilerDirectives.unsafeCast(getObject(frame), PList.class, true);
     }
 
 }

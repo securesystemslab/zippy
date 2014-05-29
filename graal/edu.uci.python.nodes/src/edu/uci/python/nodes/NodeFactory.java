@@ -203,7 +203,8 @@ public class NodeFactory {
     }
 
     public PNode createListAppend(FrameSlot frameSlot, PNode right) {
-        return ListAppendNodeFactory.create(frameSlot, right);
+        PNode readList = createReadLocal(frameSlot);
+        return ListAppendNodeFactory.create(readList, right);
     }
 
     public PNode createDictComprehension(FrameSlot frameSlot, PNode comprehension) {

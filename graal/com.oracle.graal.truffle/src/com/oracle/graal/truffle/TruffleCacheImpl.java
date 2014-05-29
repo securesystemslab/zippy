@@ -198,15 +198,7 @@ public final class TruffleCacheImpl implements TruffleCache {
                         }
                         List<ValueNode> argumentSnapshot = methodCallTarget.arguments().snapshot();
                         Mark beforeInvokeMark = graph.getMark();
-
-                        // zwei
-                        try {
-                            expandInvoke(methodCallTarget);
-                        } catch (RuntimeException e) {
-                            TTY.println("[truffle] recursively calling " + methodCallTarget.targetMethod());
-                            throw e;
-                        }
-
+                        expandInvoke(methodCallTarget);
                         for (Node arg : argumentSnapshot) {
                             if (arg != null && arg.recordsUsages()) {
                                 for (Node argUsage : arg.usages()) {

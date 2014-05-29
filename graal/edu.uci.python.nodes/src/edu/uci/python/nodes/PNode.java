@@ -39,6 +39,7 @@ import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtype.*;
 
 @TypeSystemReference(PythonTypes.class)
@@ -211,6 +212,10 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPRangeIterator(execute(frame));
     }
 
+    public PIntegerSequenceIterator executePIntegerSequenceIterator(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPIntegerSequenceIterator(execute(frame));
+    }
+
     public PSequenceIterator executePSequenceIterator(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPSequenceIterator(execute(frame));
     }
@@ -221,6 +226,21 @@ public abstract class PNode extends Node {
 
     public void executeVoid(VirtualFrame frame) {
         execute(frame);
+    }
+
+    /**
+     * Specialization guards.
+     */
+    protected static boolean isEmptyStorage(PList list) {
+        return list.getStorage() instanceof EmptySequenceStorage;
+    }
+
+    protected static boolean isIntStorage(PList list) {
+        return list.getStorage() instanceof IntSequenceStorage;
+    }
+
+    protected static boolean isDoubleStorage(PList list) {
+        return list.getStorage() instanceof DoubleSequenceStorage;
     }
 
 }

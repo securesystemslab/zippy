@@ -27,8 +27,6 @@ package edu.uci.python.nodes.subscript;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.frame.*;
-import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.sequence.storage.*;
 
 public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode {
 
@@ -38,14 +36,6 @@ public abstract class SubscriptLoadNode extends BinaryOpNode implements ReadNode
 
     public PNode getSlice() {
         return getRightNode();
-    }
-
-    protected boolean isIntStore(PList list) {
-        return list.getStorage() instanceof IntSequenceStorage;
-    }
-
-    protected boolean isDoubleStore(PList list) {
-        return list.getStorage() instanceof DoubleSequenceStorage;
     }
 
 }

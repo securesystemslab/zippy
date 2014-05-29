@@ -34,6 +34,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 @NodeChild(value = "iterator", type = GetIteratorNode.class)
 public abstract class ForNode extends LoopNode {
@@ -63,25 +64,46 @@ public abstract class ForNode extends LoopNode {
         final int step = range.getStep();
         int count = 0;
 
-        try {
-            for (int i = start; i < stop; i += step) {
-                ((WriteNode) target).executeWrite(frame, i);
-                body.executeVoid(frame);
+        for (int i = start; i < stop; i += step) {
+            ((WriteNode) target).executeWrite(frame, i);
+            body.executeVoid(frame);
 
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
             if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
+                count++;
             }
+        }
+
+        if (CompilerDirectives.inInterpreter()) {
+            reportLoopCount(count);
         }
 
         return PNone.NONE;
     }
 
     @Specialization(order = 2)
+    public Object doIntegerSequenceIterator(VirtualFrame frame, PIntegerSequenceIterator iterator) {
+        int count = 0;
+        int index = 0;
+        IntSequenceStorage store = iterator.getSequenceStorage();
+
+        while (index < store.length()) {
+            loopBodyBranch.enter();
+            ((WriteNode) target).executeWrite(frame, store.getIntItemInBound(index++));
+            body.executeVoid(frame);
+
+            if (CompilerDirectives.inInterpreter()) {
+                count++;
+            }
+        }
+
+        if (CompilerDirectives.inInterpreter()) {
+            reportLoopCount(count);
+        }
+
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 3)
     public Object doIntegerIterator(VirtualFrame frame, PIntegerIterator iterator) {
         int count = 0;
 
@@ -106,7 +128,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 3)
+    @Specialization(order = 5)
     public Object doDoubleIterator(VirtualFrame frame, PDoubleIterator iterator) {
         int count = 0;
 
@@ -131,34 +153,30 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 4)
+    @Specialization(order = 6)
     public Object doIterator(VirtualFrame frame, PSequenceIterator iterator) {
         int count = 0;
         int index = 0;
         PSequence sequence = iterator.getSeqence();
 
-        try {
-            while (index < sequence.len()) {
-                loopBodyBranch.enter();
-                ((WriteNode) target).executeWrite(frame, sequence.getItem(index++));
-                body.executeVoid(frame);
+        while (index < sequence.len()) {
+            loopBodyBranch.enter();
+            ((WriteNode) target).executeWrite(frame, sequence.getItem(index++));
+            body.executeVoid(frame);
 
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } catch (StopIterationException e) {
-
-        } finally {
             if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
+                count++;
             }
+        }
+
+        if (CompilerDirectives.inInterpreter()) {
+            reportLoopCount(count);
         }
 
         return PNone.NONE;
     }
 
-    @Specialization(order = 5)
+    @Specialization(order = 7)
     public Object doIterator(VirtualFrame frame, PIterator iterator) {
         int count = 0;
 

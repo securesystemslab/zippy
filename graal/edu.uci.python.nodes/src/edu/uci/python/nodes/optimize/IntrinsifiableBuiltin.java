@@ -29,6 +29,7 @@ import java.util.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.generator.ComprehensionNodeFactory.ArrayListAddNodeFactory;
 import edu.uci.python.nodes.generator.ComprehensionNodeFactory.TreeSetAddNodeFactory;
@@ -82,7 +83,8 @@ public enum IntrinsifiableBuiltin {
     public PNode createComprehensionAppendNode(FrameSlot targetSlot, PNode comprehension) {
         switch (this) {
             case LIST:
-                return ListAppendNodeFactory.create(targetSlot, comprehension);
+                PNode list = ReadLocalVariableNode.create(targetSlot);
+                return ListAppendNodeFactory.create(list, comprehension);
             case TUPLE:
                 return ArrayListAddNodeFactory.create(targetSlot, comprehension);
             case SET:

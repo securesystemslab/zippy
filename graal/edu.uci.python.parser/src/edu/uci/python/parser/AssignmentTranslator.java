@@ -87,13 +87,13 @@ public class AssignmentTranslator {
      */
     private PNode makeChainedAssignment(List<expr> targetExpressions, List<PNode> targets, PNode right) throws Exception {
         List<PNode> assignments = new ArrayList<>();
-        ReadNode rightVal = environment.makeTempLocalVariable();
-        assignments.add(rightVal.makeWriteNode(right));
+        ReadNode tempvar = environment.makeTempLocalVariable();
+        assignments.add(tempvar.makeWriteNode(right));
 
         for (int i = 0; i < targets.size(); i++) {
             expr targetExpression = targetExpressions.get(i);
             PNode target = targets.get(i);
-            PNode writeNode = makeSingleAssignment(target, (PNode) rightVal);
+            PNode writeNode = makeSingleAssignment(target, (PNode) tempvar);
             translator.assignSourceFromNode(targetExpression, writeNode);
             assignments.add(writeNode);
         }

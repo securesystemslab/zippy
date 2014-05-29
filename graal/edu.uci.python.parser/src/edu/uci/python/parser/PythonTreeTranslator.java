@@ -648,20 +648,20 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Source is assigned in createComparisonOperations
          */
-        return createComparisonOperations(leftExpr, left, ops, rightExprs, rights);
+        return createComparisonOperations(left, ops, rights);
     }
 
-    private PNode createComparisonOperations(expr leftExpr, PNode left, List<cmpopType> ops, List<expr> rightExprs, List<PNode> rights) {
+    public PNode createComparisonOperations(PNode left, List<cmpopType> ops, List<PNode> rights) {
         PNode assignment = null;
         PNode leftOp = left;
-        expr leftExprOp = leftExpr;
         PNode rightOp = rights.get(0);
         /**
          * Simple comparison.
          */
         if (ops.size() == 1 && rights.size() == 1) {
+            // return factory.createComparisonOperation(ops.get(0), leftOp, rightOp);
             PNode comparisonNode = factory.createComparisonOperation(ops.get(0), leftOp, rightOp);
-            assignSourceFromNode(leftExprOp, comparisonNode);
+            comparisonNode.assignSourceSection(leftOp.getSourceSection());
             return comparisonNode;
         }
 
@@ -670,43 +670,36 @@ public class PythonTreeTranslator extends Visitor {
          */
         PNode newComparison = null;
         PNode currentCompare = null;
-
         for (int i = 0; i < rights.size(); i++) {
             rightOp = rights.get(i);
-            expr rightExpr = rightExprs.get(i);
             if (i == rights.size() - 1) {
                 // Guard to prevent creating a temp variable for rightOp in the last comparison
                 newComparison = factory.createComparisonOperation(ops.get(i), leftOp, rightOp);
-                assignSourceFromChildren(newComparison, leftOp, rightOp);
+                newComparison.assignSourceSection(leftOp.getSourceSection());
             } else {
                 if (!(rightOp instanceof LiteralNode || rightOp instanceof ReadNode)) {
                     ReadNode tempVar = environment.makeTempLocalVariable();
-                    assignment = tempVar.makeWriteNode(rightOp);
-                    assignSourceFromNode(rightExpr, assignment);
+                    assignment = tempVar.makeWriteNode(rights.get(i));
                     rightOp = (PNode) tempVar;
-                    assignSourceFromNode(rightExpr, rightOp);
                     newComparison = factory.createComparisonOperation(ops.get(i), leftOp, rightOp);
-                    assignSourceFromChildren(newComparison, leftOp, rightOp);
-                    PNode oldComparison = newComparison;
+                    newComparison.assignSourceSection(leftOp.getSourceSection());
                     newComparison = factory.createBlock(assignment, newComparison);
-                    assignSourceFromChildren(newComparison, assignment, oldComparison);
                 } else {
                     // Atomic comparison
                     newComparison = factory.createComparisonOperation(ops.get(i), leftOp, rightOp);
-                    assignSourceFromChildren(newComparison, leftOp, rightOp);
+                    newComparison.assignSourceSection(leftOp.getSourceSection());
                 }
 
                 leftOp = factory.duplicate(rightOp, PNode.class);
-                leftExprOp = rightExpr;
             }
-
             if (i == 0) {
                 currentCompare = newComparison;
+                // currentCompare.assignSourceSection(newComparison.getSourceSection());
             } else {
-                PNode andNode = AndNodeFactory.create(currentCompare, newComparison);
-                assignSourceFromChildren(andNode, currentCompare, newComparison);
+                PNode oldCurrentCompare = currentCompare;
+                currentCompare = AndNodeFactory.create(currentCompare, newComparison);
                 currentCompare.clearSourceSection();
-                currentCompare.assignSourceSection(andNode.getSourceSection());
+                currentCompare.assignSourceSection(oldCurrentCompare.getSourceSection());
             }
         }
 
