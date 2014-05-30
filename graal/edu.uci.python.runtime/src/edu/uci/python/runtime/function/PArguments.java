@@ -202,38 +202,4 @@ public class PArguments {
         arguments[INDEX_GENERATOR_FRAME] = cargoFrame;
     }
 
-    /**
-     * TODO: (zwei) to be removed.
-     */
-    @SuppressWarnings("unused")
-    public PArguments(MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywords) {
-        assert arguments != null;
-    }
-
-    public PArguments(MaterializedFrame declarationFrame, Object[] arguments) {
-        this(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
-    }
-
-    public final Object[] packAsObjectArray() {
-        return new Object[]{this};
-    }
-
-    /**
-     * Carry the {@link VirtualFrame} into an inlined Python function.<br>
-     * Should only be used within a complete Truffle compilation unit and never escape it.
-     */
-    public static final class VirtualFrameCargoArguments extends PArguments {
-
-        private final VirtualFrame cargoFrame;
-
-        public VirtualFrameCargoArguments(MaterializedFrame declarationFrame, VirtualFrame cargoFrame, Object[] arguments) {
-            super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
-            this.cargoFrame = cargoFrame;
-        }
-
-        public VirtualFrame getCargoFrame() {
-            return cargoFrame;
-        }
-    }
-
 }
