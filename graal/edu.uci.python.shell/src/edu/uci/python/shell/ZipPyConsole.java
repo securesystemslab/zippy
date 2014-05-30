@@ -77,10 +77,6 @@ public class ZipPyConsole extends InteractiveConsole {
             result.visualizeToNetwork();
         }
 
-        if (PythonOptions.ProfileGeneratorCalls) {
-            context.printGeneratorProfilingInfo();
-        }
-
         if (PythonOptions.ProfileCalls) {
             printBanner("Call Profiling Results");
             ProfilerResultPrinter.printFunctionInvocationProfilerResults();

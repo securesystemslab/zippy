@@ -63,7 +63,7 @@ public final class PGeneratorFunction extends PFunction {
             assert parallelCallTarget != null;
             return makeParallelGeneratorHelper(arguments);
         } else {
-            return PGenerator.create(getName(), context, getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), arguments, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), arguments, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
     }
 
@@ -76,15 +76,9 @@ public final class PGeneratorFunction extends PFunction {
 
     private PGenerator makeParallelGeneratorHelper(Object[] args) {
         if (isWorthParallelizing) {
-            PParallelGenerator generator = PParallelGenerator.create(getName(), context, parallelCallTarget, getFrameDescriptor(), getDeclarationFrame(), args);
-
-            if (PythonOptions.ProfileGeneratorCalls) {
-                context.getStandardOut().println("[ZipPy] create parallel generator " + generator);
-            }
-
-            return generator;
+            return PParallelGenerator.create(getName(), context, parallelCallTarget, getFrameDescriptor(), getDeclarationFrame(), args);
         } else {
-            return PGenerator.create(getName(), context, getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
     }
 
