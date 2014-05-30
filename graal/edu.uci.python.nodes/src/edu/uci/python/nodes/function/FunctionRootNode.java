@@ -177,11 +177,6 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
         int generatorNodeCount = NodeUtil.countNodes(genfun.getFunctionRootNode());
         inlinable &= generatorNodeCount < 300;
         inlinable &= callerNodeCount < 500;
-
-        if (genfun.getName().equals("FactoredIntegers")) {
-            inlinable = false;
-        }
-
         return inlinable;
     }
 
