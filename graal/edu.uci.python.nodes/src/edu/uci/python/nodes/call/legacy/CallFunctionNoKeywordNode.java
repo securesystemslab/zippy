@@ -111,12 +111,7 @@ public class CallFunctionNoKeywordNode extends PNode {
 
     private static CallFunctionNoKeywordNode createGeneratorCall(PGeneratorFunction generator, ReadGlobalNode calleeNode, PNode[] argumentNodes) {
         Assumption globalScopeUnchanged = calleeNode.extractGlobaScope().getStableAssumption();
-
-        if (PythonOptions.InlineGeneratorCalls) {
-            return new CallGeneratorNode(calleeNode, argumentNodes, generator, globalScopeUnchanged);
-        } else {
-            return new CallFunctionCachedNode(calleeNode, argumentNodes, generator, globalScopeUnchanged);
-        }
+        return new CallFunctionCachedNode(calleeNode, argumentNodes, generator, globalScopeUnchanged);
     }
 
     @Override
