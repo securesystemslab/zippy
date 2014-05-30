@@ -97,14 +97,6 @@ public abstract class InlineableCallNode extends CallFunctionNoKeywordNode imple
 
         public boolean inline(FrameFactory factory) {
             CompilerAsserts.neverPartOfCompilation();
-
-            if (functionRoot != null) {
-                CallFunctionNoKeywordNode inlinedCallNode = new CallFunctionInlinedNode(callee, arguments, function, globalScopeUnchanged, functionRoot, factory);
-                replace(inlinedCallNode);
-                invokeGeneratorExpressionOptimizer();
-                return true;
-            }
-
             return false;
         }
 
