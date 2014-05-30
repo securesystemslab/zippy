@@ -25,6 +25,7 @@ package com.oracle.graal.hotspot.nodes;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.hotspot.*;
+import com.oracle.graal.hotspot.stubs.*;
 import com.oracle.graal.lir.StandardOp.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
@@ -32,7 +33,7 @@ import com.oracle.graal.word.*;
 
 /**
  * Emits code to enter a low-level stack frame specifically to call out to the C++ method
- * {@link HotSpotBackend#UNPACK_FRAMES Deoptimization::unpack_frames}.
+ * {@link DeoptimizationStub#UNPACK_FRAMES Deoptimization::unpack_frames}.
  */
 public class EnterUnpackFramesStackFrameNode extends FixedWithNextNode implements LIRLowerable {
 

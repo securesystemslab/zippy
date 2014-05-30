@@ -186,7 +186,6 @@ public final class Block extends AbstractBlockBase<Block> {
     }
 
     public void setProbability(double probability) {
-        assert probability >= 0 && Double.isFinite(probability);
         this.probability = probability;
     }
 }

@@ -32,11 +32,8 @@ import com.oracle.graal.nodes.spi.*;
  */
 public final class JavaReadNode extends FixedAccessNode implements Lowerable, GuardingNode {
 
-    private final boolean compressible;
-
     public JavaReadNode(ValueNode object, LocationNode location, BarrierType barrierType, boolean compressible) {
-        super(object, location, StampFactory.forKind(location.getValueKind()), barrierType);
-        this.compressible = compressible;
+        super(object, location, StampFactory.forKind(location.getValueKind()), barrierType, compressible);
     }
 
     public void lower(LoweringTool tool) {
@@ -45,9 +42,5 @@ public final class JavaReadNode extends FixedAccessNode implements Lowerable, Gu
 
     public boolean canNullCheck() {
         return true;
-    }
-
-    public boolean isCompressible() {
-        return compressible;
     }
 }

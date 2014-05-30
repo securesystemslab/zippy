@@ -32,6 +32,7 @@ public abstract class FloatingAccessNode extends FloatingGuardedNode implements 
     @Input private ValueNode object;
     @Input(InputType.Association) private LocationNode location;
     private BarrierType barrierType;
+    private boolean compressible;
 
     public ValueNode object() {
         return object;
@@ -55,16 +56,22 @@ public abstract class FloatingAccessNode extends FloatingGuardedNode implements 
         this.location = location;
     }
 
-    public FloatingAccessNode(ValueNode object, LocationNode location, Stamp stamp, GuardingNode guard, BarrierType barrierType) {
+    public FloatingAccessNode(ValueNode object, LocationNode location, Stamp stamp, GuardingNode guard, BarrierType barrierType, boolean compressible) {
         super(stamp, guard);
         this.object = object;
         this.location = location;
         this.barrierType = barrierType;
+        this.compressible = compressible;
     }
 
     @Override
     public BarrierType getBarrierType() {
         return barrierType;
+    }
+
+    @Override
+    public boolean isCompressible() {
+        return compressible;
     }
 
     public boolean canNullCheck() {

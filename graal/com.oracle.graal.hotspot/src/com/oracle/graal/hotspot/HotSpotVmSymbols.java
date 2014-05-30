@@ -32,17 +32,17 @@ import sun.misc.*;
 public final class HotSpotVmSymbols {
 
     /**
-     * Returns the symbol in the {@code vmSymbols} table at position {@code index} as {@link String}
-     * .
-     *
+     * Returns the {@link HotSpotSymbol} in the {@code vmSymbols} table at position {@code index} as
+     * {@link String}.
+     * 
      * @param index position in the symbol table
      * @return the symbol at position id
      */
     public static String symbolAt(int index) {
-        HotSpotGraalRuntime runtime = runtime();
-        HotSpotVMConfig config = runtime.getConfig();
+        HotSpotVMConfig config = runtime().getConfig();
         assert config.vmSymbolsFirstSID <= index && index < config.vmSymbolsSIDLimit : "index " + index + " is out of bounds";
         assert config.symbolPointerSize == Unsafe.ADDRESS_SIZE : "the following address read is broken";
-        return runtime.getCompilerToVM().getSymbol(unsafe.getAddress(config.vmSymbolsSymbols + index * config.symbolPointerSize));
+        final long metaspaceSymbol = unsafe.getAddress(config.vmSymbolsSymbols + index * config.symbolPointerSize);
+        return new HotSpotSymbol(metaspaceSymbol).asString();
     }
 }

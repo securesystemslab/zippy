@@ -256,7 +256,9 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
      * @return name as {@link String}
      */
     private String getNameRefAt(int index) {
-        return runtime().getCompilerToVM().lookupNameRefInPool(metaspaceConstantPool, index);
+        final long name = runtime().getCompilerToVM().lookupNameRefInPool(metaspaceConstantPool, index);
+        HotSpotSymbol symbol = new HotSpotSymbol(name);
+        return symbol.asString();
     }
 
     /**
@@ -280,7 +282,9 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
      * @return signature as {@link String}
      */
     private String getSignatureRefAt(int index) {
-        return runtime().getCompilerToVM().lookupSignatureRefInPool(metaspaceConstantPool, index);
+        final long name = runtime().getCompilerToVM().lookupSignatureRefInPool(metaspaceConstantPool, index);
+        HotSpotSymbol symbol = new HotSpotSymbol(name);
+        return symbol.asString();
     }
 
     /**
@@ -379,7 +383,9 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
     @Override
     public String lookupUtf8(int cpi) {
         assertTag(cpi, JVM_CONSTANT.Utf8);
-        return runtime().getCompilerToVM().getSymbol(getEntryAt(cpi));
+        final long metaspaceSymbol = getEntryAt(cpi);
+        HotSpotSymbol symbol = new HotSpotSymbol(metaspaceSymbol);
+        return symbol.asString();
     }
 
     @Override
@@ -406,11 +412,10 @@ public class HotSpotConstantPool extends CompilerObject implements ConstantPool 
      * @param metaspacePointer either a metaspace Klass or a metaspace Symbol
      */
     private static JavaType getJavaType(final long metaspacePointer) {
-        HotSpotGraalRuntime runtime = runtime();
-        HotSpotVMConfig config = runtime.getConfig();
+        HotSpotVMConfig config = runtime().getConfig();
         if ((metaspacePointer & config.compilerToVMSymbolTag) != 0) {
             final long metaspaceSymbol = metaspacePointer & ~config.compilerToVMSymbolTag;
-            String name = runtime.getCompilerToVM().getSymbol(metaspaceSymbol);
+            String name = new HotSpotSymbol(metaspaceSymbol).asString();
             return HotSpotUnresolvedJavaType.create("L" + name + ";");
         } else {
             assert (metaspacePointer & config.compilerToVMKlassTag) == 0;

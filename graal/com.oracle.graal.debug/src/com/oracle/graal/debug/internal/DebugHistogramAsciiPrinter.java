@@ -37,16 +37,14 @@ public class DebugHistogramAsciiPrinter implements Printer {
     public static final int NumberSize = 10;
     public static final int DefaultNameSize = 50;
     public static final int DefaultBarSize = 100;
-    public static final int DefaultScale = 1;
 
-    private final PrintStream os;
-    private final int limit;
-    private final int nameSize;
-    private final int barSize;
-    private final int scale;
+    private PrintStream os;
+    private int limit;
+    private int nameSize;
+    private int barSize;
 
     public DebugHistogramAsciiPrinter(PrintStream os) {
-        this(os, Integer.MAX_VALUE, DefaultNameSize, DefaultBarSize, DefaultScale);
+        this(os, Integer.MAX_VALUE, DefaultNameSize, DefaultBarSize);
     }
 
     /**
@@ -54,14 +52,12 @@ public class DebugHistogramAsciiPrinter implements Printer {
      * @param limit limits printing to the {@code limit} most frequent values
      * @param nameSize the width of the value names column
      * @param barSize the width of the value frequency column
-     * @param scale a factor by which every result is divided
      */
-    public DebugHistogramAsciiPrinter(PrintStream os, int limit, int nameSize, int barSize, int scale) {
+    public DebugHistogramAsciiPrinter(PrintStream os, int limit, int nameSize, int barSize) {
         this.os = os;
         this.limit = limit;
         this.nameSize = nameSize;
         this.barSize = barSize;
-        this.scale = scale;
     }
 
     public void print(DebugHistogram histogram) {
@@ -72,18 +68,21 @@ public class DebugHistogramAsciiPrinter implements Printer {
         }
 
         // Sum up the total number of elements.
-        long total = list.stream().mapToLong(CountedValue::getCount).sum();
+        int total = 0;
+        for (CountedValue cv : list) {
+            total += cv.getCount();
+        }
 
         // Print header.
-        os.printf("%s has %d unique elements and %d total elements:%n", histogram.getName(), list.size(), total / scale);
+        os.printf("%s has %d unique elements and %d total elements:%n", histogram.getName(), list.size(), total);
 
-        long max = list.get(0).getCount() / scale;
+        int max = list.get(0).getCount();
         final int lineSize = nameSize + NumberSize + barSize + 10;
         printLine(os, '-', lineSize);
         String formatString = "| %-" + nameSize + "s | %-" + NumberSize + "d | %-" + barSize + "s |\n";
         for (int i = 0; i < list.size() && i < limit; ++i) {
             CountedValue cv = list.get(i);
-            long value = cv.getCount() / scale;
+            int value = cv.getCount();
             char[] bar = new char[(int) (((double) value / (double) max) * barSize)];
             Arrays.fill(bar, '=');
             String objectString = String.valueOf(cv.getValue());

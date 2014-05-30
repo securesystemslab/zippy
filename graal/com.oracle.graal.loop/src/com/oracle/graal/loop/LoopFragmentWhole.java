@@ -25,6 +25,7 @@ package com.oracle.graal.loop;
 import com.oracle.graal.compiler.common.cfg.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Graph.DuplicationReplacement;
+import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.cfg.*;
 
@@ -54,7 +55,7 @@ public class LoopFragmentWhole extends LoopFragment {
     }
 
     @Override
-    public NodeBitMap nodes() {
+    public NodeIterable<Node> nodes() {
         if (nodes == null) {
             Loop<Block> lirLoop = loop().lirLoop();
             nodes = LoopFragment.computeNodes(graph(), LoopFragment.toHirBlocks(lirLoop.getBlocks()), LoopFragment.toHirExits(lirLoop.getExits()));

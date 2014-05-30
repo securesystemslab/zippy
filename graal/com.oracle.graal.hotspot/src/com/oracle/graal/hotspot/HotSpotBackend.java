@@ -22,8 +22,6 @@
  */
 package com.oracle.graal.hotspot;
 
-import static com.oracle.graal.hotspot.stubs.StubUtil.*;
-
 import java.util.*;
 
 import com.oracle.graal.api.code.*;
@@ -72,16 +70,6 @@ public abstract class HotSpotBackend extends Backend {
     public static final ForeignCallDescriptor EXCEPTION_HANDLER_IN_CALLER = new ForeignCallDescriptor("exceptionHandlerInCaller", void.class, Object.class, Word.class);
 
     private final HotSpotGraalRuntime runtime;
-
-    /**
-     * @see DeoptimizationFetchUnrollInfoCallNode
-     */
-    public static final ForeignCallDescriptor FETCH_UNROLL_INFO = new ForeignCallDescriptor("fetchUnrollInfo", Word.class, long.class);
-
-    /**
-     * @see DeoptimizationStub#unpackFrames(ForeignCallDescriptor, Word, int)
-     */
-    public static final ForeignCallDescriptor UNPACK_FRAMES = newDescriptor(DeoptimizationStub.class, "unpackFrames", int.class, Word.class, int.class);
 
     /**
      * @see AESCryptSubstitutions#encryptBlockStub(ForeignCallDescriptor, Word, Word, Word)

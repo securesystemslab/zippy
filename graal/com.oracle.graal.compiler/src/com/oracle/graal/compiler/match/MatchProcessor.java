@@ -45,7 +45,7 @@ import com.oracle.graal.nodes.*;
  * be retrieved as follows:
  *
  * <pre>
- *     Iterable<MatchStatementSet> sl = Services.load(MatchStatementSet.class);
+ *     ServiceLoader<MatchStatementSet> sl = ServiceLoader.loadInstalled(MatchStatementSet.class);
  *     for (MatchStatementSet rules : sl) {
  *         ...
  *     }

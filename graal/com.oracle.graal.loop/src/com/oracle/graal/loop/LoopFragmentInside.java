@@ -102,7 +102,7 @@ public class LoopFragmentInside extends LoopFragment {
     }
 
     @Override
-    public NodeBitMap nodes() {
+    public NodeIterable<Node> nodes() {
         if (nodes == null) {
             LoopFragmentWhole whole = loop().whole();
             whole.nodes(); // init nodes bitmap in whole
@@ -203,10 +203,10 @@ public class LoopFragmentInside extends LoopFragment {
         for (LoopExitNode exit : exits()) {
             FrameState exitState = exit.stateAfter();
             if (exitState != null) {
-                exitState.applyToVirtual(v -> usagesToPatch.markAndGrow(v));
+                exitState.applyToVirtual(v -> usagesToPatch.mark(v));
             }
             for (ProxyNode proxy : exit.proxies()) {
-                usagesToPatch.markAndGrow(proxy);
+                usagesToPatch.mark(proxy);
             }
         }
 
@@ -232,7 +232,7 @@ public class LoopFragmentInside extends LoopFragment {
             newPhis.add(newPhi);
             for (Node usage : phi.usages().snapshot()) {
                 // patch only usages that should use the new phi ie usages that were peeled
-                if (usagesToPatch.isMarkedAndGrow(usage)) {
+                if (usagesToPatch.isMarked(usage)) {
                     usage.replaceFirstInput(phi, newPhi);
                 }
             }

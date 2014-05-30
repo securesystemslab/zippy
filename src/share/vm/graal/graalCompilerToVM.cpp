@@ -267,16 +267,14 @@ C2V_VMENTRY(jint, lookupNameAndTypeRefIndexInPool, (JNIEnv*, jobject, jlong meta
   return cp->name_and_type_ref_index_at(index);
 C2V_END
 
-C2V_VMENTRY(jobject, lookupNameRefInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jlong, lookupNameRefInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
-  Handle sym = java_lang_String::create_from_symbol(cp->name_ref_at(index), CHECK_NULL);
-  return JNIHandles::make_local(THREAD, sym());
+  return (jlong) (address) cp->name_ref_at(index);
 C2V_END
 
-C2V_VMENTRY(jobject, lookupSignatureRefInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
+C2V_VMENTRY(jlong, lookupSignatureRefInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
   constantPoolHandle cp = (ConstantPool*) metaspace_constant_pool;
-  Handle sym = java_lang_String::create_from_symbol(cp->signature_ref_at(index), CHECK_NULL);
-  return JNIHandles::make_local(THREAD, sym());
+  return (jlong) (address) cp->signature_ref_at(index);
 C2V_END
 
 C2V_VMENTRY(jint, lookupKlassRefIndexInPool, (JNIEnv*, jobject, jlong metaspace_constant_pool, jint index))
@@ -731,11 +729,6 @@ C2V_VMENTRY(jlong, getTimeStamp, (JNIEnv*, jobject))
   return tty->time_stamp().milliseconds();
 C2V_END
 
-C2V_VMENTRY(jobject, getSymbol, (JNIEnv*, jobject, jlong metaspaceSymbol))
-  Handle sym = java_lang_String::create_from_symbol((Symbol*)(address)metaspaceSymbol, CHECK_NULL);
-  return JNIHandles::make_local(THREAD, sym());
-C2V_END
-
 bool matches(jlongArray methods, Method* method) {
   typeArrayOop methods_oop = (typeArrayOop) JNIHandles::resolve(methods);
 
@@ -1006,6 +999,7 @@ C2V_END
 #define METASPACE_METHOD      "J"
 #define METASPACE_METHOD_DATA "J"
 #define METASPACE_CONSTANT_POOL "J"
+#define METASPACE_SYMBOL      "J"
 
 JNINativeMethod CompilerToVM_methods[] = {
   {CC"getBytecode",                                  CC"("METASPACE_METHOD")[B",                                               FN_PTR(getBytecode)},
@@ -1022,9 +1016,9 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"lookupType",                                   CC"("STRING CLASS"Z)"METASPACE_KLASS,                                     FN_PTR(lookupType)},
   {CC"resolveConstantInPool",                        CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                                   FN_PTR(resolveConstantInPool)},
   {CC"resolvePossiblyCachedConstantInPool",          CC"("METASPACE_CONSTANT_POOL"I)"OBJECT,                                   FN_PTR(resolvePossiblyCachedConstantInPool)},
-  {CC"lookupNameRefInPool",                          CC"("METASPACE_CONSTANT_POOL"I)"STRING,                                   FN_PTR(lookupNameRefInPool)},
+  {CC"lookupNameRefInPool",                          CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_SYMBOL,                         FN_PTR(lookupNameRefInPool)},
   {CC"lookupNameAndTypeRefIndexInPool",              CC"("METASPACE_CONSTANT_POOL"I)I",                                        FN_PTR(lookupNameAndTypeRefIndexInPool)},
-  {CC"lookupSignatureRefInPool",                     CC"("METASPACE_CONSTANT_POOL"I)"STRING,                                   FN_PTR(lookupSignatureRefInPool)},
+  {CC"lookupSignatureRefInPool",                     CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_SYMBOL,                         FN_PTR(lookupSignatureRefInPool)},
   {CC"lookupKlassRefIndexInPool",                    CC"("METASPACE_CONSTANT_POOL"I)I",                                        FN_PTR(lookupKlassRefIndexInPool)},
   {CC"constantPoolKlassAt",                          CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_KLASS,                          FN_PTR(constantPoolKlassAt)},
   {CC"lookupKlassInPool",                            CC"("METASPACE_CONSTANT_POOL"I)"METASPACE_KLASS,                          FN_PTR(lookupKlassInPool)},
@@ -1058,7 +1052,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"allocateCompileId",                            CC"("METASPACE_METHOD"I)I",                                               FN_PTR(allocateCompileId)},
   {CC"isMature",                                     CC"("METASPACE_METHOD_DATA")Z",                                           FN_PTR(isMature)},
   {CC"hasCompiledCodeForOSR",                        CC"("METASPACE_METHOD"II)Z",                                              FN_PTR(hasCompiledCodeForOSR)},
-  {CC"getSymbol",                                    CC"(J)"STRING,                                                            FN_PTR(getSymbol)},
   {CC"getTimeStamp",                                 CC"()J",                                                                  FN_PTR(getTimeStamp)},
   {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF "[JI)"HS_STACK_FRAME_REF,                         FN_PTR(getNextStackFrame)},
   {CC"materializeVirtualObjects",                    CC"("HS_STACK_FRAME_REF"Z)V",                                             FN_PTR(materializeVirtualObjects)},
