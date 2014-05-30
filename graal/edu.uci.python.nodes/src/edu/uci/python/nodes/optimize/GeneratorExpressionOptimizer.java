@@ -74,6 +74,8 @@ public class GeneratorExpressionOptimizer {
                 PrintStream out = System.out;
                 out.println("[ZipPy] escapse analysis: " + genExp + " does not escape current frame");
                 transform(genExp, escapeAnalyzer);
+            } else {
+                functionRoot.reportGeneratorExpression();
             }
         }
     }

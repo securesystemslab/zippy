@@ -54,7 +54,10 @@ public final class FunctionRootNode extends RootNode {
 
     private final PythonContext context;
     private final String functionName;
+
     private final boolean isGenerator;
+    private boolean hasGeneratorExpression;
+    private int peelingTrialCounter = 0;
 
     @Child protected PNode body;
     private PNode uninitializedBody;
@@ -84,6 +87,14 @@ public final class FunctionRootNode extends RootNode {
         return isGenerator;
     }
 
+    public void reportGeneratorExpression() {
+        hasGeneratorExpression = true;
+    }
+
+    public void reportGeneratorDispatch() {
+        peelingTrialCounter = 0;
+    }
+
     public String getFunctionName() {
         return functionName;
     }
@@ -104,7 +115,9 @@ public final class FunctionRootNode extends RootNode {
     @Override
     public Object execute(VirtualFrame frame) {
         if (CompilerDirectives.inInterpreter()) {
-            optimizeHelper();
+            if (hasGeneratorExpression || peelingTrialCounter++ < 5) {
+                optimizeHelper();
+            }
         }
         if (PythonOptions.ProfileCalls) {
             profiler.execute(frame);
@@ -114,6 +127,7 @@ public final class FunctionRootNode extends RootNode {
 
     @Override
     public boolean applyTransformation() {
+        peelingTrialCounter = 0;
         return optimizeHelper();
     }
 
