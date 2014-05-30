@@ -50,7 +50,7 @@ import static edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.*;
  *
  * @author zwei
  */
-public final class FunctionRootNode extends RootNode implements GuestRootNode {
+public final class FunctionRootNode extends RootNode {
 
     private final PythonContext context;
     private final String functionName;
@@ -113,7 +113,7 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
     }
 
     @Override
-    public boolean doAfterInliningPerformed() {
+    public boolean applyTransformation() {
         return optimizeHelper();
     }
 
@@ -132,15 +132,13 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
         for (DispatchGeneratorBoxedNode dispatch : NodeUtil.findAllNodeInstances(body, DispatchGeneratorBoxedNode.class)) {
             PGeneratorFunction genfun = dispatch.getGeneratorFunction();
             boolean inlinable = isInlinable(dispatch, genfun);
-            peelGeneratorLoop(inlinable, dispatch, genfun);
-            succeed = true;
+            succeed = peelGeneratorLoop(inlinable, dispatch, genfun);
         }
 
         for (DispatchGeneratorNoneNode dispatch : NodeUtil.findAllNodeInstances(body, DispatchGeneratorNoneNode.class)) {
             PGeneratorFunction genfun = dispatch.getGeneratorFunction();
             boolean inlinable = isInlinable(dispatch, genfun);
-            peelGeneratorLoop(inlinable, dispatch, genfun);
-            succeed = true;
+            succeed = peelGeneratorLoop(inlinable, dispatch, genfun);
         }
 
         return succeed;
@@ -187,11 +185,11 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
         }, true);
     }
 
-    protected void peelGeneratorLoop(boolean inlinable, GeneratorDispatch dispatch, PGeneratorFunction genfun) {
+    protected boolean peelGeneratorLoop(boolean inlinable, GeneratorDispatch dispatch, PGeneratorFunction genfun) {
         CompilerAsserts.neverPartOfCompilation();
 
         if (!inlinable) {
-            return;
+            return false;
         }
 
         Node callNode = dispatch.getCallNode();
@@ -199,7 +197,7 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
         Node forNode = getIter.getParent();
 
         if (!(getIter instanceof GetIteratorNode) || !(forNode instanceof ForNode) || !(callNode instanceof PythonCallNode)) {
-            return;
+            return false;
         }
 
         PythonCallNode call = (PythonCallNode) callNode;
@@ -241,6 +239,7 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
 
         PrintStream ps = System.out;
         ps.println("[ZipPy] peeled generator " + genfun.getCallTarget() + " in " + getRootNode());
+        return true;
     }
 
     @Override

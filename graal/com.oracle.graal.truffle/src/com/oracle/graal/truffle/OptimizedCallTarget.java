@@ -257,11 +257,8 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
         logInliningDecision(result);
 
         // zwei
-        if (rootNode instanceof GuestRootNode) {
-            boolean succeed = ((GuestRootNode) rootNode).doAfterInliningPerformed();
-            if (succeed) {
-                inliningPerformed = false;
-            }
+        if (rootNode.applyTransformation()) {
+            inliningPerformed = false;
         }
     }
 

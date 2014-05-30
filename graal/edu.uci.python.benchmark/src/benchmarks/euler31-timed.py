@@ -60,6 +60,6 @@ def measure():
 
 # warm up
 for i in range(2500): # 300
-    solve(50)
+    solve(40)
 
 measure()
