@@ -13,18 +13,6 @@ library@JUNIT@sourceUrls=http://repo1.maven.org/maven2/junit/junit/4.11/junit-4.
 library@JUNIT@sourceSha1=28e0ad201304e4a4abf999ca0570b7cffc352c3c
 library@JUNIT@dependencies=HAMCREST
 
-library@ANT@path=lib/ant-1.9.3.jar
-library@ANT@urls=jar:http://tweedo.com/mirror/apache//ant/binaries/apache-ant-1.9.3-bin.zip!/apache-ant-1.9.3/lib/ant.jar
-library@ANT@sha1=311ac248030ff4f9f27e55561fadf3e99c646abb
-
-library@ANT_JUNIT@path=lib/ant-junit-1.9.3.jar
-library@ANT_JUNIT@urls=jar:http://tweedo.com/mirror/apache//ant/binaries/apache-ant-1.9.3-bin.zip!/apache-ant-1.9.3/lib/ant-junit.jar
-library@ANT_JUNIT@sha1=d1cafa6f9f174a6ca335b257e3b15c485d2c054a
-
-library@ANT_JUNIT4@path=lib/ant-junit4-1.9.3.jar
-library@ANT_JUNIT4@urls=jar:http://tweedo.com/mirror/apache//ant/binaries/apache-ant-1.9.3-bin.zip!/apache-ant-1.9.3/lib/ant-junit4.jar
-library@ANT_JUNIT4@sha1=a5443743a5b0abe9a1b4e40524ce6dee285cb99c
-
 library@HAMCREST@path=lib/hamcrest-core-1.3.jar
 library@HAMCREST@urls=http://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar
 library@HAMCREST@sha1=42a25dc3219429f0e5d060061f71acb49bf010a0
@@ -117,9 +105,6 @@ project@com.oracle.graal.api.runtime@sourceDirs=src
 project@com.oracle.graal.api.runtime@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.api.runtime@javaCompliance=1.8
 project@com.oracle.graal.api.runtime@workingSets=API,Graal
-
-project@ant@dependencies=ANT,ANT_JUNIT,ANT_JUNIT4
-project@ant@javaCompliance=1.7
 
 # graal.api.test
 project@com.oracle.graal.api.test@subDir=graal

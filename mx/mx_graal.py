@@ -949,7 +949,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
         for t in tests:
             found = False
             for c, p in candidates.iteritems():
-                if fnmatch.fnmatch(c, t):
+                if t in c:
                     found = True
                     classes.append(c)
                     projs.add(p.name)
@@ -979,7 +979,7 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
     if testfile is None:
         (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
         os.close(_)
-    corecp = mx.classpath(['com.oracle.graal.test', 'ant'])
+    corecp = mx.classpath(['com.oracle.graal.test'])
 
     if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
         subprocess.check_call([mx.java().javac, '-cp', corecp, '-d', mxdir, javaSource])

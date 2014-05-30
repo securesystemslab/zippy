@@ -27,12 +27,6 @@
  * linux [depending on the settings]: ~2097k)
  * see http://msdn.microsoft.com/en-us/library/ms682425%28VS.85%29.aspx
  */
-import org.apache.tools.ant.*;
-import org.apache.tools.ant.taskdefs.optional.junit.*;
-import org.apache.tools.ant.taskdefs.optional.junit.FormatterElement.TypeAttribute;
-import org.apache.tools.ant.taskdefs.optional.junit.JUnitTask.*;
-import org.apache.tools.ant.types.*;
-import org.apache.tools.ant.types.selectors.*;
 import com.oracle.graal.test.*;
 import java.io.*;
 import java.util.*;
@@ -40,15 +34,19 @@ import java.util.*;
 public class JUnitWrapper {
 
     /**
-     * @param args args[0] is the path where to read the names of the testclasses.
-     * @throws Exception
+     * @param args
+     *            args[0] is the path where to read the names of the testclasses.
      */
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         if (args.length == 0) {
             System.err.printf("wrong usage. provide a filename\n");
             System.exit(1);
         }
         ArrayList<String> tests = new ArrayList<String>(1000);
+        // add JUnit command line arguments
+        for (int i = 1; i < args.length; i++) {
+            tests.add(args[i]);
+        }
         BufferedReader br = null;
         try {
             br = new BufferedReader(new FileReader(args[0]));
@@ -77,69 +75,6 @@ public class JUnitWrapper {
         } else {
             System.out.printf("executing junit tests now... (%d test classes)\n", strargs.length);
         }
-
-        JUnitTask task = new JUnitTask();
-        task.setCloneVm(true);
-        task.setProject(new Project());
-        task.getProject().setSystemProperties();
-
-        task.getProject().setBasedir(".");
-        TypeAttribute ta = new TypeAttribute();
-        ta.setValue("xml");
-        FormatterElement fe = new FormatterElement();
-        fe.setType(ta);
-        task.addFormatter(fe);
-
-        File reportDir = new File("report");
-        reportDir.mkdirs();
-        File xmldir = new File(reportDir, "xml");
-        xmldir.mkdirs();
-        Set<String> ignore = new HashSet<>();
-        ignore.add("com.oracle.truffle.api.dsl.test.BinaryNodeTest");
-        ignore.add("com.oracle.truffle.api.dsl.test.ExecuteEvaluatedTest");
-        ignore.add("com.oracle.truffle.api.test.FrameTest");
-        ignore.add("com.oracle.truffle.api.dsl.test.UnsupportedSpecializationTest");
-        ignore.add("com.oracle.truffle.sl.test.SLSimpleTestSuite");
-        ignore.add("com.oracle.graal.compiler.test.ea.UnsafeEATest");
-        ignore.add("com.oracle.graal.hotspot.test.HotSpotNmethodTest");
-        ignore.add("com.oracle.graal.hotspot.test.WriteBarrierAdditionTest");
-        ignore.add("com.oracle.graal.hotspot.test.CompressedOopTest");
-        ignore.add("com.oracle.graal.compiler.test.deopt.MonitorDeoptTest"); // Probably CString problem
-        for (String name : tests) {
-            JUnitTest t = new JUnitTest();
-            t.setName(name);
-            t.setTodir(xmldir);
-            if (new File(xmldir, "TEST-" + name + ".xml").exists() || ignore.contains(name) 
-		) {
-                System.out.println("Ignoring testclass " + name);
-                t.setIf("run.all");
-            }
-            t.setFork(false);
-            t.setHaltonerror(false);
-            t.setHaltonfailure(false);
-            task.addTest(t);
-        }
-        SummaryAttribute sa = new SummaryAttribute();
-        sa.setValue("withOutAndErr");
-        task.setPrintsummary(sa);
-        task.setFork(false);
-        task.setShowOutput(true);
-        task.setOutputToFormatters(true);
-	task.setHaltonerror(false);
-
-        task.execute();
-        XMLResultAggregator report = new XMLResultAggregator();
-        report.setProject(task.getProject());
-        report.setTofile(new File(reportDir, "unittest-report-merged.xml").getPath());
-        FileSet resultFileSet = new FileSet();
-        resultFileSet.setDir(xmldir);
-        resultFileSet.setIncludes("*");
-        report.addFileSet(resultFileSet);
-        report.execute();
-        AggregateTransformer at = report.createReport();
-        File htmlDir = new File(reportDir, "html");
-        htmlDir.mkdirs();
-        at.setTodir(htmlDir);
-        at.transform();
+        GraalJUnitCore.main(strargs);
     }
 }
