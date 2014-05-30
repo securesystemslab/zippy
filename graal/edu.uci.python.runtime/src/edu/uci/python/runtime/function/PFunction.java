@@ -49,10 +49,6 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
         this.context = context;
     }
 
-    public static PFunction duplicate(PFunction function, RootCallTarget newCallTarget) {
-        return new PFunction(function.name, function.context, function.arity, newCallTarget, function.frameDescriptor, function.declarationFrame);
-    }
-
     @Override
     public RootCallTarget getCallTarget() {
         return callTarget;

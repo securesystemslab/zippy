@@ -92,16 +92,8 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
         return body;
     }
 
-    public InlinedFunctionRootNode getInlinedRootNode() {
-        return new InlinedFunctionRootNode(this);
-    }
-
     public PNode getUninitializedBody() {
         return uninitializedBody;
-    }
-
-    public PNode getClonedUninitializedBody() {
-        return NodeUtil.cloneNode(uninitializedBody);
     }
 
     @Override
@@ -254,27 +246,6 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
     @Override
     public String toString() {
         return "<function " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
-    }
-
-    public static class InlinedFunctionRootNode extends PNode {
-
-        private final String functionName;
-        @Child protected PNode body;
-
-        protected InlinedFunctionRootNode(FunctionRootNode node) {
-            this.functionName = node.functionName;
-            this.body = NodeUtil.cloneNode(node.uninitializedBody);
-        }
-
-        @Override
-        public Object execute(VirtualFrame frame) {
-            return body.execute(frame);
-        }
-
-        @Override
-        public String toString() {
-            return "<inlined function root " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
-        }
     }
 
 }

@@ -39,15 +39,16 @@ public class BuiltinFunctionRootNode extends RootNode {
 
     private final String functionName;
 
-    @Child protected PythonBuiltinNode builtinNode;
+    @Child protected PythonBuiltinNode body;
     private final PythonBuiltinNode uninitialized;
 
     @Child private PNode profiler;
 
     public BuiltinFunctionRootNode(String functionName, PythonBuiltinNode builtinNode) {
         this.functionName = functionName;
-        this.builtinNode = builtinNode;
+        this.body = builtinNode;
         this.uninitialized = NodeUtil.cloneNode(builtinNode);
+
         if (PythonOptions.ProfileCalls) {
             this.profiler = new ProfilerNode(this);
         } else {
@@ -65,7 +66,7 @@ public class BuiltinFunctionRootNode extends RootNode {
         if (PythonOptions.ProfileCalls) {
             profiler.execute(frame);
         }
-        return builtinNode.execute(frame);
+        return body.execute(frame);
 
     }
 

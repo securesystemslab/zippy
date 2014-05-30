@@ -58,9 +58,4 @@ public class FunctionDefinitionNode extends PNode {
         return new PFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame);
     }
 
-    @Override
-    public String toString() {
-        return super.toString() + "(" + name + ")";
-    }
-
 }
