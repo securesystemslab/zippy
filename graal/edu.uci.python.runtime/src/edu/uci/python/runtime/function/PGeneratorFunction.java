@@ -25,7 +25,6 @@
 package edu.uci.python.runtime.function;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
@@ -36,17 +35,13 @@ public final class PGeneratorFunction extends PFunction {
     private final int numOfActiveFlags;
     private final int numOfGeneratorBlockNode;
     private final int numOfGeneratorForNode;
-    private final CallTarget parallelCallTarget;
 
-    @CompilationFinal private boolean isWorthParallelizing = true;
-
-    public PGeneratorFunction(String name, PythonContext context, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame,
-                    CallTarget parallelCallTarget, int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+    public PGeneratorFunction(String name, PythonContext context, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, int numOfActiveFlags,
+                    int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         super(name, context, arity, callTarget, frameDescriptor, declarationFrame);
         this.numOfActiveFlags = numOfActiveFlags;
         this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
         this.numOfGeneratorForNode = numOfGeneratorForNode;
-        this.parallelCallTarget = parallelCallTarget;
     }
 
     public int getNumOfGeneratorBlockNode() {
@@ -59,12 +54,7 @@ public final class PGeneratorFunction extends PFunction {
 
     @Override
     public Object call(Object[] arguments) {
-        if (PythonOptions.ParallelizeGeneratorCalls) {
-            assert parallelCallTarget != null;
-            return makeParallelGeneratorHelper(arguments);
-        } else {
-            return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), arguments, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
-        }
+        return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), arguments, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
     @Override
@@ -72,14 +62,6 @@ public final class PGeneratorFunction extends PFunction {
         // keywords are ignored.
         assert keywords.length == 0;
         return call(arguments);
-    }
-
-    private PGenerator makeParallelGeneratorHelper(Object[] args) {
-        if (isWorthParallelizing) {
-            return PParallelGenerator.create(getName(), context, parallelCallTarget, getFrameDescriptor(), getDeclarationFrame(), args);
-        } else {
-            return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), args, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
-        }
     }
 
 }

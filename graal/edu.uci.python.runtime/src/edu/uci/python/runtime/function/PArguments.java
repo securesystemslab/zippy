@@ -25,13 +25,10 @@
 package edu.uci.python.runtime.function;
 
 import java.util.*;
-import java.util.concurrent.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
-
-import edu.uci.python.runtime.datatype.*;
 
 //@formatter:off
 /**
@@ -192,10 +189,6 @@ public class PArguments {
         return CompilerDirectives.unsafeCast(generatorFrame.getArguments()[INDEX_GENERATOR_FRAME], GeneratorControlData.class, true);
     }
 
-    public static ParallelGeneratorArguments getParallelGeneratorArguments(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_GENERATOR_FRAME], ParallelGeneratorArguments.class, true);
-    }
-
     public static void setGeneratorFrame(Object[] arguments, MaterializedFrame generatorFrame) {
         arguments[INDEX_GENERATOR_FRAME] = generatorFrame;
     }
@@ -207,10 +200,6 @@ public class PArguments {
 
     public static void setVirtualFrameCargoArguments(Object[] arguments, Frame cargoFrame) {
         arguments[INDEX_GENERATOR_FRAME] = cargoFrame;
-    }
-
-    public static void setParallelGeneratorArguments(Object[] arguments, ParallelGeneratorArguments generatorArguments) {
-        arguments[INDEX_GENERATOR_FRAME] = generatorArguments;
     }
 
     /**
@@ -244,45 +233,6 @@ public class PArguments {
 
         public VirtualFrame getCargoFrame() {
             return cargoFrame;
-        }
-    }
-
-    public static final class ParallelGeneratorArguments {
-
-        private final BlockingQueue<Object> blockingQueue;
-        private final SingleProducerCircularBuffer buffer;
-        private final Queue<Object> queue;
-
-        public ParallelGeneratorArguments(BlockingQueue<Object> queue) {
-            this.blockingQueue = queue;
-            this.buffer = null;
-            this.queue = null;
-        }
-
-        public ParallelGeneratorArguments(SingleProducerCircularBuffer buffer) {
-            this.blockingQueue = null;
-            this.buffer = buffer;
-            this.queue = null;
-        }
-
-        public ParallelGeneratorArguments(Queue<Object> queue) {
-            this.blockingQueue = null;
-            this.buffer = null;
-            this.queue = queue;
-        }
-
-        public BlockingQueue<Object> getBlockingQueue() {
-            assert blockingQueue != null;
-            return blockingQueue;
-        }
-
-        public SingleProducerCircularBuffer getBuffer() {
-            assert buffer != null;
-            return buffer;
-        }
-
-        public Queue<Object> getQueue() {
-            return queue;
         }
     }
 

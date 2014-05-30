@@ -226,8 +226,8 @@ public class PythonTreeTranslator extends Visitor {
         PNode funcDef;
         if (environment.isInGeneratorScope()) {
             GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
-            funcDef = GeneratorFunctionDefinitionNode.create(name, context, arity, defaults, gtran.translate(), fd, gtran.createParallelGeneratorCallTarget(), environment.needsDeclarationFrame(),
-                            gtran.getNumOfActiveFlags(), gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
+            funcDef = GeneratorFunctionDefinitionNode.create(name, context, arity, defaults, gtran.translate(), fd, environment.needsDeclarationFrame(), gtran.getNumOfActiveFlags(),
+                            gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
         } else {
             funcDef = new FunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
@@ -279,8 +279,8 @@ public class PythonTreeTranslator extends Visitor {
         PNode funcDef;
         if (environment.isInGeneratorScope()) {
             GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
-            funcDef = GeneratorFunctionDefinitionNode.create(name, context, arity, defaults, gtran.translate(), fd, gtran.createParallelGeneratorCallTarget(), environment.needsDeclarationFrame(),
-                            gtran.getNumOfActiveFlags(), gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
+            funcDef = GeneratorFunctionDefinitionNode.create(name, context, arity, defaults, gtran.translate(), fd, environment.needsDeclarationFrame(), gtran.getNumOfActiveFlags(),
+                            gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
         } else {
             funcDef = new FunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }

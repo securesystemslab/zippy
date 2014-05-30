@@ -66,16 +66,6 @@ public class PythonOptions {
 
     public static boolean OptimizeGeneratorExpressions = true;
 
-    // Parallel Generators
-    public static final boolean ParallelizeGeneratorCalls = false;
-
-    static {
-        if (ParallelizeGeneratorCalls) {
-            InlineGeneratorCalls = false;
-            OptimizeGeneratorExpressions = false;
-        }
-    }
-
     // Profiling
     public static boolean ProfileCalls = false;
 
