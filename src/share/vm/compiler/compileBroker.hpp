@@ -28,6 +28,7 @@
 #include "ci/compilerInterface.hpp"
 #include "compiler/abstractCompiler.hpp"
 #include "runtime/perfData.hpp"
+#include "trace/tracing.hpp"
 
 class nmethod;
 class nmethodLocker;
@@ -339,6 +340,7 @@ class CompileBroker: AllStatic {
   static void wait_for_completion(CompileTask* task);
 
   static void invoke_compiler_on_method(CompileTask* task);
+  static void post_compile(CompilerThread* thread, CompileTask* task, EventCompilation& event, bool success, ciEnv* ci_env);
   static void set_last_compile(CompilerThread *thread, methodHandle method, bool is_osr, int comp_level);
   static void push_jni_handle_block();
   static void pop_jni_handle_block();

@@ -142,6 +142,7 @@ struct java_nmethod_stats_struct {
   int handler_table_size;
   int nul_chk_table_size;
   int oops_size;
+  int metadata_size;
 
   void note_nmethod(nmethod* nm) {
     nmethod_count += 1;
@@ -151,6 +152,7 @@ struct java_nmethod_stats_struct {
     insts_size          += nm->insts_size();
     stub_size           += nm->stub_size();
     oops_size           += nm->oops_size();
+    metadata_size       += nm->metadata_size();
     scopes_data_size    += nm->scopes_data_size();
     scopes_pcs_size     += nm->scopes_pcs_size();
     dependencies_size   += nm->dependencies_size();
@@ -161,11 +163,13 @@ struct java_nmethod_stats_struct {
     if (nmethod_count == 0)  return;
     tty->print_cr("Statistics for %d bytecoded nmethods for %s:", nmethod_count, name);
     if (total_size != 0)          tty->print_cr(" total in heap  = %d", total_size);
+    if (nmethod_count != 0)       tty->print_cr(" header         = %d", nmethod_count * sizeof(nmethod));
     if (relocation_size != 0)     tty->print_cr(" relocation     = %d", relocation_size);
     if (consts_size != 0)         tty->print_cr(" constants      = %d", consts_size);
     if (insts_size != 0)          tty->print_cr(" main code      = %d", insts_size);
     if (stub_size != 0)           tty->print_cr(" stub code      = %d", stub_size);
     if (oops_size != 0)           tty->print_cr(" oops           = %d", oops_size);
+    if (metadata_size != 0)       tty->print_cr(" metadata       = %d", metadata_size);
     if (scopes_data_size != 0)    tty->print_cr(" scopes data    = %d", scopes_data_size);
     if (scopes_pcs_size != 0)     tty->print_cr(" scopes pcs     = %d", scopes_pcs_size);
     if (dependencies_size != 0)   tty->print_cr(" dependencies   = %d", dependencies_size);
@@ -180,12 +184,14 @@ struct native_nmethod_stats_struct {
   int native_relocation_size;
   int native_insts_size;
   int native_oops_size;
+  int native_metadata_size;
   void note_native_nmethod(nmethod* nm) {
     native_nmethod_count += 1;
     native_total_size       += nm->size();
     native_relocation_size  += nm->relocation_size();
     native_insts_size       += nm->insts_size();
     native_oops_size        += nm->oops_size();
+    native_metadata_size    += nm->metadata_size();
   }
   void print_native_nmethod_stats() {
     if (native_nmethod_count == 0)  return;
@@ -194,6 +200,7 @@ struct native_nmethod_stats_struct {
     if (native_relocation_size != 0)  tty->print_cr(" N. relocation  = %d", native_relocation_size);
     if (native_insts_size != 0)       tty->print_cr(" N. main code   = %d", native_insts_size);
     if (native_oops_size != 0)        tty->print_cr(" N. oops        = %d", native_oops_size);
+    if (native_metadata_size != 0)    tty->print_cr(" N. metadata    = %d", native_metadata_size);
   }
 };
 
@@ -229,10 +236,17 @@ static java_nmethod_stats_struct c2_java_nmethod_stats;
 #ifdef GRAAL
 static java_nmethod_stats_struct graal_java_nmethod_stats;
 #endif
+#ifdef SHARK
+static java_nmethod_stats_struct shark_java_nmethod_stats;
+#endif
 static java_nmethod_stats_struct unknown_java_nmethod_stats;
 
 static native_nmethod_stats_struct native_nmethod_stats;
 static pc_nmethod_stats_struct pc_nmethod_stats;
+
+static void note_native_wrapper_nmethod(nmethod* nm) {
+  native_nmethod_stats.note_native_nmethod(nm);
+}
 
 static void note_java_nmethod(nmethod* nm) {
 #ifdef COMPILER1
@@ -248,6 +262,11 @@ static void note_java_nmethod(nmethod* nm) {
 #ifdef GRAAL
   if (nm->is_compiled_by_graal()) {
     graal_java_nmethod_stats.note_nmethod(nm);
+  } else
+#endif
+#ifdef SHARK
+  if (nm->is_compiled_by_shark()) {
+    shark_java_nmethod_stats.note_nmethod(nm);
   } else
 #endif
   {
@@ -556,7 +575,7 @@ nmethod* nmethod::new_native_nmethod(methodHandle method,
                                             code_buffer, frame_size,
                                             basic_lock_owner_sp_offset,
                                             basic_lock_sp_offset, oop_maps);
-    if (nm != NULL)  note_java_nmethod(nm);
+    if (nm != NULL)  note_native_wrapper_nmethod(nm);
     if (PrintAssembly && nm != NULL) {
       Disassembler::decode(nm);
     }
@@ -1045,7 +1064,6 @@ void nmethod::log_new_nmethod() const {
 void nmethod::print_on(outputStream* st, const char* msg) const {
   if (st != NULL) {
     ttyLocker ttyl;
-    if (CIPrintCompilerName) st->print("%s:", compiler()->name());
     if (WizardMode) {
       CompileTask::print_compilation(st, this, msg, /*short_form:*/ true);
       st->print_cr(" (" INTPTR_FORMAT ")", this);
@@ -3083,9 +3101,14 @@ void nmethod::print_statistics() {
 #ifdef GRAAL
   graal_java_nmethod_stats.print_nmethod_stats("Graal");
 #endif
+#ifdef SHARK
+  shark_java_nmethod_stats.print_nmethod_stats("Shark");
+#endif
   unknown_java_nmethod_stats.print_nmethod_stats("Unknown");
   DebugInformationRecorder::print_statistics();
+#ifndef PRODUCT
   pc_nmethod_stats.print_pc_stats();
+#endif
   Dependencies::print_statistics();
   if (xtty != NULL)  xtty->tail("statistics");
 }

@@ -25,12 +25,102 @@
 #include "asm/codeBuffer.hpp"
 #include "graal/graalRuntime.hpp"
 #include "graal/graalVMToCompiler.hpp"
+#include "graal/graalCompilerToVM.hpp"
+#include "graal/graalJavaAccess.hpp"
+#include "graal/graalEnv.hpp"
 #include "memory/oopFactory.hpp"
 #include "prims/jvm.h"
 #include "runtime/biasedLocking.hpp"
 #include "runtime/interfaceSupport.hpp"
+#include "runtime/arguments.hpp"
 #include "runtime/reflection.hpp"
 #include "utilities/debug.hpp"
+
+address GraalRuntime::_external_deopt_i2c_entry = NULL;
+
+void GraalRuntime::initialize_natives(JNIEnv *env, jclass c2vmClass) {
+  uintptr_t heap_end = (uintptr_t) Universe::heap()->reserved_region().end();
+  uintptr_t allocation_end = heap_end + ((uintptr_t)16) * 1024 * 1024 * 1024;
+  AMD64_ONLY(guarantee(heap_end < allocation_end, "heap end too close to end of address space (might lead to erroneous TLAB allocations)"));
+  NOT_LP64(error("check TLAB allocation code for address space conflicts"));
+
+  JavaThread* THREAD = JavaThread::current();
+  {
+    ThreadToNativeFromVM trans(THREAD);
+
+    ResourceMark rm;
+    HandleMark hm;
+
+    graal_compute_offsets();
+
+    _external_deopt_i2c_entry = create_external_deopt_i2c();
+
+    // Ensure _non_oop_bits is initialized
+    Universe::non_oop_word();
+
+    env->RegisterNatives(c2vmClass, CompilerToVM_methods, CompilerToVM_methods_count());
+  }
+  check_pending_exception("Could not register natives");
+}
+
+BufferBlob* GraalRuntime::initialize_buffer_blob() {
+  JavaThread* THREAD = JavaThread::current();
+  BufferBlob* buffer_blob = THREAD->get_buffer_blob();
+  if (buffer_blob == NULL) {
+    buffer_blob = BufferBlob::create("Graal thread-local CodeBuffer", GraalNMethodSizeLimit);
+    if (buffer_blob != NULL) {
+      THREAD->set_buffer_blob(buffer_blob);
+    }
+  }
+  return buffer_blob;
+}
+
+address GraalRuntime::create_external_deopt_i2c() {
+  ResourceMark rm;
+  BufferBlob* buffer = BufferBlob::create("externalDeopt", 1*K);
+  CodeBuffer cb(buffer);
+  short buffer_locs[20];
+  cb.insts()->initialize_shared_locs((relocInfo*)buffer_locs, sizeof(buffer_locs)/sizeof(relocInfo));
+  MacroAssembler masm(&cb);
+
+  int total_args_passed = 5;
+
+  BasicType* sig_bt = NEW_RESOURCE_ARRAY(BasicType, total_args_passed);
+  VMRegPair* regs   = NEW_RESOURCE_ARRAY(VMRegPair, total_args_passed);
+  int i = 0;
+  sig_bt[i++] = T_INT;
+  sig_bt[i++] = T_LONG;
+  sig_bt[i++] = T_VOID; // long stakes 2 slots
+  sig_bt[i++] = T_INT;
+  sig_bt[i++] = T_OBJECT;
+
+  int comp_args_on_stack = SharedRuntime::java_calling_convention(sig_bt, regs, total_args_passed, false);
+
+  SharedRuntime::gen_i2c_adapter(&masm, total_args_passed, comp_args_on_stack, sig_bt, regs);
+  masm.flush();
+
+  return AdapterBlob::create(&cb)->content_begin();
+}
+
+BasicType GraalRuntime::kindToBasicType(jchar ch) {
+  switch(ch) {
+    case 'z': return T_BOOLEAN;
+    case 'b': return T_BYTE;
+    case 's': return T_SHORT;
+    case 'c': return T_CHAR;
+    case 'i': return T_INT;
+    case 'f': return T_FLOAT;
+    case 'j': return T_LONG;
+    case 'd': return T_DOUBLE;
+    case 'a': return T_OBJECT;
+    case 'r': return T_ADDRESS;
+    case '-': return T_ILLEGAL;
+    default:
+      fatal(err_msg("unexpected Kind: %c", ch));
+      break;
+  }
+  return T_ILLEGAL;
+}
 
 // Simple helper to see if the caller of a runtime stub which
 // entered the VM has been deoptimized
@@ -546,12 +636,200 @@ JRT_ENTRY(jboolean, GraalRuntime::thread_is_interrupted(JavaThread* thread, oopD
   }
 JRT_END
 
-// JVM_InitializeGraalRuntime
-JVM_ENTRY(jobject, JVM_InitializeGraalRuntime(JNIEnv *env, jclass graalclass))
-  return VMToCompiler::graalRuntimePermObject();
+// private static GraalRuntime Graal.initializeRuntime()
+JVM_ENTRY(jobject, JVM_GetGraalRuntime(JNIEnv *env, jclass c))
+  return VMToCompiler::get_HotSpotGraalRuntime_jobject();
 JVM_END
 
-// JVM_InitializeTruffleRuntime
-JVM_ENTRY(jobject, JVM_InitializeTruffleRuntime(JNIEnv *env, jclass graalclass))
-  return JNIHandles::make_local(VMToCompiler::truffleRuntime()());
+// private static String[] Graal.getServiceImpls(Class service)
+JVM_ENTRY(jobject, JVM_GetGraalServiceImpls(JNIEnv *env, jclass c, jclass serviceClass))
+  HandleMark hm;
+  KlassHandle serviceKlass(THREAD, java_lang_Class::as_Klass(JNIHandles::resolve_non_null(serviceClass)));
+  return JNIHandles::make_local(THREAD, GraalRuntime::get_service_impls(serviceKlass, THREAD)());
 JVM_END
+
+// private static TruffleRuntime Truffle.createRuntime()
+JVM_ENTRY(jobject, JVM_CreateTruffleRuntime(JNIEnv *env, jclass c))
+  return JNIHandles::make_local(VMToCompiler::create_HotSpotTruffleRuntime()());
+JVM_END
+
+// private static void HotSpotGraalRuntime.init(Class compilerToVMClass)
+JVM_ENTRY(void, JVM_InitializeGraalNatives(JNIEnv *env, jclass c, jclass c2vmClass))
+  GraalRuntime::initialize_natives(env, c2vmClass);
+JVM_END
+
+// private static boolean HotSpotOptions.parseVMOptions()
+JVM_ENTRY(jboolean, JVM_ParseGraalOptions(JNIEnv *env, jclass c))
+  HandleMark hm;
+  KlassHandle hotSpotOptionsClass(THREAD, java_lang_Class::as_Klass(JNIHandles::resolve_non_null(c)));
+  return GraalRuntime::parse_arguments(hotSpotOptionsClass, CHECK_false);
+JVM_END
+
+bool GraalRuntime::parse_arguments(KlassHandle hotSpotOptionsClass, TRAPS) {
+  ResourceMark rm(THREAD);
+
+  // Process option overrides from graal.options first
+  parse_graal_options_file(hotSpotOptionsClass, CHECK_false);
+
+  // Now process options on the command line
+  int numOptions = Arguments::num_graal_args();
+  for (int i = 0; i < numOptions; i++) {
+    char* arg = Arguments::graal_args_array()[i];
+    parse_argument(hotSpotOptionsClass, arg, CHECK_false);
+  }
+  return CITime || CITimeEach;
+}
+
+void GraalRuntime::parse_argument(KlassHandle hotSpotOptionsClass, char* arg, TRAPS) {
+  char first = arg[0];
+  char* name;
+  size_t name_len;
+  Handle name_handle;
+  bool valid = true;
+  if (first == '+' || first == '-') {
+    name = arg + 1;
+    name_len = strlen(name);
+    name_handle = java_lang_String::create_from_str(name, CHECK);
+    valid = set_option(hotSpotOptionsClass, name, (int)name_len, name_handle, arg, CHECK);
+  } else {
+    char* sep = strchr(arg, '=');
+    if (sep != NULL) {
+      name = arg;
+      name_len = sep - name;
+      // Temporarily replace '=' with NULL to create the Java string for the option name
+      *sep = '\0';
+      name_handle = java_lang_String::create_from_str(arg, THREAD);
+      *sep = '=';
+      if (HAS_PENDING_EXCEPTION) {
+        return;
+      }
+      valid = set_option(hotSpotOptionsClass, name, (int)name_len, name_handle, sep + 1, CHECK);
+    } else {
+      char buf[200];
+      jio_snprintf(buf, sizeof(buf), "Value for option %s must use '-G:%s=<value>' format", arg, arg);
+      THROW_MSG(vmSymbols::java_lang_InternalError(), buf);
+    }
+  }
+
+  if (!valid) {
+    VMToCompiler::setOption(hotSpotOptionsClass, name_handle, Handle(), ' ', Handle(), 0L);
+    char buf[200];
+    jio_snprintf(buf, sizeof(buf), "Invalid Graal option %s", arg);
+    THROW_MSG(vmSymbols::java_lang_InternalError(), buf);
+  }
+}
+
+void GraalRuntime::parse_graal_options_file(KlassHandle hotSpotOptionsClass, TRAPS) {
+  const char* home = Arguments::get_java_home();
+  int path_len = (int)strlen(home) + (int)strlen("/lib/graal.options") + 1;
+  char* path = NEW_RESOURCE_ARRAY_IN_THREAD(THREAD, char, path_len);
+  char sep = os::file_separator()[0];
+  sprintf(path, "%s%clib%cgraal.options", home, sep, sep);
+
+  struct stat st;
+  if (os::stat(path, &st) == 0) {
+    int file_handle = os::open(path, 0, 0);
+    if (file_handle != -1) {
+      char* buffer = NEW_RESOURCE_ARRAY_IN_THREAD(THREAD, char, st.st_size);
+      int num_read = (int) os::read(file_handle, (char*) buffer, st.st_size);
+      if (num_read == -1) {
+        warning("Error reading file %s due to %s", path, strerror(errno));
+      } else if (num_read != st.st_size) {
+        warning("Only read %d of %d bytes from %s", num_read, st.st_size, path);
+      }
+      os::close(file_handle);
+      if (num_read == st.st_size) {
+        char* line = buffer;
+        int lineNo = 1;
+        while (line - buffer < num_read) {
+          char* nl = strchr(line, '\n');
+          if (nl != NULL) {
+            *nl = '\0';
+          }
+          parse_argument(hotSpotOptionsClass, line, THREAD);
+          if (HAS_PENDING_EXCEPTION) {
+            warning("Error in %s:%d", path, lineNo);
+            return;
+          }
+          if (nl != NULL) {
+            line = nl + 1;
+            lineNo++;
+          } else {
+            // File without newline at the end
+            break;
+          }
+        }
+      }
+    } else {
+      warning("Error opening file %s due to %s", path, strerror(errno));
+    }
+  }
+}
+
+jlong GraalRuntime::parse_primitive_option_value(char spec, Handle name, const char* value, TRAPS) {
+  union {
+    jint i;
+    jlong l;
+    double d;
+  } uu;
+  uu.l = 0L;
+  char dummy;
+  switch (spec) {
+    case 'd':
+    case 'f': {
+      if (sscanf(value, "%lf%c", &uu.d, &dummy) == 1) {
+        return uu.l;
+      }
+      break;
+    }
+    case 'i': {
+      if (sscanf(value, "%d%c", &uu.i, &dummy) == 1) {
+        return uu.l;
+      }
+      break;
+    }
+    default:
+      ShouldNotReachHere();
+  }
+  ResourceMark rm(THREAD);
+  char buf[200];
+  jio_snprintf(buf, sizeof(buf), "Invalid %s value for Graal option %s: %s", (spec == 'i' ? "numeric" : "float/double"), java_lang_String::as_utf8_string(name()), value);
+  THROW_MSG_(vmSymbols::java_lang_InternalError(), buf, 0L);
+}
+
+Handle GraalRuntime::get_OptionValue(const char* declaringClass, const char* fieldName, const char* fieldSig, TRAPS) {
+  TempNewSymbol name = SymbolTable::new_symbol(declaringClass, THREAD);
+  Klass* klass = SystemDictionary::resolve_or_fail(name, true, CHECK_NH);
+
+  // The class has been loaded so the field and signature should already be in the symbol
+  // table.  If they're not there, the field doesn't exist.
+  TempNewSymbol fieldname = SymbolTable::probe(fieldName, (int)strlen(fieldName));
+  TempNewSymbol signame = SymbolTable::probe(fieldSig, (int)strlen(fieldSig));
+  if (fieldname == NULL || signame == NULL) {
+    THROW_MSG_(vmSymbols::java_lang_NoSuchFieldError(), (char*) fieldName, Handle());
+  }
+  // Make sure class is initialized before handing id's out to fields
+  klass->initialize(CHECK_NH);
+
+  fieldDescriptor fd;
+  if (!InstanceKlass::cast(klass)->find_field(fieldname, signame, true, &fd)) {
+    THROW_MSG_(vmSymbols::java_lang_NoSuchFieldError(), (char*) fieldName, Handle());
+  }
+
+  Handle ret = klass->java_mirror()->obj_field(fd.offset());
+  return ret;
+}
+
+Handle GraalRuntime::create_Service(const char* name, TRAPS) {
+  TempNewSymbol kname = SymbolTable::new_symbol(name, THREAD);
+  Klass* k = SystemDictionary::resolve_or_fail(kname, true, CHECK_NH);
+  instanceKlassHandle klass(THREAD, k);
+  klass->initialize(CHECK_NH);
+  klass->check_valid_for_instantiation(true, CHECK_NH);
+  JavaValue result(T_VOID);
+  instanceHandle service = klass->allocate_instance_handle(CHECK_NH);
+  JavaCalls::call_special(&result, service, klass, vmSymbols::object_initializer_name(), vmSymbols::void_method_signature(), THREAD);
+  return service;
+}
+
+#include "graalRuntime.inline.hpp"

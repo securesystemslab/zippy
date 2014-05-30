@@ -70,6 +70,9 @@
 #include "oops/constMethod.hpp"
 #include "oops/constantPool.hpp"
 #include "oops/cpCache.hpp"
+#ifdef GRAAL
+#include "oops/fieldStreams.hpp"
+#endif
 #include "oops/instanceClassLoaderKlass.hpp"
 #include "oops/instanceKlass.hpp"
 #include "oops/instanceMirrorKlass.hpp"
@@ -105,7 +108,9 @@
 #include "utilities/hashtable.hpp"
 #include "utilities/macros.hpp"
 #ifdef GRAAL
+# include "graal/graalRuntime.hpp"
 # include "graal/vmStructs_graal.hpp"
+# include "hsail/vm/vmStructs_hsail.hpp"
 #endif
 #ifdef TARGET_ARCH_x86
 # include "vmStructs_x86.hpp"
@@ -152,8 +157,6 @@
 #ifdef TARGET_OS_ARCH_bsd_zero
 # include "vmStructs_bsd_zero.hpp"
 #endif
-
-#include "hsail/vm/vmStructs_hsail.hpp"
 
 #if INCLUDE_ALL_GCS
 #include "gc_implementation/concurrentMarkSweep/compactibleFreeListSpace.hpp"
@@ -1307,6 +1310,7 @@ typedef BinaryTreeDictionary<Metablock, FreeList> MetablockTreeDictionary;
   nonstatic_field(CompileTask,                 _osr_bci,                                     int)                                    \
   nonstatic_field(CompileTask,                 _comp_level,                                  int)                                    \
   nonstatic_field(CompileTask,                 _compile_id,                                  uint)                                   \
+  nonstatic_field(CompileTask,                 _num_inlined_bytecodes,                       int)                                    \
   nonstatic_field(CompileTask,                 _next,                                        CompileTask*)                           \
   nonstatic_field(CompileTask,                 _prev,                                        CompileTask*)                           \
                                                                                                                                      \
@@ -3041,7 +3045,9 @@ VMStructEntry VMStructs::localHotSpotVMStructs[] = {
                  GENERATE_C1_UNCHECKED_STATIC_VM_STRUCT_ENTRY,
                  GENERATE_C2_UNCHECKED_STATIC_VM_STRUCT_ENTRY)
 
+#ifdef GRAAL
   VM_STRUCTS_GPU_HSAIL(GENERATE_NONSTATIC_VM_STRUCT_ENTRY)
+#endif
           
   VM_STRUCTS_OS_CPU(GENERATE_NONSTATIC_VM_STRUCT_ENTRY,
                     GENERATE_STATIC_VM_STRUCT_ENTRY,
@@ -3093,8 +3099,10 @@ VMTypeEntry VMStructs::localHotSpotVMTypes[] = {
                GENERATE_C2_VM_TYPE_ENTRY,
                GENERATE_C2_TOPLEVEL_VM_TYPE_ENTRY)
 
+#ifdef GRAAL
   VM_TYPES_GPU_HSAIL(GENERATE_VM_TYPE_ENTRY,
                GENERATE_TOPLEVEL_VM_TYPE_ENTRY)
+#endif
 
   VM_TYPES_OS_CPU(GENERATE_VM_TYPE_ENTRY,
                   GENERATE_TOPLEVEL_VM_TYPE_ENTRY,
@@ -3119,6 +3127,7 @@ VMIntConstantEntry VMStructs::localHotSpotVMIntConstants[] = {
 #ifdef GRAAL
   VM_INT_CONSTANTS_GRAAL(GENERATE_VM_INT_CONSTANT_ENTRY,
                          GENERATE_PREPROCESSOR_VM_INT_CONSTANT_ENTRY)
+
 #endif
 
 #if INCLUDE_ALL_GCS
@@ -3200,7 +3209,9 @@ VMStructs::init() {
                  CHECK_NO_OP,
                  CHECK_NO_OP);
 
-  VM_STRUCTS_GPU_HSAIL(CHECK_NONSTATIC_VM_STRUCT_ENTRY);
+#ifdef GRAAL
+  VM_STRUCTS_GPU_HSAIL(CHECK_NONSTATIC_VM_STRUCT_ENTRY)
+#endif
 
   VM_STRUCTS_OS_CPU(CHECK_NONSTATIC_VM_STRUCT_ENTRY,
                     CHECK_STATIC_VM_STRUCT_ENTRY,
@@ -3242,8 +3253,10 @@ VMStructs::init() {
                CHECK_C2_VM_TYPE_ENTRY,
                CHECK_C2_TOPLEVEL_VM_TYPE_ENTRY);
 
+#ifdef GRAAL
   VM_TYPES_GPU_HSAIL(CHECK_VM_TYPE_ENTRY,
                CHECK_SINGLE_ARG_VM_TYPE_NO_OP);
+#endif
 
   VM_TYPES_OS_CPU(CHECK_VM_TYPE_ENTRY,
                   CHECK_SINGLE_ARG_VM_TYPE_NO_OP,
@@ -3469,4 +3482,12 @@ void VMStructs::test() {
     }
   }
 }
+#endif
+
+
+#ifdef GRAAL
+// Emit intialization code for HotSpotVMConfig.  It's placed here so
+// it can take advantage of the relaxed access checking enjoyed by
+// VMStructs.
+#include "HotSpotVMConfig.inline.hpp"
 #endif

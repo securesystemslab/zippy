@@ -21,20 +21,19 @@
  * questions.
  */
 
+
 /* Execute testcases by reading names from a given file, due to limits of
  * the operating system regarding command line size (windows: 32k,
  * linux [depending on the settings]: ~2097k)
  * see http://msdn.microsoft.com/en-us/library/ms682425%28VS.85%29.aspx
  */
-
 import org.apache.tools.ant.*;
 import org.apache.tools.ant.taskdefs.optional.junit.*;
 import org.apache.tools.ant.taskdefs.optional.junit.FormatterElement.TypeAttribute;
 import org.apache.tools.ant.taskdefs.optional.junit.JUnitTask.*;
 import org.apache.tools.ant.types.*;
 import org.apache.tools.ant.types.selectors.*;
-import org.junit.runner.*;
-
+import com.oracle.graal.test.*;
 import java.io.*;
 import java.util.*;
 
