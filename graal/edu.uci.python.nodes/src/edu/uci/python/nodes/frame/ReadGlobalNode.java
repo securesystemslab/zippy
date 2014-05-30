@@ -45,7 +45,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
     protected final PythonContext context;
     protected final PythonModule globalScope;
 
-    public ReadGlobalNode(PythonContext context, PythonModule globalScope, String attributeId) {
+    private ReadGlobalNode(PythonContext context, PythonModule globalScope, String attributeId) {
         this.attributeId = attributeId;
         this.context = context;
         this.globalScope = globalScope;

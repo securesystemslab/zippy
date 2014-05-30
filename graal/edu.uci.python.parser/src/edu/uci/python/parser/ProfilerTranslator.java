@@ -74,6 +74,16 @@ public class ProfilerTranslator implements NodeVisitor {
             createWrapperNode((PNode) node);
         }
 
+// if (node instanceof WriteLocalVariableNode) {
+// WriteLocalVariableNode writeLocal = (WriteLocalVariableNode) node;
+// createWrapperNode((PNode) node);
+// } else if (node instanceof FrameReturnNode) {
+// createWrapperNode((PNode) node);
+// }
+// } else if (node instanceof SetAttributeNode) {
+// createWrapperNode((PNode) node);
+// }
+
 // else if (node instanceof WriteNode) {
 // createWrapperNode((PNode) node);
 // } else if (node instanceof ReadLocalVariableNode) {
@@ -88,7 +98,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createWrapperNode(PNode node) {
         if (node.getSourceSection() == null) {
-            throw new RuntimeException("SOURCE IS NOT ASSIGNED " + node + " " + node.getClass());
+            throw new RuntimeException("Source is not assigned for " + node);
         }
         PythonWrapperNode wrapperNode = astProber.probeAsStatement(node);
         node.replace(wrapperNode);

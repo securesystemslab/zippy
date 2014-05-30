@@ -104,7 +104,6 @@ public abstract class ReadIndexedArgumentNode extends PNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-
             if (index >= PArguments.getUserArgumentLength(frame)) {
                 replace(new OffBoundReadArgumentNode(index));
                 return PNone.NONE;
