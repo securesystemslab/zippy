@@ -44,7 +44,7 @@ public abstract class LoopNode extends StatementNode {
         return body;
     }
 
-    protected final void reportLoopCount(int count) {
+    protected void reportLoopCount(int count) {
         CompilerAsserts.neverPartOfCompilation();
         RootNode root = getRootNode();
         assert root != null;
