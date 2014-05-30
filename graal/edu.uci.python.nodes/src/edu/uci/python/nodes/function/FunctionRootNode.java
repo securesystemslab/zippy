@@ -68,6 +68,7 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
         this.isGenerator = isGenerator;
         this.body = NodeUtil.cloneNode(body);
         this.uninitializedBody = NodeUtil.cloneNode(body);
+
         if (PythonOptions.ProfileCalls) {
             this.profiler = new ProfilerNode(this);
         } else {
@@ -120,32 +121,37 @@ public final class FunctionRootNode extends RootNode implements GuestRootNode {
     }
 
     @Override
-    public void doAfterInliningPerformed() {
-        optimizeHelper();
+    public boolean doAfterInliningPerformed() {
+        return optimizeHelper();
     }
 
-    private void optimizeHelper() {
+    private boolean optimizeHelper() {
         CompilerAsserts.neverPartOfCompilation();
 
         if (CompilerDirectives.inCompiledCode() || !PythonOptions.InlineGeneratorCalls || isGenerator) {
-            return;
+            return false;
         }
 
         if (PythonOptions.OptimizeGeneratorExpressions) {
             new GeneratorExpressionOptimizer(this).optimize();
         }
 
+        boolean succeed = false;
         for (DispatchGeneratorBoxedNode dispatch : NodeUtil.findAllNodeInstances(body, DispatchGeneratorBoxedNode.class)) {
             PGeneratorFunction genfun = dispatch.getGeneratorFunction();
             boolean inlinable = isInlinable(dispatch, genfun);
             peelGeneratorLoop(inlinable, dispatch, genfun);
+            succeed = true;
         }
 
         for (DispatchGeneratorNoneNode dispatch : NodeUtil.findAllNodeInstances(body, DispatchGeneratorNoneNode.class)) {
             PGeneratorFunction genfun = dispatch.getGeneratorFunction();
             boolean inlinable = isInlinable(dispatch, genfun);
             peelGeneratorLoop(inlinable, dispatch, genfun);
+            succeed = true;
         }
+
+        return succeed;
     }
 
     private boolean isInlinable(CallDispatchNode dispatch, PGeneratorFunction genfun) {

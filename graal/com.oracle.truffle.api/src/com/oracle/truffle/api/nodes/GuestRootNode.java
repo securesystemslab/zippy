@@ -32,6 +32,6 @@ package com.oracle.truffle.api.nodes;
  */
 public interface GuestRootNode {
 
-    void doAfterInliningPerformed();
+    boolean doAfterInliningPerformed();
 
 }

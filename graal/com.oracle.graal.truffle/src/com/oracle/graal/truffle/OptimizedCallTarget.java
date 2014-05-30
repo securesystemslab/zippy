@@ -57,7 +57,6 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
     @CompilationFinal private Assumption profiledReturnTypeAssumption;
 
     private final RootNode rootNode;
-    private int countdown = 5;
 
     public final RootNode getRootNode() {
         return rootNode;
@@ -160,7 +159,6 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
     public void compile() {
         if (!runtime.isCompiling(this)) {
             performInlining();
-            logOptimizingQueued(this);
 
             // zwei
             if (TrufflePrintCompilingAST.getValue()) {
@@ -168,7 +166,10 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
                 NodeUtil.printCompactTree(OUT, getRootNode());
             }
 
-            runtime.compile(this, TruffleBackgroundCompilation.getValue());
+            if (inliningPerformed) {
+                logOptimizingQueued(this);
+                runtime.compile(this, TruffleBackgroundCompilation.getValue());
+            }
         }
     }
 
@@ -249,6 +250,7 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
         if (inliningPerformed) {
             return;
         }
+
         TruffleInliningHandler handler = new TruffleInliningHandler(new DefaultInliningPolicy());
         TruffleInliningResult result = handler.decideInlining(this, 0);
         performInlining(result);
@@ -256,12 +258,10 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
 
         // zwei
         if (rootNode instanceof GuestRootNode) {
-            ((GuestRootNode) rootNode).doAfterInliningPerformed();
-        }
-
-        if (countdown > 0) {
-            inliningPerformed = false;
-            countdown--;
+            boolean succeed = ((GuestRootNode) rootNode).doAfterInliningPerformed();
+            if (succeed) {
+                inliningPerformed = false;
+            }
         }
     }
 
