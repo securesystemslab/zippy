@@ -29,7 +29,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.function.*;
@@ -37,7 +37,7 @@ import edu.uci.python.runtime.object.*;
 
 public abstract class PeeledGeneratorLoopNode extends PNode {
 
-    @Children protected final PNode[] argumentNodes;
+    @Child protected ArgumentsNode argumentsNode;
     @Child protected PNode inlinedRootNode;
     private final PNode originalLoop;
 
@@ -47,7 +47,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
     public PeeledGeneratorLoopNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode[] argumentNodes, PNode originalLoop) {
         this.frameDescriptor = frameDescriptor;
         this.inlinedRootNode = generatorRoot.split().getBody();
-        this.argumentNodes = argumentNodes;
+        this.argumentsNode = new ArgumentsNode(argumentNodes);
         this.generatorName = generatorRoot.getFunctionName();
         this.originalLoop = originalLoop;
     }
@@ -89,7 +89,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
 
             try {
                 if (checkNode.accept(primary)) {
-                    final Object[] arguments = PythonCallUtil.executeArguments(frame, argumentNodes);
+                    final Object[] arguments = argumentsNode.executeArguments(frame);
                     PArguments.setVirtualFrameCargoArguments(arguments, frame);
                     VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
                     return inlinedRootNode.execute(generatorFrame);
@@ -125,7 +125,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
             }
 
             if (cachedCallee == callee) {
-                final Object[] arguments = PythonCallUtil.executeArguments(frame, argumentNodes);
+                final Object[] arguments = argumentsNode.executeArguments(frame);
                 PArguments.setVirtualFrameCargoArguments(arguments, frame);
                 VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
                 return inlinedRootNode.execute(generatorFrame);
