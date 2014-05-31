@@ -26,7 +26,6 @@ package edu.uci.python.runtime;
 
 import java.io.*;
 import java.lang.invoke.*;
-import java.util.concurrent.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.instrument.*;
@@ -52,9 +51,6 @@ public class PythonContext extends ExecutionContext {
     private final PythonParser parser;
     private final ImportManager importManager;
 
-    // Parallel generators
-    private final ExecutorService executorService;
-
     private static PythonContext currentContext;
 
     private RuntimeException currentException;
@@ -78,7 +74,6 @@ public class PythonContext extends ExecutionContext {
         currentContext = this;
 
         this.builtinsModule = this.lookup.populateBuiltins(this);
-        this.executorService = Executors.newCachedThreadPool();
     }
 
     public PythonModule createMainModule(String path) {
@@ -172,12 +167,7 @@ public class PythonContext extends ExecutionContext {
         return currentException;
     }
 
-    public void submitParallelTask(Runnable task) {
-        executorService.execute(task);
-    }
-
     public void shutdown() {
-        executorService.shutdown();
     }
 
     @Override

@@ -54,6 +54,9 @@ public final class FunctionRootNode extends RootNode {
     private final PythonContext context;
     private final String functionName;
 
+    /**
+     * Generator related flags.
+     */
     private final boolean isGenerator;
     private boolean hasGeneratorExpression;
     private int peelingTrialCounter = 0;
