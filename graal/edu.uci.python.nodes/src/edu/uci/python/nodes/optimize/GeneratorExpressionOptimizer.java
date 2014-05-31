@@ -87,8 +87,9 @@ public class GeneratorExpressionOptimizer {
              */
             if (genexp.getParent() instanceof GetIteratorNode) {
                 desugarGeneratorExpression(genexp, (GetIteratorNode) genexp.getParent(), false);
-            } else if (genexp.getParent() instanceof PythonCallNode) {
-                BoxedCallNode callNode = (BoxedCallNode) genexp.getParent();
+            } else if (genexp.getParent() instanceof ArgumentsNode) {
+                ArgumentsNode arguments = (ArgumentsNode) genexp.getParent();
+                BoxedCallNode callNode = (BoxedCallNode) arguments.getParent();
                 assert callNode.isInlined();
                 FunctionRootNode calleeRoot = (FunctionRootNode) callNode.getInlinedCalleeRoot();
                 PeeledGeneratorLoopBoxedNode manualInlinedCallNode = new PeeledGeneratorLoopBoxedNode(calleeRoot, calleeRoot.getFrameDescriptor(), callNode.getPrimaryNode(),
