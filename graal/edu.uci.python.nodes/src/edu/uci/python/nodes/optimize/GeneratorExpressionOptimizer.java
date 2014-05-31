@@ -42,7 +42,6 @@ import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.*;
-import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import static edu.uci.python.nodes.function.GeneratorFunctionDefinitionNode.*;

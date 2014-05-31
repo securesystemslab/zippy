@@ -22,49 +22,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.nodes.statement.*;
 
-public class WhileNode extends LoopNode {
+public final class ElseNode extends StatementNode {
 
-    @Child protected CastToBooleanNode condition;
+    @Child protected PNode then;
+    @Child protected PNode orelse;
 
-    public WhileNode(CastToBooleanNode condition, PNode body) {
-        super(body);
-        this.condition = condition;
-    }
-
-    public CastToBooleanNode getCondition() {
-        return condition;
+    public ElseNode(PNode then, PNode orelse) {
+        this.then = then;
+        this.orelse = orelse;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        int count = 0;
-
-        try {
-            while (condition.executeBoolean(frame)) {
-                loopBodyBranch.enter();
-                body.execute(frame);
-
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
-        }
-
-        return PNone.NONE;
+        then.execute(frame);
+        return orelse.execute(frame);
     }
 
 }

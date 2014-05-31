@@ -36,7 +36,6 @@ import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
-import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 
 public class BuiltinIntrinsifier {

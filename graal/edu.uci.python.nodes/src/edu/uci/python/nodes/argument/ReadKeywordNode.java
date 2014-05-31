@@ -31,11 +31,12 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
 /**
+ * Only used in the builtin functions because only certain arguments can be keywords arguments in
+ * the builtin functions. You can't use a keyword argument for each parameter as in regular
+ * functions.
+ * 
  * @author Gulfem
  *
- *         Only used in the builtin functions because only certain arguments can be keywords
- *         arguments in the builtin functions. You can't use a keyword argument for each parameter
- *         as in regular functions.
  */
 public class ReadKeywordNode extends PNode {
 

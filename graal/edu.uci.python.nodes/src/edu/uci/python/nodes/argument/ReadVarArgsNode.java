@@ -25,6 +25,7 @@
 package edu.uci.python.nodes.argument;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
@@ -44,6 +45,7 @@ public final class ReadVarArgsNode extends ReadIndexedArgumentNode {
         return executePTuple(frame);
     }
 
+    @ExplodeLoop
     @Override
     public PTuple executePTuple(VirtualFrame frame) {
         final int userArgumentLength = PArguments.getUserArgumentLength(frame);

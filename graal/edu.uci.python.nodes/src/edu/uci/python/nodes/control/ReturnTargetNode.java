@@ -22,49 +22,47 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.generator.*;
+import edu.uci.python.nodes.statement.*;
+import edu.uci.python.runtime.exception.*;
 
-public class BlockNode extends StatementNode {
+public class ReturnTargetNode extends StatementNode {
 
-    @Children protected final PNode[] statements;
+    @Child protected PNode body;
+    @Child protected PNode returnValue;
 
-    protected BlockNode(PNode[] statements) {
-        this.statements = statements;
-        assert statements.length > 0;
+    private final BranchProfile returnProfile = new BranchProfile();
+
+    public ReturnTargetNode(PNode body, PNode returnValue) {
+        this.body = body;
+        this.returnValue = returnValue;
     }
 
-    public static PNode create(PNode... statements) {
-        final int length = statements.length;
-
-        if (length == 0) {
-            return EmptyNode.create();
-        } else if (length == 1) {
-            return statements[0] instanceof YieldNode ? new BlockNode(statements) : statements[0];
-        } else {
-            return new BlockNode(statements);
-        }
+    protected ReturnTargetNode(ReturnTargetNode prev) {
+        this(prev.body, prev.returnValue);
     }
 
-    public final PNode[] getStatements() {
-        return statements;
+    public PNode getBody() {
+        return body;
     }
 
-    @ExplodeLoop
+    public PNode getReturn() {
+        return returnValue;
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
-        Object result = null;
-
-        for (int i = 0; i < statements.length; i++) {
-            result = statements[i].execute(frame);
+        try {
+            return body.execute(frame);
+        } catch (ReturnException ire) {
+            returnProfile.enter();
+            return returnValue.execute(frame);
         }
-
-        return result;
     }
 
 }

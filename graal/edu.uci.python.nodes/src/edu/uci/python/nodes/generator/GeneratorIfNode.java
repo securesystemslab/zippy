@@ -27,8 +27,8 @@ package edu.uci.python.nodes.generator;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.expression.*;
-import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
