@@ -58,11 +58,6 @@ public abstract class ListLiteralNode extends LiteralNode {
         return new PList(SequenceStorageFactory.createStorage(evaluated));
     }
 
-    @Override
-    public String toString() {
-        return "list";
-    }
-
     public static class UninitializedListLiteralNode extends ListLiteralNode {
 
         public UninitializedListLiteralNode(PNode[] values) {

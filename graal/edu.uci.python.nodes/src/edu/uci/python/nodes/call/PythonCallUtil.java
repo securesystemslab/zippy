@@ -28,7 +28,6 @@ import java.io.*;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -48,17 +47,6 @@ public class PythonCallUtil {
             PrintStream ps = System.out;
             ps.println("[ZipPy]: calling jython runtime function " + callee);
         }
-    }
-
-    @ExplodeLoop
-    protected static final PKeyword[] executeKeywordArguments(VirtualFrame frame, PNode[] arguments) {
-        PKeyword[] evaluated = arguments.length == 0 ? PKeyword.EMPTY_KEYWORDS : new PKeyword[arguments.length];
-
-        for (int i = 0; i < arguments.length; i++) {
-            evaluated[i] = (PKeyword) arguments[i].execute(frame);
-        }
-
-        return evaluated;
     }
 
     protected static boolean isPrimaryBoxed(Object primary) {

@@ -32,16 +32,12 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.sequence.*;
 
-public class SetLiteralNode extends LiteralNode {
+public final class SetLiteralNode extends LiteralNode {
 
-    @Children protected final PNode[] values;
+    @Children private final PNode[] values;
 
     public SetLiteralNode(PNode[] values) {
         this.values = values;
-    }
-
-    protected SetLiteralNode(SetLiteralNode node) {
-        this(node.values);
     }
 
     @ExplodeLoop
@@ -59,11 +55,6 @@ public class SetLiteralNode extends LiteralNode {
     @Override
     public Object execute(VirtualFrame frame) {
         return executePSet(frame);
-    }
-
-    @Override
-    public String toString() {
-        return "list";
     }
 
 }
