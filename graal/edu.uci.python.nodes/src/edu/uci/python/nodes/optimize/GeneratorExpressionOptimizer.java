@@ -142,7 +142,7 @@ public class GeneratorExpressionOptimizer {
 
         PGeneratorFunction genfun = (PGeneratorFunction) desugaredGenDefNode.execute(null);
         CallDispatchNoneNode dispatch = new DispatchGeneratorNoneNode(genfun, new UninitializedDispatchNoneNode(genexp.getName(), false));
-        PNode generatorCallNode = new NoneCallNode(context, genexp.getName(), EmptyNode.create(), genDefLoad, new ArgumentsNode(argReads), new PNode[]{}, dispatch);
+        PNode generatorCallNode = new NoneCallNode(context, genexp.getName(), EmptyNode.create(), genDefLoad, new ArgumentsNode(argReads), new ArgumentsNode(new PNode[]{}), dispatch);
         PNode loadGenerator = getIterator.getOperand();
         loadGenerator.replace(generatorCallNode);
 
