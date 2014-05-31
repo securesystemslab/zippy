@@ -42,7 +42,7 @@ public class ArgumentsNode extends PNode {
         this.arguments = arguments;
     }
 
-    public PNode[] getArgumentNodes() {
+    public PNode[] getArguments() {
         return arguments;
     }
 

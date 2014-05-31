@@ -93,11 +93,11 @@ public class BuiltinIntrinsifier {
     }
 
     private boolean isArgumentGeneratorExpression() {
-        if (callNode.getArgumentNodes().length != 1) {
+        if (callNode.getArgumentsNode().length() != 1) {
             return false;
         }
 
-        PNode arg = callNode.getArgumentNodes()[0];
+        PNode arg = callNode.getArgumentsNode().getArguments()[0];
         if (arg instanceof GeneratorExpressionNode) {
             genexp = (GeneratorExpressionNode) arg;
             return true;

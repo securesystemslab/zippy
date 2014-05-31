@@ -93,7 +93,7 @@ public class GeneratorExpressionOptimizer {
                 assert callNode.isInlined();
                 FunctionRootNode calleeRoot = (FunctionRootNode) callNode.getInlinedCalleeRoot();
                 PeeledGeneratorLoopBoxedNode manualInlinedCallNode = new PeeledGeneratorLoopBoxedNode(calleeRoot, calleeRoot.getFrameDescriptor(), callNode.getPrimaryNode(),
-                                callNode.getArgumentNodes(), ((LinkedDispatchBoxedNode) callNode.getDispatchNode()).getCheckNode(), callNode);
+                                callNode.getArgumentsNode(), ((LinkedDispatchBoxedNode) callNode.getDispatchNode()).getCheckNode(), callNode);
                 callNode.replace(manualInlinedCallNode);
                 GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(manualInlinedCallNode.getGeneratorRoot(), GetIteratorNode.class);
                 desugarGeneratorExpression(genexp, getIter, true);
@@ -142,7 +142,7 @@ public class GeneratorExpressionOptimizer {
 
         PGeneratorFunction genfun = (PGeneratorFunction) desugaredGenDefNode.execute(null);
         CallDispatchNoneNode dispatch = new DispatchGeneratorNoneNode(genfun, new UninitializedDispatchNoneNode(genexp.getName(), false));
-        PNode generatorCallNode = new NoneCallNode(context, genexp.getName(), EmptyNode.create(), genDefLoad, argReads, new PNode[]{}, dispatch);
+        PNode generatorCallNode = new NoneCallNode(context, genexp.getName(), EmptyNode.create(), genDefLoad, new ArgumentsNode(argReads), new PNode[]{}, dispatch);
         PNode loadGenerator = getIterator.getOperand();
         loadGenerator.replace(generatorCallNode);
 

@@ -44,10 +44,10 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
     protected final String generatorName;
     protected final FrameDescriptor frameDescriptor;
 
-    public PeeledGeneratorLoopNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode[] argumentNodes, PNode originalLoop) {
+    public PeeledGeneratorLoopNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, ArgumentsNode arguments, PNode originalLoop) {
         this.frameDescriptor = frameDescriptor;
         this.inlinedRootNode = generatorRoot.split().getBody();
-        this.argumentsNode = new ArgumentsNode(argumentNodes);
+        this.argumentsNode = arguments;
         this.generatorName = generatorRoot.getFunctionName();
         this.originalLoop = originalLoop;
     }
@@ -70,7 +70,8 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
         @Child protected PNode primaryNode;
         @Child protected ShapeCheckNode checkNode;
 
-        public PeeledGeneratorLoopBoxedNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode primaryNode, PNode[] argumentNodes, ShapeCheckNode checkNode, PNode originalLoop) {
+        public PeeledGeneratorLoopBoxedNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode primaryNode, ArgumentsNode argumentNodes, ShapeCheckNode checkNode,
+                        PNode originalLoop) {
             super(generatorRoot, frameDescriptor, argumentNodes, originalLoop);
             this.primaryNode = primaryNode;
             this.checkNode = checkNode;
@@ -107,8 +108,8 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
         @Child protected PNode calleeNode;
         private final PythonCallable cachedCallee;
 
-        public PeeledGeneratorLoopNoneNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode calleeNode, PNode[] argumentNodes, PythonCallable callee, PNode originalLoop) {
-            super(generatorRoot, frameDescriptor, argumentNodes, originalLoop);
+        public PeeledGeneratorLoopNoneNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode calleeNode, ArgumentsNode arguments, PythonCallable callee, PNode originalLoop) {
+            super(generatorRoot, frameDescriptor, arguments, originalLoop);
             this.calleeNode = calleeNode;
             this.cachedCallee = callee;
         }
