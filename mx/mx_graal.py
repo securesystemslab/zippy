@@ -1002,6 +1002,8 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
             prefixArgs = ['-esa', '-ea']
         else:
             prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
+        if gc_after_test:
+            prefixArgs.append('-XX:-DisableExplicitGC')
         with open(testfile) as fp:
             testclasses = [l.rstrip() for l in fp.readlines()]
         if len(testclasses) == 1:
