@@ -303,7 +303,6 @@
   template(com_oracle_graal_hotspot_HotSpotCompiledRuntimeStub,      "com/oracle/graal/hotspot/HotSpotCompiledRuntimeStub")           \
   template(com_oracle_graal_hotspot_HotSpotForeignCallLinkage,       "com/oracle/graal/hotspot/HotSpotForeignCallLinkage")            \
   template(com_oracle_graal_hotspot_HotSpotReferenceMap,             "com/oracle/graal/hotspot/HotSpotReferenceMap")                  \
-  template(com_oracle_graal_hotspot_bridge_VMToCompiler,             "com/oracle/graal/hotspot/bridge/VMToCompiler")                  \
   template(com_oracle_graal_hotspot_bridge_CompilerToVMImpl,         "com/oracle/graal/hotspot/bridge/CompilerToVMImpl")              \
   template(com_oracle_graal_hotspot_data_DataSection,                "com/oracle/graal/hotspot/data/DataSection")                     \
   template(com_oracle_graal_hotspot_data_DataSectionReference,       "com/oracle/graal/hotspot/data/DataSectionReference")            \
@@ -318,6 +317,7 @@
   template(com_oracle_graal_hotspot_meta_HotSpotObjectConstant,      "com/oracle/graal/hotspot/meta/HotSpotObjectConstant")           \
   template(com_oracle_graal_hotspot_meta_HotSpotMetaspaceConstant,   "com/oracle/graal/hotspot/meta/HotSpotMetaspaceConstant")        \
   template(com_oracle_graal_hotspot_HotSpotStackFrameReference,      "com/oracle/graal/hotspot/HotSpotStackFrameReference")           \
+  template(com_oracle_graal_hotspot_CompilationTask,                 "com/oracle/graal/hotspot/CompilationTask")                      \
   /* graal.api.meta */                                                                                                                \
   template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant")                            \
   template(com_oracle_graal_api_meta_PrimitiveConstant,              "com/oracle/graal/api/meta/PrimitiveConstant")                   \
@@ -356,13 +356,9 @@
   /* graal.gpu */                                                                                                                     \
   template(com_oracle_graal_gpu_ExternalCompilationResult,           "com/oracle/graal/gpu/ExternalCompilationResult")                \
   /* graal method and field names */                                                                                                  \
-  template(compileMethod_name,                    "compileMethod")                                                                    \
-  template(compileMethod_signature,               "(JIJZ)V")                                                                          \
-  template(setOption_name,                        "setOption")                                                                        \
-  template(setOption_signature,                   "(Ljava/lang/String;)Z")                                                            \
-  template(getVMToCompiler_name,                  "getVMToCompiler")                                                                  \
-  template(getVMToCompiler_signature,             "()Lcom/oracle/graal/hotspot/bridge/VMToCompiler;")                                 \
-                                                                      \
+  template(compileMetaspaceMethod_name,               "compileMetaspaceMethod")                                                       \
+  template(compileMetaspaceMethod_signature,          "(JIJZ)V")                                                                      \
+                                                                                                  \
   /* common method and field names */                                                             \
   template(object_initializer_name,                   "<init>")                                   \
   template(class_initializer_name,                    "<clinit>")                                 \

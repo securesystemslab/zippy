@@ -61,7 +61,7 @@
 #include "utilities/macros.hpp"
 #ifdef GRAAL
 #include "classfile/javaAssertions.hpp"
-#include "graal/graalVMToCompiler.hpp"
+#include "graal/graalRuntime.hpp"
 #endif
 #if INCLUDE_ALL_GCS
 #include "gc_implementation/concurrentMarkSweep/cmsOopClosures.inline.hpp"
@@ -1209,7 +1209,7 @@ void InstanceKlass::call_class_initializer_impl(instanceKlassHandle this_oop, TR
 #ifdef GRAAL
   if (this_oop->is_subtype_of(SystemDictionary::Node_klass())) {
     if (this_oop() != SystemDictionary::Node_klass()) {
-      if (!VMToCompiler::is_HotSpotGraalRuntime_initialized() && JavaAssertions::systemClassDefault() == false) {
+      if (!GraalRuntime::is_HotSpotGraalRuntime_initialized() && JavaAssertions::systemClassDefault() == false) {
         // We want to ensure that the process of initializing HotSpotGraalRuntime
         // is fast since it executes at VM startup. We must avoid triggering
         // class initialization of any Node classes during this process.

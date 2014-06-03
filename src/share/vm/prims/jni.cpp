@@ -35,7 +35,7 @@
 #include "utilities/macros.hpp"
 #ifdef GRAAL
 #include "graal/graalCompiler.hpp"
-#include "graal/graalVMToCompiler.hpp"
+#include "graal/graalRuntime.hpp"
 #endif
 #if INCLUDE_ALL_GCS
 #include "gc_implementation/g1/g1SATBCardTableModRefBS.hpp"
@@ -5218,7 +5218,7 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
       // stop the VM deferring compilation now.
       CompilationPolicy::completed_vm_startup();
 
-      VMToCompiler::compileTheWorld();
+      GraalCompiler::instance()->compile_the_world();
     }
 #endif
 #else

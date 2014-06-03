@@ -32,7 +32,7 @@
 #include "interpreter/bytecodeHistogram.hpp"
 #ifdef GRAAL
 #include "graal/graalCompiler.hpp"
-#include "graal/graalVMToCompiler.hpp"
+#include "graal/graalRuntime.hpp"
 #endif
 #include "memory/genCollectedHeap.hpp"
 #include "memory/oopFactory.hpp"
@@ -489,7 +489,7 @@ void before_exit(JavaThread * thread) {
     GraalCompiler::instance()->shutdown();
   }
 #endif
-  VMToCompiler::shutdownRuntime();
+  GraalRuntime::shutdown();
 #endif
 
   // The only difference between this and Win32's _onexit procs is that

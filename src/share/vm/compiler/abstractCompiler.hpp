@@ -46,6 +46,9 @@ class CompilerStatistics VALUE_OBJ_CLASS_SPEC {
       _bytes += bytes;
       _count++;
     }
+    void reset() {
+      _time.reset();
+    }
   };
 
  public:
