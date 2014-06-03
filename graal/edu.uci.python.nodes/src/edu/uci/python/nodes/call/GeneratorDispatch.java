@@ -24,11 +24,12 @@
  */
 package edu.uci.python.nodes.call;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.function.*;
 
 public interface GeneratorDispatch {
 
-    PythonCallNode getCallNode();
+    PNode getCallNode();
 
     PGeneratorFunction getGeneratorFunction();
 

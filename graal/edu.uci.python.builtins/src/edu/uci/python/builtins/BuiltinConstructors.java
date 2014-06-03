@@ -571,8 +571,9 @@ public final class BuiltinConstructors extends PythonBuiltins {
     @Builtin(name = "zip", minNumOfArguments = 0, takesVariableArguments = true, isConstructor = true)
     public abstract static class ZipNode extends PythonBuiltinNode {
 
-        @Child GetIteratorNode getIterator;
+        @Child protected GetIteratorNode getIterator;
 
+        @ExplodeLoop
         @Specialization
         public PZip zip(PTuple args) {
             if (getIterator == null) {

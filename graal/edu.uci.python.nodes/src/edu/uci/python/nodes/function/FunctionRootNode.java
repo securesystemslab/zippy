@@ -36,6 +36,7 @@ import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.GeneratorDispatchBoxedNode;
 import edu.uci.python.nodes.call.CallDispatchNoneNode.GeneratorDispatchNoneNode;
+import edu.uci.python.nodes.call.CallDispatchSpecialNode.*;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.generator.*;
@@ -152,6 +153,12 @@ public final class FunctionRootNode extends RootNode {
         }
 
         for (GeneratorDispatchNoneNode dispatch : NodeUtil.findAllNodeInstances(body, GeneratorDispatchNoneNode.class)) {
+            PGeneratorFunction genfun = dispatch.getGeneratorFunction();
+            boolean inlinable = isInlinable(dispatch, genfun);
+            succeed = peelGeneratorLoop(inlinable, dispatch, genfun);
+        }
+
+        for (GeneratorDispatchSpecialNode dispatch : NodeUtil.findAllNodeInstances(body, GeneratorDispatchSpecialNode.class)) {
             PGeneratorFunction genfun = dispatch.getGeneratorFunction();
             boolean inlinable = isInlinable(dispatch, genfun);
             succeed = peelGeneratorLoop(inlinable, dispatch, genfun);

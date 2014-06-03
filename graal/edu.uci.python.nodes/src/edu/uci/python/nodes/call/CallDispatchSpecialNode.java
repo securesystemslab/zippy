@@ -28,6 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.truffle.*;
@@ -138,8 +139,9 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
             this.genfunc = genfunc;
         }
 
-        public PythonCallNode getCallNode() {
-            throw new UnsupportedOperationException();
+        @Override
+        public PNode getCallNode() {
+            return (PNode) getParent();
         }
 
         public PGeneratorFunction getGeneratorFunction() {

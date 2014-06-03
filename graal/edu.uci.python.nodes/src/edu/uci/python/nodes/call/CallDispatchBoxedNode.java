@@ -194,8 +194,8 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
 
         @Override
-        public PythonCallNode getCallNode() {
-            return (PythonCallNode) getTop().getParent();
+        public PNode getCallNode() {
+            return (PNode) getTop().getParent();
         }
     }
 
