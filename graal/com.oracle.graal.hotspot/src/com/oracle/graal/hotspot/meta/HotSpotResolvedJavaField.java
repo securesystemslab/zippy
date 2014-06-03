@@ -216,29 +216,23 @@ public class HotSpotResolvedJavaField extends CompilerObject implements Resolved
             // Canonicalization may attempt to process an unsafe read before
             // processing a guard (e.g. a null check or a type check) for this read
             // so we need to check the object being read
-            if (object != null) {
+            if (object != null && isInObject(object)) {
                 if (isFinal()) {
-                    if (isInObject(object)) {
-                        Constant value = readValue(receiver);
-                        if (assumeNonStaticFinalFieldsAsFinal(object.getClass()) || !value.isDefaultForKind()) {
-                            return value;
-                        }
+                    Constant value = readValue(receiver);
+                    if (assumeNonStaticFinalFieldsAsFinal(object.getClass()) || !value.isDefaultForKind()) {
+                        return value;
                     }
                 } else if (isStable()) {
-                    if (isInObject(object)) {
-                        Constant value = readValue(receiver);
-                        if (assumeDefaultStableFieldsAsFinal(object.getClass()) || !value.isDefaultForKind()) {
-                            return value;
-                        }
+                    Constant value = readValue(receiver);
+                    if (assumeDefaultStableFieldsAsFinal(object.getClass()) || !value.isDefaultForKind()) {
+                        return value;
                     }
                 } else {
                     Class<?> clazz = object.getClass();
                     if (StableOptionValue.class.isAssignableFrom(clazz)) {
-                        if (isInObject(object)) {
-                            assert getName().equals("value") : "Unexpected field in " + StableOptionValue.class.getName() + " hierarchy:" + this;
-                            StableOptionValue<?> option = (StableOptionValue<?>) object;
-                            return HotSpotObjectConstant.forObject(option.getValue());
-                        }
+                        assert getName().equals("value") : "Unexpected field in " + StableOptionValue.class.getName() + " hierarchy:" + this;
+                        StableOptionValue<?> option = (StableOptionValue<?>) object;
+                        return HotSpotObjectConstant.forObject(option.getValue());
                     }
                 }
             }

@@ -740,7 +740,11 @@ public class Graph {
     }
 
     public NodeBitMap createNodeBitMap() {
-        return new NodeBitMap(this);
+        return createNodeBitMap(false);
+    }
+
+    public NodeBitMap createNodeBitMap(boolean autoGrow) {
+        return new NodeBitMap(this, autoGrow);
     }
 
     public <T> NodeMap<T> createNodeMap() {
@@ -752,11 +756,11 @@ public class Graph {
     }
 
     public NodeWorkList createNodeWorkList() {
-        return new NodeWorkList.SingletonNodeWorkList(this);
+        return new NodeWorkList(this);
     }
 
-    public NodeWorkList createIterativeNodeWorkList(boolean fill, int iterationLimitPerNode) {
-        return new NodeWorkList.IterativeNodeWorkList(this, fill, iterationLimitPerNode);
+    public NodeWorkList createNodeWorkList(boolean fill, int iterationLimitPerNode) {
+        return new NodeWorkList(this, fill, iterationLimitPerNode);
     }
 
     void register(Node node) {

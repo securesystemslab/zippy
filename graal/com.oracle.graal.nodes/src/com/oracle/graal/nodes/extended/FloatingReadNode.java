@@ -38,15 +38,15 @@ public final class FloatingReadNode extends FloatingAccessNode implements Iterab
     @Input(InputType.Memory) private MemoryNode lastLocationAccess;
 
     public FloatingReadNode(ValueNode object, LocationNode location, MemoryNode lastLocationAccess, Stamp stamp) {
-        this(object, location, lastLocationAccess, stamp, null, BarrierType.NONE);
+        this(object, location, lastLocationAccess, stamp, null, BarrierType.NONE, false);
     }
 
     public FloatingReadNode(ValueNode object, LocationNode location, MemoryNode lastLocationAccess, Stamp stamp, GuardingNode guard) {
-        this(object, location, lastLocationAccess, stamp, guard, BarrierType.NONE);
+        this(object, location, lastLocationAccess, stamp, guard, BarrierType.NONE, false);
     }
 
-    public FloatingReadNode(ValueNode object, LocationNode location, MemoryNode lastLocationAccess, Stamp stamp, GuardingNode guard, BarrierType barrierType) {
-        super(object, location, stamp, guard, barrierType);
+    public FloatingReadNode(ValueNode object, LocationNode location, MemoryNode lastLocationAccess, Stamp stamp, GuardingNode guard, BarrierType barrierType, boolean compressible) {
+        super(object, location, stamp, guard, barrierType, compressible);
         this.lastLocationAccess = lastLocationAccess;
     }
 
@@ -69,14 +69,14 @@ public final class FloatingReadNode extends FloatingAccessNode implements Iterab
     @Override
     public Node canonical(CanonicalizerTool tool) {
         if (object() instanceof PiNode && ((PiNode) object()).getGuard() == getGuard()) {
-            return graph().unique(new FloatingReadNode(((PiNode) object()).getOriginalNode(), location(), getLastLocationAccess(), stamp(), getGuard(), getBarrierType()));
+            return graph().unique(new FloatingReadNode(((PiNode) object()).getOriginalNode(), location(), getLastLocationAccess(), stamp(), getGuard(), getBarrierType(), isCompressible()));
         }
-        return ReadNode.canonicalizeRead(this, location(), object(), tool);
+        return ReadNode.canonicalizeRead(this, location(), object(), tool, isCompressible());
     }
 
     @Override
     public FixedAccessNode asFixedNode() {
-        return graph().add(new ReadNode(object(), accessLocation(), stamp(), getGuard(), getBarrierType()));
+        return graph().add(new ReadNode(object(), accessLocation(), stamp(), getGuard(), getBarrierType(), isCompressible()));
     }
 
     @Override

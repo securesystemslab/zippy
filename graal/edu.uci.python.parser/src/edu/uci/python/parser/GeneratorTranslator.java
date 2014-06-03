@@ -251,23 +251,4 @@ public class GeneratorTranslator {
         return numOfGeneratorForNode;
     }
 
-    public RootCallTarget createParallelGeneratorCallTarget() {
-        if (!PythonOptions.ParallelizeGeneratorCalls) {
-            return null;
-        }
-
-        PNode parallelBody = root.getClonedUninitializedBody();
-
-        for (YieldNode yield : NodeUtil.findAllNodeInstances(parallelBody, YieldNode.class)) {
-            yield.replace(ParallelYieldNode.create(yield.getRhs()));
-        }
-
-        for (GeneratorExpressionNode genexp : NodeUtil.findAllNodeInstances(parallelBody, GeneratorExpressionNode.class)) {
-            genexp.setEnclosingFrameGenerator(false);
-        }
-
-        RootNode parallelRoot = new FunctionRootNode(context, root.getFunctionName(), true, root.getFrameDescriptor(), parallelBody);
-        return Truffle.getRuntime().createCallTarget(parallelRoot);
-    }
-
 }

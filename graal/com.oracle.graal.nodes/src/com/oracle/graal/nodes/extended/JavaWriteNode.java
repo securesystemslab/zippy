@@ -31,11 +31,8 @@ import com.oracle.graal.nodes.spi.*;
  */
 public final class JavaWriteNode extends AbstractWriteNode implements Lowerable, StateSplit, MemoryAccess, MemoryCheckpoint.Single {
 
-    private final boolean compressible;
-
     public JavaWriteNode(ValueNode object, ValueNode value, ValueNode location, BarrierType barrierType, boolean compressible, boolean initialization) {
-        super(object, value, location, barrierType, initialization);
-        this.compressible = compressible;
+        super(object, value, location, barrierType, compressible, initialization);
     }
 
     public void lower(LoweringTool tool) {
@@ -44,9 +41,5 @@ public final class JavaWriteNode extends AbstractWriteNode implements Lowerable,
 
     public boolean canNullCheck() {
         return true;
-    }
-
-    public boolean isCompressible() {
-        return compressible;
     }
 }

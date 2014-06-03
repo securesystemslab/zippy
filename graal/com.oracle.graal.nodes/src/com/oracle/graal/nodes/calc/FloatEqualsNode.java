@@ -68,9 +68,4 @@ public final class FloatEqualsNode extends CompareNode {
         }
         return super.evaluate(constantReflection, forX, forY);
     }
-
-    @Override
-    protected CompareNode duplicateModified(ValueNode newX, ValueNode newY) {
-        return new FloatEqualsNode(newX, newY);
-    }
 }

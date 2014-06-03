@@ -41,9 +41,4 @@ public class ModuleNode extends RootNode {
         return body.execute(frame);
     }
 
-    @Override
-    public String toString() {
-        return getClass().getSimpleName();
-    }
-
 }

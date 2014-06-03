@@ -22,50 +22,50 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.call.legacy;
+package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.call.*;
-import edu.uci.python.nodes.function.*;
-import edu.uci.python.runtime.function.*;
+import edu.uci.python.nodes.generator.*;
+import edu.uci.python.nodes.statement.*;
 
-public class CallFunctionInlinedNode extends InlinedCallNode {
+public class BlockNode extends StatementNode {
 
-    private final PFunction function;
-    private final Assumption globalScopeUnchanged;
-    @Child protected PNode functionRoot;
+    @Children protected final PNode[] statements;
 
-    public CallFunctionInlinedNode(PNode callee, PNode[] arguments, PFunction function, Assumption globalScopeUnchanged, FunctionRootNode functionRoot, FrameFactory frameFactory) {
-        super(callee, arguments, function.getFrameDescriptor().copy(), frameFactory);
-        this.function = function;
-        this.globalScopeUnchanged = globalScopeUnchanged;
-        this.functionRoot = prepareBody(functionRoot.getInlinedRootNode());
+    protected BlockNode(PNode[] statements) {
+        this.statements = statements;
+        assert statements.length > 0;
     }
 
-    @Override
-    public PFunction getCallee() {
-        return function;
+    public static PNode create(PNode... statements) {
+        final int length = statements.length;
+
+        if (length == 0) {
+            return EmptyNode.create();
+        } else if (length == 1) {
+            return statements[0] instanceof YieldNode ? new BlockNode(statements) : statements[0];
+        } else {
+            return new BlockNode(statements);
+        }
     }
 
-    public CallTarget getCallTarget() {
-        return function.getCallTarget();
+    public final PNode[] getStatements() {
+        return statements;
     }
 
+    @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
-        try {
-            globalScopeUnchanged.check();
-        } catch (InvalidAssumptionException e) {
-            return uninitialize(frame);
+        Object result = null;
+
+        for (int i = 0; i < statements.length; i++) {
+            result = statements[i].execute(frame);
         }
 
-        final Object[] args = PythonCallUtil.executeArguments(frame, arguments);
-        final PArguments pargs = new PArguments.VirtualFrameCargoArguments(null, frame, args);
-        return functionRoot.execute(createInlinedFrame(frame, pargs));
+        return result;
     }
 
 }

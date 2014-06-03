@@ -22,55 +22,47 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.call.legacy;
+package edu.uci.python.nodes.control;
 
-import org.python.core.*;
-
-import com.oracle.truffle.api.dsl.Generic;
-import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.literal.*;
-import edu.uci.python.runtime.*;
-import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
+import edu.uci.python.nodes.statement.*;
+import edu.uci.python.runtime.exception.*;
 
-@NodeChild(value = "callee", type = PNode.class)
-public abstract class CallFunctionNode extends PNode {
+public class ReturnTargetNode extends StatementNode {
 
-    @Children protected final PNode[] arguments;
-    @Children protected final KeywordLiteralNode[] keywords;
-    private final PythonContext context;
+    @Child protected PNode body;
+    @Child protected PNode returnValue;
 
-    public CallFunctionNode(PNode[] arguments, KeywordLiteralNode[] keywords, PythonContext context) {
-        this.arguments = arguments;
-        this.keywords = keywords;
-        this.context = context;
+    private final BranchProfile returnProfile = new BranchProfile();
+
+    public ReturnTargetNode(PNode body, PNode returnValue) {
+        this.body = body;
+        this.returnValue = returnValue;
     }
 
-    protected CallFunctionNode(CallFunctionNode node) {
-        this(node.arguments, node.keywords, node.context);
+    protected ReturnTargetNode(ReturnTargetNode prev) {
+        this(prev.body, prev.returnValue);
     }
 
-    public abstract PNode getCallee();
-
-    public PNode[] getArguments() {
-        return arguments;
+    public PNode getBody() {
+        return body;
     }
 
-    public PythonContext getContext() {
-        return context;
-    }
-
-    @SuppressWarnings("unused")
-    @Generic
-    public Object doGeneric(VirtualFrame frame, Object callee) {
-        throw Py.TypeError("'" + getPythonTypeName(callee) + "' object is not callable");
+    public PNode getReturn() {
+        return returnValue;
     }
 
     @Override
-    public String toString() {
-        return getClass().getSimpleName() + "(callee=" + getCallee() + ")";
+    public Object execute(VirtualFrame frame) {
+        try {
+            return body.execute(frame);
+        } catch (ReturnException ire) {
+            returnProfile.enter();
+            return returnValue.execute(frame);
+        }
     }
 
 }

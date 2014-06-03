@@ -66,7 +66,7 @@ public abstract class LoopFragment {
     }
 
     public boolean contains(Node n) {
-        return nodes().isMarkedAndGrow(n);
+        return nodes().contains(n);
     }
 
     @SuppressWarnings("unchecked")
@@ -96,7 +96,7 @@ public abstract class LoopFragment {
         return original;
     }
 
-    public abstract NodeBitMap nodes();
+    public abstract NodeIterable<Node> nodes();
 
     public StructuredGraph graph() {
         LoopEx l;
@@ -155,7 +155,7 @@ public abstract class LoopFragment {
     }
 
     protected static NodeBitMap computeNodes(Graph graph, Iterable<BeginNode> blocks, Iterable<LoopExitNode> earlyExits) {
-        final NodeBitMap nodes = graph.createNodeBitMap();
+        final NodeBitMap nodes = graph.createNodeBitMap(true);
         for (BeginNode b : blocks) {
             if (b.isDeleted()) {
                 continue;
@@ -187,7 +187,7 @@ public abstract class LoopFragment {
             }
         }
 
-        final NodeBitMap notloopNodes = graph.createNodeBitMap();
+        final NodeBitMap notloopNodes = graph.createNodeBitMap(true);
         for (BeginNode b : blocks) {
             if (b.isDeleted()) {
                 continue;
@@ -336,8 +336,8 @@ public abstract class LoopFragment {
                  *
                  * We now update the original fragment's nodes accordingly:
                  */
-                state.applyToVirtual(node -> original.nodes.clearAndGrow(node));
-                exitState.applyToVirtual(node -> original.nodes.markAndGrow(node));
+                state.applyToVirtual(node -> original.nodes.clear(node));
+                exitState.applyToVirtual(node -> original.nodes.mark(node));
             }
             FrameState finalExitState = exitState;
 

@@ -30,6 +30,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
@@ -156,6 +157,14 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             this.next = next;
             this.generator = callee;
             assert callee instanceof PGeneratorFunction;
+        }
+
+        @Override
+        protected void onAdopt() {
+            RootNode root = getRootNode();
+            if (root instanceof FunctionRootNode) {
+                ((FunctionRootNode) root).reportGeneratorDispatch();
+            }
         }
 
         @Override

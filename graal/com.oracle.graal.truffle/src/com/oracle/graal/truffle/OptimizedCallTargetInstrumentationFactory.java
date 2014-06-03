@@ -23,14 +23,13 @@
 package com.oracle.graal.truffle;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.api.runtime.*;
 import com.oracle.graal.lir.asm.*;
 
 /**
  * A service for creating a specialized {@link CompilationResultBuilder} used to inject code into
  * {@link OptimizedCallTarget#call(Object[])}.
  */
-public interface OptimizedCallTargetInstrumentationFactory extends CompilationResultBuilderFactory, Service {
+public interface OptimizedCallTargetInstrumentationFactory extends CompilationResultBuilderFactory {
 
     /**
      * Gets the architecture supported by this factory.

@@ -29,7 +29,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.function.*;
@@ -37,17 +37,17 @@ import edu.uci.python.runtime.object.*;
 
 public abstract class PeeledGeneratorLoopNode extends PNode {
 
-    @Children protected final PNode[] argumentNodes;
+    @Child protected ArgumentsNode argumentsNode;
     @Child protected PNode inlinedRootNode;
     private final PNode originalLoop;
 
     protected final String generatorName;
     protected final FrameDescriptor frameDescriptor;
 
-    public PeeledGeneratorLoopNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode[] argumentNodes, PNode originalLoop) {
+    public PeeledGeneratorLoopNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, ArgumentsNode arguments, PNode originalLoop) {
         this.frameDescriptor = frameDescriptor;
         this.inlinedRootNode = generatorRoot.split().getBody();
-        this.argumentNodes = argumentNodes;
+        this.argumentsNode = arguments;
         this.generatorName = generatorRoot.getFunctionName();
         this.originalLoop = originalLoop;
     }
@@ -70,7 +70,8 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
         @Child protected PNode primaryNode;
         @Child protected ShapeCheckNode checkNode;
 
-        public PeeledGeneratorLoopBoxedNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode primaryNode, PNode[] argumentNodes, ShapeCheckNode checkNode, PNode originalLoop) {
+        public PeeledGeneratorLoopBoxedNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode primaryNode, ArgumentsNode argumentNodes, ShapeCheckNode checkNode,
+                        PNode originalLoop) {
             super(generatorRoot, frameDescriptor, argumentNodes, originalLoop);
             this.primaryNode = primaryNode;
             this.checkNode = checkNode;
@@ -89,7 +90,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
 
             try {
                 if (checkNode.accept(primary)) {
-                    final Object[] arguments = PythonCallUtil.executeArguments(frame, argumentNodes);
+                    final Object[] arguments = argumentsNode.executeArguments(frame);
                     PArguments.setVirtualFrameCargoArguments(arguments, frame);
                     VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
                     return inlinedRootNode.execute(generatorFrame);
@@ -107,8 +108,8 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
         @Child protected PNode calleeNode;
         private final PythonCallable cachedCallee;
 
-        public PeeledGeneratorLoopNoneNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode calleeNode, PNode[] argumentNodes, PythonCallable callee, PNode originalLoop) {
-            super(generatorRoot, frameDescriptor, argumentNodes, originalLoop);
+        public PeeledGeneratorLoopNoneNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode calleeNode, ArgumentsNode arguments, PythonCallable callee, PNode originalLoop) {
+            super(generatorRoot, frameDescriptor, arguments, originalLoop);
             this.calleeNode = calleeNode;
             this.cachedCallee = callee;
         }
@@ -125,7 +126,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
             }
 
             if (cachedCallee == callee) {
-                final Object[] arguments = PythonCallUtil.executeArguments(frame, argumentNodes);
+                final Object[] arguments = argumentsNode.executeArguments(frame);
                 PArguments.setVirtualFrameCargoArguments(arguments, frame);
                 VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
                 return inlinedRootNode.execute(generatorFrame);

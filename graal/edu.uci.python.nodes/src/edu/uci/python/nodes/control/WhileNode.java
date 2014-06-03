@@ -22,49 +22,48 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.generator.*;
+import edu.uci.python.nodes.expression.*;
+import edu.uci.python.runtime.datatype.*;
 
-public class BlockNode extends StatementNode {
+public class WhileNode extends LoopNode {
 
-    @Children protected final PNode[] statements;
+    @Child protected CastToBooleanNode condition;
 
-    protected BlockNode(PNode[] statements) {
-        this.statements = statements;
-        assert statements.length > 0;
+    public WhileNode(CastToBooleanNode condition, PNode body) {
+        super(body);
+        this.condition = condition;
     }
 
-    public static PNode create(PNode... statements) {
-        final int length = statements.length;
-
-        if (length == 0) {
-            return EmptyNode.create();
-        } else if (length == 1) {
-            return statements[0] instanceof YieldNode ? new BlockNode(statements) : statements[0];
-        } else {
-            return new BlockNode(statements);
-        }
+    public CastToBooleanNode getCondition() {
+        return condition;
     }
 
-    public final PNode[] getStatements() {
-        return statements;
-    }
-
-    @ExplodeLoop
     @Override
     public Object execute(VirtualFrame frame) {
-        Object result = null;
+        int count = 0;
 
-        for (int i = 0; i < statements.length; i++) {
-            result = statements[i].execute(frame);
+        try {
+            while (condition.executeBoolean(frame)) {
+                loopBodyBranch.enter();
+                body.execute(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } finally {
+            if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
+            }
         }
 
-        return result;
+        return PNone.NONE;
     }
 
 }

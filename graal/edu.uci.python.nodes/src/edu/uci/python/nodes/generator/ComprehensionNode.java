@@ -183,19 +183,17 @@ public abstract class ComprehensionNode extends PNode {
 
     public static final class ComprehensionGuardNode extends PNode {
 
-        private final FrameFactory frameFactory;
         private final FrameDescriptor frameDescriptor;
         @Child protected PNode comprehension;
 
-        public ComprehensionGuardNode(FrameFactory frameFactory, FrameDescriptor frameDescriptor, PNode comprehension) {
-            this.frameFactory = frameFactory;
+        public ComprehensionGuardNode(FrameDescriptor frameDescriptor, PNode comprehension) {
             this.frameDescriptor = frameDescriptor;
             this.comprehension = comprehension;
         }
 
         @Override
         public Object execute(VirtualFrame frame) {
-            return comprehension.execute(frameFactory.create(frameDescriptor, null, PArguments.empty()));
+            return comprehension.execute(Truffle.getRuntime().createVirtualFrame(PArguments.empty(), frameDescriptor));
         }
     }
 

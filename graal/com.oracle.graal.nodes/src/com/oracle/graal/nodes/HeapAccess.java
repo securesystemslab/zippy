@@ -49,4 +49,9 @@ public interface HeapAccess {
      * Gets the write barrier type for that particular access.
      */
     BarrierType getBarrierType();
+
+    /**
+     * Returns whether or not the heap access is a compressed pointer candidate.
+     */
+    boolean isCompressible();
 }

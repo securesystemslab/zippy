@@ -22,8 +22,6 @@
  */
 package com.oracle.graal.hotspot.nodes;
 
-import static com.oracle.graal.hotspot.HotSpotBackend.*;
-
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
@@ -43,6 +41,7 @@ public class DeoptimizationFetchUnrollInfoCallNode extends FixedWithNextNode imp
 
     @Input private SaveAllRegistersNode registerSaver;
     private final ForeignCallsProvider foreignCalls;
+    public static final ForeignCallDescriptor FETCH_UNROLL_INFO = new ForeignCallDescriptor("fetchUnrollInfo", Word.class, Word.class);
 
     public DeoptimizationFetchUnrollInfoCallNode(@InjectedNodeParameter ForeignCallsProvider foreignCalls, ValueNode registerSaver) {
         super(StampFactory.forKind(Kind.fromJavaClass(FETCH_UNROLL_INFO.getResultType())));

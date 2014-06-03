@@ -145,7 +145,8 @@ public class LoweringPhase extends BasePhase<PhaseContext> {
             } else {
                 GuardNode newGuard = graph.unique(new GuardNode(condition, guardAnchor, deoptReason, action, negated, Constant.NULL_OBJECT));
                 if (OptEliminateGuards.getValue()) {
-                    activeGuards.markAndGrow(newGuard);
+                    activeGuards.grow();
+                    activeGuards.mark(newGuard);
                 }
                 return newGuard;
             }
@@ -282,7 +283,7 @@ public class LoweringPhase extends BasePhase<PhaseContext> {
 
             if (parentAnchor == null && OptEliminateGuards.getValue()) {
                 for (GuardNode guard : anchor.asNode().usages().filter(GuardNode.class)) {
-                    if (activeGuards.isMarkedAndGrow(guard)) {
+                    if (activeGuards.contains(guard)) {
                         activeGuards.clear(guard);
                     }
                 }

@@ -23,6 +23,7 @@
 package com.oracle.graal.loop;
 
 import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.nodes.*;
 
 public class LoopFragmentInsideFrom extends LoopFragmentInside {
@@ -50,7 +51,8 @@ public class LoopFragmentInsideFrom extends LoopFragmentInside {
     }
 
     @Override
-    public NodeBitMap nodes() {
+    public NodeIterable<Node> nodes() {
+        // TODO Auto-generated method stub
         return null;
     }
 }

@@ -22,49 +22,77 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.statement;
+package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.utilities.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.datatype.*;
 
-public class WhileNode extends LoopNode {
+public class IfNode extends StatementNode {
 
     @Child protected CastToBooleanNode condition;
+    @Child protected PNode then;
+    @Child protected PNode orelse;
 
-    public WhileNode(CastToBooleanNode condition, PNode body) {
-        super(body);
+    protected final BranchProfile thenProfile = new BranchProfile();
+    private final BranchProfile elseProfile = new BranchProfile();
+
+    public IfNode(CastToBooleanNode condition, PNode then, PNode orelse) {
         this.condition = condition;
+        this.then = then;
+        this.orelse = orelse;
+    }
+
+    public static IfNode create(CastToBooleanNode condition, PNode then, PNode orelse) {
+        if (!EmptyNode.isEmpty(orelse)) {
+            return new IfNode(condition, then, orelse);
+        } else {
+            return new IfWithoutElseNode(condition, then);
+        }
     }
 
     public CastToBooleanNode getCondition() {
         return condition;
     }
 
+    public PNode getThen() {
+        return then;
+    }
+
+    public PNode getElse() {
+        return orelse;
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
-        int count = 0;
+        if (condition.executeBoolean(frame)) {
+            thenProfile.enter();
+            return then.execute(frame);
+        } else {
+            elseProfile.enter();
+            return orelse.execute(frame);
+        }
+    }
 
-        try {
-            while (condition.executeBoolean(frame)) {
-                loopBodyBranch.enter();
-                body.execute(frame);
+    public static final class IfWithoutElseNode extends IfNode {
 
-                if (CompilerDirectives.inInterpreter()) {
-                    count++;
-                }
-            }
-        } finally {
-            if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
-            }
+        public IfWithoutElseNode(CastToBooleanNode condition, PNode then) {
+            super(condition, then, EmptyNode.create());
         }
 
-        return PNone.NONE;
+        @Override
+        public Object execute(VirtualFrame frame) {
+            if (condition.executeBoolean(frame)) {
+                thenProfile.enter();
+                return then.execute(frame);
+            }
+
+            return PNone.NONE;
+        }
     }
 
 }

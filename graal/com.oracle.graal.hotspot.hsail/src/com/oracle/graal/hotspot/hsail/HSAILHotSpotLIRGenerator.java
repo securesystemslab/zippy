@@ -93,7 +93,7 @@ public class HSAILHotSpotLIRGenerator extends HSAILLIRGenerator implements HotSp
     }
 
     @Override
-    public boolean canStoreConstant(Constant c) {
+    public boolean canStoreConstant(Constant c, boolean isCompressed) {
         return !(c instanceof HotSpotObjectConstant);
     }
 
@@ -134,7 +134,7 @@ public class HSAILHotSpotLIRGenerator extends HSAILLIRGenerator implements HotSp
             if (HotSpotCompressedNullConstant.COMPRESSED_NULL.equals(c)) {
                 c = Constant.INT_0;
             }
-            if (canStoreConstant(c)) {
+            if (canStoreConstant(c, false)) {
                 append(new StoreConstantOp(getMemoryKind(kind), storeAddress, c, state));
                 return;
             }

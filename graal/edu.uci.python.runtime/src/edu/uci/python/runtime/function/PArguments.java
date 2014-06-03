@@ -25,13 +25,10 @@
 package edu.uci.python.runtime.function;
 
 import java.util.*;
-import java.util.concurrent.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
-
-import edu.uci.python.runtime.datatype.*;
 
 //@formatter:off
 /**
@@ -192,10 +189,6 @@ public class PArguments {
         return CompilerDirectives.unsafeCast(generatorFrame.getArguments()[INDEX_GENERATOR_FRAME], GeneratorControlData.class, true);
     }
 
-    public static ParallelGeneratorArguments getParallelGeneratorArguments(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_GENERATOR_FRAME], ParallelGeneratorArguments.class, true);
-    }
-
     public static void setGeneratorFrame(Object[] arguments, MaterializedFrame generatorFrame) {
         arguments[INDEX_GENERATOR_FRAME] = generatorFrame;
     }
@@ -207,83 +200,6 @@ public class PArguments {
 
     public static void setVirtualFrameCargoArguments(Object[] arguments, Frame cargoFrame) {
         arguments[INDEX_GENERATOR_FRAME] = cargoFrame;
-    }
-
-    public static void setParallelGeneratorArguments(Object[] arguments, ParallelGeneratorArguments generatorArguments) {
-        arguments[INDEX_GENERATOR_FRAME] = generatorArguments;
-    }
-
-    /**
-     * TODO: (zwei) to be removed.
-     */
-    @SuppressWarnings("unused")
-    public PArguments(MaterializedFrame declarationFrame, Object[] arguments, PKeyword[] keywords) {
-        assert arguments != null;
-    }
-
-    public PArguments(MaterializedFrame declarationFrame, Object[] arguments) {
-        this(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
-    }
-
-    public final Object[] packAsObjectArray() {
-        return new Object[]{this};
-    }
-
-    /**
-     * Carry the {@link VirtualFrame} into an inlined Python function.<br>
-     * Should only be used within a complete Truffle compilation unit and never escape it.
-     */
-    public static final class VirtualFrameCargoArguments extends PArguments {
-
-        private final VirtualFrame cargoFrame;
-
-        public VirtualFrameCargoArguments(MaterializedFrame declarationFrame, VirtualFrame cargoFrame, Object[] arguments) {
-            super(declarationFrame, arguments, PKeyword.EMPTY_KEYWORDS);
-            this.cargoFrame = cargoFrame;
-        }
-
-        public VirtualFrame getCargoFrame() {
-            return cargoFrame;
-        }
-    }
-
-    public static final class ParallelGeneratorArguments {
-
-        private final BlockingQueue<Object> blockingQueue;
-        private final SingleProducerCircularBuffer buffer;
-        private final Queue<Object> queue;
-
-        public ParallelGeneratorArguments(BlockingQueue<Object> queue) {
-            this.blockingQueue = queue;
-            this.buffer = null;
-            this.queue = null;
-        }
-
-        public ParallelGeneratorArguments(SingleProducerCircularBuffer buffer) {
-            this.blockingQueue = null;
-            this.buffer = buffer;
-            this.queue = null;
-        }
-
-        public ParallelGeneratorArguments(Queue<Object> queue) {
-            this.blockingQueue = null;
-            this.buffer = null;
-            this.queue = queue;
-        }
-
-        public BlockingQueue<Object> getBlockingQueue() {
-            assert blockingQueue != null;
-            return blockingQueue;
-        }
-
-        public SingleProducerCircularBuffer getBuffer() {
-            assert buffer != null;
-            return buffer;
-        }
-
-        public Queue<Object> getQueue() {
-            return queue;
-        }
     }
 
 }

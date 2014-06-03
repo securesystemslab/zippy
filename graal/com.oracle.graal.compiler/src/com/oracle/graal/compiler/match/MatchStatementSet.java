@@ -24,10 +24,9 @@ package com.oracle.graal.compiler.match;
 
 import java.util.*;
 
-import com.oracle.graal.api.runtime.*;
 import com.oracle.graal.compiler.gen.*;
 
-public interface MatchStatementSet extends Service {
+public interface MatchStatementSet {
     /**
      * @return the {@link NodeLIRBuilder} subclass which defined this set of {@link MatchStatement}
      *         instances.

@@ -22,13 +22,11 @@
  */
 package com.oracle.graal.phases.common.inlining.info.elem;
 
-import java.util.*;
-
 import com.oracle.graal.api.meta.Constant;
 import com.oracle.graal.api.meta.ResolvedJavaMethod;
 import com.oracle.graal.compiler.common.type.Stamp;
 import com.oracle.graal.debug.Debug;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.NodeInputList;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.phases.common.CanonicalizerPhase;
 import com.oracle.graal.phases.common.DeadCodeEliminationPhase;
@@ -73,32 +71,29 @@ public class InlineableGraph implements Inlineable {
 
             boolean callerHasMoreInformationAboutArguments = false;
             NodeInputList<ValueNode> args = invoke.callTarget().arguments();
-            ArrayList<Node> parameterUsages = new ArrayList<>();
             for (ParameterNode param : newGraph.getNodes(ParameterNode.class).snapshot()) {
                 ValueNode arg = args.get(param.index());
                 if (arg.isConstant()) {
                     Constant constant = arg.asConstant();
                     newGraph.replaceFloating(param, ConstantNode.forConstant(constant, context.getMetaAccess(), newGraph));
                     callerHasMoreInformationAboutArguments = true;
-                    param.usages().snapshotTo(parameterUsages);
                 } else {
                     Stamp joinedStamp = param.stamp().join(arg.stamp());
                     if (joinedStamp != null && !joinedStamp.equals(param.stamp())) {
                         param.setStamp(joinedStamp);
                         callerHasMoreInformationAboutArguments = true;
-                        param.usages().snapshotTo(parameterUsages);
                     }
                 }
             }
 
-            if (callerHasMoreInformationAboutArguments) {
-                if (OptCanonicalizer.getValue()) {
-                    canonicalizer.applyIncremental(newGraph, context, parameterUsages);
-                }
-            } else {
+            if (!callerHasMoreInformationAboutArguments) {
                 // TODO (chaeubl): if args are not more concrete, inlining should be avoided
                 // in most cases or we could at least use the previous graph size + invoke
                 // probability to check the inlining
+            }
+
+            if (OptCanonicalizer.getValue()) {
+                canonicalizer.apply(newGraph, context);
             }
 
             return newGraph;
@@ -122,10 +117,12 @@ public class InlineableGraph implements Inlineable {
      * profiling info is mature, the resulting graph is cached.
      */
     private static StructuredGraph parseBytecodes(StructuredGraph newGraph, HighTierContext context, CanonicalizerPhase canonicalizer) {
+        final boolean hasMatureProfilingInfo = newGraph.method().getProfilingInfo().isMature();
+
         if (context.getGraphBuilderSuite() != null) {
             context.getGraphBuilderSuite().apply(newGraph, context);
         }
-        assert newGraph.start().next() != null : "graph needs to be populated the GraphBuilderSuite";
+        assert newGraph.start().next() != null : "graph needs to be populated during PhasePosition.AFTER_PARSING";
 
         new DeadCodeEliminationPhase().apply(newGraph);
 
@@ -133,7 +130,7 @@ public class InlineableGraph implements Inlineable {
             canonicalizer.apply(newGraph, context);
         }
 
-        if (context.getGraphCache() != null) {
+        if (hasMatureProfilingInfo && context.getGraphCache() != null) {
             context.getGraphCache().put(newGraph.method(), newGraph.copy());
         }
         return newGraph;

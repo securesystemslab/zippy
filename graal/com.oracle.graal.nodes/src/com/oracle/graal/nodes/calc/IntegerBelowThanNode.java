@@ -86,9 +86,4 @@ public final class IntegerBelowThanNode extends CompareNode {
         }
         return this;
     }
-
-    @Override
-    protected CompareNode duplicateModified(ValueNode newX, ValueNode newY) {
-        return new IntegerBelowThanNode(newX, newY);
-    }
 }

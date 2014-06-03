@@ -107,4 +107,12 @@ public abstract class RootNode extends Node {
         this.callTarget = callTarget;
     }
 
+    /**
+     * zwei: A callback that enables notification from the Truffle runtime to the guest languages on
+     * inlining events.
+     */
+    public boolean applyTransformation() {
+        return false;
+    }
+
 }

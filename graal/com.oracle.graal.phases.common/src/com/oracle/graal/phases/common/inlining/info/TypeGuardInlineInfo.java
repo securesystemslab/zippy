@@ -22,12 +22,9 @@
  */
 package com.oracle.graal.phases.common.inlining.info;
 
-import java.util.*;
-
 import com.oracle.graal.api.code.Assumptions;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.calc.Condition;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.CompareNode;
 import com.oracle.graal.nodes.extended.LoadHubNode;
@@ -90,9 +87,9 @@ public class TypeGuardInlineInfo extends AbstractInlineInfo {
     }
 
     @Override
-    public Collection<Node> inline(Providers providers, Assumptions assumptions) {
+    public void inline(Providers providers, Assumptions assumptions) {
         createGuard(graph(), providers.getMetaAccess());
-        return inline(invoke, concrete, inlineableElement, assumptions, false);
+        inline(invoke, concrete, inlineableElement, assumptions, false);
     }
 
     @Override
