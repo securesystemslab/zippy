@@ -105,24 +105,11 @@ public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode impl
         return right;
     }
 
-    @Specialization(order = 6, guards = "isObjectKind")
-    public PComplex write(VirtualFrame frame, PComplex right) {
-        MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
-        setObject(mframe, right);
-        return right;
-    }
-
-    @Specialization(order = 7, guards = "isObjectKind")
-    public String write(VirtualFrame frame, String right) {
-        MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
-        setObject(mframe, right);
-        return right;
-    }
-
     @Specialization(guards = "isObjectKind")
     public Object write(VirtualFrame frame, Object right) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         setObject(mframe, right);
         return right;
     }
+
 }
