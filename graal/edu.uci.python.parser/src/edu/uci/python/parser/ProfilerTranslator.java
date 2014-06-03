@@ -75,8 +75,10 @@ public class ProfilerTranslator implements NodeVisitor {
         }
 
 // if (node instanceof WriteLocalVariableNode) {
-// WriteLocalVariableNode writeLocal = (WriteLocalVariableNode) node;
+// if (node.getSourceSection() != null) {
 // createWrapperNode((PNode) node);
+// }
+// }
 // } else if (node instanceof FrameReturnNode) {
 // createWrapperNode((PNode) node);
 // }
