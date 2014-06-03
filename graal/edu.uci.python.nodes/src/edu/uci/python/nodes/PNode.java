@@ -231,6 +231,10 @@ public abstract class PNode extends Node {
     /**
      * Specialization guards.
      */
+    protected static boolean isNone(Object value) {
+        return value == PNone.NONE;
+    }
+
     protected static boolean isEmptyStorage(PList list) {
         return list.getStorage() instanceof EmptySequenceStorage;
     }

@@ -25,11 +25,13 @@
 package edu.uci.python.nodes.control;
 
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
@@ -113,6 +115,11 @@ public abstract class GetIteratorNode extends UnaryOpNode {
     @Specialization(order = 17)
     public PIterator doPIterator(PIterator value) {
         return value;
+    }
+
+    @Specialization(order = 20)
+    public PIterator doPythonObject(VirtualFrame frame, PythonObject value) {
+        return (PIterator) doSpecialMethodCall(frame, "__iter__", value);
     }
 
     @Generic

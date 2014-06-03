@@ -45,6 +45,19 @@ public class GeneratorTests {
     }
 
     @Test
+    public void specialIter() {
+        String source = "class Foo:\n" + //
+                        "    def __init__(self, n):\n" + //
+                        "        self.n = n\n" + //
+                        "    def __iter__(self):\n" + //
+                        "        return (i for i in range(self.n))\n" + //
+                        "for i in Foo(5):\n" + //
+                        "    print(i)\n";
+
+        assertPrints("0\n1\n2\n3\n4\n", source);
+    }
+
+    @Test
     public void conditionAndLoop() {
         Path script = Paths.get("generator-if-and-loop-test.py");
         assertPrints("10\n0\n1\n2\n3\n4\n", script);
