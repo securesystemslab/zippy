@@ -1,3 +1,5 @@
+import sys, time
+
 def izip(*args):
     args = list(map(iter, args))
     while 1:
@@ -32,7 +34,7 @@ tests = {
 def run():
     pi = PI()
     checks = {}
-    for x, y in zip(range(1000), pi):
+    for x, y in _zip(range(1000), pi):
         #print y,
         if x in tests:
             checks[x] = pi.a1
@@ -47,4 +49,22 @@ def main():
 ##if __name__ == '__main__':
 ##    main()
 
-main()
+def _zip(a, b):
+    iter_a = iter(a)
+    for elem in b:
+        yield next(iter_a), elem
+
+def measure():
+    # input = int(sys.argv[1]) #100000
+
+    print("Start timing...")
+    start = time.time()
+    result = main()
+    print(result)
+    duration = "%.3f\n" % (time.time() - start)
+    print("parrot-b2: " + duration)
+
+for i in range(1):
+    main()
+
+measure()

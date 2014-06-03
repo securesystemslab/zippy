@@ -786,28 +786,30 @@ public final class BuiltinFunctions extends PythonBuiltins {
     }
 
     // next(iterator[, default])
+    @SuppressWarnings("unused")
     @Builtin(name = "next", minNumOfArguments = 1, maxNumOfArguments = 2)
     public abstract static class NextNode extends PythonBuiltinNode {
 
-        @SuppressWarnings("unused")
+        @Specialization
+        public int next(PRangeIterator iterator, PNone defaultObject) {
+            return iterator.__nextInt__();
+        }
+
         @Specialization
         public int next(PIntegerIterator iterator, PNone defaultObject) {
             return iterator.__nextInt__();
         }
 
-        @SuppressWarnings("unused")
         @Specialization
         public double next(PDoubleIterator iterator, PNone defaultObject) {
             return iterator.__nextDouble__();
         }
 
-        @SuppressWarnings("unused")
         @Specialization
         public Object next(PIterator iterator, PNone defaultObject) {
             return iterator.__next__();
         }
 
-        @SuppressWarnings("unused")
         @Specialization
         public Object next(Object iterator, Object defaultObject) {
             throw new RuntimeException("Unsupported iterator " + iterator);
