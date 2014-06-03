@@ -37,6 +37,8 @@ import edu.uci.python.runtime.sequence.storage.*;
 
 public abstract class GetIteratorNode extends UnaryOpNode {
 
+    public abstract Object executeWith(VirtualFrame frame, Object value);
+
     @Specialization(order = 1, guards = "isIntStorage")
     public Object doPListInt(PList value) {
         return new PIntegerSequenceIterator((IntSequenceStorage) value.getStorage());
@@ -118,8 +120,8 @@ public abstract class GetIteratorNode extends UnaryOpNode {
     }
 
     @Specialization(order = 20)
-    public PIterator doPythonObject(VirtualFrame frame, PythonObject value) {
-        return (PIterator) doSpecialMethodCall(frame, "__iter__", value);
+    public Object doPythonObject(VirtualFrame frame, PythonObject value) {
+        return doSpecialMethodCall(frame, "__iter__", value);
     }
 
     @Generic

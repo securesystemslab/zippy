@@ -221,8 +221,9 @@ public class BuiltinFunctionTests {
 
     @Test
     public void zipTest() {
-        String source = "for s in zip('ABC', '123'):\n" + "\tprint(s)\n";
-        assertPrints("(A, 1)\n(B, 2)\n(C, 3)\n", source);
+        String source = "for s in zip('ABC', '123'):\n" + //
+                        "    print(s)\n";
+        assertPrints("('A', '1')\n('B', '2')\n('C', '3')\n", source);
     }
 
     /**

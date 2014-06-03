@@ -24,19 +24,28 @@
  */
 package edu.uci.python.runtime.iterator;
 
+import org.python.core.*;
+
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.standardtype.*;
 
 /**
  * @author Gulfem
+ * @author zwei
  */
-
-public final class PZipIterator implements PIterator {
+public final class PZip extends PythonBuiltinObject implements PIterable, PIterator {
 
     private final PIterator[] iterators;
 
-    public PZipIterator(PIterator[] iterators) {
+    public PZip(PIterator[] iterators) {
         this.iterators = iterators;
+    }
+
+    @Override
+    public PIterator __iter__() {
+        return this;
     }
 
     @Override
@@ -51,6 +60,27 @@ public final class PZipIterator implements PIterator {
         }
 
         return new PTuple(tupleElements);
+    }
+
+    @Override
+    public int len() {
+        throw Py.AttributeError("'zip'" + " object has no attribute " + "'len'");
+
+    }
+
+    @Override
+    public Object getMax() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Object getMin() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String toString() {
+        return "<zip object at " + hashCode() + ">";
     }
 
 }

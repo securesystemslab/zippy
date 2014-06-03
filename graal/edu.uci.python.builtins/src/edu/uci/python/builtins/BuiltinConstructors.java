@@ -30,7 +30,10 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
@@ -46,7 +49,6 @@ import edu.uci.python.runtime.standardtype.*;
 /**
  * @author Gulfem
  * @author zwei
- *
  */
 public final class BuiltinConstructors extends PythonBuiltins {
 
@@ -569,9 +571,16 @@ public final class BuiltinConstructors extends PythonBuiltins {
     @Builtin(name = "zip", minNumOfArguments = 0, takesVariableArguments = true, isConstructor = true)
     public abstract static class ZipNode extends PythonBuiltinNode {
 
+        @Child GetIteratorNode getIterator;
+
         @Specialization
         public PZip zip(PTuple args) {
-            PIterable[] iterables = new PIterable[args.len()];
+            if (getIterator == null) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                getIterator = insert(GetIteratorNodeFactory.create(EmptyNode.create()));
+            }
+
+            PIterator[] iterables = new PIterator[args.len()];
 
             for (int i = 0; i < args.len(); i++) {
                 iterables[i] = getIterable(args.getItem(i));
@@ -580,14 +589,12 @@ public final class BuiltinConstructors extends PythonBuiltins {
             return new PZip(iterables);
         }
 
-        private static PIterable getIterable(Object arg) {
-            if (arg instanceof PIterable) {
-                return (PIterable) arg;
-            } else if (arg instanceof String) {
-                return new PString((String) arg);
+        private PIterator getIterable(Object arg) {
+            try {
+                return PythonTypesGen.PYTHONTYPES.expectPIterator(getIterator.executeWith(null, arg));
+            } catch (UnexpectedResultException e) {
+                throw new RuntimeException("zip does not support iterable object " + arg.getClass());
             }
-
-            throw new RuntimeException("zip does not support iterable object " + arg.getClass());
         }
     }
 
