@@ -142,6 +142,21 @@ public final class PDict extends PythonBuiltinObject implements PIterable {
     }
 
     @Override
+    public boolean equals(Object other) {
+        if (!(other instanceof PDict)) {
+            return false;
+        }
+
+        PDict otherDict = (PDict) other;
+        return map.equals(otherDict.getMap());
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
     public Object getMax() {
         throw new UnsupportedOperationException();
     }

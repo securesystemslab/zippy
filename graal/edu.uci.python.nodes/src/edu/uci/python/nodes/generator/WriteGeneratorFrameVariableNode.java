@@ -95,6 +95,7 @@ public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode impl
     public BigInteger write(VirtualFrame frame, BigInteger value) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         setObject(mframe, value);
+        frameSlot.setKind(FrameSlotKind.Object);
         return value;
     }
 

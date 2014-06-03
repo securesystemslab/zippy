@@ -38,6 +38,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.misc.*;
 import edu.uci.python.runtime.sequence.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
@@ -274,7 +275,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(order = 1)
         double doBigInteger(BigInteger left, BigInteger right) {
-            return left.divide(right).doubleValue();
+            return FastMathUtil.slowPathDivide(left, right).doubleValue();
         }
 
         @Specialization(order = 2)
@@ -324,7 +325,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
-            return left.divide(right);
+            return FastMathUtil.slowPathDivide(left, right);
         }
 
         @Specialization
@@ -365,6 +366,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left < 0;
         }
 
+        @SlowPath
         @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.mod(right);
