@@ -28,7 +28,6 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
@@ -151,8 +150,8 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         }
 
         @Override
-        public PNode getCallNode() {
-            return (PNode) getTop().getParent();
+        public Node getCallNode() {
+            return getTop().getParent();
         }
     }
 

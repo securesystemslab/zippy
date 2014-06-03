@@ -32,6 +32,8 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.object.*;
+import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 
@@ -95,6 +97,8 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
                     VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
                     return inlinedRootNode.execute(generatorFrame);
                 }
+            } catch (StopIterationException e) {
+                return PNone.NONE;
             } catch (InvalidAssumptionException e) {
             }
 

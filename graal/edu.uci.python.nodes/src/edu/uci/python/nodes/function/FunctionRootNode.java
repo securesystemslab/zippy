@@ -33,10 +33,13 @@ import com.oracle.truffle.api.nodes.NodeUtil.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.profiler.*;
+import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.GeneratorDispatchBoxedNode;
 import edu.uci.python.nodes.call.CallDispatchNoneNode.GeneratorDispatchNoneNode;
-import edu.uci.python.nodes.call.CallDispatchSpecialNode.*;
+import edu.uci.python.nodes.call.CallDispatchSpecialNode.GeneratorDispatchSpecialNode;
+import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
+import edu.uci.python.nodes.call.PythonCallNode.NoneCallNode;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.generator.*;
@@ -219,22 +222,34 @@ public final class FunctionRootNode extends RootNode {
         Node getIter = callNode.getParent();
         Node forNode = getIter.getParent();
 
-        if (!(getIter instanceof GetIteratorNode) || !(forNode instanceof ForNode) || !(callNode instanceof PythonCallNode)) {
-            return false;
+        if (!(getIter instanceof GetIteratorNode) || !(forNode instanceof ForNode)) {
+            return false; // Loop nodes
         }
 
-        PythonCallNode call = (PythonCallNode) callNode;
+        if (!(callNode instanceof GeneratorDispatchSpecialNode) && !(callNode instanceof PythonCallNode)) {
+            return false; // Call nodes
+        }
+
         ForNode loop = (ForNode) forNode;
         PNode orignalLoop = NodeUtil.cloneNode(loop);
         PeeledGeneratorLoopNode peeled;
 
-        if (call instanceof PythonCallNode.BoxedCallNode) {
+        if (callNode instanceof BoxedCallNode) {
             GeneratorDispatchBoxedNode boxedDispatch = (GeneratorDispatchBoxedNode) dispatch;
+            BoxedCallNode call = (BoxedCallNode) callNode;
             peeled = new PeeledGeneratorLoopBoxedNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getPrimaryNode(), call.getArgumentsNode(),
                             boxedDispatch.getCheckNode(), orignalLoop);
-        } else {
+        } else if (callNode instanceof NoneCallNode) {
+            NoneCallNode call = (NoneCallNode) callNode;
             peeled = new PeeledGeneratorLoopNoneNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getCalleeNode(), call.getArgumentsNode(),
                             dispatch.getGeneratorFunction(), orignalLoop);
+        } else if (callNode instanceof GeneratorDispatchSpecialNode) {
+            GeneratorDispatchSpecialNode generatorDispatch = (GeneratorDispatchSpecialNode) callNode;
+            GetIteratorNode getIterNode = (GetIteratorNode) getIter;
+            peeled = new PeeledGeneratorLoopSpecialNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), getIterNode.getOperand(), new ArgumentsNode(new PNode[]{}),
+                            generatorDispatch.getCheckNode(), orignalLoop);
+        } else {
+            return false;
         }
 
         loop.replace(peeled);

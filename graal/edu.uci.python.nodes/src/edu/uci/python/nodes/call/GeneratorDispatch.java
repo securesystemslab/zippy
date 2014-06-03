@@ -24,12 +24,13 @@
  */
 package edu.uci.python.nodes.call;
 
-import edu.uci.python.nodes.*;
+import com.oracle.truffle.api.nodes.*;
+
 import edu.uci.python.runtime.function.*;
 
 public interface GeneratorDispatch {
 
-    PNode getCallNode();
+    Node getCallNode();
 
     PGeneratorFunction getGeneratorFunction();
 
