@@ -2651,11 +2651,10 @@ def canonicalizeprojects(args):
             for line in f:
                 line = line.strip()
                 m = pattern.match(line)
-                if m is None:
+                p = project(m.group(1), fatalIfMissing=False) if m else None
+                if m is None or p is None:
                     out.write(line + '\n')
                 else:
-                    p = project(m.group(1))
-
                     for pkg in p.defined_java_packages():
                         if not pkg.startswith(p.name):
                             abort('package in {0} does not have prefix matching project name: {1}'.format(p, pkg))
