@@ -75,7 +75,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
          * Treat generator as slow path for now.
          */
         if (callee instanceof PGeneratorFunction) {
-            return new DispatchGeneratorBoxedNode(callee, check, next);
+            return new GeneratorDispatchBoxedNode((PGeneratorFunction) callee, check, next);
         }
 
         assert check != null;
@@ -145,18 +145,17 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
     }
 
-    public static final class DispatchGeneratorBoxedNode extends CallDispatchBoxedNode implements GeneratorDispatch {
+    public static final class GeneratorDispatchBoxedNode extends CallDispatchBoxedNode implements GeneratorDispatch {
 
         @Child protected ShapeCheckNode check;
         @Child protected CallDispatchBoxedNode next;
-        private final PythonCallable generator;
+        private final PGeneratorFunction generator;
 
-        public DispatchGeneratorBoxedNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
+        public GeneratorDispatchBoxedNode(PGeneratorFunction callee, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             this.check = check;
             this.next = next;
             this.generator = callee;
-            assert callee instanceof PGeneratorFunction;
         }
 
         @Override
@@ -191,7 +190,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         @Override
         public PGeneratorFunction getGeneratorFunction() {
-            return (PGeneratorFunction) generator;
+            return generator;
         }
 
         @Override

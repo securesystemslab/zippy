@@ -52,7 +52,7 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         UninitializedDispatchNoneNode next = new UninitializedDispatchNoneNode(callee.getName(), keywords.length != 0);
 
         if (callee instanceof PGeneratorFunction) {
-            return new DispatchGeneratorNoneNode(callee, next);
+            return new GeneratorDispatchNoneNode((PGeneratorFunction) callee, next);
         }
 
         if (callee instanceof PFunction) {
@@ -111,16 +111,15 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         }
     }
 
-    public static final class DispatchGeneratorNoneNode extends CallDispatchNoneNode implements GeneratorDispatch {
+    public static final class GeneratorDispatchNoneNode extends CallDispatchNoneNode implements GeneratorDispatch {
 
         @Child protected CallDispatchNoneNode next;
-        private final PythonCallable generator;
+        private final PGeneratorFunction generator;
 
-        public DispatchGeneratorNoneNode(PythonCallable callee, UninitializedDispatchNoneNode next) {
+        public GeneratorDispatchNoneNode(PGeneratorFunction callee, UninitializedDispatchNoneNode next) {
             super(callee.getName());
             this.next = next;
             this.generator = callee;
-            assert callee instanceof PGeneratorFunction;
         }
 
         @Override
@@ -147,7 +146,7 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
 
         @Override
         public PGeneratorFunction getGeneratorFunction() {
-            return (PGeneratorFunction) generator;
+            return generator;
         }
 
         @Override

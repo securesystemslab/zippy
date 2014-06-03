@@ -34,8 +34,8 @@ import com.oracle.truffle.api.nodes.NodeUtil.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.nodes.call.*;
-import edu.uci.python.nodes.call.CallDispatchBoxedNode.DispatchGeneratorBoxedNode;
-import edu.uci.python.nodes.call.CallDispatchNoneNode.DispatchGeneratorNoneNode;
+import edu.uci.python.nodes.call.CallDispatchBoxedNode.GeneratorDispatchBoxedNode;
+import edu.uci.python.nodes.call.CallDispatchNoneNode.GeneratorDispatchNoneNode;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.generator.*;
@@ -145,13 +145,13 @@ public final class FunctionRootNode extends RootNode {
         }
 
         boolean succeed = false;
-        for (DispatchGeneratorBoxedNode dispatch : NodeUtil.findAllNodeInstances(body, DispatchGeneratorBoxedNode.class)) {
+        for (GeneratorDispatchBoxedNode dispatch : NodeUtil.findAllNodeInstances(body, GeneratorDispatchBoxedNode.class)) {
             PGeneratorFunction genfun = dispatch.getGeneratorFunction();
             boolean inlinable = isInlinable(dispatch, genfun);
             succeed = peelGeneratorLoop(inlinable, dispatch, genfun);
         }
 
-        for (DispatchGeneratorNoneNode dispatch : NodeUtil.findAllNodeInstances(body, DispatchGeneratorNoneNode.class)) {
+        for (GeneratorDispatchNoneNode dispatch : NodeUtil.findAllNodeInstances(body, GeneratorDispatchNoneNode.class)) {
             PGeneratorFunction genfun = dispatch.getGeneratorFunction();
             boolean inlinable = isInlinable(dispatch, genfun);
             succeed = peelGeneratorLoop(inlinable, dispatch, genfun);
@@ -222,7 +222,7 @@ public final class FunctionRootNode extends RootNode {
         PeeledGeneratorLoopNode peeled;
 
         if (call instanceof PythonCallNode.BoxedCallNode) {
-            DispatchGeneratorBoxedNode boxedDispatch = (DispatchGeneratorBoxedNode) dispatch;
+            GeneratorDispatchBoxedNode boxedDispatch = (GeneratorDispatchBoxedNode) dispatch;
             peeled = new PeeledGeneratorLoopBoxedNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getPrimaryNode(), call.getArgumentsNode(),
                             boxedDispatch.getCheckNode(), orignalLoop);
         } else {
