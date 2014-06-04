@@ -33,6 +33,7 @@ import com.oracle.truffle.api.nodes.NodeUtil.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.profiler.*;
+import edu.uci.python.nodes.subscript.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.GeneratorDispatchBoxedNode;
@@ -226,7 +227,7 @@ public final class FunctionRootNode extends RootNode {
             return false; // Loop nodes
         }
 
-        if (!(callNode instanceof GeneratorDispatchSpecialNode) && !(callNode instanceof PythonCallNode)) {
+        if (!(callNode instanceof GeneratorDispatchSpecialNode) && !(callNode instanceof PythonCallNode) && !(callNode instanceof SubscriptLoadIndexNode)) {
             return false; // Call nodes
         }
 
@@ -248,6 +249,11 @@ public final class FunctionRootNode extends RootNode {
             GetIteratorNode getIterNode = (GetIteratorNode) getIter;
             peeled = new PeeledGeneratorLoopSpecialNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), getIterNode.getOperand(), new ArgumentsNode(new PNode[]{}),
                             generatorDispatch.getCheckNode(), orignalLoop);
+        } else if (callNode instanceof SubscriptLoadIndexNode) {
+            SubscriptLoadIndexNode indexLoad = (SubscriptLoadIndexNode) callNode;
+            GeneratorDispatchSpecialNode generatorDispatch = (GeneratorDispatchSpecialNode) indexLoad.getSpecialMethodDispatch();
+            peeled = new PeeledGeneratorLoopSpecialNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), indexLoad.getPrimary(), new ArgumentsNode(
+                            new PNode[]{indexLoad.getSlice()}), generatorDispatch.getCheckNode(), orignalLoop);
         } else {
             return false;
         }

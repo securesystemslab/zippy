@@ -46,6 +46,11 @@ public abstract class BinaryOpNode extends PNode {
      */
     @CompilationFinal @Child protected CallDispatchSpecialNode dispatch;
 
+    public CallDispatchSpecialNode getSpecialMethodDispatch() {
+        assert dispatch != null;
+        return dispatch;
+    }
+
     protected static final boolean isEitherOperandPythonObject(Object left, Object right) {
         return left instanceof PythonObject || right instanceof PythonObject;
     }
