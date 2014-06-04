@@ -184,6 +184,9 @@ public class ClassTests {
         assertPrints("4\n", source);
     }
 
+    /**
+     * zwei: Disabled before MRO is wired in for attribute access look up.
+     */
     // @Test
     public void multipleInheritance() {
         String source = "class common:\n" + //

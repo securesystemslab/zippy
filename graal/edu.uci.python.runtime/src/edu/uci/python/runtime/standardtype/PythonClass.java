@@ -118,7 +118,7 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
             PythonClass[] baseMRO = baseClasses[0].getMethodResolutionOrder();
 
             if (baseMRO == null) {
-                currentMRO = new PythonClass[]{baseClasses[0]};
+                currentMRO = new PythonClass[]{this};
             } else {
                 currentMRO = new PythonClass[baseMRO.length + 1];
                 System.arraycopy(baseMRO, 0, currentMRO, 1, baseMRO.length);
@@ -217,8 +217,7 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
     }
 
     /**
-     * This method supports initialization and solves boot-order problems and should not normally be
-     * used.
+     * This method supports initialization and solves boot-order problems and should not normally be used.
      */
     public void unsafeSetSuperClass(PythonClass... newBaseClasses) {
         assert baseClasses == null || baseClasses.length == 0;
