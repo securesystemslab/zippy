@@ -1882,6 +1882,8 @@ class CompilerThread : public JavaThread {
 
 #ifdef COMPILERGRAAL
   virtual bool can_call_java() const;
+#else
+  virtual bool can_call_java() const             { return false; }
 #endif
 
   // Hide this compiler thread from external view.
