@@ -34,7 +34,7 @@ from pygraph.mixins.labeling import labeling
 from pygraph.mixins.common import common
 from pygraph.mixins.basegraph import basegraph
 
-class digraph (basegraph, common, labeling):
+class digraph (basegraph):
     """
     Digraph class.
     
@@ -103,7 +103,7 @@ class digraph (basegraph, common, labeling):
     def _edges(self):
         for n, neighbors in self.node_neighbors.items():
             for neighbor in neighbors:
-                print("yield - _edges")
+                # print("yield - _edges")
                 yield (n, neighbor)
 
     def has_node(self, node):

@@ -22,8 +22,9 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
+from pygraph.mixins.labeling import labeling
 
-class common( object ):
+class common( labeling ):
     """
     Standard methods common to all graph classes.
     
@@ -59,7 +60,7 @@ class common( object ):
         @return: Iterator passing through all nodes in the graph.
         """
         for n in self.nodes():
-            print("yield __iter__")
+            # print("yield __iter__")
             yield n
             
     def __len__(self):

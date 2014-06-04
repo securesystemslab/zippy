@@ -17,4 +17,4 @@ def test_accessibility_on_very_deep_graph():
     accessibility(gr)
     assert getrecursionlimit() == recursionlimit
 
-# test_accessibility_on_very_deep_graph()
+test_accessibility_on_very_deep_graph()

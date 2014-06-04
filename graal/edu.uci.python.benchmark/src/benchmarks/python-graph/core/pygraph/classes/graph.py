@@ -37,7 +37,7 @@ from pygraph.mixins.common import common
 from pygraph.mixins.basegraph import basegraph
 
 
-class graph(basegraph, common, labeling):
+class graph(basegraph):
     """
     Graph class.
     

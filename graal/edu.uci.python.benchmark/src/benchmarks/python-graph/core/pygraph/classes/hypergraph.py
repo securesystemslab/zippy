@@ -37,7 +37,7 @@ from pygraph.mixins.labeling import labeling
 from pygraph.mixins.common import common
 from pygraph.mixins.basegraph import basegraph
 
-class hypergraph (basegraph, common, labeling):
+class hypergraph (basegraph):
     """
     Hypergraph class.
     
