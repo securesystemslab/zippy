@@ -64,7 +64,9 @@ void GraalCompiler::initialize() {
 
     _bootstrapping = UseGraalCompilationQueue && (FLAG_IS_DEFAULT(BootstrapGraal) ? !TieredCompilation : BootstrapGraal);
 
-    start_compilation_queue();
+    if (UseGraalCompilationQueue) {
+      start_compilation_queue();
+    }
 
     // Graal is considered as application code so we need to
     // stop the VM deferring compilation now.
@@ -154,7 +156,9 @@ void GraalCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) 
 }
 
 void GraalCompiler::shutdown() {
-  shutdown_compilation_queue();
+  if (UseGraalCompilationQueue) {
+    shutdown_compilation_queue();
+  }
 }
 
 // Print compilation timers and statistics
