@@ -367,7 +367,7 @@ C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jlong metaspace_klass_rece
       methodHandle resolved_method;
       LinkResolver::linktime_resolve_interface_method(resolved_method, holder_klass, method_name, method_signature, caller_klass, true, CHECK_AND_CLEAR_0);
       if (resolved_method->is_private()) {
-        return (jlong) NULL;
+        return (jlong) (address) NULL;
       }
       assert(recv_klass->is_subtype_of(holder_klass), "");
       // do actual lookup
@@ -413,7 +413,7 @@ C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jlong metaspace_klass_rece
       return (jlong) (address) selected_method;
     }
   }
-  return (jlong) NULL;
+  return (jlong) (address) NULL;
 C2V_END
 
 C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jlong metaspace_klass))
