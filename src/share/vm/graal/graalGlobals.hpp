@@ -52,7 +52,7 @@
   COMPILERGRAAL_PRESENT(product(bool, BootstrapGraal, true,                 \
           "Bootstrap Graal before running Java main method"))               \
                                                                             \
-  COMPILERGRAAL_PRESENT(product(bool, UseGraalCompilationQueue, true,       \
+  COMPILERGRAAL_PRESENT(product(bool, UseGraalCompilationQueue, false,      \
           "Use non-native compilation queue for Graal"))                    \
                                                                             \
   product(bool, ForceGraalInitialization, false,                            \
