@@ -529,14 +529,14 @@ public class PythonTreeTranslator extends Visitor {
         environment.endScope(node);
 
         // The default super class is the <class 'object'>.
-        PNode base;
+        PNode[] baseNodes;
         if (bases.size() == 0 || bases.get(0) == null) {
-            base = factory.createObjectLiteral(context.getObjectClass());
+            baseNodes = new PNode[]{factory.createObjectLiteral(context.getObjectClass())};
         } else {
-            base = bases.get(0);
+            baseNodes = bases.toArray(new PNode[bases.size()]);
         }
 
-        PNode classDef = factory.createClassDef(name, base, funcDef);
+        PNode classDef = factory.createClassDef(context, name, baseNodes, funcDef);
         ReadNode read = environment.findVariable(name);
         return read.makeWriteNode(classDef);
     }

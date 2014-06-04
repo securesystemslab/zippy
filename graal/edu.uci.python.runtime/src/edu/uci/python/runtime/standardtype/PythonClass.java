@@ -44,16 +44,18 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
     private final String className;
     private final PythonContext context;
 
-    // TODO: Compute complete MRO...
+    /**
+     * TODO: Compute complete MRO...
+     */
     @CompilationFinal private PythonClass[] baseClasses;
-
-    private final Set<PythonClass> subClasses = Collections.newSetFromMap(new WeakHashMap<PythonClass, Boolean>());
 
     /**
      * Object layout of the instances of this class.
      */
     @CompilationFinal private ObjectLayout instanceObjectLayout;
     @CompilationFinal private MethodHandle instanceConstructor;
+
+    private final Set<PythonClass> subClasses = Collections.newSetFromMap(new WeakHashMap<PythonClass, Boolean>());
 
     public PythonClass(PythonContext context, String name, PythonClass... baseClasses) {
         super(context.getTypeClass());

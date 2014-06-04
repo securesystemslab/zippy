@@ -184,4 +184,20 @@ public class ClassTests {
         assertPrints("4\n", source);
     }
 
+    // @Test
+    public void multipleInheritance() {
+        String source = "class common:\n" + //
+                        "    def __repr__(self):\n" + //
+                        "        return 'common'\n" + //
+                        "class labeling:\n" + //
+                        "    pass\n" + //
+                        "class basegraph:\n" + //
+                        "    pass\n" + //
+                        "class graph(basegraph, common, labeling):\n" + //
+                        "    def __init__(self):\n" + //
+                        "        pass\n" + //
+                        "print(repr(graph()))\n";
+        assertPrints("common\n", source);
+    }
+
 }
