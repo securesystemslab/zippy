@@ -27,6 +27,8 @@ package edu.uci.python.runtime.standardtype;
 import java.lang.invoke.*;
 import java.util.*;
 
+import org.python.util.*;
+
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
@@ -48,6 +50,7 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
      * TODO: Compute complete MRO...
      */
     @CompilationFinal private PythonClass[] baseClasses;
+    @CompilationFinal private PythonClass[] methodResolutionOrder;
 
     /**
      * Object layout of the instances of this class.
@@ -70,6 +73,9 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
             unsafeSetSuperClass(baseClasses);
         }
 
+        // Compute MRO
+        computeMethodResolutionOrder();
+
         // Does not inherit instanceObjectLayout from the TypeClass.
         setObjectLayout(ObjectLayout.empty());
 
@@ -86,6 +92,10 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
         return baseClasses.length > 0 ? baseClasses[0] : null;
     }
 
+    public PythonClass[] getMethodResolutionOrder() {
+        return methodResolutionOrder;
+    }
+
     @Override
     public String getName() {
         return className;
@@ -97,6 +107,72 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
 
     public final MethodHandle getInstanceConstructor() {
         return instanceConstructor;
+    }
+
+    private void computeMethodResolutionOrder() {
+        PythonClass[] currentMRO = null;
+
+        if (baseClasses.length == 0) {
+            currentMRO = new PythonClass[]{this};
+        } else if (baseClasses.length == 1) {
+            PythonClass[] baseMRO = baseClasses[0].getMethodResolutionOrder();
+
+            if (baseMRO == null) {
+                currentMRO = new PythonClass[]{baseClasses[0]};
+            } else {
+                currentMRO = new PythonClass[baseMRO.length + 1];
+                System.arraycopy(baseMRO, 0, currentMRO, 1, baseMRO.length);
+                currentMRO[0] = this;
+            }
+        } else {
+            MROMergeState[] toMerge = new MROMergeState[baseClasses.length + 1];
+
+            for (int i = 0; i < baseClasses.length; i++) {
+                toMerge[i] = new MROMergeState();
+                toMerge[i].mro = baseClasses[i].getMethodResolutionOrder();
+            }
+
+            toMerge[baseClasses.length] = new MROMergeState();
+            toMerge[baseClasses.length].mro = baseClasses;
+            List<PythonClass> mro = Generic.list();
+            mro.add(this);
+            currentMRO = mergeMROs(toMerge, mro);
+        }
+
+        methodResolutionOrder = currentMRO;
+    }
+
+    PythonClass[] mergeMROs(MROMergeState[] toMerge, List<PythonClass> mro) {
+        int idx;
+        scan: for (idx = 0; idx < toMerge.length; idx++) {
+            if (toMerge[idx].isMerged()) {
+                continue scan;
+            }
+
+            PythonClass candidate = toMerge[idx].getCandidate();
+            for (MROMergeState mergee : toMerge) {
+                if (mergee.pastnextContains(candidate)) {
+                    continue scan;
+                }
+            }
+
+            mro.add(candidate);
+
+            for (MROMergeState element : toMerge) {
+                element.noteMerged(candidate);
+            }
+
+            // restart scan
+            idx = -1;
+        }
+
+        for (MROMergeState mergee : toMerge) {
+            if (!mergee.isMerged()) {
+                throw new IllegalStateException();
+            }
+        }
+
+        return mro.toArray(new PythonClass[mro.size()]);
     }
 
     @Override
