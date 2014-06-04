@@ -26,6 +26,7 @@ package com.sun.hotspot.tools.compiler;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.List;
 
 public class Compilation implements LogEvent {
 
@@ -44,6 +45,7 @@ public class Compilation implements LogEvent {
     private NMethod nmethod;
     private ArrayList<Phase> phases = new ArrayList<Phase>(4);
     private String failureReason;
+    private List<JVMState> eliminatedLocks = new ArrayList<JVMState>();
 
     Compilation(int id) {
         this.id = id;
@@ -77,9 +79,11 @@ public class Compilation implements LogEvent {
         sb.append("+");
         sb.append(getBcount());
         sb.append("\n");
-        for (CallSite site : getCall().getCalls()) {
-            sb.append(site);
-            sb.append("\n");
+        if (getCall().getCalls() != null) {
+            for (CallSite site : getCall().getCalls()) {
+                sb.append(site);
+                sb.append("\n");
+            }
         }
         if (getLateInlineCall().getCalls() != null) {
             sb.append("late inline:\n");
@@ -91,13 +95,17 @@ public class Compilation implements LogEvent {
         return sb.toString();
     }
 
-    public void printShort(PrintStream stream) {
+    public String shortName() {
         if (getMethod() == null) {
-            stream.println(getSpecial());
+            return getSpecial();
         } else {
             int bc = isOsr() ? getOsr_bci() : -1;
-            stream.print(getId() + getMethod().decodeFlags(bc) + getMethod().format(bc));
+            return getId() + getMethod().decodeFlags(bc) + getMethod().format(bc);
         }
+    }
+
+    public void printShort(PrintStream stream) {
+        stream.println(shortName());
     }
 
     public void print(PrintStream stream) {
@@ -254,5 +262,13 @@ public class Compilation implements LogEvent {
 
     public Compilation getCompilation() {
         return this;
+    }
+
+    public void addEliminatedLock(JVMState jvms) {
+        eliminatedLocks.add(jvms);
+    }
+
+    public List<JVMState> getEliminatedLocks() {
+        return eliminatedLocks;
     }
 }

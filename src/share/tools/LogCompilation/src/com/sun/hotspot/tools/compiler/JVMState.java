@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,50 +21,23 @@
  * questions.
  *
  */
-
 package com.sun.hotspot.tools.compiler;
 
-import java.io.PrintStream;
-
-public class NMethod extends BasicLogEvent {
-
-    private long address;
-    private long size;
-    private String compileKind;
-
-    NMethod(double s, String i, String k, long a, long sz) {
-        super(s, i);
-        address = a;
-        size = sz;
-        if (k == null) {
-            compileKind = "normal";
+public class JVMState {
+    final Method method;
+    final int bci;
+    JVMState outer;
+    
+    JVMState(Method method, int bci) {
+        this.method = method;
+        this.bci = bci;
+    }
+    
+    void push(JVMState jvms) {
+        if (outer == null) {
+            outer = jvms;
         } else {
-            compileKind = k;
+            outer.push(jvms);
         }
-    }
-
-    public void print(PrintStream out) {
-        // XXX Currently we do nothing
-        // throw new InternalError();
-    }
-
-    public long getAddress() {
-        return address;
-    }
-
-    public void setAddress(long address) {
-        this.address = address;
-    }
-
-    public String getKind() {
-        return compileKind;
-    }
-
-    public long getSize() {
-        return size;
-    }
-
-    public void setSize(long size) {
-        this.size = size;
     }
 }

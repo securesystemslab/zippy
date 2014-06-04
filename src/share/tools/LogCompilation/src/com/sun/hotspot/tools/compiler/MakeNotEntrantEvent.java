@@ -43,9 +43,9 @@ class MakeNotEntrantEvent extends BasicLogEvent {
 
     public void print(PrintStream stream) {
         if (isZombie()) {
-            stream.printf("%s make_zombie\n", getId());
+            stream.printf("%s make_zombie\n", compilation.shortName());
         } else {
-            stream.printf("%s make_not_entrant\n", getId());
+            stream.printf("%s make_not_entrant\n", compilation.shortName());
         }
     }
 
