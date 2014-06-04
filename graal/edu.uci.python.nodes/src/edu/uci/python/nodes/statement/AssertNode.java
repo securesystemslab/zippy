@@ -45,11 +45,10 @@ public class AssertNode extends StatementNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        if (CompilerDirectives.inInterpreter()) {
-            if (!condition.executeBoolean(frame)) {
-                String assertionMessage = message == null ? "" : (String) message.execute(frame);
-                throw Py.AssertionError(assertionMessage);
-            }
+        if (!condition.executeBoolean(frame)) {
+            CompilerDirectives.transferToInterpreter();
+            String assertionMessage = message == null ? "" : (String) message.execute(frame);
+            throw Py.AssertionError(assertionMessage);
         }
 
         return PNone.NONE;
