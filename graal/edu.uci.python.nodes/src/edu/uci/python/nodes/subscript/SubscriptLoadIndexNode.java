@@ -25,10 +25,12 @@
 package edu.uci.python.nodes.subscript;
 
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
@@ -112,8 +114,18 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     }
 
     @Specialization(order = 15)
-    public Object doPArray(PArray primary, int slice) {
-        return primary.getItem(slice);
+    public Object doPArray(PArray primary, int index) {
+        return primary.getItem(index);
+    }
+
+    @Specialization(order = 20)
+    public Object doSpecialInt(VirtualFrame frame, PythonObject primary, int index) {
+        return doSpecialMethodCall(frame, "__getitem__", primary, index);
+    }
+
+    @Specialization(order = 21)
+    public Object doSpecialObject(VirtualFrame frame, PythonObject primary, Object index) {
+        return doSpecialMethodCall(frame, "__getitem__", primary, index);
     }
 
 }

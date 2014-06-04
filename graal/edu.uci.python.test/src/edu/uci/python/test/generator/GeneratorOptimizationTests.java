@@ -86,4 +86,10 @@ public class GeneratorOptimizationTests {
         assertTrue(listComp != null);
     }
 
+    @Test
+    public void getItem() {
+        Path script = Paths.get("generator-special-getitem-test.py");
+        assertPrints("5\n", script);
+    }
+
 }
