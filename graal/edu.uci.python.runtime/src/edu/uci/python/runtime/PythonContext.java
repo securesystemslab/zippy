@@ -58,10 +58,10 @@ public class PythonContext extends ExecutionContext {
     public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser) {
         this.options = opts;
         this.lookup = lookup;
-        this.typeClass = new PythonBuiltinClass(this, null, "type");
+        this.typeClass = new PythonBuiltinClass(this, "type", null);
         this.objectClass = new PythonObjectClass(this);
         this.typeClass.unsafeSetSuperClass(objectClass);
-        this.moduleClass = new PythonBuiltinClass(this, objectClass, "module");
+        this.moduleClass = new PythonBuiltinClass(this, "module", objectClass);
 
         assert typeClass.usePrivateLayout() && typeClass.getObjectLayout().isEmpty();
         assert objectClass.usePrivateLayout() && objectClass.getObjectLayout().isEmpty();

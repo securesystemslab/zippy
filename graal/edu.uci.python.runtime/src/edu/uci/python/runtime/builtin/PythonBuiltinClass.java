@@ -35,14 +35,14 @@ import edu.uci.python.runtime.standardtype.*;
 
 /**
  * A Python built-in class that is immutable.
- * 
+ *
  * @author zwei
- * 
+ *
  */
 public class PythonBuiltinClass extends PythonClass implements PythonCallable {
 
-    public PythonBuiltinClass(PythonContext context, PythonClass superClass, String name) {
-        super(context, superClass, name);
+    public PythonBuiltinClass(PythonContext context, String name, PythonClass superClass) {
+        super(context, name, superClass);
     }
 
     @Override

@@ -54,7 +54,7 @@ public final class ClassDefinitionNode extends StatementNode {
             throw new IllegalStateException();
         }
 
-        PythonClass newClass = new PythonClass(base, name);
+        PythonClass newClass = new PythonClass(base.getContext(), name, base);
         PFunction definitionFunc;
         try {
             definitionFunc = (PFunction) definitionFunction.executePythonCallable(frame);

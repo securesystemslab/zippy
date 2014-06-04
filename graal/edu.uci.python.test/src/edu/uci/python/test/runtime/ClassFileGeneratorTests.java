@@ -44,7 +44,7 @@ public class ClassFileGeneratorTests {
     @Test
     public void emptyLayout() {
         PythonContext context = PythonTests.getContext();
-        PythonClass pyclazz = new PythonClass(context.getObjectClass(), "Foo");
+        PythonClass pyclazz = new PythonClass(context, "Foo", context.getObjectClass());
         StorageClassGenerator cfg = new StorageClassGenerator(pyclazz);
         GeneratedPythonObjectStorage storage = cfg.generate();
 
@@ -65,7 +65,7 @@ public class ClassFileGeneratorTests {
     @Test
     public void smallNumberOfFields() {
         PythonContext context = PythonTests.getContext();
-        PythonClass pyclazz = new PythonClass(context.getObjectClass(), "Foo");
+        PythonClass pyclazz = new PythonClass(context, "Foo", context.getObjectClass());
         PythonObject obj = PythonContext.newPythonObjectInstance(pyclazz);
 
         // Setup object layout.
@@ -130,7 +130,7 @@ public class ClassFileGeneratorTests {
     @Test
     public void methodHandleInvoke() {
         PythonContext context = PythonTests.getContext();
-        PythonClass pyclazz = new PythonClass(context.getObjectClass(), "Foo");
+        PythonClass pyclazz = new PythonClass(context, "Foo", context.getObjectClass());
         StorageClassGenerator cfg = new StorageClassGenerator(pyclazz);
         GeneratedPythonObjectStorage storage = cfg.generate();
 
@@ -150,7 +150,7 @@ public class ClassFileGeneratorTests {
     @Test
     public void layoutSwitch() {
         PythonContext context = PythonTests.getContext();
-        PythonClass pyclazz = new PythonClass(context.getObjectClass(), "Foo");
+        PythonClass pyclazz = new PythonClass(context, "Foo", context.getObjectClass());
         PythonObject obj = PythonContext.newPythonObjectInstance(pyclazz);
 
         // Setup object layout.

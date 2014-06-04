@@ -37,7 +37,7 @@ import edu.uci.python.runtime.function.*;
 public class PythonObjectClass extends PythonBuiltinClass {
 
     public PythonObjectClass(PythonContext context) {
-        super(context, null, "object");
+        super(context, "object", null);
     }
 
     @Override

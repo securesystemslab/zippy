@@ -46,7 +46,7 @@ public class ObjectLayoutTests {
     public void objectWithPrimitiveAttributes() {
         // Create a class and an instance
         final PythonContext context = PythonTests.getContext();
-        final PythonClass classA = new PythonClass(context, null, "A");
+        final PythonClass classA = new PythonClass(context, "A", new PythonClass[]{});
         final PythonObject obj = new DummyPythonBasicObject(classA);
         final ObjectLayout objLayoutBefore = obj.getObjectLayout();
         obj.setAttribute("foo", 42);
@@ -63,7 +63,7 @@ public class ObjectLayoutTests {
     public void objectPrimitiveAttributeOverflow() {
         // Create a class and an instance
         final PythonContext context = PythonTests.getContext();
-        final PythonClass classA = new PythonClass(context, null, "A");
+        final PythonClass classA = new PythonClass(context, "A", new PythonClass[]{});
         final PythonObject obj = new DummyPythonBasicObject(classA);
 
         for (int i = 0; i < 100; i++) {
@@ -84,7 +84,7 @@ public class ObjectLayoutTests {
     public void booleanAttribute() {
         // Create a class and an instance
         final PythonContext context = PythonTests.getContext();
-        final PythonClass classA = new PythonClass(context, null, "A");
+        final PythonClass classA = new PythonClass(context, "A", new PythonClass[]{});
         final PythonObject obj = new DummyPythonBasicObject(classA);
 
         obj.setAttribute("boolean1", true);
@@ -101,7 +101,7 @@ public class ObjectLayoutTests {
     public void fieldObjectAttribute() {
         // Create a class and an instance
         final PythonContext context = PythonTests.getContext();
-        final PythonClass classA = new PythonClass(context, null, "A");
+        final PythonClass classA = new PythonClass(context, "A", new PythonClass[]{});
         final PythonObject obj = new DummyPythonBasicObject(classA);
 
         obj.setAttribute("string0", "string0");
@@ -118,7 +118,7 @@ public class ObjectLayoutTests {
     public void classAttributes() {
         // Create a class and an instance
         final PythonContext context = PythonTests.getContext();
-        final PythonClass classA = new PythonClass(context, null, "A");
+        final PythonClass classA = new PythonClass(context, "A", new PythonClass[]{});
 
         // Add class variable
         classA.setAttribute("foo", 42);

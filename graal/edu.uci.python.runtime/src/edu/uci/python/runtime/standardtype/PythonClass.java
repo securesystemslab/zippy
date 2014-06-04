@@ -44,8 +44,8 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
     private final String className;
     private final PythonContext context;
 
-    // TODO: Multiple inheritance and MRO...
-    @CompilationFinal private PythonClass superClass;
+    // TODO: Compute complete MRO...
+    @CompilationFinal private PythonClass[] baseClasses;
 
     private final Set<PythonClass> subClasses = Collections.newSetFromMap(new WeakHashMap<PythonClass, Boolean>());
 
@@ -55,30 +55,24 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
     @CompilationFinal private ObjectLayout instanceObjectLayout;
     @CompilationFinal private MethodHandle instanceConstructor;
 
-    public PythonClass(PythonClass superClass, String name) {
-        this(superClass.getContext(), superClass, name);
-    }
-
-    /**
-     * This constructor supports initialization and solves boot-order problems and should not
-     * normally be used from outside this class.
-     */
-    public PythonClass(PythonContext context, PythonClass superClass, String name) {
+    public PythonClass(PythonContext context, String name, PythonClass... baseClasses) {
         super(context.getTypeClass());
         this.context = context;
         this.className = name;
 
-        if (superClass == null) {
-            this.superClass = context.getObjectClass();
+        if (baseClasses.length == 0) {
+            this.baseClasses = new PythonClass[]{context.getObjectClass()};
+        } else if (baseClasses.length == 1 && baseClasses[0] == null) {
+            this.baseClasses = new PythonClass[]{};
         } else {
-            unsafeSetSuperClass(superClass);
+            unsafeSetSuperClass(baseClasses);
         }
 
         // Does not inherit instanceObjectLayout from the TypeClass.
         setObjectLayout(ObjectLayout.empty());
 
         // Inherite InstanceObjectLayout when possible
-        instanceObjectLayout = superClass == null ? ObjectLayout.empty() : new ObjectLayout(getName(), superClass.getInstanceObjectLayout());
+        instanceObjectLayout = this.baseClasses.length == 0 ? ObjectLayout.empty() : new ObjectLayout(getName(), this.baseClasses[0].getInstanceObjectLayout());
 
         switchToPrivateLayout();
 
@@ -87,7 +81,7 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
     }
 
     public PythonClass getSuperClass() {
-        return superClass;
+        return baseClasses.length > 0 ? baseClasses[0] : null;
     }
 
     @Override
@@ -109,8 +103,8 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
 
         if (isOwnAttribute(attributeId)) {
             storage = this;
-        } else if (superClass != null) {
-            storage = superClass.getValidStorageFullLookup(attributeId);
+        } else if (baseClasses.length > 0) {
+            storage = baseClasses[0].getValidStorageFullLookup(attributeId);
         }
 
         return storage;
@@ -138,7 +132,7 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
 
         // Continue the look up in PythonType.
         if (storageLocation == null) {
-            return superClass == null ? PNone.NONE : superClass.getAttribute(name);
+            return baseClasses.length == 0 ? PNone.NONE : baseClasses[0].getAttribute(name);
         }
 
         return storageLocation.read(this);
@@ -148,10 +142,15 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
      * This method supports initialization and solves boot-order problems and should not normally be
      * used.
      */
-    public void unsafeSetSuperClass(PythonClass newSuperClass) {
-        assert superClass == null;
-        superClass = newSuperClass;
-        superClass.subClasses.add(this);
+    public void unsafeSetSuperClass(PythonClass... newBaseClasses) {
+        assert baseClasses == null || baseClasses.length == 0;
+        baseClasses = newBaseClasses;
+
+        for (PythonClass base : baseClasses) {
+            if (base != null) {
+                base.subClasses.add(this);
+            }
+        }
     }
 
     public final Set<PythonClass> getSubClasses() {

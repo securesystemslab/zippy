@@ -65,7 +65,7 @@ public abstract class PythonBuiltins {
                     // Special case for object constructor.
                     builtinClass = context.getObjectClass();
                 } else {
-                    builtinClass = new PythonBuiltinClass(context, context.getTypeClass(), builtin.name());
+                    builtinClass = new PythonBuiltinClass(context, builtin.name(), context.getTypeClass());
                 }
 
                 builtinClass.setAttributeUnsafe("__init__", function);
