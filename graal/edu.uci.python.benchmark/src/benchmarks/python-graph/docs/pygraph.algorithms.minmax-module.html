@@ -1,0 +1,545 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>pygraph.algorithms.minmax</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="pygraph-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            ><a class="navbar" target="_top" href="http://code.google.com/p/python-graph/">python-graph</a></th>
+          </tr></table></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        <a href="pygraph-module.html">Package&nbsp;pygraph</a> ::
+        <a href="pygraph.algorithms-module.html">Package&nbsp;algorithms</a> ::
+        Module&nbsp;minmax
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+      </table>
+    </td>
+  </tr>
+</table>
+<!-- ==================== MODULE DESCRIPTION ==================== -->
+<h1 class="epydoc">Module minmax</h1><p class="nomargin-top"></p>
+<p>Minimization and maximization algorithms.</p>
+
+<!-- ==================== FUNCTIONS ==================== -->
+<a name="section-Functions"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td align="left" colspan="2" class="table-header">
+    <span class="table-header">Functions</span></td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">list</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="pygraph.algorithms.minmax-module.html#heuristic_search" class="summary-sig-name">heuristic_search</a>(<span class="summary-sig-arg">graph</span>,
+        <span class="summary-sig-arg">start</span>,
+        <span class="summary-sig-arg">goal</span>,
+        <span class="summary-sig-arg">heuristic</span>)</span><br />
+      A* search algorithm.</td>
+          <td align="right" valign="top">
+            
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">dictionary</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="pygraph.algorithms.minmax-module.html#minimal_spanning_tree" class="summary-sig-name">minimal_spanning_tree</a>(<span class="summary-sig-arg">graph</span>,
+        <span class="summary-sig-arg">root</span>=<span class="summary-sig-default">None</span>)</span><br />
+      Minimal spanning tree.</td>
+          <td align="right" valign="top">
+            
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">tuple</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="pygraph.algorithms.minmax-module.html#shortest_path" class="summary-sig-name">shortest_path</a>(<span class="summary-sig-arg">graph</span>,
+        <span class="summary-sig-arg">source</span>)</span><br />
+      Return the shortest path distance between source and all other nodes 
+      using Dijkstra's algorithm.</td>
+          <td align="right" valign="top">
+            
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">tuple</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="pygraph.algorithms.minmax-module.html#shortest_path_bellman_ford" class="summary-sig-name">shortest_path_bellman_ford</a>(<span class="summary-sig-arg">graph</span>,
+        <span class="summary-sig-arg">source</span>)</span><br />
+      Return the shortest path distance between the source node and all 
+      other nodes in the graph using Bellman-Ford's algorithm.</td>
+          <td align="right" valign="top">
+            
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">tuple</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="pygraph.algorithms.minmax-module.html#maximum_flow" class="summary-sig-name">maximum_flow</a>(<span class="summary-sig-arg">graph</span>,
+        <span class="summary-sig-arg">source</span>,
+        <span class="summary-sig-arg">sink</span>,
+        <span class="summary-sig-arg">caps</span>=<span class="summary-sig-default">None</span>)</span><br />
+      Find a maximum flow and minimum cut of a directed graph by the 
+      Edmonds-Karp algorithm.</td>
+          <td align="right" valign="top">
+            
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">float</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="pygraph.algorithms.minmax-module.html#cut_value" class="summary-sig-name">cut_value</a>(<span class="summary-sig-arg">graph</span>,
+        <span class="summary-sig-arg">flow</span>,
+        <span class="summary-sig-arg">cut</span>)</span><br />
+      Calculate the value of a cut.</td>
+          <td align="right" valign="top">
+            
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">dictionary</span>
+    </td><td class="summary">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td><span class="summary-sig"><a href="pygraph.algorithms.minmax-module.html#cut_tree" class="summary-sig-name">cut_tree</a>(<span class="summary-sig-arg">igraph</span>,
+        <span class="summary-sig-arg">caps</span>=<span class="summary-sig-default">None</span>)</span><br />
+      Construct a Gomory-Hu cut tree by applying the algorithm of Gusfield.</td>
+          <td align="right" valign="top">
+            
+            
+          </td>
+        </tr>
+      </table>
+      
+    </td>
+  </tr>
+</table>
+<!-- ==================== VARIABLES ==================== -->
+<a name="section-Variables"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td align="left" colspan="2" class="table-header">
+    <span class="table-header">Variables</span></td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="__package__"></a><span class="summary-name">__package__</span> = <code title="'pygraph.algorithms'"><code class="variable-quote">'</code><code class="variable-string">pygraph.algorithms</code><code class="variable-quote">'</code></code>
+    </td>
+  </tr>
+</table>
+<!-- ==================== FUNCTION DETAILS ==================== -->
+<a name="section-FunctionDetails"></a>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td align="left" colspan="2" class="table-header">
+    <span class="table-header">Function Details</span></td>
+</tr>
+</table>
+<a name="heuristic_search"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">heuristic_search</span>(<span class="sig-arg">graph</span>,
+        <span class="sig-arg">start</span>,
+        <span class="sig-arg">goal</span>,
+        <span class="sig-arg">heuristic</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    >&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>A* search algorithm.</p>
+  <p>A set of heuristics is available under 
+  <code>graph.algorithms.heuristics</code>. User-created heuristics are 
+  allowed too.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>graph</code></strong> (graph, digraph) - Graph</li>
+        <li><strong class="pname"><code>start</code></strong> (node) - Start node</li>
+        <li><strong class="pname"><code>goal</code></strong> (node) - Goal node</li>
+        <li><strong class="pname"><code>heuristic</code></strong> (function) - Heuristic function</li>
+    </ul></dd>
+    <dt>Returns: list</dt>
+        <dd>Optimized path from start to goal node</dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="minimal_spanning_tree"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">minimal_spanning_tree</span>(<span class="sig-arg">graph</span>,
+        <span class="sig-arg">root</span>=<span class="sig-default">None</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    >&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Minimal spanning tree.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>graph</code></strong> (graph) - Graph.</li>
+        <li><strong class="pname"><code>root</code></strong> (node) - Optional root node (will explore only root's connected component)</li>
+    </ul></dd>
+    <dt>Returns: dictionary</dt>
+        <dd>Generated spanning tree.</dd>
+  </dl>
+<div class="fields">      <p><strong>Attention:</strong>
+        Minimal spanning tree is meaningful only for weighted graphs.
+      </p>
+</div></td></tr></table>
+</div>
+<a name="shortest_path"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">shortest_path</span>(<span class="sig-arg">graph</span>,
+        <span class="sig-arg">source</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    >&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Return the shortest path distance between source and all other nodes 
+  using Dijkstra's algorithm.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>graph</code></strong> (graph, digraph) - Graph.</li>
+        <li><strong class="pname"><code>source</code></strong> (node) - Node from which to start the search.</li>
+    </ul></dd>
+    <dt>Returns: tuple</dt>
+        <dd>A tuple containing two dictionaries, each keyed by target nodes.
+          <ol start="1">
+            <li>
+              Shortest path spanning tree
+            </li>
+            <li>
+              Shortest distance from given source to each target node
+            </li>
+          </ol>
+          <p>Inaccessible target nodes do not appear in either 
+          dictionary.</p></dd>
+  </dl>
+<div class="fields">      <p><strong>Attention:</strong>
+        All weights must be nonnegative.
+      </p>
+      <p><strong>See Also:</strong>
+        shortest_path_bellman_ford
+      </p>
+</div></td></tr></table>
+</div>
+<a name="shortest_path_bellman_ford"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">shortest_path_bellman_ford</span>(<span class="sig-arg">graph</span>,
+        <span class="sig-arg">source</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    >&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Return the shortest path distance between the source node and all 
+  other nodes in the graph using Bellman-Ford's algorithm.</p>
+  <p>This algorithm is useful when you have a weighted (and obviously a 
+  directed) graph with negative weights.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>graph</code></strong> (digraph) - Digraph</li>
+        <li><strong class="pname"><code>source</code></strong> (node) - Source node of the graph</li>
+    </ul></dd>
+    <dt>Returns: tuple</dt>
+        <dd>A tuple containing two dictionaries, each keyed by target nodes. 
+          (same as shortest_path function that implements Dijkstra's 
+          algorithm)
+          <ol start="1">
+            <li>
+              Shortest path spanning tree
+            </li>
+            <li>
+              Shortest distance from given source to each target node
+            </li>
+          </ol></dd>
+    <dt>Raises:</dt>
+    <dd><ul class="nomargin-top">
+        <li><code><strong class='fraise'><a href="pygraph.classes.exceptions.NegativeWeightCycleError-class.html">NegativeWeightCycleError</a></strong></code> - raises if it finds a negative weight cycle. If this condition is 
+        met d(v) &gt; d(u) + W(u, v) then raise the error.</li>
+    </ul></dd>
+  </dl>
+<div class="fields">      <p><strong>Attention:</strong>
+        The algorithm can detect negative weight cycles and will raise an 
+        exception. It's meaningful only for directed weighted graphs.
+      </p>
+      <p><strong>See Also:</strong>
+        shortest_path
+      </p>
+</div></td></tr></table>
+</div>
+<a name="maximum_flow"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">maximum_flow</span>(<span class="sig-arg">graph</span>,
+        <span class="sig-arg">source</span>,
+        <span class="sig-arg">sink</span>,
+        <span class="sig-arg">caps</span>=<span class="sig-default">None</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    >&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Find a maximum flow and minimum cut of a directed graph by the 
+  Edmonds-Karp algorithm.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>graph</code></strong> (digraph) - Graph</li>
+        <li><strong class="pname"><code>source</code></strong> (node) - Source of the flow</li>
+        <li><strong class="pname"><code>sink</code></strong> (node) - Sink of the flow</li>
+        <li><strong class="pname"><code>caps</code></strong> (dictionary) - Dictionary specifying a maximum capacity for each edge. If not 
+          given, the weight of the edge will be used as its capacity. 
+          Otherwise, for each edge (a,b), caps[(a,b)] should be given.</li>
+    </ul></dd>
+    <dt>Returns: tuple</dt>
+        <dd>A tuple containing two dictionaries
+          <ol start="1">
+            <li>
+              contains the flow through each edge for a maximal flow 
+              through the graph
+            </li>
+            <li>
+              contains to which component of a minimum cut each node 
+              belongs
+            </li>
+          </ol></dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="cut_value"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">cut_value</span>(<span class="sig-arg">graph</span>,
+        <span class="sig-arg">flow</span>,
+        <span class="sig-arg">cut</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    >&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Calculate the value of a cut.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>graph</code></strong> (digraph) - Graph</li>
+        <li><strong class="pname"><code>flow</code></strong> (dictionary) - Dictionary containing a flow for each edge.</li>
+        <li><strong class="pname"><code>cut</code></strong> (dictionary) - Dictionary mapping each node to a subset index. The function only
+          considers the flow between nodes with 0 and 1.</li>
+    </ul></dd>
+    <dt>Returns: float</dt>
+        <dd>The value of the flow between the subsets 0 and 1</dd>
+  </dl>
+</td></tr></table>
+</div>
+<a name="cut_tree"></a>
+<div>
+<table class="details" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr><td>
+  <table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr valign="top"><td>
+  <h3 class="epydoc"><span class="sig"><span class="sig-name">cut_tree</span>(<span class="sig-arg">igraph</span>,
+        <span class="sig-arg">caps</span>=<span class="sig-default">None</span>)</span>
+  </h3>
+  </td><td align="right" valign="top"
+    >&nbsp;
+    </td>
+  </tr></table>
+  
+  <p>Construct a Gomory-Hu cut tree by applying the algorithm of 
+  Gusfield.</p>
+  <dl class="fields">
+    <dt>Parameters:</dt>
+    <dd><ul class="nomargin-top">
+        <li><strong class="pname"><code>igraph</code></strong> (graph) - Graph</li>
+        <li><strong class="pname"><code>caps</code></strong> (dictionary) - Dictionary specifying a maximum capacity for each edge. If not 
+          given, the weight of the edge will be used as its capacity. 
+          Otherwise, for each edge (a,b), caps[(a,b)] should be given.</li>
+    </ul></dd>
+    <dt>Returns: dictionary</dt>
+        <dd>Gomory-Hu cut tree as a dictionary, where each edge is associated
+          with its weight</dd>
+  </dl>
+</td></tr></table>
+</div>
+<br />
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="pygraph-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            ><a class="navbar" target="_top" href="http://code.google.com/p/python-graph/">python-graph</a></th>
+          </tr></table></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Sat Aug 25 09:56:10 2012
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>
