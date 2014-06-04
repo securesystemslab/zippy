@@ -28,6 +28,11 @@ import java.io.*;
 import java.math.*;
 import edu.uci.python.runtime.misc.*;
 
+/**
+ * A simple performance test for BigInt vs BigInteger.
+ *
+ * @author zwei
+ */
 public class BigIntTests {
 
     private static void bigIntegerDiv() {

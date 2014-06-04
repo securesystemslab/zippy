@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -106,6 +106,11 @@ package edu.uci.python.runtime.misc;
  * @author Stephen Adams
  */
 
+/**
+ * Modified to fix Checkstyle complains.
+ *
+ * @author zwei
+ */
 // CheckStyle: stop inner assignment check
 // CheckStyle: stop parameter assignment check
 // Checkstyle: stop
@@ -161,17 +166,18 @@ public final class BigInt extends Number {
      * @see #valueOf
      */
     public BigInt(long n) {
+        long posn = n;
         if (n < 0) {
             negative = true;
-            n = -n;
+            posn = -n;
             // Warning: at this point N may still be negative if it is the
             // largest negative long. We would like to think of N as
             // a 64 bit unsigned number.
         }
         // This sequence works only for BITS>=22 because we are generating at
         // most 3 fat digits and so require 3*BITS >= 64.
-        int d0 = (int) (n & MASK);
-        long r1 = n >> BITS;
+        int d0 = (int) (posn & MASK);
+        long r1 = posn >> BITS;
         int d1 = (int) (r1 & MASK);
         // MASK required because N might still be negative:
         int d2 = (int) ((r1 >> BITS) & MASK);
@@ -186,7 +192,7 @@ public final class BigInt extends Number {
         } else {
             int[] d = {d0};
             digits = d;
-            last = n == 0 ? -1 : 0;
+            last = posn == 0 ? -1 : 0;
         }
     }
 
@@ -516,24 +522,28 @@ public final class BigInt extends Number {
     }
 
     static BigInt add_unsigned(BigInt x, BigInt y, boolean negative) {
+        BigInt lx = x;
+        BigInt ly = y;
+
         if (x.last < y.last) {
             BigInt z = x;
-            x = y;
-            y = z;
+            lx = y;
+            ly = z;
         }
-        int xlast = x.last;
-        int ylast = y.last;
+
+        int xlast = lx.last;
+        int ylast = ly.last;
         int[] result = new int[xlast + 2];
         int carry = 0;
         int i = 0;
         while (i <= ylast) {
-            int sum = x.digits[i] + y.digits[i] + carry;
+            int sum = lx.digits[i] + ly.digits[i] + carry;
             result[i++] = sum & MASK;
             carry = (sum < RADIX) ? 0 : 1;
         }
         if (carry != 0)
             while (i <= xlast) {
-                int sum = x.digits[i] + carry;
+                int sum = lx.digits[i] + carry;
                 if (sum < RADIX) {
                     result[i++] = sum;
                     carry = 0;
@@ -544,7 +554,7 @@ public final class BigInt extends Number {
                 }
             }
         for (; i <= xlast; i++)
-            result[i] = x.digits[i];
+            result[i] = lx.digits[i];
         if (carry != 0) {
             result[i] = carry;
             return new BigInt(negative, result, i);
@@ -553,14 +563,16 @@ public final class BigInt extends Number {
     }
 
     static BigInt subtract_unsigned(BigInt x, BigInt y) {
+        BigInt lx = x;
+        BigInt ly = y;
         boolean negative_p = false;
-        switch (compare_unsigned(x, y)) {
+        switch (compare_unsigned(lx, ly)) {
             case EQUAL:
                 return ZERO;
             case LESS: {
                 BigInt z = x;
-                x = y;
-                y = z;
+                lx = y;
+                ly = z;
                 negative_p = true;
                 break;
             }
@@ -568,24 +580,24 @@ public final class BigInt extends Number {
                 // negative_p = false;
         }
 
-        int xlast = x.last;
-        int ylast = y.last;
+        int xlast = lx.last;
+        int ylast = ly.last;
         int[] digits = new int[xlast + 1];
         int i = 0, borrow = 0;
         while (i <= ylast) {
-            int difference = x.digits[i] - y.digits[i] - borrow;
+            int difference = lx.digits[i] - ly.digits[i] - borrow;
             digits[i++] = difference & MASK;
             borrow = (difference < 0) ? 1 : 0;
         }
         if (borrow != 0)
             while (i <= xlast) {
-                int difference = x.digits[i] - borrow;
+                int difference = lx.digits[i] - borrow;
                 digits[i++] = difference & MASK;
                 if (difference >= 0)
                     break;
             }
         for (; i <= xlast; i++) {
-            digits[i] = x.digits[i];
+            digits[i] = lx.digits[i];
         }
         return new BigInt(negative_p, digits, xlast).trim();
     }
