@@ -64,7 +64,7 @@ def measure():
     duration = "%.3f\n" % (time.time() - start)
     print("parrot-b2: " + duration)
 
-for i in range(1):
+for i in range(3):
     main()
 
 measure()
