@@ -31,12 +31,12 @@ import edu.uci.python.runtime.object.*;
 public final class PythonModule extends FixedPythonObjectStorage {
 
     private final String name;
-    private final String modulePath;
+    private final String file;
 
-    public PythonModule(PythonContext context, String name, String modulePath) {
+    public PythonModule(PythonContext context, String name, String file) {
         super(context.getModuleClass());
         this.name = name;
-        this.modulePath = modulePath;
+        this.file = file;
         switchToPrivateLayout();
         addDefaultConstants(name);
     }
@@ -45,6 +45,10 @@ public final class PythonModule extends FixedPythonObjectStorage {
         setAttribute("__name__", moduleName);
         setAttribute("__doc__", PNone.NONE);
         setAttribute("__package__", PNone.NONE);
+
+        if (file != null) {
+            setAttribute("__file__", file);
+        }
     }
 
     public String getModuleName() {
@@ -52,7 +56,7 @@ public final class PythonModule extends FixedPythonObjectStorage {
     }
 
     public String getModulePath() {
-        return modulePath;
+        return file;
     }
 
     @Override
