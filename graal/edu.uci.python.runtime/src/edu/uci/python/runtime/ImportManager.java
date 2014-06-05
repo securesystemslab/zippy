@@ -44,7 +44,11 @@ import edu.uci.python.runtime.standardtype.*;
 public class ImportManager {
 
     private static final String PYTHON_LIB_PATH = getPythonLibraryPath();
+
     private final PythonContext context;
+
+    private final List<String> paths;
+
     private final Map<String, PythonModule> importedModules;
 
     // Unsupported Imports:
@@ -64,9 +68,11 @@ public class ImportManager {
 
     public ImportManager(PythonContext context) {
         this.context = context;
+        this.paths = new ArrayList<>();
         this.importedModules = new HashMap<>();
         this.unsupportedImports = new HashMap<>();
         String[] unsupportedImportNames = {"re", "os", "posix", "io", "textwrap", "optparse", "functools"};
+
         for (String lib : unsupportedImportNames) {
             this.unsupportedImports.put(lib, true);
         }
@@ -78,33 +84,55 @@ public class ImportManager {
 
     public Object importModule(PythonModule relativeto, String moduleName) {
 
+        /**
+         * Look up built-in modules supported by ZipPy
+         */
         Object importedModule = context.getPythonBuiltinsLookup().lookupModule(moduleName);
+        if (importedModule != null) {
+            return importedModule;
+        }
 
         /**
-         * Use Jython's regex module.
+         * Go to Jython for blacklisted modules.
          */
         if (unsupportedImports.containsKey(moduleName)) {
             return importFromJython(moduleName);
         }
 
-        if (importedModule != null) {
-            return importedModule;
-        } else {
-            String path = getPathFromImporterPath(moduleName, relativeto.getModulePath());
-
-            if (path != null) {
-                importedModule = importAndCache(path, moduleName);
-            } else {
-                path = getPathFromLibrary(moduleName);
-                if (path != null) {
-                    importedModule = importAndCache(path, moduleName);
-                } else {
-                    importedModule = importFromJython(moduleName);
-                }
-            }
+        /**
+         * Try to find user module.
+         */
+        String path = getPathFromImporterPath(moduleName, relativeto.getModulePath());
+        if (path != null) {
+            return importAndCache(path, moduleName);
         }
 
-        return importedModule;
+        /**
+         * Try to find python-lib module.
+         */
+        path = getPathFromLibrary(moduleName);
+        if (path != null) {
+            return importAndCache(path, moduleName);
+        }
+
+        /**
+         * Eventually fall back to Jython, and might return nothing.
+         */
+        return importFromJython(moduleName);
+    }
+
+    @SuppressWarnings("unused")
+    private void updateSystemPathFromJython() {
+        PyList jythonSystemPaths = Py.getSystemState().path;
+
+        for (Object path : jythonSystemPaths) {
+            if (!(path instanceof PyString)) {
+                continue;
+            }
+
+            String converted = ((PyString) path).asString();
+            paths.add(converted);
+        }
     }
 
     private static PyObject importFromJython(String moduleName) {
