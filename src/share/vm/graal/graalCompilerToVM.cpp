@@ -37,7 +37,6 @@
 #include "graal/graalEnv.hpp"
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalCodeInstaller.hpp"
-#include "graal/graalVMToCompiler.hpp"
 #include "gc_implementation/g1/heapRegion.hpp"
 #include "runtime/javaCalls.hpp"
 #include "runtime/deoptimization.hpp"
@@ -515,18 +514,10 @@ C2V_VMENTRY(void, notifyCompilationStatistics, (JNIEnv *jniEnv, jobject, jint id
   }
 C2V_END
 
-C2V_VMENTRY(void, printCompilationStatistics, (JNIEnv *jniEnv, jobject, jboolean per_compiler, jboolean aggregate))
-  CompileBroker::print_times(per_compiler == JNI_TRUE, aggregate == JNI_TRUE);
-C2V_END
-
 C2V_VMENTRY(void, resetCompilationStatistics, (JNIEnv *jniEnv, jobject))
   CompilerStatistics* stats = GraalCompiler::instance()->stats();
-  stats->_standard._time.reset();
-  stats->_standard._bytes = 0;
-  stats->_standard._count = 0;
-  stats->_osr._time.reset();
-  stats->_osr._bytes = 0;
-  stats->_osr._count = 0;
+  stats->_standard.reset();
+  stats->_osr.reset();
 C2V_END
 
 C2V_VMENTRY(jobject, disassembleCodeBlob, (JNIEnv *jniEnv, jobject, jlong codeBlob))
@@ -1058,7 +1049,6 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"initializeConfiguration",                      CC"("HS_CONFIG")V",                                                       FN_PTR(initializeConfiguration)},
   {CC"installCode0",                                 CC"("HS_COMPILED_CODE INSTALLED_CODE SPECULATION_LOG")I",                 FN_PTR(installCode0)},
   {CC"notifyCompilationStatistics",                  CC"(I"HS_RESOLVED_METHOD"ZIJJ"INSTALLED_CODE")V",                         FN_PTR(notifyCompilationStatistics)},
-  {CC"printCompilationStatistics",                   CC"(ZZ)V",                                                                FN_PTR(printCompilationStatistics)},
   {CC"resetCompilationStatistics",                   CC"()V",                                                                  FN_PTR(resetCompilationStatistics)},
   {CC"disassembleCodeBlob",                          CC"(J)"STRING,                                                            FN_PTR(disassembleCodeBlob)},
   {CC"executeCompiledMethodVarargs",                 CC"(["OBJECT INSTALLED_CODE")"OBJECT,                                     FN_PTR(executeCompiledMethodVarargs)},

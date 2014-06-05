@@ -39,7 +39,6 @@
 #include "hsailJavaCallArguments.hpp"
 #include "code/pcDesc.hpp"
 #include "code/scopeDesc.hpp"
-#include "graal/graalVMToCompiler.hpp"
 #include "gpu_hsail_Frame.hpp"
 
 // Entry to GPU native method implementation that transitions current thread to '_thread_in_vm'.

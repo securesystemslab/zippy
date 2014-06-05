@@ -1152,11 +1152,11 @@ void CompileBroker::compile_method_base(methodHandle method,
     assert(TieredCompilation || comp_level == CompLevel_full_optimization, "incorrect compile level");
     assert(CompLevel_full_optimization == CompLevel_highest_tier, "incorrect level definition");
     if (comp_level == CompLevel_full_optimization) {
-      if (!JavaThread::current()->is_graal_compiling()) {
+      JavaThread* javaThread = JavaThread::current();
+      if (javaThread->can_schedule_graal_compilation()) {
         bool blockingCompilation = is_compile_blocking(method, osr_bci);
+        NoGraalCompilationScheduling ngcs(javaThread);
         GraalCompiler::instance()->compile_method(method, osr_bci, NULL, blockingCompilation);
-      } else {
-        // Can't enqueue this request because there would be no one to service it, so simply return.
       }
       return;
     }
@@ -2358,6 +2358,17 @@ const char* CompileBroker::compiler_name(int comp_level) {
   }
 }
 
+#ifdef GRAAL
+void CompileBroker::print_times(AbstractCompiler* comp) {
+  CompilerStatistics* stats = comp->stats();
+  tty->print_cr("  %s {speed: %d bytes/s; standard: %6.3f s, %d bytes, %d methods; osr: %6.3f s, %d bytes, %d methods; nmethods_size: %d bytes; nmethods_code_size: %d bytes}",
+                comp->name(), stats->bytes_per_second(),
+                stats->_standard._time.seconds(), stats->_standard._bytes, stats->_standard._count,
+                stats->_osr._time.seconds(), stats->_osr._bytes, stats->_osr._count,
+                stats->_nmethods_size, stats->_nmethods_code_size);
+}
+#endif
+
 void CompileBroker::print_times(bool per_compiler, bool aggregate) {
 #ifdef GRAAL
   elapsedTimer standard_compilation;
@@ -2400,11 +2411,7 @@ void CompileBroker::print_times(bool per_compiler, bool aggregate) {
       nmethods_code_size += stats->_nmethods_code_size;
 
       if (per_compiler) {
-        tty->print_cr("  %s {speed: %d bytes/s; standard: %6.3f s, %d bytes, %d methods; osr: %6.3f s, %d bytes, %d methods; nmethods_size: %d bytes; nmethods_code_size: %d bytes}",
-                      comp->name(), stats->bytes_per_second(),
-                      stats->_standard._time.seconds(), stats->_standard._bytes, stats->_standard._count,
-                      stats->_osr._time.seconds(), stats->_osr._bytes, stats->_osr._count,
-                      stats->_nmethods_size, stats->_nmethods_code_size);
+        print_times(comp);
       }
     }
   }

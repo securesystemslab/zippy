@@ -922,8 +922,8 @@ class JavaThread: public Thread {
 
 #ifdef GRAAL
   address   _graal_alternate_call_target;
-  address   _graal_implicit_exception_pc;  // pc at which the most recent implicit exception occurred
-  bool      _graal_compiling;
+  address   _graal_implicit_exception_pc;    // pc at which the most recent implicit exception occurred
+  bool      _graal_can_schedule_compilation; // see NoGraalCompilationScheduling
 
   jlong*    _graal_counters;
 
@@ -1310,8 +1310,8 @@ class JavaThread: public Thread {
 #ifdef GRAAL
   void set_graal_alternate_call_target(address a) { _graal_alternate_call_target = a; }
   void set_graal_implicit_exception_pc(address a) { _graal_implicit_exception_pc = a; }
-  bool is_graal_compiling()                       { return _graal_compiling;          }
-  void set_is_graal_compiling(bool b)             { _graal_compiling = b;             }
+  bool can_schedule_graal_compilation()           { return _graal_can_schedule_compilation; }
+  void set_can_schedule_graal_compilation(bool b) { _graal_can_schedule_compilation = b;    }
 #endif
 
   // Exception handling for compiled methods
@@ -1882,6 +1882,8 @@ class CompilerThread : public JavaThread {
 
 #ifdef COMPILERGRAAL
   virtual bool can_call_java() const;
+#else
+  virtual bool can_call_java() const             { return false; }
 #endif
 
   // Hide this compiler thread from external view.

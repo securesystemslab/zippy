@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -20,35 +22,23 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package com.oracle.truffle.api.script;
 
-package com.oracle.graal.hotspot.bridge;
-
-import java.io.*;
+import javax.script.*;
 
 /**
- * Calls from HotSpot into Java.
+ * Tool access to the creation of Truffle execution engines.
  */
-public interface VMToCompiler {
+public abstract class TruffleScriptEngineFactory implements ScriptEngineFactory {
 
-    void startRuntime();
-
-    void startCompiler(boolean bootstrapEnabled) throws Throwable;
-
-    void bootstrap() throws Throwable;
-
+    // TODO (mlvdv) first step, based on a suggestion from NetBeans
     /**
-     * Compiles a method to machine code. This method is called from the VM
-     * (VMToCompiler::compileMethod).
+     * To be called by each concrete factory just after each engine instance is created, presenting
+     * an opportunity for an IDE to interrupt in a language-independent way.
      *
-     * @param ctask the CompileTask pointer if this is a request from a HotSpot compiler thread
+     * @param engine a just-created engine
      */
-    void compileMethod(long metaspaceMethod, int entryBCI, long ctask, boolean blocking);
+    protected void engineCreated(ScriptEngine engine) {
+    }
 
-    void shutdownCompiler() throws Exception;
-
-    void shutdownRuntime() throws Throwable;
-
-    void compileTheWorld() throws Throwable;
-
-    PrintStream log();
 }
