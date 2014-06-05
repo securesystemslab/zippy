@@ -802,13 +802,19 @@ def build(args, vm=None):
             env.pop('LD_LIBRARY_PATH', None)
             env.pop('CLASSPATH', None)
 
-            if mx._opts.verbose:
-                # Issue an env prefix that can be used to run the make on the command line
-                envPrefix = ' '.join([key + '=' + env[key] for key in env.iterkeys() if not os.environ.has_key(key) or env[key] != os.environ[key]])
-                if len(envPrefix):
-                    mx.log('env ' + envPrefix + ' \\')
+            # Issue an env prefix that can be used to run the make on the command line
+            if not mx._opts.verbose:
+                mx.log('--------------- make command line ----------------------')
+
+            envPrefix = ' '.join([key + '=' + env[key] for key in env.iterkeys() if not os.environ.has_key(key) or env[key] != os.environ[key]])
+            if len(envPrefix):
+                mx.log('env ' + envPrefix + ' \\')
 
             runCmd.append(build + buildSuffix)
+
+            if not mx._opts.verbose:
+                mx.log(' '.join(runCmd))
+                mx.log('--------------------------------------------------------')
             mx.run(runCmd, err=filterXusage, env=env)
 
         jvmCfg = _vmCfgInJdk(jdk)
