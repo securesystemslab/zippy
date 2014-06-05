@@ -7,7 +7,6 @@ python_graph_path = os.path.join(os.path.dirname(__file__), 'python-graph')
 python_graph_core_path = os.path.join(python_graph_path, 'core')
 sys.path.append(python_graph_path)
 sys.path.append(python_graph_core_path)
-print(sys.path)
 
 import pygraph
 from pygraph.algorithms.accessibility import accessibility

@@ -26,6 +26,7 @@ package edu.uci.python.nodes.subscript;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
@@ -73,8 +74,15 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         return store.getDoubleItemInBound(index);
     }
 
-    @Specialization(order = 3)
-    public Object doPListObject(PList list, int idx) {
+    @Specialization(order = 3, guards = "isObjectStorage")
+    public Object doPListObject(PList primary, int idx) {
+        final ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
+        int index = SequenceUtil.normalizeIndex(idx, store.length());
+        return store.getItemInBound(index);
+    }
+
+    @Specialization(order = 5)
+    public Object doPList(PList list, int idx) {
         return list.getItem(idx);
     }
 
@@ -123,11 +131,13 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
 
     /**
      * zwei: PythonTypesUtil does not unbox PyList. Instead we perform inplace update on PyList.
-     * This avoid unwated data strcture duplication and actually updates data structure on Jython
-     * size. As soon as we never have to actually read from a PyList, this should be gone.
+     * This avoid unwated data strcture duplication and actually updates a PyList imported from
+     * Jython. As soon as we never have to actually read an imported PyList, this should be gone.
      */
     @Specialization(order = 19)
     public Object doPyList(PyObject primary, int index) {
+        CompilerAsserts.neverPartOfCompilation();
+
         PyList list = (PyList) primary;
         Object value = list.get(index);
 
