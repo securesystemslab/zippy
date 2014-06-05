@@ -24,10 +24,13 @@
  */
 package edu.uci.python.nodes.subscript;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.object.*;
@@ -116,6 +119,23 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     @Specialization(order = 15)
     public Object doPArray(PArray primary, int index) {
         return primary.getItem(index);
+    }
+
+    /**
+     * zwei: PythonTypesUtil does not unbox PyList. Instead we perform inplace update on PyList.
+     * This avoid unwated data strcture duplication and actually updates data structure on Jython
+     * size. As soon as we never have to actually read from a PyList, this should be gone.
+     */
+    @Specialization(order = 19)
+    public Object doPyList(PyObject primary, int index) {
+        PyList list = (PyList) primary;
+        Object value = list.get(index);
+
+        if (value instanceof PyObject) {
+            return PythonTypesUtil.unboxPyObject((PyObject) value);
+        }
+
+        return value;
     }
 
     @Specialization(order = 20)

@@ -37,7 +37,6 @@ import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.sequence.storage.*;
 
 public class PythonTypesUtil {
 
@@ -147,10 +146,6 @@ public class PythonTypesUtil {
         } else if (value instanceof PyTuple) {
             PyTuple tuple = (PyTuple) value;
             return new PTuple(unboxPyObjects(tuple.getArray()));
-        } else if (value instanceof PyList) {
-            PyList list = (PyList) value;
-            PyObject[] values = list.getArray();
-            return new PList(SequenceStorageFactory.createStorage(unboxPyObjects(values)));
         } else if (value instanceof PyArray) {
             // TODO Temporary fix
             PyList array = (PyList) ((PyArray) value).tolist();
