@@ -239,7 +239,15 @@ public abstract class PNode extends Node {
         return list.getStorage() instanceof EmptySequenceStorage;
     }
 
+    protected static boolean is2ndEmptyStorage(@SuppressWarnings("unused") Object first, PList list) {
+        return list.getStorage() instanceof EmptySequenceStorage;
+    }
+
     protected static boolean isIntStorage(PList list) {
+        return list.getStorage() instanceof IntSequenceStorage;
+    }
+
+    protected static boolean is2ndIntStorage(@SuppressWarnings("unused") Object first, PList list) {
         return list.getStorage() instanceof IntSequenceStorage;
     }
 
@@ -247,7 +255,15 @@ public abstract class PNode extends Node {
         return list.getStorage() instanceof DoubleSequenceStorage;
     }
 
+    protected static boolean is2ndDoubleStorage(@SuppressWarnings("unused") Object first, PList list) {
+        return list.getStorage() instanceof DoubleSequenceStorage;
+    }
+
     protected static boolean isObjectStorage(PList list) {
+        return list.getStorage() instanceof ObjectSequenceStorage;
+    }
+
+    protected static boolean is2ndObjectStorage(@SuppressWarnings("unused") Object first, PList list) {
         return list.getStorage() instanceof ObjectSequenceStorage;
     }
 

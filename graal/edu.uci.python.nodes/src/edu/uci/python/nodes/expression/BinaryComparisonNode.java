@@ -31,6 +31,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public abstract class BinaryComparisonNode extends BinaryOpNode {
@@ -352,17 +353,46 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class NotInNode extends BinaryComparisonNode {
 
-        @Specialization
+        @Specialization(order = 5)
         public boolean doBaseSet(Object left, PBaseSet right) {
             return !right.contains(left);
         }
 
-        @Specialization
+        @SuppressWarnings("unused")
+        @Specialization(order = 10, guards = "is2ndEmptyStorage")
+        public boolean doPListEmpty(Object left, PList right) {
+            return true;
+        }
+
+        @Specialization(order = 11, guards = "is2ndIntStorage")
+        public boolean doPListInt(int left, PList right) {
+            IntSequenceStorage store = (IntSequenceStorage) right.getStorage();
+            return store.indexOfInt(left) == -1;
+        }
+
+        @Specialization(order = 12, guards = "is2ndDoubleStorage")
+        public boolean doPListDouble(double left, PList right) {
+            DoubleSequenceStorage store = (DoubleSequenceStorage) right.getStorage();
+            return store.indexOfDouble(left) == -1;
+        }
+
+        @Specialization(order = 13, guards = "is2ndObjectStorage")
+        public boolean doPListObject(Object left, PList right) {
+            ObjectSequenceStorage store = (ObjectSequenceStorage) right.getStorage();
+            return store.index(left) == -1;
+        }
+
+        @Specialization(order = 15)
+        public boolean doPList(Object left, PList right) {
+            return right.index(left) == -1;
+        }
+
+        @Specialization(order = 19)
         public boolean doPSequence(Object left, PSequence right) {
             return right.index(left) == -1;
         }
 
-        @Specialization
+        @Specialization(order = 20)
         public boolean doPDictionary(Object left, PDict right) {
             return !right.hasKey(left);
         }

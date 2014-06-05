@@ -27,6 +27,8 @@ package edu.uci.python.runtime.sequence.storage;
 import java.io.*;
 import java.util.*;
 
+import com.oracle.truffle.api.nodes.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -216,6 +218,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     }
 
+    @ExplodeLoop
     public int indexOfInt(int value) {
         for (int i = 0; i < length; i++) {
             if (values[i] == value) {
