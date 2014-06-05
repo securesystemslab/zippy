@@ -25,6 +25,7 @@
 package edu.uci.python.runtime;
 
 import java.io.*;
+import java.nio.file.*;
 import java.util.*;
 
 import org.python.core.*;
@@ -42,8 +43,6 @@ import edu.uci.python.runtime.standardtype.*;
  */
 
 public class ImportManager {
-
-    private static final String PYTHON_LIB_PATH = getPythonLibraryPath();
 
     private final PythonContext context;
 
@@ -71,6 +70,8 @@ public class ImportManager {
         this.paths = new ArrayList<>();
         this.importedModules = new HashMap<>();
         this.unsupportedImports = new HashMap<>();
+        this.paths.add(getPythonLibraryPath());
+
         String[] unsupportedImportNames = {"re", "os", "posix", "io", "textwrap", "optparse", "functools"};
 
         for (String lib : unsupportedImportNames) {
@@ -83,6 +84,7 @@ public class ImportManager {
     }
 
     public Object importModule(PythonModule relativeto, String moduleName) {
+        CompilerAsserts.neverPartOfCompilation();
 
         /**
          * Look up built-in modules supported by ZipPy
@@ -108,30 +110,43 @@ public class ImportManager {
         }
 
         /**
-         * Try to find python-lib module.
+         * Try to find from system paths.
          */
-        path = getPathFromLibrary(moduleName);
-        if (path != null) {
-            return importAndCache(path, moduleName);
+        updateSystemPathFromJython();
+        for (String directoryPath : paths) {
+            path = getPathFromLibrary(directoryPath, moduleName);
+
+            if (path != null) {
+                return importAndCache(path, moduleName);
+            }
         }
 
         /**
-         * Eventually fall back to Jython, and might return nothing.
+         * Eventually fall back to Jython, and might return null.
          */
         return importFromJython(moduleName);
     }
 
-    @SuppressWarnings("unused")
     private void updateSystemPathFromJython() {
         PyList jythonSystemPaths = Py.getSystemState().path;
 
         for (Object path : jythonSystemPaths) {
-            if (!(path instanceof PyString)) {
+            if (!(path instanceof String)) {
                 continue;
             }
 
-            String converted = ((PyString) path).asString();
-            paths.add(converted);
+            String stringPath = (String) path;
+            if (stringPath.contains("zippy/lib") || stringPath.contains("jython")) {
+                continue;
+            }
+
+            if (!Files.exists(Paths.get(stringPath))) {
+                continue;
+            }
+
+            if (!paths.contains(stringPath)) {
+                paths.add(stringPath);
+            }
         }
     }
 
@@ -166,17 +181,16 @@ public class ImportManager {
         return null;
     }
 
-    private static String getPathFromLibrary(String moduleName) {
+    private static String getPathFromLibrary(String directoryPath, String moduleName) {
         if (moduleName.equals("unittest")) {
-            String casePath = PYTHON_LIB_PATH + File.separatorChar + "unittest" + File.separatorChar + "__init__zippy.py";
+            String casePath = getPythonLibraryPath() + File.separatorChar + "unittest" + File.separatorChar + "__init__zippy.py";
             return casePath;
         }
 
-        String dirPath = PYTHON_LIB_PATH;
         String sourceName = "__init__.py";
 
         // First check for packages
-        File dir = new File(dirPath, moduleName);
+        File dir = new File(directoryPath, moduleName);
         File sourceFile = new File(dir, sourceName);
 
         boolean isPackage = false;
@@ -188,7 +202,7 @@ public class ImportManager {
 
         if (!isPackage) {
             sourceName = moduleName + ".py";
-            sourceFile = new File(dirPath, sourceName);
+            sourceFile = new File(directoryPath, sourceName);
             if (sourceFile.isFile()) {
                 String path = sourceFile.getPath();
                 return path;
