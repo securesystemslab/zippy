@@ -176,6 +176,7 @@ pythonBenchmarks = {
     'richards3-timed' : '200',
     'bm-float-timed'  : '1000',
     'pypy-chaos-timed': '1000',
+    'python-graph-bench': '200',
 }
 
 python2Benchmarks = {
@@ -195,6 +196,7 @@ python2Benchmarks = {
     'richards3-timed' : '200',
     'bm-float-timed'  : '1000',
     'pypy-chaos-timed': '1000',
+    'python-graph-bench': '200',
 }
 
 specjvm2008Names = [
