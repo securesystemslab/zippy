@@ -147,8 +147,9 @@ class graph(basegraph):
             if (u != v):
                 self.node_neighbors[v].append(u)
                 
-            self.add_edge_attributes((u,v), attrs)        
-            self.set_edge_properties((u, v), label=label, weight=wt)
+            self.add_edge_attributes((u,v), attrs)
+            # zwei
+            # self.set_edge_properties((u, v), label=label, weight=wt)
         else:
             raise AdditionError("Edge (%s, %s) already in graph" % (u, v))
 

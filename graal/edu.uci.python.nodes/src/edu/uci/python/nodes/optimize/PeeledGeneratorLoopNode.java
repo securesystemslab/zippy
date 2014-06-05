@@ -132,7 +132,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
 
             try {
                 if (checkNode.accept(primary)) {
-                    final Object[] arguments = PArguments.createWithUserArguments(primary);
+                    final Object[] arguments = argumentsNode.executeArguments(frame, true, primary);
                     PArguments.setVirtualFrameCargoArguments(arguments, frame);
                     VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
                     return inlinedRootNode.execute(generatorFrame);
