@@ -4567,7 +4567,7 @@ int Assembler::prefix_and_encode(int dst_enc, int src_enc, bool byteinst) {
     if (src_enc >= 8) {
       prefix(REX_B);
       src_enc -= 8;
-    } else if (byteinst && src_enc >= 4) {
+    } else if (byteinst && (src_enc >= 4 || dst_enc >= 4)) {
       prefix(REX);
     }
   } else {
