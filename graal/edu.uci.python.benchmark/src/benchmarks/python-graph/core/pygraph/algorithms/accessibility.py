@@ -30,7 +30,8 @@ Accessibility algorithms.
 
 
 # Imports
-from sys import getrecursionlimit, setrecursionlimit
+from sys import getrecursionlimit
+from sys import setrecursionlimit
 
 # Transitive-closure
 

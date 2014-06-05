@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.statement;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -51,27 +53,39 @@ public abstract class ClassDefinitionNode extends StatementNode {
         this(prev.context, prev.name, prev.baseNodes);
     }
 
-    @ExplodeLoop
     @Specialization
     Object doDefine(VirtualFrame frame, PythonCallable definitionFunc) {
-        final PythonClass[] bases = executeBases(frame);
-        final PythonClass newClass = new PythonClass(context, name, bases);
+        PythonClass[] bases;
+        PythonClass newClass;
+
+        try {
+            bases = executeBases(frame);
+            newClass = new PythonClass(context, name, bases);
+        } catch (UnexpectedResultException e) {
+            newClass = tryToDefineJythonSubClass(e.getResult());
+        }
+
         definitionFunc.call(PArguments.createWithUserArguments(newClass));
         return newClass;
     }
 
-    private PythonClass[] executeBases(VirtualFrame frame) {
+    @ExplodeLoop
+    private PythonClass[] executeBases(VirtualFrame frame) throws UnexpectedResultException {
         final PythonClass[] bases = new PythonClass[baseNodes.length];
 
         for (int i = 0; i < baseNodes.length; i++) {
-            try {
-                bases[i] = baseNodes[i].executePythonClass(frame);
-            } catch (UnexpectedResultException e) {
-                throw new IllegalStateException();
-            }
+            bases[i] = baseNodes[i].executePythonClass(frame);
         }
 
         return bases;
+    }
+
+    private PythonClass tryToDefineJythonSubClass(Object result) {
+        if (result instanceof PyType) {
+            return new JythonTypeSubClass(context, name, (PyType) result);
+        } else {
+            throw new IllegalStateException();
+        }
     }
 
 }

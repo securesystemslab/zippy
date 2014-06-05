@@ -52,16 +52,15 @@ public class ImportFromNode extends PNode {
     public Object execute(VirtualFrame frame) {
         CompilerAsserts.neverPartOfCompilation();
 
-        String importModuleName;
-        PythonModule current = relativeto;
+        Object current = relativeto;
 
         for (int i = 0; i < fromModules.length; i++) {
-            importModuleName = fromModules[i];
+            String importModuleName = fromModules[i];
 
             if (importModuleName.compareTo("") == 0) {
-                return context.getImportManager().importModule(current, importee);
+                return context.getImportManager().importModule((PythonModule) current, importee);
             } else {
-                current = (PythonModule) context.getImportManager().importModule(current, importModuleName);
+                current = context.getImportManager().importModule((PythonModule) current, importModuleName);
             }
         }
 
