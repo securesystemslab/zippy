@@ -193,7 +193,7 @@ $(MINIMAL1_VM_TARGETS):
 
 $(GRAAL_VM_TARGETS):
 	$(CD) $(GAMMADIR)/make; \
-	$(MAKE) BUILD_DIR=$(GRAAL_DIR) BUILD_FLAVOR=$(@:%graal=%) VM_TARGET=$@ generic_buildgraal $(ALT_OUT)
+	$(MAKE) BUILD_DIR=$(GRAAL_DIR) BUILD_FLAVOR=$(@:%graal=%) VM_TARGET=$@ INCLUDE_GRAAL=true generic_buildgraal $(ALT_OUT)
 
 # Install hotspot script in build directory
 HOTSPOT_SCRIPT=$(BUILD_DIR)/$(BUILD_FLAVOR)/hotspot
