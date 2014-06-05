@@ -26,6 +26,7 @@ package edu.uci.python.nodes.statement;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -35,25 +36,36 @@ import edu.uci.python.runtime.standardtype.*;
 public class ImportFromNode extends PNode {
 
     private final PythonContext context;
-    private final String moduleName;
+    private final String[] fromModules;
     private final String importee;
     private final PythonModule relativeto;
 
-    public ImportFromNode(PythonContext context, PythonModule relativeto, String moduleName, String importee) {
+    public ImportFromNode(PythonContext context, PythonModule relativeto, String fromModules, String importee) {
         this.context = context;
-        this.moduleName = moduleName;
+        this.fromModules = fromModules.split("\\.");
         this.importee = importee;
         this.relativeto = relativeto;
+        assert this.fromModules != null && this.fromModules.length > 0;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        if (moduleName.compareTo("") != 0) {
-            Object imported = context.getImportManager().importModule(relativeto, moduleName);
-            return doImportFrom(imported);
-        } else {
-            return context.getImportManager().importModule(relativeto, importee);
+        CompilerAsserts.neverPartOfCompilation();
+
+        String importModuleName;
+        PythonModule current = relativeto;
+
+        for (int i = 0; i < fromModules.length; i++) {
+            importModuleName = fromModules[i];
+
+            if (importModuleName.compareTo("") == 0) {
+                return context.getImportManager().importModule(current, importee);
+            } else {
+                current = (PythonModule) context.getImportManager().importModule(current, importModuleName);
+            }
         }
+
+        return doImportFrom(current);
     }
 
     private Object doImportFrom(Object importedModule) {

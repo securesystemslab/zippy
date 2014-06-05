@@ -170,12 +170,22 @@ public class ImportManager {
             path = new File(importingModulePath).getAbsoluteFile().getParent();
         }
 
-        if (path != null) {
-            String importedModulePath = path + File.separatorChar + filename;
-            File importingFile = new File(importedModulePath);
-            if (importingFile.exists()) {
-                return importedModulePath;
-            }
+        if (path == null) {
+            return null;
+        }
+
+        String importedModulePath = path + File.separatorChar + filename;
+        File importingFile = new File(importedModulePath);
+
+        if (importingFile.exists()) {
+            return importedModulePath;
+        }
+
+        importedModulePath = path + File.separatorChar + moduleName;
+        File importingDirectory = new File(importedModulePath);
+        importingFile = new File(importingDirectory, "__init__.py");
+        if (importingDirectory.isDirectory() && importingFile.exists()) {
+            return importingFile.toString();
         }
 
         return null;
