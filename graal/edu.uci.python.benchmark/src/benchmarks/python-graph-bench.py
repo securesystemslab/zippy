@@ -29,27 +29,24 @@ def build_graph():
         gr.add_edge((i,i+1))
     return gr
 
-def call_accessibility(gr):
+def main(gr, n):
     recursionlimit = getrecursionlimit()
-    accessibility(gr)
+    for i in range(n):
+        accessibility(gr)
     assert getrecursionlimit() == recursionlimit
 
 G = build_graph()
 
-def main(n):
-    for i in range(n):
-        call_accessibility(G)
-
 def measure():
     print("Start timing...")
     start = time.time()
-    main(num)
+    main(G, num)
     duration = "%.3f\n" % (time.time() - start)
     print("python-graph-access: " + duration)
 
 # warm up
 num =  int(sys.argv[1]) # 200
 for i in range(50):
-    main(20)
+    main(G, 20)
 
 measure()
