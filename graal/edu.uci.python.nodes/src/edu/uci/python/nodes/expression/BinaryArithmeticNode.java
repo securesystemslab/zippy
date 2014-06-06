@@ -132,19 +132,19 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.subtract(right);
         }
 
-        @Specialization(order = 3)
+        @Specialization(order = 10)
+        double doDouble(double left, double right) {
+            return left - right;
+        }
+
+        @Specialization(order = 11)
         double doBigIntegerDouble(BigInteger left, double right) {
             return left.doubleValue() - right;
         }
 
-        @Specialization(order = 4)
+        @Specialization(order = 12)
         double doBigIntegerDouble(double left, BigInteger right) {
             return left - right.doubleValue();
-        }
-
-        @Specialization(order = 12)
-        double doDouble(double left, double right) {
-            return left - right;
         }
 
         @Specialization(order = 13)
