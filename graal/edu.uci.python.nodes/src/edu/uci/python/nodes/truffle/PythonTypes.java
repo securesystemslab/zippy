@@ -44,8 +44,7 @@ import edu.uci.python.runtime.standardtype.*;
                 double.class, //
                 PComplex.class, //
                 char.class, //
-                String.class,
-
+                String.class, //
                 PyObject.class, //
                 PString.class, //
                 PythonClass.class, //
