@@ -1804,7 +1804,7 @@ def hcfdis(args):
 
     path = join(_graal_home, 'lib', 'hcfdis-1.jar')
     if not exists(path):
-        mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hcfdis-1.jar'])
+        mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hcfdis-2.jar'])
     mx.run_java(['-jar', path] + args.files)
 
     if args.map is not None:
