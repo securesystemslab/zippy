@@ -55,12 +55,28 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.add(right);
         }
 
+        @Specialization(order = 15)
+        double doDoubleInt(double left, int right) {
+            return left + right;
+        }
+
+        @Specialization(order = 16)
+        double doDoubleInt(int left, double right) {
+            return left + right;
+        }
+
         @Specialization(order = 20)
         double doDouble(double left, double right) {
             return left + right;
         }
 
         @Specialization(order = 30)
+        PComplex doComplexInt(PComplex left, int right) {
+            PComplex result = new PComplex(left.getReal() + right, left.getImag());
+            return result;
+        }
+
+        @Specialization(order = 35)
         PComplex doDoubleComplex(double left, PComplex right) {
             PComplex result = new PComplex(left + right.getReal(), right.getImag());
             return result;

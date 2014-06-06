@@ -91,7 +91,6 @@ public class PythonTypes {
      * Python bool to Python int (BigInteger); <br>
      * Python int to int (Integer to BigInteger).
      */
-    // @ImplicitCast
     public BigInteger booleanToBigInteger(boolean value) {
         return value ? BigInteger.valueOf(1) : BigInteger.valueOf(0);
     }
@@ -106,7 +105,6 @@ public class PythonTypes {
      * Python bool to Python float (double); <br>
      * Python int to float (Integer or BigInteger to double).
      */
-    @ImplicitCast
     public double booleanToDouble(boolean value) {
         return value ? 1.0D : 0.0D;
     }
@@ -116,7 +114,6 @@ public class PythonTypes {
         return value;
     }
 
-    // @ImplicitCast
     public double bigIntegerToDouble(BigInteger value) {
         return value.doubleValue();
     }
@@ -127,17 +124,14 @@ public class PythonTypes {
      * Python int to Python complex (Integer or BigInteger to PComplex); <br>
      * Python float to Python complex (double to PComplex).
      */
-    // @ImplicitCast
     public PComplex booleanToPComplex(boolean value) {
         return value ? new PComplex(1, 0) : new PComplex(0, 0);
     }
 
-    // @ImplicitCast
     public PComplex intToPComplex(int value) {
         return new PComplex(value, 0);
     }
 
-    // @ImplicitCast
     public PComplex bigIntegerToPComplex(BigInteger value) {
         return new PComplex(value.doubleValue(), 0);
     }
