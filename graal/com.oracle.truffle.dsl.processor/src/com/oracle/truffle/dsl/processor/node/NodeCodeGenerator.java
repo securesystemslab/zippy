@@ -2355,15 +2355,7 @@ public class NodeCodeGenerator extends CompilationUnitFactory<NodeData> {
             SpecializationData generic = node.getGenericSpecialization();
             CodeTreeBuilder specializeCall = new CodeTreeBuilder(parent);
             specializeCall.startCall(EXECUTE_SPECIALIZE_NAME);
-            /**
-             * zwei: An experimental hack.<br>
-             * We reduce the minimumState value argument by 1 when a specialized node calls
-             * BaseNode#executeAndSpecialize. This change is intended to change the rewriting
-             * behavior of a node using @ImplicitCast to guard its operand type. If one of its
-             * operand's type changes, it now can rewrite to the same specialiazed node with an
-             * updated operand implicit type.
-             */
-            specializeCall.string(String.valueOf(node.getSpecializations().indexOf(current) - 1));
+            specializeCall.string(String.valueOf(node.getSpecializations().indexOf(current)));
             addInternalValueParameterNames(specializeCall, generic, node.getGenericSpecialization(), exceptionParam != null ? exceptionParam.getLocalName() : null, true, null);
             specializeCall.doubleQuote(reason);
             specializeCall.end().end();
