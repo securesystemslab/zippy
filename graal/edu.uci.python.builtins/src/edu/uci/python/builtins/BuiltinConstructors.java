@@ -24,6 +24,7 @@
  */
 package edu.uci.python.builtins;
 
+import java.math.*;
 import java.util.*;
 
 import org.python.core.*;
@@ -291,16 +292,30 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         @SuppressWarnings("unused")
         @Specialization(guards = "noKeywordArg")
+        public BigInteger createInt(BigInteger arg, Object keywordArg) {
+            return arg;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(guards = "noKeywordArg")
         public Object createInt(double arg, Object keywordArg) {
             return JavaTypeConversions.doubleToInt(arg);
         }
 
+        @SuppressWarnings("unused")
         @Specialization
-        public Object createInt(Object arg, Object keywordArg) {
-            if (arg instanceof PNone) {
-                return 0;
-            }
+        public Object createInt(PNone none, Object keywordArg) {
+            return 0;
+        }
 
+        @SuppressWarnings("unused")
+        @Specialization(guards = "noKeywordArg")
+        public Object createInt(String arg, Object keywordArg) {
+            return JavaTypeConversions.stringToInt(arg, 10);
+        }
+
+        @Generic
+        public Object createInt(Object arg, Object keywordArg) {
             if (keywordArg instanceof PNone) {
                 return JavaTypeConversions.toInt(arg);
             } else {
