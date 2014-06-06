@@ -92,7 +92,7 @@ public class PythonTypes {
      * Python bool to Python int (BigInteger); <br>
      * Python int to int (Integer to BigInteger).
      */
-    @ImplicitCast
+    // @ImplicitCast
     public BigInteger booleanToBigInteger(boolean value) {
         return value ? BigInteger.valueOf(1) : BigInteger.valueOf(0);
     }
