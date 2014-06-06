@@ -72,6 +72,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return result;
         }
 
+        @Specialization(order = 45)
+        PComplex doComplex(BigInteger left, PComplex right) {
+            return new PComplex(left.doubleValue(), 0).add(right);
+        }
+
         @Specialization(order = 50)
         PComplex doComplex(PComplex left, PComplex right) {
             return left.add(right);
@@ -288,19 +293,19 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return FastMathUtil.slowPathDivide(left, right).doubleValue();
         }
 
-        @Specialization(order = 6)
+        @Specialization(order = 10)
+        double doDouble(double left, double right) {
+            return left / right;
+        }
+
+        @Specialization(order = 11)
         double doBigIntegerDouble(BigInteger left, double right) {
             return left.doubleValue() / right;
         }
 
-        @Specialization(order = 7)
+        @Specialization(order = 12)
         double doBigIntegerDouble(double left, BigInteger right) {
             return left / right.doubleValue();
-        }
-
-        @Specialization(order = 12)
-        double doDouble(double left, double right) {
-            return left / right;
         }
 
         @Specialization(order = 13)
