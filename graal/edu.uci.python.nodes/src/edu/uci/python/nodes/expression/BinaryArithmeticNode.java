@@ -40,26 +40,10 @@ import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.misc.*;
 import edu.uci.python.runtime.sequence.*;
-import static edu.uci.python.nodes.truffle.PythonTypes.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
     public abstract static class AddNode extends BinaryArithmeticNode {
-
-        @Specialization(order = 0)
-        int doBoolBool(boolean left, boolean right) {
-            return booleanToInt(left) + booleanToInt(right);
-        }
-
-        @Specialization(rewriteOn = ArithmeticException.class, order = 1)
-        int doBoolInt(boolean left, int right) {
-            return ExactMath.addExact(booleanToInt(left), right);
-        }
-
-        @Specialization(rewriteOn = ArithmeticException.class, order = 2)
-        int doIntBool(int left, boolean right) {
-            return ExactMath.addExact(left, booleanToInt(right));
-        }
 
         @Specialization(rewriteOn = ArithmeticException.class, order = 5)
         int doInteger(int left, int right) {
