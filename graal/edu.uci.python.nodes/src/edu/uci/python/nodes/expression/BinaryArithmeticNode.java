@@ -46,7 +46,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
     public abstract static class AddNode extends BinaryArithmeticNode {
 
-        @Specialization(rewriteOn = ArithmeticException.class, order = 0)
+        @Specialization(order = 0)
         int doBoolBool(boolean left, boolean right) {
             return booleanToInt(left) + booleanToInt(right);
         }

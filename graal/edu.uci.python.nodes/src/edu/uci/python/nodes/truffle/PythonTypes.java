@@ -128,17 +128,17 @@ public class PythonTypes {
      * Python int to Python complex (Integer or BigInteger to PComplex); <br>
      * Python float to Python complex (double to PComplex).
      */
-    @ImplicitCast
+    // @ImplicitCast
     public PComplex booleanToPComplex(boolean value) {
         return value ? new PComplex(1, 0) : new PComplex(0, 0);
     }
 
-    @ImplicitCast
+    // @ImplicitCast
     public PComplex intToPComplex(int value) {
         return new PComplex(value, 0);
     }
 
-    @ImplicitCast
+    // @ImplicitCast
     public PComplex bigIntegerToPComplex(BigInteger value) {
         return new PComplex(value.doubleValue(), 0);
     }
