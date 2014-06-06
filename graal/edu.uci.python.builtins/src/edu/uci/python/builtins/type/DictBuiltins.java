@@ -27,11 +27,13 @@ package edu.uci.python.builtins.type;
 import java.util.*;
 
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 /**
  * @author Gulfem
@@ -94,7 +96,19 @@ public final class DictBuiltins extends PythonBuiltins {
     @Builtin(name = "keys", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class KeysNode extends PythonBuiltinNode {
 
-        @Specialization
+        @ExplodeLoop
+        @Specialization(rewriteOn = ClassCastException.class, order = 1)
+        public PList keysPDictInt(PDict self) {
+            IntSequenceStorage store = new IntSequenceStorage();
+
+            for (Object key : self.keys()) {
+                store.appendInt((int) key);
+            }
+
+            return new PList(store);
+        }
+
+        @Specialization(order = 2)
         public PList keys(PDict self) {
             return new PList(self.__iter__());
         }
