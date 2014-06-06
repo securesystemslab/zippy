@@ -40,70 +40,86 @@ import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.misc.*;
 import edu.uci.python.runtime.sequence.*;
+import static edu.uci.python.nodes.truffle.PythonTypes.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
     public abstract static class AddNode extends BinaryArithmeticNode {
 
         @Specialization(rewriteOn = ArithmeticException.class, order = 0)
+        int doBoolBool(boolean left, boolean right) {
+            return booleanToInt(left) + booleanToInt(right);
+        }
+
+        @Specialization(rewriteOn = ArithmeticException.class, order = 1)
+        int doBoolInt(boolean left, int right) {
+            return ExactMath.addExact(booleanToInt(left), right);
+        }
+
+        @Specialization(rewriteOn = ArithmeticException.class, order = 2)
+        int doIntBool(int left, boolean right) {
+            return ExactMath.addExact(left, booleanToInt(right));
+        }
+
+        @Specialization(rewriteOn = ArithmeticException.class, order = 5)
         int doInteger(int left, int right) {
             return ExactMath.addExact(left, right);
         }
 
-        @Specialization(order = 1)
+        @Specialization(order = 10)
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.add(right);
         }
 
-        @Specialization(order = 2)
+        @Specialization(order = 20)
         double doDouble(double left, double right) {
             return left + right;
         }
 
-        @Specialization(order = 3)
+        @Specialization(order = 30)
         PComplex doDoubleComplex(double left, PComplex right) {
             PComplex result = new PComplex(left + right.getReal(), right.getImag());
             return result;
         }
 
-        @Specialization(order = 4)
+        @Specialization(order = 40)
         PComplex doComplexDouble(PComplex left, double right) {
             PComplex result = new PComplex(left.getReal() + right, left.getImag());
             return result;
         }
 
-        @Specialization(order = 5)
+        @Specialization(order = 50)
         PComplex doComplex(PComplex left, PComplex right) {
             return left.add(right);
         }
 
-        @Specialization(order = 6)
+        @Specialization(order = 60)
         String doString(String left, String right) {
             return left + right;
         }
 
-        @Specialization(order = 7)
+        @Specialization(order = 70)
         PList doPList(PList left, PList right) {
             return left.__add__(right);
         }
 
-        @Specialization(order = 8)
+        @Specialization(order = 80)
         PTuple doPTuple(PTuple left, PTuple right) {
             return left.__add__(right);
         }
 
-        @Specialization(order = 9)
+        @Specialization(order = 90)
         PArray doPArray(PArray left, PArray right) {
             return left.__add__(right);
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 10)
+        @Specialization(order = 100)
         int doNoneInt(PNone left, int right) {
             return right;
         }
 
-        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        @Specialization(order = 200, guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__add__", left, right);
         }
