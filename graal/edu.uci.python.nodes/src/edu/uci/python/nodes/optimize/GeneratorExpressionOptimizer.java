@@ -146,7 +146,7 @@ public class GeneratorExpressionOptimizer {
         loadGenerator.replace(generatorCallNode);
 
         try {
-            PNode matched = NodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
+            PNode matched = PNodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
             matched.replace(NodeUtil.cloneNode(generatorCallNode));
         } catch (IllegalStateException e) {
         }
