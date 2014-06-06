@@ -51,6 +51,11 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
 
     public abstract static class YesNode extends CastToBooleanNode {
 
+        @Specialization(order = 0)
+        boolean doBoolean(boolean operand) {
+            return operand;
+        }
+
         @Specialization(order = 1)
         boolean doInteger(int operand) {
             return operand != 0;
@@ -64,11 +69,6 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
         @Specialization(order = 3)
         boolean doDouble(double operand) {
             return operand != 0;
-        }
-
-        @Specialization(order = 4)
-        boolean doBoolean(boolean operand) {
-            return operand;
         }
 
         @Specialization(order = 5)
@@ -149,6 +149,11 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
     public abstract static class NotNode extends CastToBooleanNode {
 
         @Specialization
+        boolean doBool(boolean operand) {
+            return !operand;
+        }
+
+        @Specialization
         boolean doInteger(int operand) {
             return operand == 0;
         }
@@ -161,11 +166,6 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
         @Specialization
         boolean doDouble(double operand) {
             return operand == 0;
-        }
-
-        @Specialization
-        boolean doBoolean(boolean operand) {
-            return !operand;
         }
 
         @Specialization
