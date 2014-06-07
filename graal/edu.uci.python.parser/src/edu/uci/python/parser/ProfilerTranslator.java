@@ -28,6 +28,8 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.frame.*;
+import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.nodes.subscript.*;
 import edu.uci.python.runtime.*;
@@ -72,24 +74,16 @@ public class ProfilerTranslator implements NodeVisitor {
             createWrapperNode((PNode) node);
         } else if (node instanceof SubscriptStoreSliceNode) {
             createWrapperNode((PNode) node);
+        } else if (node instanceof WriteLocalVariableNode) {
+            createWriteNodeWrapperNode((PNode) node);
+        } else if (node instanceof ReadLocalVariableNode) {
+            createWrapperNode((PNode) node);
+        } else if (node instanceof SetAttributeNode) {
+            createWriteNodeWrapperNode((PNode) node);
+        } else if (node instanceof GetAttributeNode) {
+            createWrapperNode((PNode) node);
         }
 
-// if (node instanceof WriteLocalVariableNode) {
-// if (node.getSourceSection() != null) {
-// createWrapperNode((PNode) node);
-// }
-// }
-// } else if (node instanceof FrameReturnNode) {
-// createWrapperNode((PNode) node);
-// }
-// } else if (node instanceof SetAttributeNode) {
-// createWrapperNode((PNode) node);
-// }
-
-// else if (node instanceof WriteNode) {
-// createWrapperNode((PNode) node);
-// } else if (node instanceof ReadLocalVariableNode) {
-// createWrapperNode((PNode) node);
 // } else if (node instanceof ListComprehensionNode) {
 // createWrapperNode((PNode) node);
 // } else if (node instanceof IfNode) {
@@ -100,11 +94,34 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createWrapperNode(PNode node) {
         if (node.getSourceSection() == null) {
-            throw new RuntimeException("Source is not assigned for " + node);
+            if (PythonOptions.TraceNodesWithoutSourceSection) {
+                ProfilerResultPrinter.addNodeEmptySourceSection(node);
+                return null;
+            } else {
+                throw new RuntimeException("Source is not assigned for " + node);
+            }
         }
+
         PythonWrapperNode wrapperNode = astProber.probeAsStatement(node);
         node.replace(wrapperNode);
         wrapperNode.adoptChildren();
         return wrapperNode;
     }
+
+    private PythonWriteNodeWrapperNode createWriteNodeWrapperNode(PNode node) {
+        if (node.getSourceSection() == null) {
+            if (PythonOptions.TraceNodesWithoutSourceSection) {
+                ProfilerResultPrinter.addNodeEmptySourceSection(node);
+                return null;
+            } else {
+                throw new RuntimeException("Source is not assigned for " + node);
+            }
+        }
+
+        PythonWriteNodeWrapperNode wrapperNode = astProber.probeAsWriteNode(node);
+        node.replace(wrapperNode);
+        wrapperNode.adoptChildren();
+        return wrapperNode;
+    }
+
 }

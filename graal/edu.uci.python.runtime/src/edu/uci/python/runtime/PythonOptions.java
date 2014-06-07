@@ -69,9 +69,11 @@ public class PythonOptions {
     // Profiling
     public static boolean ProfileCalls = false;
 
-    public static boolean AddProfilingInstrumentation = false;
+    public static boolean AddProfilerInstrumentation = false;
 
     public static boolean SortProfilerResults = false;
+
+    public static boolean TraceNodesWithoutSourceSection = false;
 
     public static final boolean CatchZippyExceptionForUnitTesting = false;
 

@@ -40,7 +40,7 @@ public class ASTInterpreter {
         // relationships. In order to be able create wrapper nodes, and replace nodes with wrapper
         // nodes, we need parent relationship
 
-        if (PythonOptions.AddProfilingInstrumentation) {
+        if (PythonOptions.AddProfilerInstrumentation) {
             ProfilerTranslator pt = new ProfilerTranslator(result.getContext());
             pt.translate(result, root);
 

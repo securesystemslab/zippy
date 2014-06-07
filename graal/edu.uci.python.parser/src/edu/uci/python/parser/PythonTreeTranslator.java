@@ -232,7 +232,10 @@ public class PythonTreeTranslator extends Visitor {
             funcDef = new FunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
         environment.endScope(node);
-        return environment.findVariable(name).makeWriteNode(funcDef);
+        PNode functionNameWriteNode = environment.findVariable(name).makeWriteNode(funcDef);
+        return assignSourceFromNode(node, functionNameWriteNode);
+
+        // return environment.findVariable(name).makeWriteNode(funcDef);
     }
 
     @Override
@@ -356,7 +359,7 @@ public class PythonTreeTranslator extends Visitor {
          * Argument reads.
          */
         List<expr> argExprs = node.getInternalArgs();
-        List<expr> defaultArgs = node.getInternalDefaults();
+        // List<expr> defaultArgs = node.getInternalDefaults();
         List<PNode> argumentReads = new ArrayList<>();
 
         for (int i = 0; i < argExprs.size(); i++) {
@@ -404,8 +407,6 @@ public class PythonTreeTranslator extends Visitor {
         for (int i = 0; i < sizeOfDefaults; i++) {
             FrameSlotNode slotNode = (FrameSlotNode) argumentReads.get(i + offset);
             PNode defaultWriteNode = factory.createWriteLocal(defaultReads[i], slotNode.getSlot());
-            PNode defaultArgName = argumentReads.get(i + offset);
-            PNode defaultArgValue = (PNode) visit(defaultArgs.get(i));
             /**
              * Two WriteLocalNode are created for every default argument. We have to give different
              * source sections to these write nodes. <br>
@@ -413,9 +414,11 @@ public class PythonTreeTranslator extends Visitor {
              * rightNode = ReadDefaultArgumentNode <br>
              * ApplyArgumentsNode <br>
              * WriteLocalVariableUninitializedNode <br>
-             * rightNode = UninitializedReadArgumentNode
+             * rightNode = UninitializedReadArgumentNode <br>
+             * PNode defaultArgName = argumentReads.get(i+ offset); <br>
+             * PNode defaultArgValue = (PNode) visit(defaultArgs.get(i));<br>
+             * assignSourceFromChildren(defaultWriteNode, defaultArgName, defaultArgValue);
              */
-            assignSourceFromChildren(defaultWriteNode, defaultArgName, defaultArgValue);
             defaultWrites[i] = defaultWriteNode;
         }
 
@@ -477,7 +480,7 @@ public class PythonTreeTranslator extends Visitor {
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-            return createSingleImportStatement(aliases.get(0));
+            return assignSourceFromNode(node, createSingleImportStatement(aliases.get(0)));
         }
 
         List<PNode> imports = new ArrayList<>();
@@ -497,7 +500,6 @@ public class PythonTreeTranslator extends Visitor {
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-
             return createSingleImportFromStatement(aliases.get(0), node.getInternalModule(), node.getInternalLevel());
         }
 
