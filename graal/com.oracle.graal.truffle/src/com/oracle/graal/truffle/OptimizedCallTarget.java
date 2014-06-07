@@ -161,7 +161,7 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
             performInlining();
 
             // zwei
-            if (TrufflePrintCompilingAST.getValue()) {
+            if (TrufflePrintCompiledAST.getValue()) {
                 OUT.println(" ------------- " + getRootNode() + " ------------- ");
                 NodeUtil.printCompactTree(OUT, getRootNode());
             }
@@ -257,7 +257,7 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
         logInliningDecision(result);
 
         // zwei
-        if (rootNode.applyTransformation()) {
+        if (rootNode.applyGuestTransformation()) {
             inliningPerformed = false;
         }
     }

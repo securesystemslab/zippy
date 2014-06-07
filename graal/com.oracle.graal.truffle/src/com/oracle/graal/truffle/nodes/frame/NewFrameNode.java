@@ -211,7 +211,7 @@ public class NewFrameNode extends FixedWithNextNode implements IterableNodeType,
                 break;
             case Object:
             case Illegal:
-            case None: // zwei: see {@link FrameSlotKind}.
+            case None: // zwei
                 // won't be stored in the primitive array, so default to long
                 graalKind = Kind.Long;
                 break;

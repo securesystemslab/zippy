@@ -101,8 +101,7 @@ public class TruffleCompilerOptions {
     public static final OptionValue<Boolean> TraceTruffleSplitting = new OptionValue<>(false);
     @Option(help = "")
     public static final OptionValue<Boolean> TruffleCallTargetProfiling = new StableOptionValue<>(false);
-    // zwei
     @Option(help = "")
-    public static final OptionValue<Boolean> TrufflePrintCompilingAST = new OptionValue<>(false);
+    public static final OptionValue<Boolean> TrufflePrintCompiledAST = new OptionValue<>(false); // zwei
     // @formatter:on
 }

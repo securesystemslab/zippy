@@ -133,7 +133,7 @@ public final class FunctionRootNode extends RootNode {
     }
 
     @Override
-    public boolean applyTransformation() {
+    public boolean applyGuestTransformation() {
         peelingTrialCounter = 0;
         return optimizeHelper();
     }

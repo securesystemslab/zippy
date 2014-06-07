@@ -108,10 +108,9 @@ public abstract class RootNode extends Node {
     }
 
     /**
-     * zwei: A callback that enables notification from the Truffle runtime to the guest languages on
-     * inlining events.
+     * zwei: A callback that enables guest level transformations before Truffle compilation.
      */
-    public boolean applyTransformation() {
+    public boolean applyGuestTransformation() {
         return false;
     }
 
