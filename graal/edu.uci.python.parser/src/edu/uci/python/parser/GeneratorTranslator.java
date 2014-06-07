@@ -93,7 +93,7 @@ public class GeneratorTranslator {
 
         for (GeneratorExpressionNode genexp : NodeUtil.findAllNodeInstances(root, GeneratorExpressionNode.class)) {
             genexp.setEnclosingFrameGenerator(true);
-            NodeUtil.findMatchingNodeIn(genexp, root.getUninitializedBody()).setEnclosingFrameGenerator(true);
+            PNodeUtil.findMatchingNodeIn(genexp, root.getUninitializedBody()).setEnclosingFrameGenerator(true);
         }
 
         for (BreakNode bnode : NodeUtil.findAllNodeInstances(root, BreakNode.class)) {
