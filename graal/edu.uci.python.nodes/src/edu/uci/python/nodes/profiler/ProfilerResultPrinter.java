@@ -30,6 +30,7 @@ import java.util.Map.*;
 
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.*;
 
@@ -38,6 +39,12 @@ import edu.uci.python.runtime.*;
  */
 
 public class ProfilerResultPrinter {
+
+    static List<PNode> nodesEmptySourceSections = new ArrayList<>();
+
+    public static void addNodeEmptySourceSection(PNode node) {
+        nodesEmptySourceSections.add(node);
+    }
 
     public static void printProfilerInstrumenterResults() {
         Map<PythonWrapperNode, ProfilerInstrument> sorted = sortByValue(PythonNodeProber.getWrapperToInstruments());
@@ -168,4 +175,9 @@ public class ProfilerResultPrinter {
         }
     }
 
+    public static void printNodesEmptySourceSections() {
+        for (PNode node : nodesEmptySourceSections) {
+            System.out.println(node);
+        }
+    }
 }

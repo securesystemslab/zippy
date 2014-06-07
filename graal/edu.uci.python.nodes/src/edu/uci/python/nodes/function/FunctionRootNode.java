@@ -263,6 +263,15 @@ public final class FunctionRootNode extends RootNode {
         PNode loopBody = loop.getBody();
         FrameSlot yieldToSlotInCallerFrame;
         PNode target = loop.getTarget();
+
+        /**
+         * PythonWrapperNode check is added for profiling.
+         */
+        if (target instanceof PythonWrapperNode) {
+            PythonWrapperNode wrapper = (PythonWrapperNode) target;
+            target = wrapper.getChild();
+        }
+
         yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(peeled.getGeneratorRoot(), YieldNode.class)) {

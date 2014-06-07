@@ -66,6 +66,22 @@ public class PythonNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
+    public PythonWriteNodeWrapperNode probeAsWriteNode(PNode node) {
+        PythonWriteNodeWrapperNode wrapper;
+        if (node instanceof PythonWriteNodeWrapperNode) {
+            wrapper = (PythonWriteNodeWrapperNode) node;
+        } else {
+            wrapper = new PythonWriteNodeWrapperNode(context, node);
+            wrapper.getProbe().tagAs(StandardTag.STATEMENT);
+            wrapper.assignSourceSection(node.getSourceSection());
+        }
+
+        ProfilerInstrument profilerInstrument = new ProfilerInstrument();
+        wrapper.getProbe().addInstrument(profilerInstrument);
+        wrapperToInstruments.put(wrapper, profilerInstrument);
+        return wrapper;
+    }
+
     public static Map<PythonWrapperNode, ProfilerInstrument> getWrapperToInstruments() {
         return wrapperToInstruments;
     }

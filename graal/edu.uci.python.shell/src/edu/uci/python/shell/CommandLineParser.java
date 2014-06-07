@@ -74,7 +74,7 @@ public class CommandLineParser {
             }
 
             if (arg.equals("-profile-nodes")) {
-                PythonOptions.AddProfilingInstrumentation = true;
+                PythonOptions.AddProfilerInstrumentation = true;
                 continue;
             }
 

@@ -24,36 +24,25 @@
  */
 package edu.uci.python.nodes.profiler;
 
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.instrument.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.control.*;
+import edu.uci.python.nodes.frame.*;
 import edu.uci.python.runtime.*;
 
 /**
- * @author Gulfem
+ * @author Gulfem <br>
+ *         {@link ForNode} has a child PNode target. Instead of calling execute method on child, it
+ *         calls ((WriteNode) target).executeWrite(frame, i); <br>
+ *         Therefore, special PythonWriteWrapperNode is generated for this special case.
  */
 
-public class PythonWrapperNode extends PNode implements Wrapper {
+public class PythonWriteNodeWrapperNode extends PythonWrapperNode implements WriteNode {
 
-    @Child protected PNode child;
-    protected final Probe probe;
-
-    public PythonWrapperNode(PythonContext context, PNode child) {
-        /**
-         * Don't insert the child here, because child node will be replaced with the wrapper node.
-         * If child node is inserted here, it's parent (which will be wrapper's parent after
-         * replacement) will be lost. Instead, wrapper is created, and the child is replaced with
-         * its wrapper, and then wrapper's child is adopted by calling adoptChildren() in
-         * {@link ProfilerTranslator}.
-         */
-        this.child = child;
-        /**
-         * context.getProbe will either generate a probe for this source section, or return the
-         * existing probe for this section. There can be only one probe for the same source section.
-         */
-        this.probe = context.getProbe(child.getSourceSection());
+    public PythonWriteNodeWrapperNode(PythonContext context, PNode child) {
+        super(context, child);
     }
 
     @Override
@@ -74,27 +63,28 @@ public class PythonWrapperNode extends PNode implements Wrapper {
         return result;
     }
 
-    public PNode getChild() {
-        return child;
+    public Object executeWrite(VirtualFrame frame, Object value) {
+        probe.enter(child, frame);
+        Object result;
+
+        try {
+            result = ((WriteNode) child).executeWrite(frame, value);
+            probe.leave(child, frame, result);
+        } catch (KillException e) {
+            throw (e);
+        } catch (Exception e) {
+            probe.leaveExceptional(child, frame, e);
+            throw (e);
+        }
+
+        return result;
     }
 
-    public Probe getProbe() {
-        return probe;
+    public PNode makeReadNode() {
+        throw new RuntimeException("makeReadNode() is not implemented");
     }
 
-    @SlowPath
-    public boolean isTaggedAs(PhylumTag tag) {
-        return probe.isTaggedAs(tag);
+    public PNode getRhs() {
+        throw new RuntimeException("getRhs() is not implemented");
     }
-
-    @SlowPath
-    public Iterable<PhylumTag> getPhylumTags() {
-        return probe.getPhylumTags();
-    }
-
-    @SlowPath
-    public void tagAs(PhylumTag tag) {
-        probe.tagAs(tag);
-    }
-
 }
