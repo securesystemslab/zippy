@@ -58,7 +58,6 @@ def traversal(graph, node, order):
         post = 1
     
     for each in _dfs(graph, visited, node, pre, post):
-        # print("yield")
         yield each
 
 
@@ -81,8 +80,6 @@ def _dfs(graph, visited, node, pre, post):
     for each in graph[node]:
         if (each not in visited):
             for other in _dfs(graph, visited, each, pre, post):
-                # print("yield _dfs")
                 yield other
-    if (post): 
-        # print("yield _dfs")
+    if (post):
         yield node

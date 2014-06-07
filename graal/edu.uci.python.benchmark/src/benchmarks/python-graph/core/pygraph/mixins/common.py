@@ -60,7 +60,6 @@ class common( labeling ):
         @return: Iterator passing through all nodes in the graph.
         """
         for n in self.nodes():
-            # print("yield __iter__")
             yield n
             
     def __len__(self):
@@ -80,7 +79,6 @@ class common( labeling ):
         @return: Iterator passing through all neighbors of the given node.
         """
         for n in self.neighbors( node ):
-            # print("yield __getitem__")
             yield n
             
     def order(self):

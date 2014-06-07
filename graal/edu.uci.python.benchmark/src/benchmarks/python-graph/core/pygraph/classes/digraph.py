@@ -103,7 +103,6 @@ class digraph (basegraph):
     def _edges(self):
         for n, neighbors in self.node_neighbors.items():
             for neighbor in neighbors:
-                # print("yield - _edges")
                 yield (n, neighbor)
 
     def has_node(self, node):

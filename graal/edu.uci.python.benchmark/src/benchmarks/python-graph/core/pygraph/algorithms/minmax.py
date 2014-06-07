@@ -311,7 +311,6 @@ def heuristic_search(graph, start, goal, heuristic):
 
 def _reconstruct_path(node, parents):
     while node is not None:
-        # print("yield")
         yield node
         node = parents[node]
 
