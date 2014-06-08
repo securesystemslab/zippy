@@ -1,0 +1,29 @@
+import sys, time, os
+
+# setup path
+simplejson_path = os.path.join(os.path.dirname(__file__), 'simplejson')
+# python_graph_core_path = os.path.join(python_graph_path, 'core')
+sys.path.append(simplejson_path)
+
+# sys.path.append('')
+
+from simplejson.encoder import JSONEncoder
+
+encoder = JSONEncoder(for_json=True)
+
+
+def encodeList():
+    lst = [i for i in range(1000)]
+    return encoder.encode(lst)
+
+def encodeObject():
+    class Foo:
+        def for_json(self):
+            return {'a':1, 'b':2, 'c': [i for i in range(1000)]}
+
+    return encoder.encode(Foo())
+
+json = encodeList()
+print(json)
+json = encodeObject()
+print(json)
