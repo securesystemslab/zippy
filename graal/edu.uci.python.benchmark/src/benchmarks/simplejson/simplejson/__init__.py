@@ -382,8 +382,8 @@ def dumps(obj, skipkeys=False, ensure_ascii=True, check_circular=True,
         **kw).encode(obj)
 
 
-_default_decoder = JSONDecoder(encoding=None, object_hook=None,
-                               object_pairs_hook=None)
+# _default_decoder = JSONDecoder(encoding=None, object_hook=None,
+#                                object_pairs_hook=None)
 
 
 def load(fp, encoding=None, cls=None, object_hook=None, parse_float=None,
