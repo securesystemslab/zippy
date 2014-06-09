@@ -209,27 +209,37 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class GreaterThanNode extends BinaryComparisonNode {
 
-        @Specialization
+        @Specialization(order = 1)
         boolean doInteger(int left, int right) {
             return left > right;
         }
 
-        @Specialization
+        @Specialization(order = 5)
         boolean doBigInteger(BigInteger left, BigInteger right) {
             return left.compareTo(right) > 0;
         }
 
-        @Specialization
+        @Specialization(order = 10)
+        boolean doIntDouble(int left, double right) {
+            return left > right;
+        }
+
+        @Specialization(order = 11)
+        boolean doIntDouble(double left, int right) {
+            return left > right;
+        }
+
+        @Specialization(order = 15)
         boolean doDouble(double left, double right) {
             return left > right;
         }
 
-        @Specialization
+        @Specialization(order = 20)
         boolean doComplex(PComplex left, PComplex right) {
             return left.greaterThan(right);
         }
 
-        @Specialization
+        @Specialization(order = 30)
         boolean doString(String left, String right) {
             return left.compareTo(right) > 0;
         }
@@ -237,32 +247,37 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class GreaterThanEqualNode extends BinaryComparisonNode {
 
-        @Specialization
+        @Specialization(order = 1)
         boolean doInteger(int left, int right) {
             return left >= right;
         }
 
-        @Specialization
+        @Specialization(order = 5)
         boolean doBigInteger(BigInteger left, BigInteger right) {
             return left.compareTo(right) >= 0;
         }
 
-        @Specialization
+        @Specialization(order = 10)
+        boolean doIntDouble(int left, double right) {
+            return left >= right;
+        }
+
+        @Specialization(order = 15)
         boolean doDouble(double left, double right) {
             return left >= right;
         }
 
-        @Specialization
+        @Specialization(order = 20)
         boolean doComplex(PComplex left, PComplex right) {
             return left.greaterEqual(right);
         }
 
-        @Specialization
+        @Specialization(order = 30)
         boolean doString(String left, String right) {
             return left.compareTo(right) >= 0;
         }
 
-        @Specialization
+        @Specialization(order = 40)
         boolean doTuple(PTuple left, PTuple right) {
             return left.compareTo(right) >= 0;
         }
