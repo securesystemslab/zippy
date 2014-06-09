@@ -261,6 +261,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         boolean doString(String left, String right) {
             return left.compareTo(right) >= 0;
         }
+
+        @Specialization
+        boolean doTuple(PTuple left, PTuple right) {
+            return left.compareTo(right) >= 0;
+        }
     }
 
     public abstract static class IsNode extends BinaryComparisonNode {

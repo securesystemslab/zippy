@@ -51,7 +51,7 @@ public class RunScript {
             PySystemState systemState = Py.getSystemState();
 
             // Modify verion info in Jython runtime
-            PySystemState.version_info = new PyTuple(Py.newInteger(3), Py.newInteger(3), Py.newInteger(0), Py.newString("alpha"), Py.newInteger(0));
+            PySystemState.version_info = new PyTuple(Py.newInteger(3), Py.newInteger(3), Py.newInteger(0), Py.newString("zippy"), Py.newInteger(0));
 
             // Now create an interpreter
             InteractiveConsole interp = newInterpreter(true);
