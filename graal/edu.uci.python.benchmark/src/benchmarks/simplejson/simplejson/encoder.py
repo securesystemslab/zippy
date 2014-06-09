@@ -6,11 +6,11 @@ from operator import itemgetter
 from decimal import Decimal
 from .compat import u, unichr, binary_type, string_types, integer_types, PY3
 def _import_speedups():
-    try:
-        from . import _speedups
-        return _speedups.encode_basestring_ascii, _speedups.make_encoder
-    except ImportError:
-        return None, None
+    # try:
+    #     from . import _speedups
+    #     return _speedups.encode_basestring_ascii, _speedups.make_encoder
+    # except ImportError:
+    return None, None
 c_encode_basestring_ascii, c_make_encoder = _import_speedups()
 
 # from simplejson.decoder import PosInf
@@ -83,8 +83,7 @@ def py_encode_basestring_ascii(s, _PY3=PY3):
     return '"' + str(ESCAPE_ASCII.sub(replace, s)) + '"'
 
 
-encode_basestring_ascii = (
-    c_encode_basestring_ascii or py_encode_basestring_ascii)
+encode_basestring_ascii = py_encode_basestring_ascii #(c_encode_basestring_ascii or py_encode_basestring_ascii)
 
 class JSONEncoder(object):
     """Extensible JSON <http://json.org> encoder for Python data structures.

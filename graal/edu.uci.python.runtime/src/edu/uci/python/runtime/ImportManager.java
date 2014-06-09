@@ -72,7 +72,7 @@ public class ImportManager {
         this.unsupportedImports = new HashMap<>();
         this.paths.add(getPythonLibraryPath());
 
-        String[] unsupportedImportNames = {"re", "os", "posix", "io", "textwrap", "optparse", "functools", "struct", "decimal"};
+        String[] unsupportedImportNames = {"re", "os", "posix", "io", "textwrap", "optparse", "functools", "struct", "decimal", "collections"};
 
         for (String lib : unsupportedImportNames) {
             this.unsupportedImports.put(lib, true);
