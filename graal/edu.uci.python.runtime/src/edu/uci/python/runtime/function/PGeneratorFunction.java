@@ -53,6 +53,11 @@ public final class PGeneratorFunction extends PFunction {
     }
 
     @Override
+    public boolean isGeneratorFunction() {
+        return true;
+    }
+
+    @Override
     public Object call(Object[] arguments) {
         return PGenerator.create(getName(), getCallTarget(), getFrameDescriptor(), getDeclarationFrame(), arguments, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }

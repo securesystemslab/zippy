@@ -118,7 +118,7 @@ class JSONEncoder(object):
     key_separator = ': '
 
     def __init__(self, skipkeys=False, ensure_ascii=True,
-                 check_circular=True, allow_nan=True, sort_keys=False,
+                 check_circular=False, allow_nan=True, sort_keys=False,
                  indent=None, separators=None, encoding='utf-8', default=None,
                  use_decimal=True, namedtuple_as_object=True,
                  tuple_as_array=True, bigint_as_string=False,
@@ -224,6 +224,25 @@ class JSONEncoder(object):
         if default is not None:
             self.default = default
         self.encoding = encoding
+
+        if self.check_circular:
+            self.markers = {}
+        else:
+            self.markers = None
+
+        if self.ensure_ascii:
+            self._encoder = encode_basestring_ascii
+        else:
+            self._encoder = encode_basestring
+
+        if self.encoding != 'utf-8':
+            def _encoder(o, _orig_encoder=self._encoder, _encoding=self.encoding):
+                if isinstance(o, binary_type):
+                    o = o.decode(_encoding)
+                return _orig_encoder(o)
+
+        self.key_memo = {}
+        self.int_as_string_bitcount = (53 if self.bigint_as_string else self.int_as_string_bitcount)
 
     def default(self, o):
         """Implement this method in a subclass such that it returns
@@ -352,24 +371,6 @@ class JSONEncoder(object):
 
     # refactored
     def refactored_iterencode(self, o):
-        if self.check_circular:
-            self.markers = {}
-        else:
-            self.markers = None
-
-        if self.ensure_ascii:
-            self._encoder = encode_basestring_ascii
-        else:
-            self._encoder = encode_basestring
-
-        if self.encoding != 'utf-8':
-            def _encoder(o, _orig_encoder=self._encoder, _encoding=self.encoding):
-                if isinstance(o, binary_type):
-                    o = o.decode(_encoding)
-                return _orig_encoder(o)
-
-        self.key_memo = {}
-        self.int_as_string_bitcount = (53 if self.bigint_as_string else self.int_as_string_bitcount)
 
         return self._iterencode(o, 0)
 

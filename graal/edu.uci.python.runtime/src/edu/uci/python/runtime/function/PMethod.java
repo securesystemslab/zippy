@@ -52,6 +52,11 @@ public final class PMethod extends PythonBuiltinObject implements PythonCallable
         return self;
     }
 
+    @Override
+    public boolean isGeneratorFunction() {
+        return function instanceof PGeneratorFunction;
+    }
+
     public Object call(Object[] arguments) {
         PArguments.insertSelf(arguments, self);
         PArguments.setDeclarationFrame(arguments, function.getDeclarationFrame());

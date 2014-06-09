@@ -74,8 +74,18 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         /**
          * Treat generator as slow path for now.
          */
-        if (callee instanceof PGeneratorFunction) {
-            return new GeneratorDispatchBoxedNode((PGeneratorFunction) callee, check, next);
+        if (callee.isGeneratorFunction()) {
+            PGeneratorFunction genfunc;
+
+            if (callee instanceof PGeneratorFunction) {
+                genfunc = (PGeneratorFunction) callee;
+            } else if (callee instanceof PMethod) {
+                genfunc = (PGeneratorFunction) ((PMethod) callee).__func__();
+            } else {
+                throw new IllegalStateException();
+            }
+
+            return new GeneratorDispatchBoxedNode(genfunc, check, next);
         }
 
         assert check != null;
