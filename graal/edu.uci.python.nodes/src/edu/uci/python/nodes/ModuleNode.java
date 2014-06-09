@@ -29,16 +29,23 @@ import com.oracle.truffle.api.nodes.*;
 
 public class ModuleNode extends RootNode {
 
+    private final String name;
     @Child protected PNode body;
 
-    public ModuleNode(PNode body, FrameDescriptor descriptor) {
+    public ModuleNode(String name, PNode body, FrameDescriptor descriptor) {
         super(null, descriptor);
+        this.name = name;
         this.body = body;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         return body.execute(frame);
+    }
+
+    @Override
+    public String toString() {
+        return "<module '" + name + "'>";
     }
 
 }

@@ -75,9 +75,9 @@ public class NodeFactory {
         return (T) NodeUtil.cloneNode(orig);
     }
 
-    public RootNode createModule(List<PNode> body, FrameDescriptor fd) {
+    public RootNode createModule(String name, List<PNode> body, FrameDescriptor fd) {
         PNode block = createBlock(body);
-        return new ModuleNode(block, fd);
+        return new ModuleNode(name, block, fd);
     }
 
     public FunctionRootNode createFunctionRoot(PythonContext context, String functionName, boolean isGenerator, FrameDescriptor frameDescriptor, PNode body) {

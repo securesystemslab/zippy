@@ -8,11 +8,11 @@ from .compat import fromhex, b, u, text_type, binary_type, PY3, unichr
 from .scanner import make_scanner, JSONDecodeError
 
 def _import_c_scanstring():
-    try:
-        from ._speedups import scanstring
-        return scanstring
-    except ImportError:
-        return None
+    # try:
+    #     from ._speedups import scanstring
+    #     return scanstring
+    # except ImportError:
+    return None
 c_scanstring = _import_c_scanstring()
 
 # NOTE (3.1.0): JSONDecodeError may still be imported from this module for
