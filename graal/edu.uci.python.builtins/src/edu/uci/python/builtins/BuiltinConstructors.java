@@ -93,6 +93,17 @@ public final class BuiltinConstructors extends PythonBuiltins {
         }
     }
 
+    // bytes([source[, encoding[, errors]]])
+    @Builtin(name = "bytes", minNumOfArguments = 0, maxNumOfArguments = 3, isConstructor = true)
+    public abstract static class BytesNode extends PythonBuiltinNode {
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public PBytes bytes(PNone source, PNone encoding, PNone errors) {
+            return new PBytes();
+        }
+    }
+
     // complex([real[, imag]])
     @Builtin(name = "complex", minNumOfArguments = 0, maxNumOfArguments = 2, isConstructor = true)
     public abstract static class ComplexNode extends PythonBuiltinNode {

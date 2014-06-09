@@ -11,7 +11,7 @@ if sys.version_info[0] < 3:
     StringIO = BytesIO = StringIO.StringIO
     text_type = unicode
     binary_type = str
-    string_types = (basestring,)
+    string_types = basestring
     integer_types = (int, long)
     unichr = unichr
     reload_module = reload
@@ -38,7 +38,7 @@ else:
     BytesIO = io.BytesIO
     text_type = str
     binary_type = bytes
-    string_types = (str,)
+    string_types = str
     integer_types = (int,)
 
     def unichr(s):

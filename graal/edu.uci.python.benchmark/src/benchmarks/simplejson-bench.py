@@ -9,7 +9,7 @@ sys.path.append(simplejson_path)
 
 from simplejson.encoder import JSONEncoder
 
-encoder = JSONEncoder(for_json=True)
+encoder = JSONEncoder()
 
 
 def encodeList():

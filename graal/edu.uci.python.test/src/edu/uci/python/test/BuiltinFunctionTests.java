@@ -308,4 +308,10 @@ public class BuiltinFunctionTests {
         assertPrintContains("a= 1", source);
     }
 
+    @Test
+    public void isinstance() {
+        String source = "print(isinstance([], bytes))\n";
+        assertPrints("False\n", source);
+    }
+
 }

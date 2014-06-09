@@ -469,6 +469,11 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization(order = 4)
+        public boolean isinstance(PythonBuiltinObject obj, PythonBuiltinClass cls) {
+            return obj.__class__() == cls;
+        }
+
+        @Specialization(order = 10)
         public Object isinstance(Object object, Object clazz) {
             if (object instanceof String && clazz instanceof PythonClass) {
                 PythonClass pythonClass = (PythonClass) clazz;
