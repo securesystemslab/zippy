@@ -13,7 +13,8 @@ def _import_speedups():
         return None, None
 c_encode_basestring_ascii, c_make_encoder = _import_speedups()
 
-from simplejson.decoder import PosInf
+# from simplejson.decoder import PosInf
+PosInf = float('inf')
 
 #ESCAPE = re.compile(ur'[\x00-\x1f\\"\b\f\n\r\t\u2028\u2029]')
 # This is required because u() will mangle the string and ur'' isn't valid
@@ -266,7 +267,8 @@ class JSONEncoder(object):
         # This doesn't pass the iterator directly to ''.join() because the
         # exceptions aren't as detailed.  The list call should be roughly
         # equivalent to the PySequence_Fast that ''.join() would do.
-        chunks = self.iterencode(o, _one_shot=True)
+        # chunks = self.iterencode(o, _one_shot=True)
+        chunks = self.refactored_iterencode(o)
         if not isinstance(chunks, (list, tuple)):
             chunks = list(chunks)
         if self.ensure_ascii:
@@ -348,6 +350,290 @@ class JSONEncoder(object):
             return _iterencode(o, 0)
         finally:
             key_memo.clear()
+
+    # refactored
+    def refactored_iterencode(self, o):
+        if self.check_circular:
+            self.markers = {}
+        else:
+            self.markers = None
+
+        if self.ensure_ascii:
+            self._encoder = encode_basestring_ascii
+        else:
+            self._encoder = encode_basestring
+
+        if self.encoding != 'utf-8':
+            def _encoder(o, _orig_encoder=self._encoder, _encoding=self.encoding):
+                if isinstance(o, binary_type):
+                    o = o.decode(_encoding)
+                return _orig_encoder(o)
+
+        self.key_memo = {}
+        self.int_as_string_bitcount = (53 if self.bigint_as_string else self.int_as_string_bitcount)
+
+        return self._iterencode(o, 0)
+
+
+    def floatstr(self, o):
+        # Check for specials. Note that this type of test is processor
+        # and/or platform-specific, so do tests which don't depend on
+        # the internals.
+        _inf = float('inf')
+        _neginf = -_inf
+
+        if o != o:
+            text = 'NaN'
+        elif o == _inf:
+            text = 'Infinity'
+        elif o == _neginf:
+            text = '-Infinity'
+        else:
+            return repr(o)
+
+        if self.ignore_nan:
+            text = 'null'
+        elif not self.allow_nan:
+            raise ValueError(
+                "Out of range float values are not JSON compliant: " +
+                repr(o))
+
+        return text
+
+    def _encode_int(self, value):
+        skip_quoting = (
+            self.int_as_string_bitcount is None
+            or
+            self.int_as_string_bitcount < 1
+        )
+        if (
+            skip_quoting or
+            (-1 << self.int_as_string_bitcount)
+            < value <
+            (1 << self.int_as_string_bitcount)
+        ):
+            return str(value)
+        return '"' + str(value) + '"'
+
+    def _iterencode_list(self, lst, _current_indent_level):
+        if not lst:
+            yield '[]'
+            return
+        if self.markers is not None:
+            markerid = id(lst)
+            if markerid in self.markers:
+                raise ValueError("Circular reference detected")
+            self.markers[markerid] = lst
+        buf = '['
+        if self.indent is not None:
+            _current_indent_level += 1
+            newline_indent = '\n' + (self.indent * _current_indent_level)
+            separator = self.item_separator + newline_indent
+            buf += newline_indent
+        else:
+            newline_indent = None
+            separator = self.item_separator
+        first = True
+        for value in lst:
+            if first:
+                first = False
+            else:
+                buf = separator
+            if isinstance(value, string_types) or PY3 and isinstance(value, binary_type):
+                yield buf + self._encoder(value)
+            elif value is None:
+                yield buf + 'null'
+            elif value is True:
+                yield buf + 'true'
+            elif value is False:
+                yield buf + 'false'
+            elif isinstance(value, integer_types):
+                yield buf + self._encode_int(value)
+            elif isinstance(value, float):
+                yield buf + self._floatstr(value)
+            elif self.use_decimal and isinstance(value, Decimal):
+                yield buf + str(value)
+            else:
+                yield buf
+                for_json = self.for_json and getattr(value, 'for_json', None)
+                if for_json and callable(for_json):
+                    chunks = self._iterencode(for_json(), _current_indent_level)
+                elif isinstance(value, list):
+                    chunks = self._iterencode_list(value, _current_indent_level)
+                else:
+                    _asdict = self.namedtuple_as_object and getattr(value, '_asdict', None)
+                    if _asdict and callable(_asdict):
+                        chunks = self._iterencode_dict(_asdict(), _current_indent_level)
+                    elif self.tuple_as_array and isinstance(value, tuple):
+                        chunks = self._iterencode_list(value, _current_indent_level)
+                    elif isinstance(value, dict):
+                        chunks = self._iterencode_dict(value, _current_indent_level)
+                    else:
+                        chunks = self._iterencode(value, _current_indent_level)
+                for chunk in chunks:
+                    yield chunk
+        if newline_indent is not None:
+            _current_indent_level -= 1
+            yield '\n' + (self.indent * _current_indent_level)
+        yield ']'
+        if self.markers is not None:
+            del self.markers[markerid]
+
+    def _stringify_key(self, key):
+        if isinstance(key, string_types): # pragma: no cover
+            pass
+        elif isinstance(key, binary_type):
+            key = key.decode(self._encoding)
+        elif isinstance(key, float):
+            key = self._floatstr(key)
+        elif key is True:
+            key = 'true'
+        elif key is False:
+            key = 'false'
+        elif key is None:
+            key = 'null'
+        elif isinstance(key, integer_types):
+            key = str(key)
+        elif self.use_decimal and isinstance(key, Decimal):
+            key = str(key)
+        elif self.skipkeys:
+            key = None
+        else:
+            raise TypeError("key " + repr(key) + " is not a string")
+        return key
+
+    def _iterencode_dict(self, dct, _current_indent_level):
+        if not dct:
+            yield '{}'
+            return
+        if self.markers is not None:
+            markerid = id(dct)
+            if markerid in self.markers:
+                raise ValueError("Circular reference detected")
+            self.markers[markerid] = dct
+        yield '{'
+        if self.indent is not None:
+            _current_indent_level += 1
+            newline_indent = '\n' + (self.indent * _current_indent_level)
+            item_separator = self.item_separator + newline_indent
+            yield newline_indent
+        else:
+            newline_indent = None
+            item_separator = self.item_separator
+        first = True
+        if PY3:
+            iteritems = dct.items()
+        else:
+            iteritems = dct.iteritems()
+        if self.item_sort_key:
+            items = []
+            for k, v in dct.items():
+                if not isinstance(k, string_types):
+                    k = self._stringify_key(k)
+                    if k is None:
+                        continue
+                items.append((k, v))
+            items.sort(key=self.item_sort_key)
+        else:
+            items = iteritems
+        for key, value in items:
+            if not (self.item_sort_key or isinstance(key, string_types)):
+                key = self._stringify_key(key)
+                if key is None:
+                    # _skipkeys must be True
+                    continue
+            if first:
+                first = False
+            else:
+                yield item_separator
+            yield self._encoder(key)
+            yield self.key_separator
+            if (isinstance(value, string_types) or
+                (PY3 and isinstance(value, binary_type))):
+                yield self._encoder(value)
+            elif value is None:
+                yield 'null'
+            elif value is True:
+                yield 'true'
+            elif value is False:
+                yield 'false'
+            elif isinstance(value, integer_types):
+                yield self._encode_int(value)
+            elif isinstance(value, float):
+                yield self._floatstr(value)
+            elif self.use_decimal and isinstance(value, Decimal):
+                yield str(value)
+            else:
+                for_json = self.for_json and getattr(value, 'for_json', None)
+                if for_json and callable(for_json):
+                    chunks = self._iterencode(for_json(), _current_indent_level)
+                elif isinstance(value, list):
+                    chunks = self._iterencode_list(value, _current_indent_level)
+                else:
+                    _asdict = self.namedtuple_as_object and getattr(value, '_asdict', None)
+                    if _asdict and callable(_asdict):
+                        chunks = self._iterencode_dict(_asdict(), _current_indent_level)
+                    elif self.tuple_as_array and isinstance(value, tuple):
+                        chunks = self._iterencode_list(value, _current_indent_level)
+                    elif isinstance(value, dict):
+                        chunks = self._iterencode_dict(value, _current_indent_level)
+                    else:
+                        chunks = self._iterencode(value, _current_indent_level)
+                for chunk in chunks:
+                    yield chunk
+        if newline_indent is not None:
+            _current_indent_level -= 1
+            yield '\n' + (self.indent * _current_indent_level)
+        yield '}'
+        if self.markers is not None:
+            del self.markers[markerid]
+
+    def _iterencode(self, o, _current_indent_level):
+        if (isinstance(o, string_types) or
+            (PY3 and isinstance(o, binary_type))):
+            yield self._encoder(o)
+        elif o is None:
+            yield 'null'
+        elif o is True:
+            yield 'true'
+        elif o is False:
+            yield 'false'
+        elif isinstance(o, integer_types):
+            yield self._encode_int(o)
+        elif isinstance(o, float):
+            yield self._floatstr(o)
+        else:
+            for_json = self.for_json and getattr(o, 'for_json', None)
+            if for_json and callable(for_json):
+                for chunk in self._iterencode(for_json(), _current_indent_level):
+                    yield chunk
+            elif isinstance(o, list):
+                for chunk in self._iterencode_list(o, _current_indent_level):
+                    yield chunk
+            else:
+                _asdict = self.namedtuple_as_object and getattr(o, '_asdict', None)
+                if _asdict and callable(_asdict):
+                    for chunk in self._iterencode_dict(_asdict(), _current_indent_level):
+                        yield chunk
+                elif self.tuple_as_array and isinstance(o, tuple):
+                    for chunk in self._iterencode_list(o, _current_indent_level):
+                        yield chunk
+                elif isinstance(o, dict):
+                    for chunk in self._iterencode_dict(o, _current_indent_level):
+                        yield chunk
+                elif self.use_decimal and isinstance(o, Decimal):
+                    yield str(o)
+                else:
+                    if self.markers is not None:
+                        markerid = id(o)
+                        if markerid in self.markers:
+                            raise ValueError("Circular reference detected")
+                        self.markers[markerid] = o
+                    o = self._default(o)
+                    for chunk in self._iterencode(o, _current_indent_level):
+                        yield chunk
+                    if self.markers is not None:
+                        del self.markers[markerid]
 
 
 class JSONEncoderForHTML(JSONEncoder):
