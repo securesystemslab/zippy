@@ -100,7 +100,7 @@ public class ProfilerResultPrinter {
     }
 
     /**
-     * "FUNCTION NAME"(13 char) + "10 space" + "INVOCATION COUNTS"(27 char).
+     * "Function Name"(13 char) + "17 space" + + "5 space" + "Number of Calls"(15 char).
      */
 
     public static void printFunctionInvocationProfilerResults() {
@@ -111,10 +111,10 @@ public class ProfilerResultPrinter {
 
         // CheckStyle: stop system..print check
         PrintStream out = System.out;
-        out.format("%-23s", "Function Name");
-        out.format("%-27s", "Number of Calls");
+        out.format("%-30s", "Function Name");
+        out.format("%20s", "Number of Calls");
         out.println();
-        out.println("=============          ===============");
+        out.println("=============                      ===============");
         // CheckStyle: resume system..print check
 
         for (int i = 0; i < profiledNodes.size(); i++) {
@@ -158,8 +158,8 @@ public class ProfilerResultPrinter {
 
     private static void printInvocationCount(String functionName, long invocationCount) {
         // CheckStyle: stop system..print check
-        System.out.format("%-23s", functionName);
-        System.out.format("%15s", invocationCount);
+        System.out.format("%-30s", functionName);
+        System.out.format("%20s", invocationCount);
         // CheckStyle: resume system..print check
     }
 

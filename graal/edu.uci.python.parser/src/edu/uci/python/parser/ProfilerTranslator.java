@@ -27,6 +27,7 @@ package edu.uci.python.parser;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.object.*;
@@ -82,13 +83,9 @@ public class ProfilerTranslator implements NodeVisitor {
             createWriteNodeWrapperNode((PNode) node);
         } else if (node instanceof GetAttributeNode) {
             createWrapperNode((PNode) node);
+        } else if (node instanceof IfNode) {
+            createWrapperNode((PNode) node);
         }
-
-// } else if (node instanceof ListComprehensionNode) {
-// createWrapperNode((PNode) node);
-// } else if (node instanceof IfNode) {
-// createWrapperNode((PNode) node);
-// }
         return true;
     }
 
