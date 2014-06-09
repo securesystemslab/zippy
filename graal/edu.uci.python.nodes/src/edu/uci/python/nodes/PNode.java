@@ -34,6 +34,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
@@ -102,6 +103,10 @@ public abstract class PNode extends Node {
 
     public PComplex executePComplex(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPComplex(execute(frame));
+    }
+
+    public PBytes executeBytes(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPBytes(execute(frame));
     }
 
     public PDict executePDictionary(VirtualFrame frame) throws UnexpectedResultException {
@@ -182,6 +187,10 @@ public abstract class PNode extends Node {
 
     public PNone executePNone(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPNone(execute(frame));
+    }
+
+    public PythonBuiltinClass executePythonBuiltinClass(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPythonBuiltinClass(execute(frame));
     }
 
     public PythonBuiltinObject executePythonBuiltinObject(VirtualFrame frame) throws UnexpectedResultException {

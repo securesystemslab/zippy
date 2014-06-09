@@ -133,6 +133,7 @@ _default_encoder = JSONEncoder(
     ensure_ascii=True,
     check_circular=True,
     allow_nan=True,
+    sort_keys=False,
     indent=None,
     separators=None,
     encoding='utf-8',

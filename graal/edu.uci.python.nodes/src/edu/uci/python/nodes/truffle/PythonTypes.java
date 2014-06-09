@@ -31,6 +31,7 @@ import org.python.core.*;
 import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.runtime.array.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
@@ -47,8 +48,10 @@ import edu.uci.python.runtime.standardtype.*;
                 String.class, //
                 PyObject.class, //
                 PString.class, //
+                PythonBuiltinClass.class, //
                 PythonClass.class, //
                 PDict.class, //
+                PBytes.class, //
                 PList.class, //
                 PTuple.class, //
                 PRange.class, //

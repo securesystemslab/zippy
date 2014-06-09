@@ -176,8 +176,10 @@ public class ProfilerResultPrinter {
     }
 
     public static void printNodesEmptySourceSections() {
+        // CheckStyle: stop system..print check
         for (PNode node : nodesEmptySourceSections) {
             System.out.println(node);
         }
+        // CheckStyle: resume system..print check
     }
 }

@@ -122,7 +122,7 @@ class JSONEncoder(object):
                  indent=None, separators=None, encoding='utf-8', default=None,
                  use_decimal=True, namedtuple_as_object=True,
                  tuple_as_array=True, bigint_as_string=False,
-                 item_sort_key=None, for_json=False, ignore_nan=False,
+                 item_sort_key=None, for_json=True, ignore_nan=False,
                  int_as_string_bitcount=None):
         """Constructor for JSONEncoder, with sensible defaults.
 
