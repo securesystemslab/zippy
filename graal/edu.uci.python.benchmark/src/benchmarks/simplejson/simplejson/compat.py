@@ -27,7 +27,8 @@ else:
     else:
         from imp import reload as reload_module
 
-    import codecs
+    if sys.version_info[3] != 'zippy':
+        import codecs
     def b(s):
         return codecs.latin_1_encode(s)[0]
     def u(s):
