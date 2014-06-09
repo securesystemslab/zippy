@@ -134,7 +134,7 @@ def py_scanstring(s, end, encoding=None, strict=True,
 
 
 # Use speedup if available
-scanstring = c_scanstring or py_scanstring
+scanstring = py_scanstring # c_scanstring or py_scanstring
 
 WHITESPACE = re.compile(r'[ \t\n\r]*', FLAGS)
 WHITESPACE_STR = ' \t\n\r'
