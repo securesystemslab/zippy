@@ -142,7 +142,7 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public void append(Object value) throws SequenceStoreException {
+    public void append(Object value) {
         ensureCapacity(length + 1);
         values[length] = value;
         length++;
