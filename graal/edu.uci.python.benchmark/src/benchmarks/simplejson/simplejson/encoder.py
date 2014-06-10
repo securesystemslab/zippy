@@ -375,7 +375,7 @@ class JSONEncoder(object):
 
     def refactored_encode(self, o):
         ret = []
-        for i in self._iterencode(o, 0):
+        for i in self._iterencode_list(o, 0):
             ret.append(i)
 
         return ret

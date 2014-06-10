@@ -35,7 +35,7 @@ def measure():
     start = time.time()
     json = encodeList(num)
     duration = "%.3f\n" % (time.time() - start)
-    print(json)
+    # print(json)
     print("simplejson-encode: " + duration)
 
 # warm up
@@ -44,5 +44,4 @@ for i in range(100):
     json = encodeList(100)
 
 measure()
-
 

@@ -39,7 +39,7 @@ public class IfNode extends StatementNode {
     @Child protected PNode orelse;
 
     protected final BranchProfile thenProfile = new BranchProfile();
-    private final BranchProfile elseProfile = new BranchProfile();
+    protected final BranchProfile elseProfile = new BranchProfile();
 
     public IfNode(CastToBooleanNode condition, PNode then, PNode orelse) {
         this.condition = condition;
