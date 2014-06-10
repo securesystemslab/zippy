@@ -26,5 +26,5 @@ def encodeObject():
 
 json = encodeList()
 print(json)
-json = encodeObject()
-print(json)
+# json = encodeObject()
+# print(json)

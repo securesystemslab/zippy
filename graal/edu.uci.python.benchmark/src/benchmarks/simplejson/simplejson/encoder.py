@@ -610,7 +610,7 @@ class JSONEncoder(object):
         else:
             for_json = self.for_json and getattr(o, 'for_json', None)
             if for_json and callable(for_json):
-                for chunk in self._iterencode(for_json(), _current_indent_level):
+                for chunk in self._iterencode(o.for_json(), _current_indent_level):
                     yield chunk
             elif isinstance(o, list):
                 for chunk in self._iterencode_list(o, _current_indent_level):
