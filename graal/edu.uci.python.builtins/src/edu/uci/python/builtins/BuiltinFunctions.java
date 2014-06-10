@@ -389,6 +389,25 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return attrValue;
         }
 
+        @SuppressWarnings("unused")
+        @Specialization(order = 5, guards = "isForJSON")
+        public Object doPythonBuiltinObjectForJSON(PList list, String attributeId, Object defaultValue) {
+            return defaultValue;
+        }
+
+        @Specialization(order = 6)
+        public Object doPythonBuiltinObject(PythonBuiltinObject obj, String attributeId, Object defaultValue) {
+            CompilerAsserts.neverPartOfCompilation();
+
+            Object attribute = obj.__class__().getAttribute(attributeId);
+            return attribute != null ? defaultValue : attribute;
+        }
+
+        @SuppressWarnings("unused")
+        protected static boolean isForJSON(Object obj, String id, Object defaultValue) {
+            return id.equals("for_json");
+        }
+
         @Specialization
         public Object getAttr(Object object, Object name, Object defaultValue) {
             throw new RuntimeException("getAttr is not supported for " + object + " " + object.getClass() + " name " + name + " defaultValue " + defaultValue);
