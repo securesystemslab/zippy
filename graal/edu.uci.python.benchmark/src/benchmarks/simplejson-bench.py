@@ -12,7 +12,7 @@ from simplejson.encoder import JSONEncoder
 encoder = JSONEncoder()
 
 def produceData():
-    lst = [i for i in range(1000)]
+    lst = [i for i in range(3000)]
     return lst
 
 DATA = produceData()
@@ -26,7 +26,7 @@ def encodeList(n):
 def encodeObject():
     class Foo:
         def for_json(self):
-            return {'a':1, 'b':2, 'c': [i for i in range(1000)]}
+            return {'a':1, 'b':2, 'c': [i for i in range(3000)]}
 
     return encoder.refactored_encode(Foo())
 

@@ -375,9 +375,8 @@ class JSONEncoder(object):
 
     def refactored_encode(self, o):
         ret = []
-        for i in self._iterencode_list(o, 0):
-            ret.append(i)
-
+        for elem in self._iterencode_list(o, 0):
+            ''.join(elem)
         return ret
 
     def floatstr(self, o):
