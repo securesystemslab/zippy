@@ -499,7 +499,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 if (PInt.__class__ == classTuple.getItem(i)) {
                     return true;
                 }
-
             }
 
             return false;
@@ -517,7 +516,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 if (obj.__class__() == classTuple.getItem(i)) {
                     return true;
                 }
-
             }
 
             return false;
@@ -527,6 +525,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public Object isinstance(Object object, Object clazz) {
             if (object instanceof String && clazz instanceof PythonClass) {
                 PythonClass pythonClass = (PythonClass) clazz;
+
                 if (pythonClass.getName().equals("str")) {
                     return true;
                 }
