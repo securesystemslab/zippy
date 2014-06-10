@@ -63,7 +63,8 @@ public class CommandLineParser {
                 continue;
             }
 
-            if (arg.equals("-OptimizeGeneratorExpressions:false")) {
+            if (arg.equals("-no-generator-peeling")) {
+                PythonOptions.InlineGeneratorCalls = false;
                 PythonOptions.OptimizeGeneratorExpressions = false;
                 continue;
             }

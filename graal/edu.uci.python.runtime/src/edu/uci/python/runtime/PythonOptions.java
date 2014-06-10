@@ -43,10 +43,6 @@ public class PythonOptions {
     public static boolean UsePrintFunction = false;
 
     // Runtime flags
-    public static final boolean InlineFunctionCalls = true;
-
-    public static final boolean InlineBuiltinFunctionCalls = true;
-
     public static final boolean UnboxSequenceStorage = true;
 
     public static final boolean TraceSequenceStorageGeneralization = false;
