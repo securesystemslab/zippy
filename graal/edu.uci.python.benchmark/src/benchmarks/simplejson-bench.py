@@ -44,4 +44,3 @@ for i in range(100):
     json = encodeList(100)
 
 measure()
-
