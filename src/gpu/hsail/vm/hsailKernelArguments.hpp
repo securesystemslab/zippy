@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef KERNEL_ARGUMENTS_HSAIL_HPP
-#define KERNEL_ARGUMENTS_HSAIL_HPP
+#ifndef GPU_HSAIL_VM_HSAIL_KERNEL_ARGUMENTS_HPP
+#define GPU_HSAIL_VM_HSAIL_KERNEL_ARGUMENTS_HPP
 
 #include "gpu_hsail.hpp"
 #include "runtime/signature.hpp"
@@ -37,7 +37,7 @@ public:
 private:
   // Kernel to push into
   address _kernel;
-  void * _exceptionHolder;
+  void* _exceptionHolder;
 
  public:
     HSAILKernelArguments(address kernel, Symbol* signature, objArrayOop args, bool is_static, void* exceptionHolder) : HSAILArgumentsBase(signature, args, is_static) {
@@ -45,8 +45,8 @@ private:
         _exceptionHolder = exceptionHolder;
         collectArgs();
     }
-    virtual char *argsBuilderName() {return (char *)"HSAILKernelArguments";}
-    virtual void pushObject(void *obj) {
+    virtual char* argsBuilderName() {return (char*)"HSAILKernelArguments";}
+    virtual void pushObject(void* obj) {
         bool pushed = Hsail::_okra_push_object(_kernel, obj);
         assert(pushed == true, "arg push failed");
     }
@@ -98,9 +98,9 @@ private:
 
     // for kernel arguments, final obj parameter should be an object
     // stream source array (already checked in the base class) so here we just pass it
-    virtual void handleFinalObjParameter(void *arg) {
+    virtual void handleFinalObjParameter(void* arg) {
       pushObject(arg);
     }
 };
 
-#endif  // KERNEL_ARGUMENTS_HSAIL_HPP
+#endif  // GPU_HSAIL_VM_HSAIL_KERNEL_ARGUMENTS_HPP

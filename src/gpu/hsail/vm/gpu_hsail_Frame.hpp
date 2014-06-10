@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef GPU_HSAIL_FRAME_HPP
-#define GPU_HSAIL_FRAME_HPP
+#ifndef GPU_HSAIL_VM_GPU_HSAIL_FRAME_HPP
+#define GPU_HSAIL_VM_GPU_HSAIL_FRAME_HPP
 
 #include "graal/graalEnv.hpp"
 #include "code/debugInfo.hpp"
@@ -43,31 +43,31 @@ public:
   jint num_s_regs() {return _num_s_regs; }
   jint num_d_regs() {return _num_d_regs; }
   jint num_stack_slots() {return _num_stack_slots; }
-  jbyte * data_start() {return (jbyte *) this  + sizeof(*this); }
+  jbyte* data_start() {return (jbyte*) this  + sizeof(*this); }
   jlong get_d_reg(int idx) {
     int ofst = num_s_regs() * 4 + idx * 8;
-    return(*(jlong *) (data_start() + ofst));
+    return(*(jlong*) (data_start() + ofst));
   }
   jint get_s_reg(int idx) {
     int ofst = idx * 4;
-    return(*(jint *) (data_start() + ofst));
+    return(*(jint*) (data_start() + ofst));
   }
   void put_d_reg(int idx, jlong val) {
     int ofst = num_s_regs() * 4 + idx * 8;
-    (*(jlong *) (data_start() + ofst)) = val;
+    (*(jlong*) (data_start() + ofst)) = val;
   }
   jint get_stackslot32(int stackOffset) {
     int ofst = num_s_regs() * 4 + num_d_regs() * 8 + stackOffset;
-    return(*(jint *) (data_start() + ofst));
+    return(*(jint*) (data_start() + ofst));
   }
   jlong get_stackslot64(int stackOffset) {
     int ofst = num_s_regs() * 4 + num_d_regs() * 8 + stackOffset;
-    return(*(jlong *) (data_start() + ofst));
+    return(*(jlong*) (data_start() + ofst));
   }
   void put_stackslot64(int stackOffset, jlong val) {
     int ofst = num_s_regs() * 4 + num_d_regs() * 8 + stackOffset;
-    (*(jlong *) (data_start() + ofst)) = val;
+    (*(jlong*) (data_start() + ofst)) = val;
   }
 };
   
-#endif // GPU_HSAIL_FRAME_HPP
+#endif // GPU_HSAIL_VM_GPU_HSAIL_FRAME_HPP

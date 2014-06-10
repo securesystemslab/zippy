@@ -41,16 +41,32 @@
   nonstatic_field(Hsail::HSAILKernelDeoptimization, _workitemid,                                jint)                                 \
   nonstatic_field(Hsail::HSAILKernelDeoptimization, _actionAndReason,                           jint)                                 \
                                                                                                                                       \
-  nonstatic_field(Hsail::HSAILDeoptimizationInfo, _notice_safepoints,                      jint*)                                     \
+  nonstatic_field(Hsail::HSAILDeoptimizationInfo, _notice_safepoints,                      jint*) \
   nonstatic_field(Hsail::HSAILDeoptimizationInfo, _deopt_occurred,                         jint)                                      \
   nonstatic_field(Hsail::HSAILDeoptimizationInfo, _deopt_next_index,                       jint)                                      \
-  nonstatic_field(Hsail::HSAILDeoptimizationInfo, _donor_threads,                          JavaThread**)                              \
-  nonstatic_field(Hsail::HSAILDeoptimizationInfo, _never_ran_array,                        jboolean *)                                \
+  nonstatic_field(Hsail::HSAILDeoptimizationInfo, _cur_tlab_info,                          HSAILTlabInfo**)                           \
+  nonstatic_field(Hsail::HSAILDeoptimizationInfo, _alloc_info,                             HSAILAllocationInfo*)                      \
+  nonstatic_field(Hsail::HSAILDeoptimizationInfo, _never_ran_array,                        jboolean*)                                 \
+                                                                                                                                      \
+  nonstatic_field(HSAILAllocationInfo, _tlab_infos_pool_start,                             HSAILTlabInfo*)                            \
+  nonstatic_field(HSAILAllocationInfo, _tlab_infos_pool_next,                              HSAILTlabInfo*)                            \
+  nonstatic_field(HSAILAllocationInfo, _tlab_infos_pool_end,                               HSAILTlabInfo*)                            \
+  nonstatic_field(HSAILAllocationInfo, _tlab_align_reserve_bytes,                          size_t)                                    \
+                                                                                                                                      \
+  nonstatic_field(HSAILTlabInfo, _start,                                                   HeapWord*)                                 \
+  nonstatic_field(HSAILTlabInfo, _top,                                                     HeapWord*)                                 \
+  nonstatic_field(HSAILTlabInfo, _end,                                                     HeapWord*)                                 \
+  nonstatic_field(HSAILTlabInfo, _last_good_top,                                           HeapWord*)                                 \
+  nonstatic_field(HSAILTlabInfo, _original_top,                                            HeapWord*)                                 \
+  nonstatic_field(HSAILTlabInfo, _donor_thread,                                            JavaThread*)                               \
+  nonstatic_field(HSAILTlabInfo, _alloc_info,                                              HSAILAllocationInfo*)                      \
 
-#define VM_TYPES_GPU_HSAIL(declare_type, declare_toplevel_type)                 \
+#define VM_TYPES_GPU_HSAIL(declare_type, declare_toplevel_type)      \
   declare_toplevel_type(HSAILFrame)                                  \
   declare_toplevel_type(HSAILFrame*)                                 \
   declare_toplevel_type(Hsail::HSAILKernelDeoptimization)            \
+  declare_toplevel_type(HSAILAllocationInfo)                         \
+  declare_toplevel_type(HSAILTlabInfo)                               \
   declare_toplevel_type(Hsail::HSAILDeoptimizationInfo)
 
 #endif // GPU_HSAIL_VM_VMSTRUCTS_HSAIL_HPP

@@ -22,12 +22,47 @@
  *
  */
 
-#ifndef GPU_HSAIL_HPP
-#define GPU_HSAIL_HPP
+#ifndef GPU_HSAIL_VM_GPU_HSAIL_HPP
+#define GPU_HSAIL_VM_GPU_HSAIL_HPP
 
 #include "utilities/exceptions.hpp"
 #include "graal/graalEnv.hpp"
 #include "gpu_hsail_Frame.hpp"
+#include "gpu_hsail_Tlab.hpp"
+
+struct HSAILKernelStats {
+  int _dispatches;
+  int _deopts;
+  int _overflows;
+  bool _changeSeen;
+  
+public:
+  HSAILKernelStats() {
+    _dispatches = _deopts = _overflows = 0;
+    _changeSeen = false;
+  }
+  
+  void incDeopts() {
+    _deopts++;
+    _changeSeen = true;
+  }
+  void incOverflows() {
+    _overflows++;
+    _changeSeen = true;
+  }
+  
+  void finishDispatch() {
+    _dispatches++;
+    if (_changeSeen) {
+      // print();
+      _changeSeen = false;
+    }
+  }
+  
+  void print() {
+    tty->print_cr("Disp=%d, Deopts=%d, Ovflows=%d", _dispatches, _deopts, _overflows);
+  }
+};
 
 class Hsail : public Gpu {
 
@@ -46,9 +81,9 @@ class Hsail : public Gpu {
     inline jint workitem() { return _workitemid; }
     inline jint reason() { return _actionAndReason; }
     inline jint pc_offset() { return first_frame()->pc_offset(); }
-    inline HSAILFrame *first_frame() {
+    inline HSAILFrame* first_frame() {
       // starts after the "header" fields
-      return (HSAILFrame *) (((jbyte *) this) + sizeof(*this));
+      return (HSAILFrame*) (((jbyte*) this) + sizeof(*this));
     }
   };
 
@@ -56,38 +91,41 @@ class Hsail : public Gpu {
 // TODO: query the device to get this number
 #define MAX_DEOPT_SLOTS    (8 * 40 * 64)
 
+
   class HSAILDeoptimizationInfo : public CHeapObj<mtInternal> {
     friend class VMStructs;
    private:
     jint* _notice_safepoints;
     jint _deopt_occurred;
     jint _deopt_next_index;
-    JavaThread** _donor_threads;
     jint _num_slots;
     jint _deopt_span;
+    HSAILTlabInfo** _cur_tlab_info;   // copy of what was in the HSAILAllocationInfo, to avoid an extra indirection
+    HSAILAllocationInfo* _alloc_info;
     char _ignore;
     // keep a pointer last so save area following it is word aligned
-    jboolean * _never_ran_array; 
+    jboolean* _never_ran_array; 
 
    public:
+    // static HSAILKernelStats kernelStats;
     HSAILKernelDeoptimization _deopt_save_states[1];  // number and size of these can vary per kernel
 
     static inline size_t hdr_size() {
       return sizeof(HSAILDeoptimizationInfo);
     }
 
-    inline jbyte * save_area_start() {
+    inline jbyte* save_area_start() {
       return (jbyte*) (this) + hdr_size();
     }
 
-    inline HSAILDeoptimizationInfo(int numSlots, int bytesPerSaveArea, int dimX, JavaThread** donorThreads) {
+    inline HSAILDeoptimizationInfo(int numSlots, int bytesPerSaveArea, int dimX, HSAILAllocationInfo* allocInfo) {
       _notice_safepoints = &Hsail::_notice_safepoints;
       _deopt_occurred = 0;
       _deopt_next_index = 0;
       _num_slots = numSlots;
       _never_ran_array = NEW_C_HEAP_ARRAY(jboolean, dimX, mtInternal);
       memset(_never_ran_array, 0, dimX * sizeof(jboolean));
-      _donor_threads = donorThreads;
+      _alloc_info = allocInfo;
       _deopt_span = sizeof(HSAILKernelDeoptimization) + sizeof(HSAILFrame) + bytesPerSaveArea;
       if (TraceGPUInteraction) {
         tty->print_cr("HSAILDeoptimizationInfo allocated, %d slots of size %d, total size = 0x%lx bytes", _num_slots, _deopt_span, (_num_slots * _deopt_span + sizeof(HSAILDeoptimizationInfo)));
@@ -102,21 +140,25 @@ class Hsail : public Gpu {
       return _deopt_occurred;
     }
     inline jint num_deopts() { return _deopt_next_index; }
-    inline jboolean *never_ran_array() { return _never_ran_array; }
+    inline jboolean* never_ran_array() { return _never_ran_array; }
     inline jint num_slots() {return _num_slots;}
 
-    inline HSAILKernelDeoptimization * get_deopt_save_state(int slot) {
+    inline HSAILKernelDeoptimization* get_deopt_save_state(int slot) {
       // use _deopt_span to index into _deopt_states
-      return (HSAILKernelDeoptimization *) (save_area_start() + _deopt_span * slot);
+      return (HSAILKernelDeoptimization*) (save_area_start() + _deopt_span * slot);
     }
 
-    void * operator new (size_t hdrSize, int numSlots, int bytesPerSaveArea) {
+    void setCurTlabInfos(HSAILTlabInfo** ptlabInfos) {
+      _cur_tlab_info = ptlabInfos;
+    }
+
+    void* operator new (size_t hdrSize, int numSlots, int bytesPerSaveArea) {
       assert(hdrSize <= hdr_size(), "");
       size_t totalSizeBytes = hdr_size()  + numSlots * (sizeof(HSAILKernelDeoptimization) + sizeof(HSAILFrame) + bytesPerSaveArea);
       return NEW_C_HEAP_ARRAY(char, totalSizeBytes, mtInternal);
     }
 
-    void operator delete (void *ptr) {
+    void operator delete (void* ptr) {
       FREE_C_HEAP_ARRAY(char, ptr, mtInternal);
     }
   };
@@ -126,21 +168,16 @@ private:
   static JNINativeMethod HSAIL_methods[];
 
   // static native boolean initialize();
-  JNIEXPORT static jboolean initialize(JNIEnv *env, jclass);
+  JNIEXPORT static jboolean initialize(JNIEnv* env, jclass);
 
   // static native long generateKernel(byte[] targetCode, String name);
-  JNIEXPORT static jlong generate_kernel(JNIEnv *env, jclass, jbyteArray code_handle, jstring name_handle);
+  JNIEXPORT static jlong generate_kernel(JNIEnv* env, jclass, jbyteArray code_handle, jstring name_handle);
 
   // static native boolean executeKernel0(HotSpotInstalledCode kernel, int jobSize, Object[] args);
-  JNIEXPORT static jboolean execute_kernel_void_1d(JNIEnv *env, jclass, jobject hotspotInstalledCode, jint dimX, jobject args, jobject oopsSave,
+  JNIEXPORT static jboolean execute_kernel_void_1d(JNIEnv* env, jclass, jobject hotspotInstalledCode, jint dimX, jobject args, jobject oopsSave,
                                                    jobject donorThreads, int allocBytesPerWorkitem, jobject oop_map_array);
 
-  // static native void getThreadPointers(Object[] donorThreads, long[] threadPointersOut);
-  JNIEXPORT static void get_thread_pointers(JNIEnv *env, jclass, jobject donor_threads_handle, jobject thread_ptrs_handle);
-
-  static void getNewTlabForDonorThread(ThreadLocalAllocBuffer* tlab, size_t tlabMinHsail);
-
-  static jboolean execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod *nm, jobject oopsSave,
+  static jboolean execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod* nm, jobject oopsSave,
                                                   jobject donorThreads, int allocBytesPerWorkitem, jobject oop_map_array, TRAPS);
 
   static void register_heap();
@@ -165,7 +202,7 @@ public:
 
 private:
   typedef void* (*okra_create_context_func_t)();
-  typedef void* (*okra_create_kernel_func_t)(void*, unsigned char *, const char *);
+  typedef void* (*okra_create_kernel_func_t)(void*, unsigned char*, const char*);
   typedef bool (*okra_push_object_func_t)(void*, void*);
   typedef bool (*okra_push_boolean_func_t)(void*, jboolean);
   typedef bool (*okra_push_byte_func_t)(void*, jbyte);
@@ -197,4 +234,4 @@ protected:
   // true if safepoints are activated
   static jint _notice_safepoints;
 };
-#endif // GPU_HSAIL_HPP
+#endif // GPU_HSAIL_VM_GPU_HSAIL_HPP
