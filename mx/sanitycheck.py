@@ -177,6 +177,7 @@ pythonBenchmarks = {
     'richards3-timed' : '200',
     'bm-float-timed'  : '1000',
     'pypy-chaos-timed': '1000',
+    'pypy-go'         : '2',
     'python-graph-bench': '200',
     'simplejson-bench': '10000',
 }
@@ -199,6 +200,7 @@ python2Benchmarks = {
     'richards3-timed' : '200',
     'bm-float-timed'  : '1000',
     'pypy-chaos-timed': '1000',
+    'pypy-go'         : '2',
     'python-graph-bench': '200',
     'simplejson-bench': '10000',
 }

@@ -440,7 +440,10 @@ def measure(n):
     start = time.time()
     main(n)
     duration = "%.3f\n" % (time.time() - start)
-    print("go: " + duration)
+    print("pypy-go: " + duration)
+
+for i in range(10):
+    main(1)
 
 
 measure(int(sys.argv[1]))
