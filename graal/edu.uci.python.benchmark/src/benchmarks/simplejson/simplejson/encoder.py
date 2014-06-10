@@ -371,9 +371,14 @@ class JSONEncoder(object):
 
     # refactored
     def refactored_iterencode(self, o):
-
         return self._iterencode(o, 0)
 
+    def refactored_encode(self, o):
+        ret = []
+        for i in self._iterencode(o, 0):
+            ret.append(i)
+
+        return ret
 
     def floatstr(self, o):
         # Check for specials. Note that this type of test is processor

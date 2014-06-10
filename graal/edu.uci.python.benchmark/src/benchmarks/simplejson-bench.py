@@ -14,14 +14,15 @@ encoder = JSONEncoder()
 
 def encodeList():
     lst = [i for i in range(1000)]
-    return encoder.encode(lst)
+    # return encoder.encode(lst)
+    return encoder.refactored_encode(lst)
 
 def encodeObject():
     class Foo:
         def for_json(self):
             return {'a':1, 'b':2, 'c': [i for i in range(1000)]}
 
-    return encoder.encode(Foo())
+    return encoder.refactored_encode(Foo())
 
 json = encodeList()
 print(json)

@@ -436,15 +436,15 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization(order = 2)
         public Object isinstance(PythonObject object, PythonClass clazz) {
-            return isInstanceofPythonClass(object, clazz);
+            return isInstancePythonClass(object, clazz);
         }
 
         @Specialization(order = 3)
         public Object isinstance(PythonClass object, PythonClass clazz) {
-            return isInstanceofPythonClass(object, clazz);
+            return isInstancePythonClass(object, clazz);
         }
 
-        private static boolean isInstanceofPythonClass(PythonObject object, PythonClass clazz) {
+        private static boolean isInstancePythonClass(PythonObject object, PythonClass clazz) {
             if (object.getPythonClass().equals(clazz)) {
                 return true;
             }
@@ -473,6 +473,19 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return obj.__class__() == cls;
         }
 
+        @ExplodeLoop
+        @Specialization(order = 5)
+        public boolean isinstance(PythonBuiltinObject obj, PTuple classTuple) {
+            for (int i = 0; i < classTuple.len(); i++) {
+                if (obj.__class__() == classTuple.getItem(i)) {
+                    return true;
+                }
+
+            }
+
+            return false;
+        }
+
         @Specialization(order = 10)
         public Object isinstance(Object object, Object clazz) {
             if (object instanceof String && clazz instanceof PythonClass) {
@@ -485,7 +498,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             } else if (object instanceof PythonObject && clazz instanceof PythonClass) {
                 PythonObject basicObject = (PythonObject) object;
                 PythonClass pythonClass = (PythonClass) clazz;
-                return isInstanceofPythonClass(basicObject, pythonClass);
+                return isInstancePythonClass(basicObject, pythonClass);
             } else if (object instanceof PNone && clazz instanceof PythonBuiltinClass) {
                 return false;
             }
