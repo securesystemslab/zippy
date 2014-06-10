@@ -33,6 +33,7 @@ import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 /**
  * @author Gulfem
@@ -91,7 +92,21 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @Specialization(order = 1)
+        @Specialization(order = 2, guards = "is2ndObjectStorage")
+        public String join(String string, PList list) {
+            StringBuilder sb = new StringBuilder();
+            ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
+
+            for (int i = 0; i < list.len() - 1; i++) {
+                sb.append(store.getItemInBound(i));
+                sb.append(string);
+            }
+
+            sb.append(list.getItem(list.len() - 1));
+            return sb.toString();
+        }
+
+        @Specialization(order = 5)
         public String join(String string, PSequence seq) {
             StringBuilder sb = new StringBuilder();
 
@@ -104,7 +119,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @Specialization(order = 2)
+        @Specialization(order = 6)
         public String join(String string, PCharArray array) {
             StringBuilder sb = new StringBuilder();
             char[] stringList = array.getSequence();
@@ -118,7 +133,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @Specialization(order = 3)
+        @Specialization(order = 7)
         public String join(String string, PSet arg) {
             if (arg.len() == 0) {
                 return string.toString();
@@ -135,7 +150,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @Specialization(order = 5)
+        @Specialization(order = 8)
         public String join(Object self, Object arg) {
             throw new RuntimeException("invalid arguments type for join(): self " + self + ", arg " + arg);
         }

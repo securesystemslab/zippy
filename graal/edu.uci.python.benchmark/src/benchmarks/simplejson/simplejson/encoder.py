@@ -378,6 +378,7 @@ class JSONEncoder(object):
         for elem in self._iterencode_list(o, 0):
             chunk.append(elem)
         return ''.join(chunk)
+        # return chunk
 
     def floatstr(self, o):
         # Check for specials. Note that this type of test is processor
