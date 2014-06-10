@@ -58,7 +58,7 @@ public class GeneratorExpressionOptimizer {
 
     public void optimize() {
         if (functionRoot.isGenerator()) {
-            // Baiout if the current root is a generator root.
+            // Bailout if the current root is a generator root.
             return;
         }
 
@@ -92,7 +92,7 @@ public class GeneratorExpressionOptimizer {
                 assert callNode.isInlined();
                 FunctionRootNode calleeRoot = (FunctionRootNode) callNode.getInlinedCalleeRoot();
                 PeeledGeneratorLoopBoxedNode manualInlinedCallNode = new PeeledGeneratorLoopBoxedNode(calleeRoot, calleeRoot.getFrameDescriptor(), callNode.getPrimaryNode(),
-                                callNode.getArgumentsNode(), ((LinkedDispatchBoxedNode) callNode.getDispatchNode()).getCheckNode(), callNode);
+                                callNode.passPrimaryAsArgument(), callNode.getArgumentsNode(), ((LinkedDispatchBoxedNode) callNode.getDispatchNode()).getCheckNode(), callNode);
                 callNode.replace(manualInlinedCallNode);
                 GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(manualInlinedCallNode.getGeneratorRoot(), GetIteratorNode.class);
                 desugarGeneratorExpression(genexp, getIter, true);

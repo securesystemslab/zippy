@@ -71,10 +71,12 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
 
         @Child protected PNode primaryNode;
         @Child protected ShapeCheckNode checkNode;
+        private final boolean passPrimaryAsTheFirstArgument;
 
-        public PeeledGeneratorLoopBoxedNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode primaryNode, ArgumentsNode argumentNodes, ShapeCheckNode checkNode,
-                        PNode originalLoop) {
+        public PeeledGeneratorLoopBoxedNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode primaryNode, boolean passPrimaryAsTheFirstArgument, ArgumentsNode argumentNodes,
+                        ShapeCheckNode checkNode, PNode originalLoop) {
             super(generatorRoot, frameDescriptor, argumentNodes, originalLoop);
+            this.passPrimaryAsTheFirstArgument = passPrimaryAsTheFirstArgument;
             this.primaryNode = primaryNode;
             this.checkNode = checkNode;
         }
@@ -92,7 +94,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
 
             try {
                 if (checkNode.accept(primary)) {
-                    final Object[] arguments = argumentsNode.executeArguments(frame);
+                    final Object[] arguments = argumentsNode.executeArguments(frame, passPrimaryAsTheFirstArgument, primary);
                     PArguments.setVirtualFrameCargoArguments(arguments, frame);
                     VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
                     return inlinedRootNode.execute(generatorFrame);

@@ -190,18 +190,23 @@ public final class FunctionRootNode extends RootNode {
             inlinable = false;
         }
 
-        int callerNodeCount = getDeepNodeCount();
-        int generatorNodeCount = NodeUtil.countNodes(genfun.getFunctionRootNode());
+        int callerNodeCount = getDeepNodeCount(this);
+        int generatorNodeCount = getDeepNodeCount(genfun.getFunctionRootNode());
         inlinable &= generatorNodeCount < 300;
         inlinable &= callerNodeCount < 500;
+
+        if (callerNodeCount / generatorNodeCount < 5) {
+            inlinable = true;
+        }
+
         return inlinable;
     }
 
     /**
      * See OptimizedCallUtils.
      */
-    protected int getDeepNodeCount() {
-        return NodeUtil.countNodes(this, new NodeCountFilter() {
+    protected static int getDeepNodeCount(RootNode root) {
+        return NodeUtil.countNodes(root, new NodeCountFilter() {
             public boolean isCounted(Node node) {
                 NodeCost cost = node.getCost();
                 if (cost != null && cost != NodeCost.NONE && cost != NodeCost.UNINITIALIZED) {
@@ -238,8 +243,8 @@ public final class FunctionRootNode extends RootNode {
         if (callNode instanceof BoxedCallNode) {
             GeneratorDispatchBoxedNode boxedDispatch = (GeneratorDispatchBoxedNode) dispatch;
             BoxedCallNode call = (BoxedCallNode) callNode;
-            peeled = new PeeledGeneratorLoopBoxedNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getPrimaryNode(), call.getArgumentsNode(),
-                            boxedDispatch.getCheckNode(), orignalLoop);
+            peeled = new PeeledGeneratorLoopBoxedNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getPrimaryNode(), call.passPrimaryAsArgument(),
+                            call.getArgumentsNode(), boxedDispatch.getCheckNode(), orignalLoop);
         } else if (callNode instanceof NoneCallNode) {
             NoneCallNode call = (NoneCallNode) callNode;
             peeled = new PeeledGeneratorLoopNoneNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getCalleeNode(), call.getArgumentsNode(),
