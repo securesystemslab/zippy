@@ -56,7 +56,7 @@ public final class StringBuiltins extends PythonBuiltins {
 
     // str.startswith(prefix[, start[, end]])
     @Builtin(name = "startswith", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
-    public abstract static class PythonStartsWithNode extends PythonBuiltinNode {
+    public abstract static class StartsWithNode extends PythonBuiltinNode {
 
         @Specialization
         public Object startsWith(String self, String prefix) {
@@ -75,7 +75,7 @@ public final class StringBuiltins extends PythonBuiltins {
 
     // str.join(iterable)
     @Builtin(name = "join", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
-    public abstract static class PythonStringJoinNode extends PythonBuiltinNode {
+    public abstract static class JoinNode extends PythonBuiltinNode {
 
         @Specialization(order = 0)
         public String join(String string, String arg) {
@@ -143,7 +143,7 @@ public final class StringBuiltins extends PythonBuiltins {
 
     // str.upper()
     @Builtin(name = "upper", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
-    public abstract static class PythonStringUpperNode extends PythonBuiltinNode {
+    public abstract static class UpperNode extends PythonBuiltinNode {
 
         @Specialization
         public String upper(String self) {
