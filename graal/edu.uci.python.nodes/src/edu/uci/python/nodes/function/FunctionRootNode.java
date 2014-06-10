@@ -141,7 +141,7 @@ public final class FunctionRootNode extends RootNode {
     private boolean optimizeHelper() {
         CompilerAsserts.neverPartOfCompilation();
 
-        if (CompilerDirectives.inCompiledCode() || !PythonOptions.InlineGeneratorCalls || isGenerator) {
+        if (CompilerDirectives.inCompiledCode() || !PythonOptions.InlineGeneratorCalls || !isGenerator) {
             return false;
         }
 
