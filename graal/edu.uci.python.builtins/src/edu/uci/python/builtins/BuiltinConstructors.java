@@ -559,7 +559,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         @Specialization
         public String str(int val) {
-            return String.valueOf(val);
+            return Integer.toString(val);
         }
 
         @Specialization
