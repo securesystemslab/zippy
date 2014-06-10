@@ -65,7 +65,20 @@ public class ListBuiltins extends PythonBuiltins {
             return list;
         }
 
-        @Specialization
+        @Specialization(order = 2, guards = "isObjectStorage")
+        public PList appendObject(PList list, Object arg) {
+            ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
+
+            try {
+                store.append(arg);
+            } catch (SequenceStoreException e) {
+                throw new IllegalStateException();
+            }
+
+            return list;
+        }
+
+        @Specialization(order = 3)
         public PList append(PList list, Object arg) {
             list.append(arg);
             return list;
