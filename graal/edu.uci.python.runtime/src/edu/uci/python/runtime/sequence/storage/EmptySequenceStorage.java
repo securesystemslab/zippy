@@ -45,8 +45,6 @@ public final class EmptySequenceStorage extends SequenceStorage {
             generalized = new IntSequenceStorage();
         } else if (value instanceof Double) {
             generalized = new DoubleSequenceStorage();
-        } else if (value instanceof String) {
-            generalized = new StringSequenceStorage();
         } else {
             generalized = new ObjectSequenceStorage();
         }
