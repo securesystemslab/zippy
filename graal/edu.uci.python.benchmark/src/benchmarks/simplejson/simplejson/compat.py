@@ -39,7 +39,7 @@ else:
     text_type = str
     binary_type = bytes
     string_types = str
-    integer_types = (int,)
+    integer_types = int
 
     def unichr(s):
         return u(chr(s))
@@ -47,4 +47,4 @@ else:
     def fromhex(s):
         return bytes.fromhex(s)
 
-long_type = integer_types[-1]
+# long_type = integer_types[-1]

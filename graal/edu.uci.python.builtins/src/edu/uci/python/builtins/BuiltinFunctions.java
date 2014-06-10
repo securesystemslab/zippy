@@ -445,7 +445,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @SuppressWarnings("unused")
         @Specialization(order = 1)
-        public Object isinstance(String str, PythonClass clazz) {
+        public boolean isinstance(String str, PythonClass clazz) {
             if (clazz.getName().equals("str")) {
                 return true;
             } else {
@@ -454,12 +454,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization(order = 2)
-        public Object isinstance(PythonObject object, PythonClass clazz) {
+        public boolean isinstance(PythonClass object, PythonClass clazz) {
             return isInstancePythonClass(object, clazz);
         }
 
         @Specialization(order = 3)
-        public Object isinstance(PythonClass object, PythonClass clazz) {
+        public boolean isinstance(PythonObject object, PythonClass clazz) {
             return isInstancePythonClass(object, clazz);
         }
 
@@ -487,13 +487,31 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
-        @Specialization(order = 4)
+        @Specialization(order = 10)
+        public boolean isinstance(@SuppressWarnings("unused") int val, PythonBuiltinClass cls) {
+            return PInt.__class__ == cls;
+        }
+
+        @ExplodeLoop
+        @Specialization(order = 11)
+        public boolean isinstance(@SuppressWarnings("unused") int val, PTuple classTuple) {
+            for (int i = 0; i < classTuple.len(); i++) {
+                if (PInt.__class__ == classTuple.getItem(i)) {
+                    return true;
+                }
+
+            }
+
+            return false;
+        }
+
+        @Specialization(order = 20)
         public boolean isinstance(PythonBuiltinObject obj, PythonBuiltinClass cls) {
             return obj.__class__() == cls;
         }
 
         @ExplodeLoop
-        @Specialization(order = 5)
+        @Specialization(order = 25)
         public boolean isinstance(PythonBuiltinObject obj, PTuple classTuple) {
             for (int i = 0; i < classTuple.len(); i++) {
                 if (obj.__class__() == classTuple.getItem(i)) {
@@ -505,7 +523,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
-        @Specialization(order = 10)
+        @Specialization(order = 30)
         public Object isinstance(Object object, Object clazz) {
             if (object instanceof String && clazz instanceof PythonClass) {
                 PythonClass pythonClass = (PythonClass) clazz;

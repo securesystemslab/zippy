@@ -32,7 +32,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public final class PInt extends PythonBuiltinObject {
 
-    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PInt.class);
+    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PInt.class);
 
     private final BigInteger value;
 

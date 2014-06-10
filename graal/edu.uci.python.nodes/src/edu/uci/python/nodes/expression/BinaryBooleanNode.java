@@ -59,32 +59,37 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
         }
 
         @Specialization(order = 1)
+        Object doBoolean(boolean left, boolean needsRight, Object right) {
+            return needsRight ? right : left;
+        }
+
+        @Specialization(order = 10)
         public int doInteger(int left, boolean needsRight, int right) {
             return needsRight ? right : left;
         }
 
-        @Specialization(order = 2)
+        @Specialization(order = 20)
         public BigInteger doBigInteger(BigInteger left, boolean needsRight, BigInteger right) {
             return needsRight ? right : left;
         }
 
-        @Specialization(order = 3)
+        @Specialization(order = 30)
         public double doDouble(double left, boolean needsRight, double right) {
             return needsRight ? right : left;
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 4)
+        @Specialization(order = 40)
         public boolean doPythonObject(PythonObject left, boolean needsRight, boolean right) {
             return needsRight ? right : true;
         }
 
-        @Specialization(order = 5)
+        @Specialization(order = 50)
         public Object doObject(Object left, boolean needsRight, boolean right) {
             return needsRight ? right : left;
         }
 
-        @Specialization(order = 6)
+        @Specialization(order = 60)
         public PythonObject doPythonObject(PythonObject left, boolean needsRight, PythonObject right) {
             return needsRight ? right : left;
         }
