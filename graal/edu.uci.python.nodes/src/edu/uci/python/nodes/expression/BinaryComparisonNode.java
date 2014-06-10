@@ -285,6 +285,18 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class IsNode extends BinaryComparisonNode {
 
+        @SuppressWarnings("unused")
+        @Specialization(order = 1)
+        boolean doInteger(int left, boolean right) {
+            return false;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 2)
+        boolean doInteger(boolean left, int right) {
+            return false;
+        }
+
         @Specialization(order = 3)
         boolean doInteger(int left, int right) {
             return left == right;

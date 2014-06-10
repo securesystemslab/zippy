@@ -11,11 +11,17 @@ from simplejson.encoder import JSONEncoder
 
 encoder = JSONEncoder()
 
-
-def encodeList():
+def produceData():
     lst = [i for i in range(1000)]
-    # return encoder.encode(lst)
-    return encoder.refactored_encode(lst)
+    return lst
+
+DATA = produceData()
+
+def encodeList(n):
+    for i in range(n):
+        json = encoder.refactored_encode(DATA)
+
+    return json
 
 def encodeObject():
     class Foo:
@@ -24,7 +30,19 @@ def encodeObject():
 
     return encoder.refactored_encode(Foo())
 
-json = encodeList()
-print(json)
-# json = encodeObject()
-# print(json)
+def measure():
+    print("Start timing...")
+    start = time.time()
+    json = encodeList(num)
+    duration = "%.3f\n" % (time.time() - start)
+    print(json)
+    print("simplejson-encode: " + duration)
+
+# warm up
+num =  int(sys.argv[1]) # 200
+for i in range(100):
+    json = encodeList(100)
+
+measure()
+
+
