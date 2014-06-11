@@ -182,6 +182,17 @@ pythonBenchmarks = {
     'simplejson-bench': '10000',
 }
 
+pythonGeneratorBenchmarks = {
+    'euler31-timed'   : '200',
+    'euler11-timed'   : '10000',
+    'ai-nqueen-timed' : '10',
+    'pads-eratosthenes-timed' : '100000',
+    'pads-integerpartitions' : '700',
+    'pads-lyndon'     : '100000000',
+    'python-graph-bench': '200',
+    'simplejson-bench': '10000',
+}
+
 python2Benchmarks = {
     'binarytrees2t'   : '19',
     'fannkuchredux2t' : '11',
@@ -421,7 +432,7 @@ def getPythonBenchmarks(vm):
 
 def getPythonBenchmarksNoPeeling(vm):
     success, error, matcher = getSuccessErrorMatcher()
-    benchmarks = pythonBenchmarks
+    benchmarks = pythonGeneratorBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
         script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
