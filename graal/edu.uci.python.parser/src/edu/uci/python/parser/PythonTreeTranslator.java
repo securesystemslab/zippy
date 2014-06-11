@@ -195,7 +195,7 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Parameters
          */
-        Arity arity = createArity(name, node.getInternalArgs());
+        Arity arity = createArity(name, node.getInternalArgs(), node.getInternalDecorator_list());
         PNode argumentLoads = visitArgs(node.getInternalArgs());
 
         /**
@@ -253,7 +253,7 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Parameters
          */
-        Arity arity = createArity(name, node.getInternalArgs());
+        Arity arity = createArity(name, node.getInternalArgs(), new ArrayList<expr>());
         PNode argumentLoads = visitArgs(node.getInternalArgs());
 
         /**
@@ -312,7 +312,7 @@ public class PythonTreeTranslator extends Visitor {
                         gtran.getNumOfGeneratorForNode());
     }
 
-    public Arity createArity(String functionName, arguments node) {
+    public Arity createArity(String functionName, arguments node, List<expr> decorators) {
         boolean takesVarArgs = false;
         /**
          * takesKeywordArg is true by default, because in Python every parameter can be passed as a
@@ -346,7 +346,24 @@ public class PythonTreeTranslator extends Visitor {
         }
 
         int minNumOfArgs = numOfArguments - numOfDefaultArguments;
-        return new Arity(functionName, minNumOfArgs, maxNumOfArgs, takesFixedNumOfArgs, takesKeywordArg, takesVarArgs, parameterIds);
+
+        /**
+         * Decorators: classmethod or staticmethod.
+         */
+        String decoratorName = null;
+        if (decorators.size() == 1 && decorators.get(0) instanceof Name) {
+            Name decoratorId = (Name) decorators.get(0);
+            decoratorName = decoratorId.getInternalId();
+        }
+
+        boolean isClassMethod = false;
+        if (decoratorName != null) {
+            if (decoratorName.equals("classmethod")) {
+                isClassMethod = true;
+            }
+        }
+
+        return new Arity(functionName, minNumOfArgs, maxNumOfArgs, takesFixedNumOfArgs, takesKeywordArg, takesVarArgs, isClassMethod, parameterIds);
     }
 
     public PNode visitArgs(arguments node) throws Exception {

@@ -42,6 +42,8 @@ public class Arity {
 
     private final List<String> parameterIds;
 
+    private final boolean isClassMethod;
+
     public Arity(String functionName, int minNumOfArgs, int maxNumOfArgs, List<String> parameterIds) {
         this.functionName = functionName;
         this.minNumOfArgs = minNumOfArgs;
@@ -50,9 +52,10 @@ public class Arity {
         this.takesFixedNumOfArgs = false;
         this.takesVarArgs = false;
         this.parameterIds = parameterIds;
+        this.isClassMethod = false;
     }
 
-    public Arity(String functionName, int minNumOfArgs, int maxNumOfArgs, boolean takesFixedNumOfArgs, boolean takesKeywordArg, boolean takesVarArgs, List<String> parameterIds) {
+    public Arity(String functionName, int minNumOfArgs, int maxNumOfArgs, boolean takesFixedNumOfArgs, boolean takesKeywordArg, boolean takesVarArgs, boolean isClassMethod, List<String> parameterIds) {
         this.functionName = functionName;
         this.minNumOfArgs = minNumOfArgs;
         this.maxNumOfArgs = maxNumOfArgs;
@@ -60,6 +63,11 @@ public class Arity {
         this.takesFixedNumOfArgs = takesFixedNumOfArgs;
         this.takesVarArgs = takesVarArgs;
         this.parameterIds = parameterIds;
+        this.isClassMethod = isClassMethod;
+    }
+
+    public boolean isClassMethod() {
+        return isClassMethod;
     }
 
     public List<String> getParameterIds() {
