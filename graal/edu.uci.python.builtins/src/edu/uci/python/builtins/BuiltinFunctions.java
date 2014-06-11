@@ -439,6 +439,23 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
     }
 
+    // id(object)
+    @Builtin(name = "id", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    public abstract static class IdNode extends PythonBuiltinNode {
+
+        /**
+         * zwei: This is not completely compliant with the id() implementation in CPython, which
+         * returns the internal address of the object. In Java, the internal address of an object
+         * changes during its lifetime. Therefore, using the internal address does not guarantee a
+         * consistent id during an object's lifetime. Hash code of two objects however are the same.
+         * This is conflicting with the 'identity' specification of id().
+         */
+        @Specialization
+        int doId(Object obj) {
+            return obj.hashCode();
+        }
+    }
+
     // isinstance(object, classinfo)
     @Builtin(name = "isinstance", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
     public abstract static class IsIntanceNode extends PythonBuiltinNode {

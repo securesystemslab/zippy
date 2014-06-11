@@ -314,4 +314,12 @@ public class BuiltinFunctionTests {
         assertPrints("False\n", source);
     }
 
+    @Test
+    public void id() {
+        String source = "id1 = id([])\n" + //
+                        "id2 = id([])\n" + //
+                        "print(id1 == id2)";
+        assertPrints("False\n", source);
+    }
+
 }
