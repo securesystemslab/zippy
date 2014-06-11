@@ -70,6 +70,11 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
     }
 
     @Override
+    public boolean isClassMethod() {
+        return arity.isClassMethod();
+    }
+
+    @Override
     public Object call(Object[] arguments) {
         PArguments.setDeclarationFrame(arguments, declarationFrame);
         return callTarget.call(arguments);

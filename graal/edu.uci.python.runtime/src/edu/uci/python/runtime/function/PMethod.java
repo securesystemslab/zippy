@@ -39,7 +39,7 @@ public final class PMethod extends PythonBuiltinObject implements PythonCallable
     private final RootCallTarget callTarget;
 
     public PMethod(PythonObject self, PFunction function) {
-        this.self = self;
+        this.self = function.isClassMethod() ? self.asPythonClass() : self;
         this.function = function;
         this.callTarget = function.getCallTarget();
     }
@@ -117,6 +117,11 @@ public final class PMethod extends PythonBuiltinObject implements PythonCallable
          * TODO Causes problem in unit test, so arity check is not performed on PMethod.
          */
         // function.arityCheck(numOfArgs + 1, numOfKeywords, keywords);
+    }
+
+    @Override
+    public boolean isClassMethod() {
+        return function.getArity().isClassMethod();
     }
 
     @Override

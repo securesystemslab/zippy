@@ -268,6 +268,14 @@ public abstract class PythonObject {
         return getObjectLayout().getValidAssumption();
     }
 
+    public final PythonClass asPythonClass() {
+        if (this instanceof PythonClass) {
+            return (PythonClass) this;
+        }
+
+        return getPythonClass();
+    }
+
     @Override
     public String toString() {
         return "<" + pythonClass.getName() + " object at " + hashCode() + ">";

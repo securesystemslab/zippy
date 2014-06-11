@@ -47,4 +47,8 @@ public interface PythonCallable {
         return false;
     }
 
+    default boolean isClassMethod() {
+        return false;
+    }
+
 }
