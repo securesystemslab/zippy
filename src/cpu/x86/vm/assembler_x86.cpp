@@ -1916,13 +1916,8 @@ void Assembler::movzbl(Register dst, Address src) { // movzxb
 }
 
 void Assembler::movzbl(Register dst, Register src) { // movzxb
-#ifdef _LP64
-  // Requires the REX.W prefix to be able to access source register rsi and rdi
-  int encode = prefixq_and_encode(dst->encoding(), src->encoding());
-#else
-  assert(src->has_byte_register(), "must have byte register");
-  int encode = prefix_and_encode(dst->encoding(), src->encoding());
-#endif
+  NOT_LP64(assert(src->has_byte_register(), "must have byte register"));
+  int encode = prefix_and_encode(dst->encoding(), false, src->encoding(), true);
   emit_int8(0x0F);
   emit_int8((unsigned char)0xB6);
   emit_int8(0xC0 | encode);
