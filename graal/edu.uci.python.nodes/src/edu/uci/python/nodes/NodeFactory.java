@@ -84,8 +84,8 @@ public class NodeFactory {
         return new FunctionRootNode(context, functionName, isGenerator, frameDescriptor, body);
     }
 
-    public ClassDefinitionNode createClassDef(PythonContext context, String name, PNode[] baseClasses, FunctionDefinitionNode definitnionFunction) {
-        return ClassDefinitionNodeFactory.create(context, name, baseClasses, definitnionFunction);
+    public ClassDefinitionNode createClassDef(PythonContext context, String moduleName, String name, PNode[] baseClasses, FunctionDefinitionNode definitnionFunction) {
+        return ClassDefinitionNodeFactory.create(context, moduleName, name, baseClasses, definitnionFunction);
     }
 
     public PNode createBlock(List<PNode> statements) {

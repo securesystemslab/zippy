@@ -39,18 +39,20 @@ import edu.uci.python.runtime.standardtype.*;
 public abstract class ClassDefinitionNode extends StatementNode {
 
     private final PythonContext context;
+    private final String moduleName;
     private final String name;
 
     @Children private final PNode[] baseNodes;
 
-    public ClassDefinitionNode(PythonContext context, String name, PNode[] baseClasses) {
+    public ClassDefinitionNode(PythonContext context, String moduleName, String name, PNode[] baseClasses) {
         this.context = context;
+        this.moduleName = moduleName;
         this.name = name;
         this.baseNodes = baseClasses;
     }
 
     protected ClassDefinitionNode(ClassDefinitionNode prev) {
-        this(prev.context, prev.name, prev.baseNodes);
+        this(prev.context, prev.moduleName, prev.name, prev.baseNodes);
     }
 
     @Specialization
@@ -60,7 +62,7 @@ public abstract class ClassDefinitionNode extends StatementNode {
 
         try {
             bases = executeBases(frame);
-            newClass = new PythonClass(context, name, bases);
+            newClass = new PythonClass(context, moduleName + '.' + name, bases);
         } catch (UnexpectedResultException e) {
             newClass = tryToDefineJythonSubClass(e.getResult());
         }

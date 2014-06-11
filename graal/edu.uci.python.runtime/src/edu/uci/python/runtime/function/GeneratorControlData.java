@@ -28,7 +28,8 @@ import edu.uci.python.runtime.iterator.*;
 
 public final class GeneratorControlData {
 
-    // See {@link GeneratorReturnTargetNode}, {@link GeneratorIfNode},
+    // See {@link GeneratorReturnTargetNode},
+    // {@link GeneratorIfNode},
     // {@link GeneratorWhileNode}.
     private final boolean[] activeFlags;
     private final int[] blockNodeIndices;       // See {@link GeneratorBlockNode}

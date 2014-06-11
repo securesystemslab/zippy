@@ -538,7 +538,7 @@ public class PythonTreeTranslator extends Visitor {
             baseNodes = bases.toArray(new PNode[bases.size()]);
         }
 
-        PNode classDef = factory.createClassDef(context, name, baseNodes, funcDef);
+        PNode classDef = factory.createClassDef(context, this.module.getModuleName(), name, baseNodes, funcDef);
         ReadNode read = environment.findVariable(name);
         return read.makeWriteNode(classDef);
     }
