@@ -55,7 +55,7 @@ public class FunctionDefinitionNode extends PNode {
     public Object execute(VirtualFrame frame) {
         defaults.executeVoid(frame);
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-        return new PFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame);
+        return new PFunction(name, arity, callTarget, frameDescriptor, declarationFrame);
     }
 
 }

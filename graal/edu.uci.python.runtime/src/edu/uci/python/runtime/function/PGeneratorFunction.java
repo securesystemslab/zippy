@@ -27,7 +27,6 @@ package edu.uci.python.runtime.function;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 
 public final class PGeneratorFunction extends PFunction {
@@ -36,9 +35,9 @@ public final class PGeneratorFunction extends PFunction {
     private final int numOfGeneratorBlockNode;
     private final int numOfGeneratorForNode;
 
-    public PGeneratorFunction(String name, PythonContext context, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, int numOfActiveFlags,
+    public PGeneratorFunction(String name, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, int numOfActiveFlags,
                     int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
-        super(name, context, arity, callTarget, frameDescriptor, declarationFrame);
+        super(name, arity, callTarget, frameDescriptor, declarationFrame);
         this.numOfActiveFlags = numOfActiveFlags;
         this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
         this.numOfGeneratorForNode = numOfGeneratorForNode;

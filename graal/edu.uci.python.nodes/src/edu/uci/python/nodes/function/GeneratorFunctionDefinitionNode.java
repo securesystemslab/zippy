@@ -59,7 +59,7 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
     public Object execute(VirtualFrame frame) {
         defaults.executeVoid(frame);
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-        return new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        return new PGeneratorFunction(name, arity, callTarget, frameDescriptor, declarationFrame, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
     /**
@@ -73,13 +73,13 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
         public StatelessGeneratorFunctionDefinitionNode(String name, PythonContext context, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, int numOfActiveFlags,
                         int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
             super(name, context, arity, EmptyNode.create(), callTarget, frameDescriptor, false, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
-            cached = new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, null, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            cached = new PGeneratorFunction(name, arity, callTarget, frameDescriptor, null, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
 
         public StatelessGeneratorFunctionDefinitionNode(GeneratorExpressionNode prev) {
             super(prev.getName(), prev.context, Arity.DUMMY, EmptyNode.create(), prev.getCallTarget(), prev.getFrameDescriptor(), false, prev.getNumOfActiveFlags(), prev.getNumOfGeneratorBlockNode(),
                             prev.getNumOfGeneratorForNode());
-            cached = new PGeneratorFunction(name, context, arity, callTarget, frameDescriptor, null, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            cached = new PGeneratorFunction(name, arity, callTarget, frameDescriptor, null, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
 
         @Override
