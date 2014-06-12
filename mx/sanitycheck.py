@@ -178,17 +178,7 @@ pythonBenchmarks = {
     'bm-float-timed'  : '1000',
     'pypy-chaos-timed': '1000',
     'pypy-go'         : '2',
-    'python-graph-bench': '200',
-    'simplejson-bench': '10000',
-}
-
-pythonGeneratorBenchmarks = {
-    'euler31-timed'   : '200',
-    'euler11-timed'   : '10000',
-    'ai-nqueen-timed' : '10',
-    'pads-eratosthenes-timed' : '100000',
-    'pads-integerpartitions' : '700',
-    'pads-lyndon'     : '100000000',
+    'pypy-deltablue'  : '2000',
     'python-graph-bench': '200',
     'simplejson-bench': '10000',
 }
@@ -212,6 +202,18 @@ python2Benchmarks = {
     'bm-float-timed'  : '1000',
     'pypy-chaos-timed': '1000',
     'pypy-go'         : '2',
+    'pypy-deltablue'  : '2000',
+    'python-graph-bench': '200',
+    'simplejson-bench': '10000',
+}
+
+pythonGeneratorBenchmarks = {
+    'euler31-timed'   : '200',
+    'euler11-timed'   : '10000',
+    'ai-nqueen-timed' : '10',
+    'pads-eratosthenes-timed' : '100000',
+    'pads-integerpartitions' : '700',
+    'pads-lyndon'     : '100000000',
     'python-graph-bench': '200',
     'simplejson-bench': '10000',
 }

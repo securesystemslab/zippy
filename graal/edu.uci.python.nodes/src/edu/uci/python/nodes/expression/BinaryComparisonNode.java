@@ -30,6 +30,7 @@ import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -131,6 +132,17 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
         @Specialization
         boolean doPDict(PDict left, PDict right) {
+            return !left.equals(right);
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public boolean doObjectNone(PythonObject left, PNone right) {
+            return true;
+        }
+
+        @Specialization
+        public boolean doPythonObject(PythonObject left, PythonObject right) {
             return !left.equals(right);
         }
 
