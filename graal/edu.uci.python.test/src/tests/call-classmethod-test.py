@@ -19,7 +19,7 @@ s1 = Strength(1, 'cat')
 s2 = Strength(2, 'dog')
 stgr = Strength.stronger
 print(stgr(s1, s2))
-# print(Strength.stronger(s1, s2))
+print(Strength.stronger(s1, s2))
 # print(Strength.weaker(s1, s2))
 # print(s1.stronger(s1, s2))
 # print(s1.weaker(s1, s2))

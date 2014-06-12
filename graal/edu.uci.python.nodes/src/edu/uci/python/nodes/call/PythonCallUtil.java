@@ -61,12 +61,17 @@ public class PythonCallUtil {
         return PythonCallUtil.isPrimaryBoxed(primary) && callee instanceof PythonClass && !(callee instanceof PythonBuiltinClass);
     }
 
+    protected static boolean isClassMethodCall(Object primary, PythonCallable callee) {
+        return PythonCallUtil.isPrimaryBoxed(primary) && callee.isClassMethod() && !(primary instanceof PythonModule);
+    }
+
     protected static boolean haveToPassPrimary(Object primary, PythonCallable callee, PythonCallNode node) {
         return !isPrimaryNone(primary, node) && //
                         !(primary instanceof PythonClass) && //
                         !(primary instanceof PythonModule) && //
                         !(primary instanceof PyObject) || //
-                        isConstructorCall(primary, callee);
+                        isConstructorCall(primary, callee) || //
+                        isClassMethodCall(primary, callee);
     }
 
     @ExplodeLoop

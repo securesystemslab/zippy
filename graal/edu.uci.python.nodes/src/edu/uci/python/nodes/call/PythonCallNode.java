@@ -181,6 +181,14 @@ public abstract class PythonCallNode extends PNode {
             return dispatch.executeCall(frame, callable, arguments, keywords);
         }
 
+        if (isClassMethodCall(primary, callable)) {
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, calleeNode, keywords, passPrimaryAsArgument);
+            replace(new ClassMethodCallNode(context, callable.getName(), primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch));
+            PythonClass cls = ((PythonObject) primary).asPythonClass();
+            PArguments.setArgument(arguments, 0, cls);
+            return dispatch.executeCall(frame, cls, arguments, keywords);
+        }
+
         if (isPrimaryBoxed(primary)) {
             CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, calleeNode, keywords, passPrimaryAsArgument);
             replace(new BoxedCallNode(context, callable.getName(), primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch, passPrimaryAsArgument));
@@ -192,7 +200,7 @@ public abstract class PythonCallNode extends PNode {
         return dispatch.executeCall(frame, primary, arguments, keywords);
     }
 
-    public static final class BoxedCallNode extends PythonCallNode implements InlineableCallNode {
+    public static class BoxedCallNode extends PythonCallNode implements InlineableCallNode {
 
         @Child protected CallDispatchBoxedNode dispatchNode;
 
@@ -233,6 +241,28 @@ public abstract class PythonCallNode extends PNode {
             RootNode root = direct.getCurrentRootNode();
             assert root != null;
             return root;
+        }
+    }
+
+    public static final class ClassMethodCallNode extends BoxedCallNode {
+
+        public ClassMethodCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
+            super(context, calleeName, primary, callee, arguments, keywords, dispatch, true);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            PythonClass primary;
+
+            try {
+                primary = primaryNode.executePythonObject(frame).asPythonClass();
+            } catch (UnexpectedResultException e) {
+                return rewriteAndExecuteCall(frame, e.getResult(), calleeNode.execute(frame));
+            }
+
+            Object[] arguments = argumentsNode.executeArguments(frame, true, primary);
+            PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
+            return dispatchNode.executeCall(frame, primary, arguments, keywords);
         }
     }
 
