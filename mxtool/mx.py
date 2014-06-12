@@ -2849,6 +2849,7 @@ def clean(args, parser=None):
     parser = parser if suppliedParser else ArgumentParser(prog='mx clean')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not clean native projects')
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not clean Java projects')
+    parser.add_argument('--no-dist', action='store_false', dest='dist', help='do not delete distributions')
 
     args = parser.parse_args(args)
 
@@ -2857,6 +2858,10 @@ def clean(args, parser=None):
         if get_os() == 'windows':
             path = unicode("\\\\?\\" + dirPath)
         shutil.rmtree(path)
+
+    def _rmIfExists(name):
+        if os.path.isfile(name):
+            os.unlink(name)
 
     for p in projects_opt_limit_to_suites():
         if p.native:
@@ -2880,6 +2885,12 @@ def clean(args, parser=None):
                 config = TimeStampFile(join(p.suite.mxDir, configName))
                 if config.exists():
                     os.unlink(config.path)
+
+    if args.dist:
+        for d in _dists.keys():
+            log('Removing distribution {0}...'.format(d))
+            _rmIfExists(distribution(d).path)
+            _rmIfExists(distribution(d).sourcesPath)
 
     if suppliedParser:
         return args

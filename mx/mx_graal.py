@@ -168,7 +168,6 @@ def clean(args):
         rmIfExists(join(_graal_home, 'build'))
         rmIfExists(join(_graal_home, 'build-nograal'))
         rmIfExists(_jdksDir())
-        rmIfExists(mx.distribution('GRAAL').path)
 
 def export(args):
     """create archives of builds split by vmbuild and vm"""
