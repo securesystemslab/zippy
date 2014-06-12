@@ -79,10 +79,15 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
             return left.equals(right);
         }
 
+        @Specialization
+        public boolean doPythonObject(PythonObject left, PythonObject right) {
+            return left.equals(right);
+        }
+
         @SuppressWarnings("unused")
         @Specialization
-        public boolean doNone(Object left, PNone none) {
-            return left == PNone.NONE;
+        public boolean doNone(PythonObject left, PNone none) {
+            return false;
         }
 
         /**
@@ -142,12 +147,12 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
 
         @Specialization
-        public boolean doPythonObject(PythonObject left, PythonObject right) {
+        public boolean doPythonClass(PythonClass left, PythonClass right) {
             return !left.equals(right);
         }
 
         @Specialization
-        public boolean doPythonClass(PythonClass left, PythonClass right) {
+        public boolean doPythonObject(PythonObject left, PythonObject right) {
             return !left.equals(right);
         }
     }

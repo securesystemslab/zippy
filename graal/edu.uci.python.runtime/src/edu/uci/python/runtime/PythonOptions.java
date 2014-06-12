@@ -51,7 +51,7 @@ public class PythonOptions {
 
     public static final boolean IntrinsifyBuiltinCalls = true;
 
-    public static final int AttributeAccessInlineCacheMaxDepth = 5;
+    public static final int AttributeAccessInlineCacheMaxDepth = 7;
 
     public static final int CallSiteInlineCacheMaxDepth = 5;
 
