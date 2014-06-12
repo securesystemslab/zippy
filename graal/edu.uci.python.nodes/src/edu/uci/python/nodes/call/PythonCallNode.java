@@ -117,7 +117,7 @@ public abstract class PythonCallNode extends PNode {
         if (callee instanceof PyObject) {
             PyObject pyobj = (PyObject) callee;
             logJythonRuntime(pyobj);
-            return replace(new CallJythonNode(context, pyobj.toString(), primaryNode, calleeNode, argumentsNode, keywordsNode)).executeCall(frame, pyobj);
+            return replace(new JythonCallNode(context, pyobj.toString(), primaryNode, calleeNode, argumentsNode, keywordsNode)).executeCall(frame, pyobj);
         }
 
         PythonCallable callable = null;
@@ -156,7 +156,7 @@ public abstract class PythonCallNode extends PNode {
 
         if (isSpecialMethodDispatch) {
             CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) callee, "__call__", callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS, passPrimaryAsArgument);
-            replace(new CallPythonObjectNode(context, callable.getName(), primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch));
+            replace(new PythonObjectCallNode(context, callable.getName(), primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch));
             return dispatch.executeCall(frame, (PythonObject) callee, arguments, PKeyword.EMPTY_KEYWORDS);
         }
 
@@ -166,12 +166,12 @@ public abstract class PythonCallNode extends PNode {
         }
 
         /**
-         * zwei: Non built-in constructors use CallConstructorNode. <br>
+         * zwei: Non built-in constructors use ConstructorCallNode. <br>
          * Built-in constructors use regular BoxedCallNode with no special calling convention.
          */
         if (isConstructorCall(primary, callable)) {
             CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), keywords, passPrimaryAsArgument);
-            CallConstructorNode specialized = new CallConstructorNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
+            ConstructorCallNode specialized = new ConstructorCallNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
             return replace(specialized).executeCall(frame, (PythonObject) primary, (PythonClass) callable);
         }
 
@@ -338,12 +338,12 @@ public abstract class PythonCallNode extends PNode {
         }
     }
 
-    public static final class CallConstructorNode extends PythonCallNode {
+    public static final class ConstructorCallNode extends PythonCallNode {
 
         @Child protected NewInstanceNode instanceNode;
         @Child protected CallDispatchBoxedNode dispatchNode;
 
-        public CallConstructorNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
+        public ConstructorCallNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
             super(context, pythonClass.getName(), primary, callee, arguments, keywords, true);
             dispatchNode = dispatch;
             instanceNode = new NewInstanceNode(pythonClass);
@@ -413,11 +413,11 @@ public abstract class PythonCallNode extends PNode {
         }
     }
 
-    public static final class CallPythonObjectNode extends PythonCallNode {
+    public static final class PythonObjectCallNode extends PythonCallNode {
 
         @Child protected CallDispatchBoxedNode dispatchNode;
 
-        public CallPythonObjectNode(PythonContext context, String calleeName, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
+        public PythonObjectCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
             super(context, calleeName, primary, callee, arguments, keywords, true);
             dispatchNode = dispatch;
         }
@@ -443,9 +443,9 @@ public abstract class PythonCallNode extends PNode {
         }
     }
 
-    public static final class CallJythonNode extends PythonCallNode {
+    public static final class JythonCallNode extends PythonCallNode {
 
-        public CallJythonNode(PythonContext context, String calleeName, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords) {
+        public JythonCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords) {
             super(context, calleeName, primary, callee, arguments, keywords, false);
         }
 
