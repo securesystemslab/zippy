@@ -182,9 +182,9 @@ public abstract class PythonCallNode extends PNode {
         }
 
         if (isClassMethodCall(primary, callable)) {
-            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, calleeNode, keywords, passPrimaryAsArgument);
-            replace(new ClassMethodCallNode(context, callable.getName(), primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch));
             PythonClass cls = ((PythonObject) primary).asPythonClass();
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create(cls, calleeName, callable, calleeNode, keywords, passPrimaryAsArgument);
+            replace(new ClassMethodCallNode(context, callable.getName(), primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch));
             PArguments.setArgument(arguments, 0, cls);
             return dispatch.executeCall(frame, cls, arguments, keywords);
         }

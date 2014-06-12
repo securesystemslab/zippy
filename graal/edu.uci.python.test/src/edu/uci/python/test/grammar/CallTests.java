@@ -108,7 +108,7 @@ public class CallTests {
     @Test
     public void classmethod() {
         Path script = Paths.get("call-classmethod-test.py");
-        assertPrints("True\nTrue\n", script);
+        assertPrints("True\nTrue\nFalse\nTrue\nFalse\n", script);
     }
 
 }
