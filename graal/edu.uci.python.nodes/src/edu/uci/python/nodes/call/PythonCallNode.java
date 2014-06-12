@@ -155,7 +155,7 @@ public abstract class PythonCallNode extends PNode {
         PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
 
         if (isSpecialMethodDispatch) {
-            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) callee, "__call__", callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS);
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) callee, "__call__", callable, NodeUtil.cloneNode(calleeNode), PKeyword.EMPTY_KEYWORDS, passPrimaryAsArgument);
             replace(new CallPythonObjectNode(context, callable.getName(), primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch));
             return dispatch.executeCall(frame, (PythonObject) callee, arguments, PKeyword.EMPTY_KEYWORDS);
         }
@@ -170,7 +170,7 @@ public abstract class PythonCallNode extends PNode {
          * Built-in constructors use regular BoxedCallNode with no special calling convention.
          */
         if (isConstructorCall(primary, callable)) {
-            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), keywords);
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), keywords, passPrimaryAsArgument);
             CallConstructorNode specialized = new CallConstructorNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
             return replace(specialized).executeCall(frame, (PythonObject) primary, (PythonClass) callable);
         }
@@ -182,7 +182,7 @@ public abstract class PythonCallNode extends PNode {
         }
 
         if (isPrimaryBoxed(primary)) {
-            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, calleeNode, keywords);
+            CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, calleeNode, keywords, passPrimaryAsArgument);
             replace(new BoxedCallNode(context, callable.getName(), primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch, passPrimaryAsArgument));
             return dispatch.executeCall(frame, (PythonObject) primary, arguments, keywords);
         }

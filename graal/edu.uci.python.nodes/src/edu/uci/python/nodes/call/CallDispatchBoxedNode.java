@@ -51,12 +51,12 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         return replace(next).executeCall(frame, primaryObj, arguments, keywords);
     }
 
-    protected static CallDispatchBoxedNode create(PythonObject primary, String calleeName, PythonCallable callee, PNode calleeNode, PKeyword[] keywords) {
-        UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(callee.getName(), calleeNode, keywords.length != 0);
+    protected static CallDispatchBoxedNode create(PythonObject primary, String calleeName, PythonCallable callee, PNode calleeNode, PKeyword[] keywords, boolean passPrimaryAsArgument) {
+        UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(callee.getName(), calleeNode, keywords.length != 0, passPrimaryAsArgument);
         ShapeCheckNode check;
 
         if (primary instanceof PythonModule && callee instanceof PMethod) {
-            return new GenericDispatchBoxedNode(calleeName, calleeNode);
+            return new GenericDispatchBoxedNode(calleeName, calleeNode, passPrimaryAsArgument);
         }
 
         if (primary instanceof PythonModule) {
@@ -216,10 +216,12 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
     public static final class GenericDispatchBoxedNode extends CallDispatchBoxedNode {
 
         @Child protected PNode calleeNode;
+        private final boolean isPrimaryPassedInArguments;
 
-        public GenericDispatchBoxedNode(String calleeName, PNode calleeNode) {
+        public GenericDispatchBoxedNode(String calleeName, PNode calleeNode, boolean isPrimaryPassedInArguments) {
             super(calleeName);
             this.calleeNode = calleeNode;
+            this.isPrimaryPassedInArguments = isPrimaryPassedInArguments;
         }
 
         @Override
@@ -232,6 +234,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                 throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
             }
 
+            if (callee instanceof PMethod && isPrimaryPassedInArguments) {
+                return ((PMethod) callee).__func__().call(arguments);
+            }
+
             return callee.call(arguments);
         }
     }
@@ -241,11 +247,13 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         @Child protected PNode calleeNode;
         private final boolean hasKeyword;
+        private final boolean isPrimaryPassedInArguments;
 
-        public UninitializedDispatchBoxedNode(String calleeName, PNode calleeNode, boolean hasKeyword) {
+        public UninitializedDispatchBoxedNode(String calleeName, PNode calleeNode, boolean hasKeyword, boolean isPrimaryPassedInArguments) {
             super(calleeName);
             this.calleeNode = calleeNode;
             this.hasKeyword = hasKeyword;
+            this.isPrimaryPassedInArguments = isPrimaryPassedInArguments;
         }
 
         @Override
@@ -263,9 +271,9 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                     throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
                 }
 
-                specialized = replace(create(primaryObj, calleeName, callee, calleeNode, keywords));
+                specialized = replace(create(primaryObj, calleeName, callee, calleeNode, keywords, isPrimaryPassedInArguments));
             } else {
-                specialized = getTop().replace(new GenericDispatchBoxedNode(calleeName, calleeNode));
+                specialized = getTop().replace(new GenericDispatchBoxedNode(calleeName, calleeNode, isPrimaryPassedInArguments));
             }
 
             return specialized.executeCall(frame, primaryObj, arguments, keywords);
