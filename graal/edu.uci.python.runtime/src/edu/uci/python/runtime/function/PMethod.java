@@ -58,9 +58,9 @@ public final class PMethod extends PythonBuiltinObject implements PythonCallable
     }
 
     public Object call(Object[] arguments) {
-        PArguments.insertSelf(arguments, self);
-        PArguments.setDeclarationFrame(arguments, function.getDeclarationFrame());
-        return callTarget.call(arguments);
+        Object[] withSelf = PArguments.insertSelf(arguments, self);
+        PArguments.setDeclarationFrame(withSelf, function.getDeclarationFrame());
+        return callTarget.call(withSelf);
     }
 
     /**
@@ -73,9 +73,9 @@ public final class PMethod extends PythonBuiltinObject implements PythonCallable
             return slowPathCallForUnitTest(arguments, keywords);
         }
 
-        Object[] processed = PArguments.insertSelf(arguments, self);
-        PArguments.setDeclarationFrame(processed, function.getDeclarationFrame());
-        return callTarget.call(PArguments.applyKeywordArgs(getArity(), processed, keywords));
+        Object[] withSelf = PArguments.insertSelf(arguments, self);
+        PArguments.setDeclarationFrame(withSelf, function.getDeclarationFrame());
+        return callTarget.call(PArguments.applyKeywordArgs(getArity(), withSelf, keywords));
     }
 
     /**

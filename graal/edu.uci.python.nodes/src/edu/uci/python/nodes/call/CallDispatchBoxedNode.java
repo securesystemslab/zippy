@@ -55,6 +55,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(callee.getName(), calleeNode, keywords.length != 0);
         ShapeCheckNode check;
 
+        if (primary instanceof PythonModule && callee instanceof PMethod) {
+            return new GenericDispatchBoxedNode(calleeName, calleeNode);
+        }
+
         if (primary instanceof PythonModule) {
             if (calleeNode instanceof ReadGlobalNode) {
                 check = ((ReadGlobalNode) calleeNode).extractShapeCheckNode();
