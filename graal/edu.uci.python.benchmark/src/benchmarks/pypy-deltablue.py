@@ -627,16 +627,13 @@ def main(n):
 
 def measure():
     input = int(sys.argv[1]) #2000
-    for i in range(3):
-        main(input)
-
     print("Start timing...")
     start = time.time()
     main(input)
     duration = "%.3f\n" % (time.time() - start)
     print("pypy-deltablue: " + duration)
 
-for i in range(10):
+for i in range(8):
     main(100)
 
 measure()
