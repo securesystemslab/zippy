@@ -633,7 +633,7 @@ def measure():
     duration = "%.3f\n" % (time.time() - start)
     print("pypy-deltablue: " + duration)
 
-for i in range(8):
+for i in range(50):
     main(100)
 
 measure()
