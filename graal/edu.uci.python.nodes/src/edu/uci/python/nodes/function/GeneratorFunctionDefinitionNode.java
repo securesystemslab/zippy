@@ -37,29 +37,29 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
     protected final int numOfGeneratorBlockNode;
     protected final int numOfGeneratorForNode;
 
-    public GeneratorFunctionDefinitionNode(String name, PythonContext context, Arity arity, PNode defaults, RootCallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame,
-                    int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
-        super(name, context, arity, defaults, callTarget, frameDescriptor, needsDeclarationFrame);
+    public GeneratorFunctionDefinitionNode(String name, String enclosingClassName, PythonContext context, Arity arity, PNode defaults, RootCallTarget callTarget, FrameDescriptor frameDescriptor,
+                    boolean needsDeclarationFrame, int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+        super(name, enclosingClassName, context, arity, defaults, callTarget, frameDescriptor, needsDeclarationFrame);
         this.numOfActiveFlags = numOfActiveFlags;
         this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
         this.numOfGeneratorForNode = numOfGeneratorForNode;
     }
 
-    public static GeneratorFunctionDefinitionNode create(String name, PythonContext context, Arity arity, PNode defaults, RootCallTarget callTarget, FrameDescriptor frameDescriptor,
-                    boolean needsDeclarationFrame, int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+    public static GeneratorFunctionDefinitionNode create(String name, String enclosingClassName, PythonContext context, Arity arity, PNode defaults, RootCallTarget callTarget,
+                    FrameDescriptor frameDescriptor, boolean needsDeclarationFrame, int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         if (needsDeclarationFrame || !EmptyNode.isEmpty(defaults)) {
-            return new GeneratorFunctionDefinitionNode(name, context, arity, defaults, callTarget, frameDescriptor, needsDeclarationFrame, numOfActiveFlags, numOfGeneratorBlockNode,
-                            numOfGeneratorForNode);
+            return new GeneratorFunctionDefinitionNode(name, enclosingClassName, context, arity, defaults, callTarget, frameDescriptor, needsDeclarationFrame, numOfActiveFlags,
+                            numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
 
-        return new StatelessGeneratorFunctionDefinitionNode(name, context, arity, callTarget, frameDescriptor, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        return new StatelessGeneratorFunctionDefinitionNode(name, enclosingClassName, context, arity, callTarget, frameDescriptor, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         defaults.executeVoid(frame);
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-        return new PGeneratorFunction(name, arity, callTarget, frameDescriptor, declarationFrame, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        return new PGeneratorFunction(name, enclosingClassName, arity, callTarget, frameDescriptor, declarationFrame, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
     }
 
     /**
@@ -70,16 +70,16 @@ public class GeneratorFunctionDefinitionNode extends FunctionDefinitionNode {
 
         private final PGeneratorFunction cached;
 
-        public StatelessGeneratorFunctionDefinitionNode(String name, PythonContext context, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, int numOfActiveFlags,
-                        int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
-            super(name, context, arity, EmptyNode.create(), callTarget, frameDescriptor, false, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
-            cached = new PGeneratorFunction(name, arity, callTarget, frameDescriptor, null, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+        public StatelessGeneratorFunctionDefinitionNode(String name, String enclosingClassName, PythonContext context, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor,
+                        int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+            super(name, enclosingClassName, context, arity, EmptyNode.create(), callTarget, frameDescriptor, false, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            cached = new PGeneratorFunction(name, enclosingClassName, arity, callTarget, frameDescriptor, null, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
 
         public StatelessGeneratorFunctionDefinitionNode(GeneratorExpressionNode prev) {
-            super(prev.getName(), prev.context, Arity.DUMMY, EmptyNode.create(), prev.getCallTarget(), prev.getFrameDescriptor(), false, prev.getNumOfActiveFlags(), prev.getNumOfGeneratorBlockNode(),
-                            prev.getNumOfGeneratorForNode());
-            cached = new PGeneratorFunction(name, arity, callTarget, frameDescriptor, null, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
+            super(prev.getName(), null, prev.context, Arity.DUMMY, EmptyNode.create(), prev.getCallTarget(), prev.getFrameDescriptor(), false, prev.getNumOfActiveFlags(),
+                            prev.getNumOfGeneratorBlockNode(), prev.getNumOfGeneratorForNode());
+            cached = new PGeneratorFunction(name, enclosingClassName, arity, callTarget, frameDescriptor, null, numOfActiveFlags, numOfGeneratorBlockNode, numOfGeneratorForNode);
         }
 
         @Override

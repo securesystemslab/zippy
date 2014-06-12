@@ -103,7 +103,7 @@ public class ClassTests {
                         "    class_attr = assertEqual\n" + //
                         "\n" + //
                         "print(Foo.class_attr)\n";
-        assertPrintContains("<function assertEqual", source);
+        assertPrintContains("<function Foo.assertEqual", source);
     }
 
     @Test

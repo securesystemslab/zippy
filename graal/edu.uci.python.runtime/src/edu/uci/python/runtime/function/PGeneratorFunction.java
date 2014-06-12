@@ -35,9 +35,9 @@ public final class PGeneratorFunction extends PFunction {
     private final int numOfGeneratorBlockNode;
     private final int numOfGeneratorForNode;
 
-    public PGeneratorFunction(String name, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, int numOfActiveFlags,
-                    int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
-        super(name, arity, callTarget, frameDescriptor, declarationFrame);
+    public PGeneratorFunction(String name, String enclosingClassName, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame,
+                    int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+        super(name, enclosingClassName, arity, callTarget, frameDescriptor, declarationFrame);
         this.numOfActiveFlags = numOfActiveFlags;
         this.numOfGeneratorBlockNode = numOfGeneratorBlockNode;
         this.numOfGeneratorForNode = numOfGeneratorForNode;

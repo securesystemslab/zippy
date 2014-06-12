@@ -183,6 +183,8 @@ public class PythonTreeTranslator extends Visitor {
 
     private Object visitFunctionDefinition(FunctionDef node) throws Exception {
         String name = node.getInternalName();
+        String enclosingClassName = environment.isInClassScope() ? environment.getCurrentScopeId() : null;
+
         /**
          * translate default arguments in FunctionDef's declaring scope.
          */
@@ -226,10 +228,10 @@ public class PythonTreeTranslator extends Visitor {
         PNode funcDef;
         if (environment.isInGeneratorScope()) {
             GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
-            funcDef = GeneratorFunctionDefinitionNode.create(name, context, arity, defaults, gtran.translate(), fd, environment.needsDeclarationFrame(), gtran.getNumOfActiveFlags(),
-                            gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
+            funcDef = GeneratorFunctionDefinitionNode.create(name, enclosingClassName, context, arity, defaults, gtran.translate(), fd, environment.needsDeclarationFrame(),
+                            gtran.getNumOfActiveFlags(), gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
         } else {
-            funcDef = new FunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
+            funcDef = new FunctionDefinitionNode(name, enclosingClassName, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
         environment.endScope(node);
         PNode functionNameWriteNode = environment.findVariable(name).makeWriteNode(funcDef);
@@ -282,10 +284,10 @@ public class PythonTreeTranslator extends Visitor {
         PNode funcDef;
         if (environment.isInGeneratorScope()) {
             GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
-            funcDef = GeneratorFunctionDefinitionNode.create(name, context, arity, defaults, gtran.translate(), fd, environment.needsDeclarationFrame(), gtran.getNumOfActiveFlags(),
+            funcDef = GeneratorFunctionDefinitionNode.create(name, null, context, arity, defaults, gtran.translate(), fd, environment.needsDeclarationFrame(), gtran.getNumOfActiveFlags(),
                             gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
         } else {
-            funcDef = new FunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
+            funcDef = new FunctionDefinitionNode(name, null, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
 
         environment.endScope(node);
@@ -543,7 +545,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode body = factory.createBlock(visitStatements(node.getInternalBody()));
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, false, environment.getCurrentFrame(), body);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
-        FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, context, new Arity(name, 0, 0, new ArrayList<String>()), EmptyNode.create(), ct, environment.getCurrentFrame(),
+        FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, null, context, new Arity(name, 0, 0, new ArrayList<String>()), EmptyNode.create(), ct, environment.getCurrentFrame(),
                         environment.needsDeclarationFrame());
         environment.endScope(node);
 

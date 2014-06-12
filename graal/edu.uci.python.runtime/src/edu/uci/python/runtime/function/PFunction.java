@@ -33,13 +33,15 @@ import edu.uci.python.runtime.standardtype.*;
 public class PFunction extends PythonBuiltinObject implements PythonCallable {
 
     private final String name;
+    private final String enclosingClassName;
     private final Arity arity;
     private final RootCallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
     private final MaterializedFrame declarationFrame;
 
-    public PFunction(String name, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
+    public PFunction(String name, String enclosingClassName, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
         this.name = name;
+        this.enclosingClassName = enclosingClassName;
         this.arity = arity;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
@@ -98,7 +100,8 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
 
     @Override
     public String toString() {
-        return "<function " + name + " at " + hashCode() + ">";
+        String fullName = enclosingClassName == null ? name : enclosingClassName + '.' + name;
+        return "<function " + fullName + " at " + hashCode() + ">";
     }
 
 }
