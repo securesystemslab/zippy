@@ -111,4 +111,10 @@ public class CallTests {
         assertPrints("True\nTrue\nFalse\nTrue\nFalse\n", script);
     }
 
+    @Test
+    public void staticmethod() {
+        Path script = Paths.get("call-staticmethod-test.py");
+        assertPrints("True\nTrue\nFalse\nTrue\nFalse\n", script);
+    }
+
 }

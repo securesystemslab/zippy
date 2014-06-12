@@ -51,4 +51,8 @@ public interface PythonCallable {
         return false;
     }
 
+    default boolean isStaticMethod() {
+        return false;
+    }
+
 }

@@ -360,13 +360,16 @@ public class PythonTreeTranslator extends Visitor {
         }
 
         boolean isClassMethod = false;
+        boolean isStaticMethod = false;
         if (decoratorName != null) {
             if (decoratorName.equals("classmethod")) {
                 isClassMethod = true;
+            } else if (decoratorName.equals("staticmethod")) {
+                isStaticMethod = true;
             }
         }
 
-        return new Arity(functionName, minNumOfArgs, maxNumOfArgs, takesFixedNumOfArgs, takesKeywordArg, takesVarArgs, isClassMethod, parameterIds);
+        return new Arity(functionName, minNumOfArgs, maxNumOfArgs, takesFixedNumOfArgs, takesKeywordArg, takesVarArgs, isClassMethod, isStaticMethod, parameterIds);
     }
 
     public PNode visitArgs(arguments node) throws Exception {
