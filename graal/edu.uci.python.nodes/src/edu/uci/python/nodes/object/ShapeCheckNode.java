@@ -137,7 +137,7 @@ public abstract class ShapeCheckNode extends Node {
     public static final class ClassChainCheckNode extends ShapeCheckNode {
 
         private final Assumption objectStableAssumption;
-        private final Assumption[] classStableAssumptions;
+        private final Assumption[] classChainsStableAssumptions;
         private final Assumption storageStableAssumption;
 
         public ClassChainCheckNode(PythonObject primary, ObjectLayout storageLayout, int depth) {
@@ -155,7 +155,7 @@ public abstract class ShapeCheckNode extends Node {
                 assert current != null;
             }
 
-            this.classStableAssumptions = classStables;
+            this.classChainsStableAssumptions = classStables;
             this.storageStableAssumption = storageLayout.getValidAssumption();
             assert storageStableAssumption == current.getStableAssumption();
             assert storageStableAssumption.isValid();
@@ -167,12 +167,11 @@ public abstract class ShapeCheckNode extends Node {
             storageStableAssumption.check();
             objectStableAssumption.check();
 
+            for (Assumption classStable : classChainsStableAssumptions) {
+                classStable.check();
+            }
+
             if (primary.getObjectLayout() == cachedObjectLayout) {
-
-                for (Assumption classStable : classStableAssumptions) {
-                    classStable.check();
-                }
-
                 return true;
             }
 
