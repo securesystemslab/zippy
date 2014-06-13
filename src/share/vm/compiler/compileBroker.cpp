@@ -1031,7 +1031,7 @@ void CompileBroker::init_compiler_threads(int c1_compiler_count, int c2_compiler
   char name_buffer[256];
   for (int i = 0; i < c2_compiler_count; i++) {
     // Create a name for our thread.
-    sprintf(name_buffer, "C2 CompilerThread%d", i);
+    sprintf(name_buffer, "%s CompilerThread%d", _compilers[1]->name(), i);
     CompilerCounters* counters = new CompilerCounters("compilerThread", i, CHECK);
     // Shark and C2
     CompilerThread* new_thread = make_compiler_thread(name_buffer, _c2_method_queue, counters, _compilers[1], CHECK);
