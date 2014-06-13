@@ -1,11 +1,6 @@
 __author__ = 'zwei'
 
-from whoosh import fields, query, matching, scoring
-from whoosh.compat import b, u, permutations
-from whoosh.filedb.filestore import RamStorage
-from whoosh import analysis, fields, qparser
-
-import cProfile as prof
+from whoosh import matching, scoring
 
 def test_filter():
     lm = lambda: matching.ListMatcher(list(range(2, 10)))

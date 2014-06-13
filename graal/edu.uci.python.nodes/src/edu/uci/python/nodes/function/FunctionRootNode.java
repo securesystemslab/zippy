@@ -25,6 +25,7 @@
 package edu.uci.python.nodes.function;
 
 import java.io.*;
+import java.util.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
@@ -45,6 +46,7 @@ import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.optimize.*;
+import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.PeeledGeneratorLoopBoxedNode;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import static edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.*;
@@ -65,6 +67,7 @@ public final class FunctionRootNode extends RootNode {
     private final boolean isGenerator;
     private boolean hasGeneratorExpression;
     private int peelingTrialCounter = 0;
+    private Set<GeneratorDispatch> optimizedGeneratorDispatches = new HashSet<>();
 
     @Child protected PNode body;
     private PNode uninitializedBody;
@@ -236,34 +239,43 @@ public final class FunctionRootNode extends RootNode {
             return false; // Call nodes
         }
 
+        if (optimizedGeneratorDispatches.contains(dispatch)) {
+            return false;
+        }
+
         ForNode loop = (ForNode) forNode;
-        PNode orignalLoop = NodeUtil.cloneNode(loop);
+        PNode originalLoop = loop;
         PeeledGeneratorLoopNode peeled;
 
         if (callNode instanceof BoxedCallNode) {
             GeneratorDispatchBoxedNode boxedDispatch = (GeneratorDispatchBoxedNode) dispatch;
             BoxedCallNode call = (BoxedCallNode) callNode;
             peeled = new PeeledGeneratorLoopBoxedNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getPrimaryNode(), call.passPrimaryAsArgument(),
-                            call.getArgumentsNode(), boxedDispatch.getCheckNode(), orignalLoop);
+                            call.getArgumentsNode(), boxedDispatch.getCheckNode(), originalLoop);
         } else if (callNode instanceof NoneCallNode) {
             NoneCallNode call = (NoneCallNode) callNode;
             peeled = new PeeledGeneratorLoopNoneNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), call.getCalleeNode(), call.getArgumentsNode(),
-                            dispatch.getGeneratorFunction(), orignalLoop);
+                            dispatch.getGeneratorFunction(), originalLoop);
         } else if (callNode instanceof GeneratorDispatchSpecialNode) {
             GeneratorDispatchSpecialNode generatorDispatch = (GeneratorDispatchSpecialNode) callNode;
             GetIteratorNode getIterNode = (GetIteratorNode) getIter;
             peeled = new PeeledGeneratorLoopSpecialNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), getIterNode.getOperand(), new ArgumentsNode(new PNode[]{}),
-                            generatorDispatch.getCheckNode(), orignalLoop);
+                            generatorDispatch.getCheckNode(), originalLoop);
         } else if (callNode instanceof SubscriptLoadIndexNode) {
             SubscriptLoadIndexNode indexLoad = (SubscriptLoadIndexNode) callNode;
             GeneratorDispatchSpecialNode generatorDispatch = (GeneratorDispatchSpecialNode) indexLoad.getSpecialMethodDispatch();
             peeled = new PeeledGeneratorLoopSpecialNode((FunctionRootNode) genfun.getFunctionRootNode(), genfun.getFrameDescriptor(), indexLoad.getPrimary(), new ArgumentsNode(
-                            new PNode[]{indexLoad.getSlice()}), generatorDispatch.getCheckNode(), orignalLoop);
+                            new PNode[]{indexLoad.getSlice()}), generatorDispatch.getCheckNode(), originalLoop);
         } else {
             return false;
         }
 
-        loop.replace(peeled);
+        PNode loopParent = (PNode) loop.getParent();
+        if (loopParent instanceof PeeledGeneratorLoopBoxedNode) {
+            ((PeeledGeneratorLoopBoxedNode) loopParent).insertNext((PeeledGeneratorLoopBoxedNode) peeled);
+        } else {
+            loop.replace(peeled);
+        }
 
         PNode loopBody = loop.getBody();
         FrameSlot yieldToSlotInCallerFrame;
@@ -295,6 +307,7 @@ public final class FunctionRootNode extends RootNode {
             genexp.setEnclosingFrameGenerator(false);
         }
 
+        optimizedGeneratorDispatches.add(dispatch);
         PrintStream ps = System.out;
         ps.println("[ZipPy] peeled generator " + genfun.getCallTarget() + " in " + getRootNode());
         return true;

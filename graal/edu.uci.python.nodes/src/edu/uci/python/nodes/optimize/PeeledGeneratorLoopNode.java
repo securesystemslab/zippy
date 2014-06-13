@@ -41,7 +41,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
 
     @Child protected ArgumentsNode argumentsNode;
     @Child protected PNode inlinedRootNode;
-    private final PNode originalLoop;
+    @Child protected PNode originalLoop;
 
     protected final String generatorName;
     protected final FrameDescriptor frameDescriptor;
@@ -71,6 +71,8 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
 
         @Child protected PNode primaryNode;
         @Child protected ShapeCheckNode checkNode;
+        @Child protected PNode next;
+
         private final boolean passPrimaryAsTheFirstArgument;
 
         public PeeledGeneratorLoopBoxedNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode primaryNode, boolean passPrimaryAsTheFirstArgument, ArgumentsNode argumentNodes,
@@ -79,6 +81,10 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
             this.passPrimaryAsTheFirstArgument = passPrimaryAsTheFirstArgument;
             this.primaryNode = primaryNode;
             this.checkNode = checkNode;
+        }
+
+        public void insertNext(PeeledGeneratorLoopBoxedNode nextPeeled) {
+            this.next = insert(nextPeeled);
         }
 
         @Override
@@ -104,8 +110,12 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
             } catch (InvalidAssumptionException e) {
             }
 
-            CompilerDirectives.transferToInterpreterAndInvalidate();
-            return deoptAndExecute(frame);
+            if (next != null) {
+                return next.execute(frame);
+            } else {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                return deoptAndExecute(frame);
+            }
         }
     }
 

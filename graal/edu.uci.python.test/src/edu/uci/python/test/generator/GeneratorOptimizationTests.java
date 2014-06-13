@@ -92,4 +92,10 @@ public class GeneratorOptimizationTests {
         assertPrints("5\n", script);
     }
 
+    @Test
+    public void polymorphic() {
+        Path script = Paths.get("generator-inline-polymorphic-test.py");
+        assertPrints("10\n10\n10\n10\n10\n", script);
+    }
+
 }
