@@ -345,6 +345,17 @@ CompLevel AdvancedThresholdPolicy::common(Predicate p, Method* method, CompLevel
       if (common(p, method, CompLevel_full_profile, disable_feedback) == CompLevel_full_optimization) {
         next_level = CompLevel_full_optimization;
       } else if ((this->*p)(i, b, cur_level)) {
+#ifdef COMPILERGRAAL
+        // Since Graal takes a while to warm up, its queue inevitably backs up during
+        // early VM execution. As of 2014-06-13, Graal's inliner assumes that the root
+        // compilation method and all potential inlinees have mature profiles (which
+        // includes type profiling). If it sees immature profiles, Graal's inliner
+        // can perform pathologically bad (e.g., causing OutOfMemoryErrors due to
+        // exploring/inlining too many graphs). Since a rewrite of the inliner is
+        // in progress, we simply disable the dialing back heuristic for now and will
+        // revisit this decision once the new inliner is completed.
+        next_level = CompLevel_full_profile;
+#else
         // C1-generated fully profiled code is about 30% slower than the limited profile
         // code that has only invocation and backedge counters. The observation is that
         // if C2 queue is large enough we can spend too much time in the fully profiled code
@@ -358,6 +369,7 @@ CompLevel AdvancedThresholdPolicy::common(Predicate p, Method* method, CompLevel
         } else {
           next_level = CompLevel_full_profile;
         }
+#endif
       }
       break;
     case CompLevel_limited_profile:
