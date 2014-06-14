@@ -54,4 +54,16 @@ def main(n):
 
     return ret
 
-print(main(1000))
+def measure():
+    print("Start timing...")
+    start = time.time()
+    json = main(num)
+    duration = "%.3f\n" % (time.time() - start)
+    print("whoosh-match: " + duration)
+
+# warm up
+num = int(sys.argv[1]) # 1000
+for i in range(20):
+    main(100)
+
+measure()

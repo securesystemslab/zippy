@@ -36,7 +36,7 @@ def measure():
     print("simplejson-encode: " + duration)
 
 # warm up
-num =  int(sys.argv[1]) # 10000
+num = int(sys.argv[1]) # 10000
 for i in range(100):
     json = encodeList(100)
 

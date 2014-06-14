@@ -120,7 +120,8 @@ class UnionMatcher(AdditiveBiMatcher):
     """Matches the union (OR) of the postings in the two sub-matchers.
     """
 
-    _id = None
+    # _id = None
+    _id = -1
 
     def replace(self, minquality=0):
         a = self.a
@@ -154,14 +155,16 @@ class UnionMatcher(AdditiveBiMatcher):
         if a is not self.a or b is not self.b:
             return self.__class__(a, b)
         else:
-            self._id = None
+            # self._id = None
+            self._id = -1
             return self
 
     def is_active(self):
         return self.a.is_active() or self.b.is_active()
 
     def skip_to(self, id):
-        self._id = None
+        # self._id = None
+        self._id = -1
         ra = rb = False
 
         if self.a.is_active():
@@ -173,7 +176,7 @@ class UnionMatcher(AdditiveBiMatcher):
 
     def id(self):
         _id = self._id
-        if _id is not None:
+        if _id is not -1:
             return _id
 
         a = self.a
@@ -193,7 +196,8 @@ class UnionMatcher(AdditiveBiMatcher):
     #    return iter(sorted(set(self.a.all_ids()) | set(self.b.all_ids())))
 
     def next(self):
-        self._id = None
+        # self._id = None
+        self._id = -1
 
         a = self.a
         b = self.b
@@ -271,7 +275,8 @@ class UnionMatcher(AdditiveBiMatcher):
             return (a.score() + b.score())
 
     def skip_to_quality(self, minquality):
-        self._id = None
+        # self._id = None
+        self._id = -1
 
         a = self.a
         b = self.b
