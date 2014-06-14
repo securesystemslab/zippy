@@ -235,6 +235,7 @@ public class ImportManager {
             importedModule = tryImporting(path, moduleName);
         }
 
+        assert importedModule.getAttribute("__name__").equals(moduleName);
         return importedModule;
     }
 

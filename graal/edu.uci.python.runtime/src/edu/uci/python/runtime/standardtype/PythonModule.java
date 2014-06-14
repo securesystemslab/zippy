@@ -72,6 +72,7 @@ public final class PythonModule extends FixedPythonObjectStorage {
 
     @Override
     public String toString() {
+        assert name.equals(getAttribute("__name__"));
         return "<module '" + this.getAttribute("__name__") + "'>";
     }
 
