@@ -106,17 +106,22 @@ public class PythonTreeTranslator extends Visitor {
 
     public PNode assignSourceFromChildren(PNode truffleNode, PNode leftNode, PNode rightNode) {
         String identifier = "identifier";
-        if (leftNode.getSourceSection() == null) {
-            throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s left node " + leftNode.getClass().getSimpleName() + "does not have a source section");
-        } else if (rightNode.getSourceSection() == null) {
-            throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s right node " + rightNode.getClass().getSimpleName() + "does not have a source section");
+
+        try {
+            if (leftNode.getSourceSection() == null) {
+                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s left node " + leftNode.getClass().getSimpleName() + "does not have a source section");
+            } else if (rightNode.getSourceSection() == null) {
+                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s right node " + rightNode.getClass().getSimpleName() + "does not have a source section");
+            }
+            int charStartIndex = leftNode.getSourceSection().getCharIndex();
+            int charStopIndex = rightNode.getSourceSection().getCharEndIndex();
+            int charLength = charStopIndex - charStartIndex;
+            SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
+            truffleNode.assignSourceSection(sourceSection);
+            return truffleNode;
+        } catch (RuntimeException e) {
+            return truffleNode;
         }
-        int charStartIndex = leftNode.getSourceSection().getCharIndex();
-        int charStopIndex = rightNode.getSourceSection().getCharEndIndex();
-        int charLength = charStopIndex - charStartIndex;
-        SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
-        truffleNode.assignSourceSection(sourceSection);
-        return truffleNode;
     }
 
     @Override
