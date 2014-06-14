@@ -2,10 +2,7 @@ import sys, time, os
 
 # setup path
 simplejson_path = os.path.join(os.path.dirname(__file__), 'simplejson')
-# python_graph_core_path = os.path.join(python_graph_path, 'core')
 sys.path.append(simplejson_path)
-
-# sys.path.append('')
 
 from simplejson.encoder import JSONEncoder
 

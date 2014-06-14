@@ -478,8 +478,8 @@ public class PythonTreeTranslator extends Visitor {
         return read.makeWriteNode(importNode);
     }
 
-    private PNode createSingleImportFromStatement(alias aliaz, String fromModuleName, Integer level) {
-        PythonModule relativeto = level > 0 ? this.module : context.getMainModule();
+    private PNode createSingleImportFromStatement(alias aliaz, String fromModuleName) {
+        PythonModule relativeto = this.module;
 
         String importName = aliaz.getInternalName();
         if (importName.equals("*")) {
@@ -523,12 +523,12 @@ public class PythonTreeTranslator extends Visitor {
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-            return createSingleImportFromStatement(aliases.get(0), node.getInternalModule(), node.getInternalLevel());
+            return createSingleImportFromStatement(aliases.get(0), node.getInternalModule());
         }
 
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
-            imports.add(createSingleImportFromStatement(aliases.get(i), node.getInternalModule(), node.getInternalLevel()));
+            imports.add(createSingleImportFromStatement(aliases.get(i), node.getInternalModule()));
         }
 
         return factory.createBlock(imports);

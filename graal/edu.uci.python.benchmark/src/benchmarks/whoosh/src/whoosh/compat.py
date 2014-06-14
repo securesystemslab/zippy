@@ -67,7 +67,7 @@ else:
     import io
     BytesIO = io.BytesIO
     callable = lambda o: isinstance(o, collections.Callable)
-    exec_ = eval("exec")
+    # exec_ = eval("exec")
     integer_types = (int,)
     iteritems = lambda o: o.items()
     itervalues = lambda o: o.values()
@@ -75,14 +75,14 @@ else:
     izip = zip
     long_type = int
     next = next
-    import pickle
-    from pickle import dumps, loads, dump, load
+    # import pickle
+    # from pickle import dumps, loads, dump, load
     StringIO = io.StringIO
     string_type = str
     text_type = str
     bytes_type = bytes
     unichr = chr
-    from urllib.request import urlretrieve
+    # from urllib.request import urlretrieve
     
     def byte(num):
         return bytes((num,))
@@ -115,7 +115,8 @@ else:
         pass
 
 
-if hasattr(array.array, "tobytes"):
+# if hasattr(array.array, "tobytes"):
+if False:
     def array_tobytes(arry):
         return arry.tobytes()
 
@@ -195,12 +196,12 @@ except ImportError:
         return caller
 
 
-try:
-    from abc import abstractmethod  # @UnusedImport
-except ImportError:
+# try:
+    # from abc import abstractmethod  # @UnusedImport
+# except ImportError:
     # Python 2.5
-    def abstractmethod(funcobj):
-        """A decorator indicating abstract methods.
-        """
-        funcobj.__isabstractmethod__ = True
-        return funcobj
+def abstractmethod(funcobj):
+    """A decorator indicating abstract methods.
+    """
+    funcobj.__isabstractmethod__ = True
+    return funcobj

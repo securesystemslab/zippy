@@ -283,8 +283,13 @@ class Matcher(object):
         from whoosh.query.spans import Span
 
         if self.supports("characters"):
-            return [Span(pos, startchar=startchar, endchar=endchar)
-                    for pos, startchar, endchar in self.value_as("characters")]
+            lst = []
+            for pos, startchar, endchar in self.value_as("characters"):
+                lst.append(Span(pos, startchar=startchar, endchar=endchar))
+
+            return lst
+            # return [Span(pos, startchar=startchar, endchar=endchar)
+            #         for pos, startchar, endchar in self.value_as("characters")]
         elif self.supports("positions"):
             return [Span(pos) for pos in self.value_as("positions")]
         else:
@@ -603,8 +608,13 @@ class LeafMatcher(Matcher):
         from whoosh.query.spans import Span
 
         if self.supports("characters"):
-            return [Span(pos, startchar=startchar, endchar=endchar)
-                    for pos, startchar, endchar in self.value_as("characters")]
+            lst = []
+            for pos, startchar, endchar in self.value_as("characters"):
+                lst.append(Span(pos, startchar=startchar, endchar=endchar))
+
+            return lst
+            # return [Span(pos, startchar=startchar, endchar=endchar)
+            #         for pos, startchar, endchar in self.value_as("characters")]
         elif self.supports("positions"):
             return [Span(pos) for pos in self.value_as("positions")]
         else:
