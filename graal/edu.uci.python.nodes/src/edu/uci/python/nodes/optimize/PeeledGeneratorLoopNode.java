@@ -41,7 +41,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
 
     @Child protected ArgumentsNode argumentsNode;
     @Child protected PNode inlinedRootNode;
-    @Child protected PNode originalLoop;
+    protected PNode originalLoop;
 
     protected final String generatorName;
     protected final FrameDescriptor frameDescriptor;
@@ -62,7 +62,11 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
         return inlinedRootNode;
     }
 
-    protected Object deoptAndExecute(VirtualFrame frame) {
+    public void adoptOriginalLoop() {
+        originalLoop = insert(originalLoop);
+    }
+
+    protected final Object deoptAndExecute(VirtualFrame frame) {
         CompilerAsserts.neverPartOfCompilation();
         return replace(originalLoop).execute(frame);
     }

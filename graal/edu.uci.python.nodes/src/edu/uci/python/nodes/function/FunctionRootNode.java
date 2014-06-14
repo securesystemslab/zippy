@@ -277,6 +277,7 @@ public final class FunctionRootNode extends RootNode {
             loop.replace(peeled);
         }
 
+        peeled.adoptOriginalLoop();
         PNode loopBody = loop.getBody();
         FrameSlot yieldToSlotInCallerFrame;
         PNode target = loop.getTarget();
