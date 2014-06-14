@@ -270,7 +270,8 @@ class FilterMatcher(WrappingMatcher):
             the wrapped matcher that are **not in** the set are used.
         """
 
-        super(FilterMatcher, self).__init__(child)
+        # super(FilterMatcher, self).__init__(child)
+        WrappingMatcher.__init__(self, child)
         self._ids = ids
         self._exclude = exclude
         self.boost = boost
@@ -336,7 +337,8 @@ class InverseMatcher(WrappingMatcher):
     """
 
     def __init__(self, child, limit, missing=None, weight=1.0, id=0):
-        super(InverseMatcher, self).__init__(child)
+        # super(InverseMatcher, self).__init__(child)
+        WrappingMatcher.__init__(self, child)
         self.limit = limit
         self._weight = weight
         self.missing = missing or (lambda id: False)
@@ -370,11 +372,11 @@ class InverseMatcher(WrappingMatcher):
         # If the current docnum isn't missing and the child matcher is
         # exhausted (so we don't have to worry about skipping its matches), we
         # don't have to do anything
-        if not child.is_active() and not missing(self._id):
+        if not child.is_active() and not self.missing(self._id):
             return
 
         # Skip missing documents
-        while self._id < self.limit and missing(self._id):
+        while self._id < self.limit and self.missing(self._id):
             self._id += 1
 
         # Catch the child matcher up to where this matcher is
@@ -383,7 +385,7 @@ class InverseMatcher(WrappingMatcher):
 
         # While self._id is missing or is in the child matcher, increase it
         while child.is_active() and self._id < self.limit:
-            if missing(self._id):
+            if self.missing(self._id):
                 self._id += 1
                 continue
 

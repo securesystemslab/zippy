@@ -34,7 +34,8 @@ class BiMatcher(mcore.Matcher):
     """
 
     def __init__(self, a, b):
-        super(BiMatcher, self).__init__()
+        # super(BiMatcher, self).__init__()
+        mcore.Matcher.__init__(self)
         self.a = a
         self.b = b
 
