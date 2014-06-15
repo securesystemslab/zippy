@@ -1,0 +1,13 @@
+LICENSE
+MANIFEST.in
+README.rst
+setup.py
+chess/__init__.py
+chess/pgn.py
+chess/polyglot.py
+python_chess.egg-info/PKG-INFO
+python_chess.egg-info/SOURCES.txt
+python_chess.egg-info/dependency_links.txt
+python_chess.egg-info/top_level.txt
+scripts/ecotool
+scripts/python-chess
