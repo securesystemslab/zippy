@@ -20,7 +20,7 @@ else:  # Python 3
     pass
     # Here we can also check for specific Python 3 versions, if needed
 
-del sys
+# del sys
 
 
 def __sympy_debug():

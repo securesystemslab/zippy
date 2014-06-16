@@ -91,7 +91,8 @@ if PY3:
     from io import StringIO
     cStringIO = StringIO
 
-    exec_ = getattr(builtins, "exec")
+    # exec_ = getattr(builtins, "exec")
+    exec_ = None
 
     xrange = range
 else:
@@ -125,17 +126,17 @@ else:
     from StringIO import StringIO
     from cStringIO import StringIO as cStringIO
 
-    def exec_(_code_, _globs_=None, _locs_=None):
-        """Execute code in a namespace."""
-        if _globs_ is None:
-            frame = sys._getframe(1)
-            _globs_ = frame.f_globals
-            if _locs_ is None:
-                _locs_ = frame.f_locals
-            del frame
-        elif _locs_ is None:
-            _locs_ = _globs_
-        exec("exec _code_ in _globs_, _locs_")
+    # def exec_(_code_, _globs_=None, _locs_=None):
+    #     """Execute code in a namespace."""
+    #     if _globs_ is None:
+    #         frame = sys._getframe(1)
+    #         _globs_ = frame.f_globals
+    #         if _locs_ is None:
+    #             _locs_ = frame.f_locals
+    #         del frame
+    #     elif _locs_ is None:
+    #         _locs_ = _globs_
+    #     exec("exec _code_ in _globs_, _locs_")
 
     xrange = xrange
 
@@ -556,8 +557,8 @@ def _nodes(e):
         return e.count(Basic)
     elif iterable(e):
         return 1 + sum(_nodes(ei) for ei in e)
-    elif isinstance(e, dict):
-        return 1 + sum(_nodes(k) + _nodes(v) for k, v in e.items())
+    # elif isinstance(e, dict):
+    #     return 1 + sum(_nodes(k) + _nodes(v) for k, v in e.items())
     else:
         return 1
 
