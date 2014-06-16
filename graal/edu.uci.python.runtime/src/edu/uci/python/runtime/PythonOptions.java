@@ -62,6 +62,8 @@ public class PythonOptions {
 
     public static boolean OptimizeGeneratorExpressions = true;
 
+    public static boolean TraceGeneratorInlining = false;
+
     // Profiling
     public static boolean ProfileCalls = false;
 

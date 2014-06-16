@@ -175,6 +175,11 @@ public final class FunctionRootNode extends RootNode {
     }
 
     private boolean isInlinable(CallDispatchNode dispatch, PGeneratorFunction genfun) {
+        if (PythonOptions.TraceGeneratorInlining) {
+            PrintStream ps = System.out;
+            ps.println("[ZipPy] try to optimize " + genfun.getCallTarget() + " in " + getRootNode());
+        }
+
         boolean inlinable = dispatch.getCost() == NodeCost.MONOMORPHIC;
 
         Node current = dispatch;
@@ -196,10 +201,20 @@ public final class FunctionRootNode extends RootNode {
         int callerNodeCount = getDeepNodeCount(this);
         int generatorNodeCount = getDeepNodeCount(genfun.getFunctionRootNode());
         inlinable &= generatorNodeCount < 300;
-        inlinable &= callerNodeCount < 500;
+        inlinable &= callerNodeCount < 900;
 
         if (callerNodeCount / generatorNodeCount < 5) {
             inlinable = true;
+        }
+
+        if (PythonOptions.TraceGeneratorInlining) {
+            PrintStream ps = System.out;
+
+            if (inlinable) {
+                ps.println("[ZipPy] decide to inline " + genfun.getCallTarget() + " in " + getRootNode());
+            } else {
+                ps.println("[ZipPy] failed to inline " + genfun.getCallTarget() + " in " + getRootNode());
+            }
         }
 
         return inlinable;

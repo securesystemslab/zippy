@@ -49,10 +49,11 @@ def draw_lines(img):
 
     return img
 
+IMG = create_canvas()
 
 def draw():
-    img = create_canvas()
-    img = draw_lines(img)
+    # img = create_canvas()
+    img = draw_lines(IMG)
     return img
 
 def main(n):
@@ -71,7 +72,7 @@ def measure():
 
 # warm up
 num =  int(sys.argv[1]) # 200
-for i in range(10):
-    main(10)
+for i in range(50):
+    main(100)
 
 measure()
