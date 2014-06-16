@@ -91,10 +91,10 @@ public class GeneratorExpressionOptimizer {
                 BoxedCallNode callNode = (BoxedCallNode) arguments.getParent();
                 assert callNode.isInlined();
                 FunctionRootNode calleeRoot = (FunctionRootNode) callNode.getInlinedCalleeRoot();
-                PeeledGeneratorLoopBoxedNode manualInlinedCallNode = new PeeledGeneratorLoopBoxedNode(calleeRoot, calleeRoot.getFrameDescriptor(), callNode.getPrimaryNode(),
+                PeeledGeneratorLoopBoxedNode manuallyInlinedCallNode = new PeeledGeneratorLoopBoxedNode(calleeRoot, calleeRoot.getFrameDescriptor(), callNode.getPrimaryNode(),
                                 callNode.passPrimaryAsArgument(), callNode.getArgumentsNode(), ((LinkedDispatchBoxedNode) callNode.getDispatchNode()).getCheckNode(), callNode);
-                callNode.replace(manualInlinedCallNode);
-                GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(manualInlinedCallNode.getGeneratorRoot(), GetIteratorNode.class);
+                callNode.replace(manuallyInlinedCallNode);
+                GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(manuallyInlinedCallNode.getGeneratorRoot(), GetIteratorNode.class);
                 desugarGeneratorExpression(genexp, getIter, true);
             }
 

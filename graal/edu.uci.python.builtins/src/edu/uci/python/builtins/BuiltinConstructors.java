@@ -315,7 +315,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         @SuppressWarnings("unused")
         @Specialization
-        public Object createInt(PNone none, Object keywordArg) {
+        public int createInt(PNone none, Object keywordArg) {
             return 0;
         }
 

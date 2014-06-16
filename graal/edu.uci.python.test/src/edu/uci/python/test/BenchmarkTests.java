@@ -47,10 +47,4 @@ public class BenchmarkTests {
         assertPrints("3\n3\n3\n", script);
     }
 
-    // @Test
-    public void deltablueBench() {
-        Path script = Paths.get("deltablue.py");
-        assertPrints("", script);
-    }
-
 }

@@ -1,0 +1,482 @@
+========================
+Whoosh 1.x release notes
+========================
+
+Whoosh 1.8.3
+============
+
+Whoosh 1.8.3 contains important bugfixes and new functionality. Thanks to all
+the mailing list and BitBucket users who helped with the fixes!
+
+Fixed a bad ``Collector`` bug where the docset of a Results object did not match
+the actual results.
+
+You can now pass a sequence of objects to a keyword argument in ``add_document``
+and ``update_document`` (currently this will not work for unique fields in
+``update_document``). This is useful for non-text fields such as ``DATETIME``
+and ``NUMERIC``, allowing you to index multiple dates/numbers for a document::
+
+    writer.add_document(shoe=u"Saucony Kinvara", sizes=[10.0, 9.5, 12])
+
+This version reverts to using the CDB hash function for hash files instead of
+Python's ``hash()`` because the latter is not meant to be stored externally.
+This change maintains backwards compatibility with old files.
+
+The ``Searcher.search`` method now takes a ``mask`` keyword argument. This is
+the opposite of the ``filter`` argument. Where the ``filter`` specifies the
+set of documents that can appear in the results, the ``mask`` specifies a
+set of documents that must not appear in the results.
+
+Fixed performance problems in ``Searcher.more_like``. This method now also
+takes a ``filter`` keyword argument like ``Searcher.search``.
+
+Improved documentation.
+
+
+Whoosh 1.8.2
+============
+
+Whoosh 1.8.2 fixes some bugs, including a mistyped signature in
+Searcher.more_like and a bad bug in Collector that could screw up the
+ordering of results given certain parameters.
+
+
+Whoosh 1.8.1
+============
+
+Whoosh 1.8.1 includes a few recent bugfixes/improvements:
+
+- ListMatcher.skip_to_quality() wasn't returning an integer, resulting
+  in a "None + int" error.
+
+- Fixed locking and memcache sync bugs in the Google App Engine storage
+  object.
+
+- MultifieldPlugin wasn't working correctly with groups.
+
+  - The binary matcher trees of Or and And are now generated using a
+    Huffman-like algorithm instead perfectly balanced. This gives a
+    noticeable speed improvement because less information has to be passed
+    up/down the tree.
+
+
+Whoosh 1.8
+==========
+
+This release relicensed the Whoosh source code under the Simplified BSD (A.K.A.
+"two-clause" or "FreeBSD") license. See LICENSE.txt for more information.
+
+
+Whoosh 1.7.7
+============
+
+Setting a TEXT field to store term vectors is now much easier. Instead of
+having to pass an instantiated whoosh.formats.Format object to the vector=
+keyword argument, you can pass True to automatically use the same format and
+analyzer as the inverted index. Alternatively, you can pass a Format subclass
+and Whoosh will instantiate it for you.
+
+For example, to store term vectors using the same settings as the inverted
+index (Positions format and StandardAnalyzer)::
+
+    from whoosh.fields import Schema, TEXT
+
+    schema = Schema(content=TEXT(vector=True))
+
+To store term vectors that use the same analyzer as the inverted index
+(StandardAnalyzer by default) but only store term frequency::
+
+    from whoosh.formats import Frequency
+
+    schema = Schema(content=TEXT(vector=Frequency))
+
+Note that currently the only place term vectors are used in Whoosh is keyword
+extraction/more like this, but they can be useful for expert users with custom
+code.
+
+Added :meth:`whoosh.searching.Searcher.more_like` and
+:meth:`whoosh.searching.Hit.more_like_this` methods, as shortcuts for doing
+keyword extraction yourself. Return a Results object.
+
+"python setup.py test" works again, as long as you have nose installed.
+
+The :meth:`whoosh.searching.Searcher.sort_query_using` method lets you sort documents matching a given query using an arbitrary function. Note that like "complex" searching with the Sorter object, this can be slow on large multi-segment indexes.
+
+
+Whoosh 1.7
+==========
+
+You can once again perform complex sorting of search results (that is, a sort
+with some fields ascending and some fields descending).
+
+You can still use the ``sortedby`` keyword argument to
+:meth:`whoosh.searching.Searcher.search` to do a simple sort (where all fields
+are sorted in the same direction), or you can use the new
+:class:`~whoosh.sorting.Sorter` class to do a simple or complex sort::
+
+    searcher = myindex.searcher()
+    sorter = searcher.sorter()
+    # Sort first by the group field, ascending
+    sorter.add_field("group")
+    # Then by the price field, descending
+    sorter.add_field("price", reverse=True)
+    # Get the Results
+    results = sorter.sort_query(myquery)
+
+See the documentation for the :class:`~whoosh.sorting.Sorter` class for more
+information. Bear in mind that complex sorts will be much slower on large
+indexes because they can't use the per-segment field caches.
+
+You can now get highlighted snippets for a hit automatically using
+:meth:`whoosh.searching.Hit.highlights`::
+
+    results = searcher.search(myquery, limit=20)
+    for hit in results:
+        print hit["title"]
+        print hit.highlights("content")
+
+See :meth:`whoosh.searching.Hit.highlights` for more information.
+
+Added the ability to filter search results so that only hits in a Results
+set, a set of docnums, or matching a query are returned. The filter is
+cached on the searcher.
+
+    # Search within previous results
+    newresults = searcher.search(newquery, filter=oldresults)
+
+    # Search within the "basics" chapter
+    results = searcher.search(userquery, filter=query.Term("chapter", "basics"))
+
+You can now specify a time limit for a search. If the search does not finish
+in the given time, a :class:`whoosh.searching.TimeLimit` exception is raised,
+but you can still retrieve the partial results from the collector. See the
+``timelimit`` and ``greedy`` arguments in the
+:class:`whoosh.searching.Collector` documentation.
+
+Added back the ability to set :class:`whoosh.analysis.StemFilter` to use an
+unlimited cache. This is useful for one-shot batch indexing (see
+:doc:`../batch`).
+
+The ``normalize()`` method of the ``And`` and ``Or`` queries now merges
+overlapping range queries for more efficient queries.
+
+Query objects now have ``__hash__`` methods allowing them to be used as
+dictionary keys.
+
+The API of the highlight module has changed slightly. Most of the functions
+in the module have been converted to classes. However, most old code should
+still work. The ``NullFragmeter`` is now called ``WholeFragmenter``, but the
+old name is still available as an alias.
+
+Fixed MultiPool so it won't fill up the temp directory with job files.
+
+Fixed a bug where Phrase query objects did not use their boost factor.
+
+Fixed a bug where a fieldname after an open parenthesis wasn't parsed
+correctly. The change alters the semantics of certain parsing "corner cases"
+(such as ``a:b:c:d``).
+
+
+Whoosh 1.6
+==========
+
+The ``whoosh.writing.BatchWriter`` class is now called
+:class:`whoosh.writing.BufferedWriter`. It is similar to the old ``BatchWriter``
+class but allows you to search and update the buffered documents as well as the
+documents that have been flushed to disk::
+
+    writer = writing.BufferedWriter(myindex)
+
+    # You can update (replace) documents in RAM without having to commit them
+    # to disk
+    writer.add_document(path="/a", text="Hi there")
+    writer.update_document(path="/a", text="Hello there")
+
+    # Search committed and uncommited documents by getting a searcher from the
+    # writer instead of the index
+    searcher = writer.searcher()
+
+(BatchWriter is still available as an alias for backwards compatibility.)
+
+The :class:`whoosh.qparser.QueryParser` initialization method now requires a
+schema as the second argument. Previously the default was to create a
+``QueryParser`` without a schema, which was confusing::
+
+    qp = qparser.QueryParser("content", myindex.schema)
+
+The :meth:`whoosh.searching.Searcher.search` method now takes a ``scored``
+keyword. If you search with ``scored=False``, the results will be in "natural"
+order (the order the documents were added to the index). This is useful when
+you don't need scored results but want the convenience of the Results object.
+
+Added the :class:`whoosh.qparser.GtLtPlugin` parser plugin to allow greater
+than/less as an alternative syntax for ranges::
+
+    count:>100 tag:<=zebra date:>='29 march 2001'
+
+Added the ability to define schemas declaratively, similar to Django models::
+
+    from whoosh import index
+    from whoosh.fields import SchemaClass, ID, KEYWORD, STORED, TEXT
+
+    class MySchema(SchemaClass):
+        uuid = ID(stored=True, unique=True)
+        path = STORED
+        tags = KEYWORD(stored=True)
+        content = TEXT
+
+    index.create_in("indexdir", MySchema)
+
+Whoosh 1.6.2: Added :class:`whoosh.searching.TermTrackingCollector` which tracks
+which part of the query matched which documents in the final results.
+
+Replaced the unbounded cache in :class:`whoosh.analysis.StemFilter` with a
+bounded LRU (least recently used) cache. This will make stemming analysis
+slightly slower but prevent it from eating up too much memory over time.
+
+Added a simple :class:`whoosh.analysis.PyStemmerFilter` that works when the
+py-stemmer library is installed::
+
+    ana = RegexTokenizer() | PyStemmerFilter("spanish")
+
+The estimation of memory usage for the ``limitmb`` keyword argument to
+``FileIndex.writer()`` is more accurate, which should help keep memory usage
+memory usage by the sorting pool closer to the limit.
+
+The ``whoosh.ramdb`` package was removed and replaced with a single
+``whoosh.ramindex`` module.
+
+Miscellaneous bug fixes.
+
+
+Whoosh 1.5
+==========
+
+.. note::
+    Whoosh 1.5 is incompatible with previous indexes. You must recreate
+    existing indexes with Whoosh 1.5.
+
+Fixed a bug where postings were not portable across different endian platforms.
+
+New generalized field cache system, using per-reader caches, for much faster
+sorting and faceting of search results, as well as much faster multi-term (e.g.
+prefix and wildcard) and range queries, especially for large indexes and/or
+indexes with multiple segments.
+
+Changed the faceting API. See :doc:`../facets`.
+
+Faster storage and retrieval of posting values.
+
+Added per-field ``multitoken_query`` attribute to control how the query parser
+deals with a "term" that when analyzed generates multiple tokens. The default
+value is `"first"` which throws away all but the first token (the previous
+behavior). Other possible values are `"and"`, `"or"`, or `"phrase"`.
+
+Added :class:`whoosh.analysis.DoubleMetaphoneFilter`,
+:class:`whoosh.analysis.SubstitutionFilter`, and
+:class:`whoosh.analysis.ShingleFilter`.
+
+Added :class:`whoosh.qparser.CopyFieldPlugin`.
+
+Added :class:`whoosh.query.Otherwise`.
+
+Generalized parsing of operators (such as OR, AND, NOT, etc.) in the query
+parser to make it easier to add new operators. In intend to add a better API
+for this in a future release.
+
+Switched NUMERIC and DATETIME fields to use more compact on-disk
+representations of numbers.
+
+Fixed a bug in the porter2 stemmer when stemming the string `"y"`.
+
+Added methods to :class:`whoosh.searching.Hit` to make it more like a `dict`.
+
+Short posting lists (by default, single postings) are inline in the term file
+instead of written to the posting file for faster retrieval and a small saving
+in disk space.
+
+
+Whoosh 1.3
+==========
+
+Whoosh 1.3 adds a more efficient DATETIME field based on the new tiered NUMERIC
+field, and the DateParserPlugin. See :doc:`../dates`.
+
+
+Whoosh 1.2
+==========
+
+Whoosh 1.2 adds tiered indexing for NUMERIC fields, resulting in much faster
+range queries on numeric fields.
+
+
+Whoosh 1.0
+==========
+
+Whoosh 1.0 is a major milestone release with vastly improved performance and
+several useful new features.
+
+*The index format of this version is not compatibile with indexes created by
+previous versions of Whoosh*. You will need to reindex your data to use this
+version.
+
+Orders of magnitude faster searches for common terms. Whoosh now uses
+optimizations similar to those in Xapian to skip reading low-scoring postings.
+
+Faster indexing and ability to use multiple processors (via ``multiprocessing``
+module) to speed up indexing.
+
+Flexible Schema: you can now add and remove fields in an index with the
+:meth:`whoosh.writing.IndexWriter.add_field` and
+:meth:`whoosh.writing.IndexWriter.remove_field` methods.
+
+New hand-written query parser based on plug-ins. Less brittle, more robust,
+more flexible, and easier to fix/improve than the old pyparsing-based parser.
+
+On-disk formats now use 64-bit disk pointers allowing files larger than 4 GB.
+
+New :class:`whoosh.searching.Facets` class efficiently sorts results into
+facets based on any criteria that can be expressed as queries, for example
+tags or price ranges.
+
+New :class:`whoosh.writing.BatchWriter` class automatically batches up
+individual ``add_document`` and/or ``delete_document`` calls until a certain
+number of calls or a certain amount of time passes, then commits them all at
+once.
+
+New :class:`whoosh.analysis.BiWordFilter` lets you create bi-word indexed
+fields a possible alternative to phrase searching.
+
+Fixed bug where files could be deleted before a reader could open them  in
+threaded situations.
+
+New :class:`whoosh.analysis.NgramFilter` filter,
+:class:`whoosh.analysis.NgramWordAnalyzer` analyzer, and
+:class:`whoosh.fields.NGRAMWORDS` field type allow producing n-grams from
+tokenized text.
+
+Errors in query parsing now raise a specific ``whoosh.qparse.QueryParserError``
+exception instead of a generic exception.
+
+Previously, the query string ``*`` was optimized to a
+:class:`whoosh.query.Every` query which matched every document. Now the
+``Every`` query only matches documents that actually have an indexed term from
+the given field, to better match the intuitive sense of what a query string like
+``tag:*`` should do.
+
+New :meth:`whoosh.searching.Searcher.key_terms_from_text` method lets you
+extract key words from arbitrary text instead of documents in the index.
+
+Previously the :meth:`whoosh.searching.Searcher.key_terms` and
+:meth:`whoosh.searching.Results.key_terms` methods required that the given
+field store term vectors. They now also work if the given field is stored
+instead. They will analyze the stored string into a term vector on-the-fly.
+The field must still be indexed.
+
+
+User API changes
+================
+
+The default for the ``limit`` keyword argument to
+:meth:`whoosh.searching.Searcher.search` is now ``10``. To return all results
+in a single ``Results`` object, use ``limit=None``.
+
+The ``Index`` object no longer represents a snapshot of the index at the time
+the object was instantiated. Instead it always represents the index in the
+abstract. ``Searcher`` and ``IndexReader`` objects obtained from the
+``Index`` object still represent the index as it was at the time they were
+created.
+
+Because the ``Index`` object no longer represents the index at a specific
+version, several methods such as ``up_to_date`` and ``refresh`` were removed
+from its interface. The Searcher object now has
+:meth:`~whoosh.searching.Searcher.last_modified`,
+:meth:`~whoosh.searching.Searcher.up_to_date`, and
+:meth:`~whoosh.searching.Searcher.refresh` methods similar to those that used to
+be on ``Index``.
+
+The document deletion and field add/remove methods on the ``Index`` object now
+create a writer behind the scenes to accomplish each call. This means they write
+to the index immediately, so you don't need to call ``commit`` on the ``Index``.
+Also, it will be much faster if you need to call them multiple times to create
+your own writer instead::
+
+    # Don't do this
+    for id in my_list_of_ids_to_delete:
+        myindex.delete_by_term("id", id)
+    myindex.commit()
+
+    # Instead do this
+    writer = myindex.writer()
+    for id in my_list_of_ids_to_delete:
+        writer.delete_by_term("id", id)
+    writer.commit()
+
+The ``postlimit`` argument to ``Index.writer()`` has been changed to
+``postlimitmb`` and is now expressed in megabytes instead of bytes::
+
+    writer = myindex.writer(postlimitmb=128)
+
+Instead of having to import ``whoosh.filedb.filewriting.NO_MERGE`` or
+``whoosh.filedb.filewriting.OPTIMIZE`` to use as arguments to ``commit()``, you
+can now simply do the following::
+
+    # Do not merge segments
+    writer.commit(merge=False)
+
+    # or
+
+    # Merge all segments
+    writer.commit(optimize=True)
+
+The ``whoosh.postings`` module is gone. The ``whoosh.matching`` module contains
+classes for posting list readers.
+
+Whoosh no longer maps field names to numbers for internal use or writing to
+disk. Any low-level method that accepted field numbers now accept field names
+instead.
+
+Custom Weighting implementations that use the ``final()`` method must now
+set the ``use_final`` attribute to ``True``::
+
+    from whoosh.scoring import BM25F
+
+    class MyWeighting(BM25F):
+        use_final = True
+
+        def final(searcher, docnum, score):
+            return score + docnum * 10
+
+This disables the new optimizations, forcing Whoosh to score every matching
+document.
+
+:class:`whoosh.writing.AsyncWriter` now takes an :class:`whoosh.index.Index`
+object as its first argument, not a callable. Also, the keyword arguments to
+pass to the index's ``writer()`` method should now be passed as a dictionary
+using the ``writerargs`` keyword argument.
+
+Whoosh now stores per-document field length using an approximation rather than
+exactly. For low numbers the approximation is perfectly accurate, while high
+numbers will be approximated less accurately.
+
+The ``doc_field_length`` method on searchers and readers now takes a second
+argument representing the default to return if the given document and field
+do not have a length (i.e. the field is not scored or the field was not
+provided for the given document).
+
+The :class:`whoosh.analysis.StopFilter` now has a ``maxsize`` argument as well
+as a ``minsize`` argument to its initializer. Analyzers that use the
+``StopFilter`` have the ``maxsize`` argument in their initializers now also.
+
+The interface of :class:`whoosh.writing.AsyncWriter` has changed.
+
+
+Misc
+====
+
+* Because the file backend now writes 64-bit disk pointers and field names
+  instead of numbers, the size of an index on disk will grow compared to
+  previous versions.
+
+* Unit tests should no longer leave directories and files behind.
+

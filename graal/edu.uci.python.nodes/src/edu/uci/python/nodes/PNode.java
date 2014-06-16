@@ -252,6 +252,10 @@ public abstract class PNode extends Node {
         return list.getStorage() instanceof EmptySequenceStorage;
     }
 
+    protected static boolean isBasicStorage(PList list) {
+        return list.getStorage() instanceof BasicSequenceStorage;
+    }
+
     protected static boolean isIntStorage(PList list) {
         return list.getStorage() instanceof IntSequenceStorage;
     }

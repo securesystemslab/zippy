@@ -31,6 +31,7 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class ImportFromNode extends PNode {
@@ -70,7 +71,14 @@ public class ImportFromNode extends PNode {
     private Object doImportFrom(Object importedModule) {
         try {
             if (importedModule instanceof PythonModule) {
-                return ((PythonModule) importedModule).getAttribute(importee);
+                PythonModule module = (PythonModule) importedModule;
+                Object attr = module.getAttribute(importee);
+
+                if (attr == PNone.NONE) {
+                    attr = context.getImportManager().importModule(module, importee);
+                }
+
+                return attr;
             } else {
                 return ((PyObject) importedModule).__getattr__(importee);
             }

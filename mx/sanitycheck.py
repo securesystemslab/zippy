@@ -181,6 +181,8 @@ pythonBenchmarks = {
     'pypy-deltablue'  : '2000',
     'python-graph-bench': '200',
     'simplejson-bench': '10000',
+    'whoosh-bench'    : '5000',
+    'pymaging-bench'  : '5000',
 }
 
 python2Benchmarks = {
@@ -205,6 +207,8 @@ python2Benchmarks = {
     'pypy-deltablue'  : '2000',
     'python-graph-bench': '200',
     'simplejson-bench': '10000',
+    'whoosh-bench'    : '5000',
+    'pymaging-bench'  : '5000',
 }
 
 pythonGeneratorBenchmarks = {
@@ -216,6 +220,8 @@ pythonGeneratorBenchmarks = {
     'pads-lyndon'     : '100000000',
     'python-graph-bench': '200',
     'simplejson-bench': '10000',
+    'whoosh-bench'    : '5000',
+    'pymaging-bench'  : '5000',
 }
 
 specjvm2008Names = [

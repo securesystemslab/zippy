@@ -106,17 +106,22 @@ public class PythonTreeTranslator extends Visitor {
 
     public PNode assignSourceFromChildren(PNode truffleNode, PNode leftNode, PNode rightNode) {
         String identifier = "identifier";
-        if (leftNode.getSourceSection() == null) {
-            throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s left node " + leftNode.getClass().getSimpleName() + "does not have a source section");
-        } else if (rightNode.getSourceSection() == null) {
-            throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s right node " + rightNode.getClass().getSimpleName() + "does not have a source section");
+
+        try {
+            if (leftNode.getSourceSection() == null) {
+                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s left node " + leftNode.getClass().getSimpleName() + "does not have a source section");
+            } else if (rightNode.getSourceSection() == null) {
+                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s right node " + rightNode.getClass().getSimpleName() + "does not have a source section");
+            }
+            int charStartIndex = leftNode.getSourceSection().getCharIndex();
+            int charStopIndex = rightNode.getSourceSection().getCharEndIndex();
+            int charLength = charStopIndex - charStartIndex;
+            SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
+            truffleNode.assignSourceSection(sourceSection);
+            return truffleNode;
+        } catch (RuntimeException e) {
+            return truffleNode;
         }
-        int charStartIndex = leftNode.getSourceSection().getCharIndex();
-        int charStopIndex = rightNode.getSourceSection().getCharEndIndex();
-        int charLength = charStopIndex - charStartIndex;
-        SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
-        truffleNode.assignSourceSection(sourceSection);
-        return truffleNode;
     }
 
     @Override
@@ -360,13 +365,16 @@ public class PythonTreeTranslator extends Visitor {
         }
 
         boolean isClassMethod = false;
+        boolean isStaticMethod = false;
         if (decoratorName != null) {
             if (decoratorName.equals("classmethod")) {
                 isClassMethod = true;
+            } else if (decoratorName.equals("staticmethod")) {
+                isStaticMethod = true;
             }
         }
 
-        return new Arity(functionName, minNumOfArgs, maxNumOfArgs, takesFixedNumOfArgs, takesKeywordArg, takesVarArgs, isClassMethod, parameterIds);
+        return new Arity(functionName, minNumOfArgs, maxNumOfArgs, takesFixedNumOfArgs, takesKeywordArg, takesVarArgs, isClassMethod, isStaticMethod, parameterIds);
     }
 
     public PNode visitArgs(arguments node) throws Exception {
@@ -475,8 +483,8 @@ public class PythonTreeTranslator extends Visitor {
         return read.makeWriteNode(importNode);
     }
 
-    private PNode createSingleImportFromStatement(alias aliaz, String fromModuleName, Integer level) {
-        PythonModule relativeto = level > 0 ? this.module : context.getMainModule();
+    private PNode createSingleImportFromStatement(alias aliaz, String fromModuleName) {
+        PythonModule relativeto = this.module;
 
         String importName = aliaz.getInternalName();
         if (importName.equals("*")) {
@@ -520,12 +528,12 @@ public class PythonTreeTranslator extends Visitor {
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-            return createSingleImportFromStatement(aliases.get(0), node.getInternalModule(), node.getInternalLevel());
+            return createSingleImportFromStatement(aliases.get(0), node.getInternalModule());
         }
 
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
-            imports.add(createSingleImportFromStatement(aliases.get(i), node.getInternalModule(), node.getInternalLevel()));
+            imports.add(createSingleImportFromStatement(aliases.get(i), node.getInternalModule()));
         }
 
         return factory.createBlock(imports);

@@ -65,10 +65,15 @@ public class PythonCallUtil {
         return PythonCallUtil.isPrimaryBoxed(primary) && callee.isClassMethod() && !(primary instanceof PythonModule);
     }
 
+    protected static boolean isStaticMethodCall(Object primary, PythonCallable callee) {
+        return PythonCallUtil.isPrimaryBoxed(primary) && callee.isStaticMethod() && !(primary instanceof PythonModule);
+    }
+
     protected static boolean haveToPassPrimary(Object primary, PythonCallable callee, PythonCallNode node) {
         return !isPrimaryNone(primary, node) && //
                         !(primary instanceof PythonClass) && //
                         !(primary instanceof PythonModule) && //
+                        !isStaticMethodCall(primary, callee) && //
                         !(primary instanceof PyObject) || //
                         isConstructorCall(primary, callee) || //
                         isClassMethodCall(primary, callee);

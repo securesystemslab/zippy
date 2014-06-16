@@ -36,6 +36,7 @@ import edu.uci.python.runtime.standardtype.*;
 /**
  * @author Gulfem
  * @author myq
+ * @author zwei
  */
 public class ImportStarNode extends PNode {
 
@@ -51,11 +52,9 @@ public class ImportStarNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-
         Object importedModule = context.getImportManager().importModule(relativeto, moduleName);
 
         if (importedModule instanceof PythonModule) {
-
             for (String name : ((PythonModule) importedModule).getAttributeNames()) {
                 Object attr = ((PythonModule) importedModule).getAttribute(name);
                 relativeto.setAttribute(name, attr);
@@ -63,21 +62,21 @@ public class ImportStarNode extends PNode {
         } else {
             PyObject jythonModule = (PyObject) importedModule;
             PyObject all = jythonModule.__findattr__("__all__");
-            PyObject names = null;
-
-            if (all != null) {
-                names = all;
-            } else {
-                names = jythonModule.__dir__();
-            }
+            PyObject names = all != null ? all : jythonModule.__dir__();
 
             for (int i = 0; i < names.__len__(); i++) {
                 PyString name = (PyString) names.__getitem__(i);
                 PyObject attr = jythonModule.__getattr__(name);
+
+                if (name.getString().startsWith("__")) {
+                    continue;
+                }
+
                 relativeto.setAttribute(name.getString(), attr);
             }
         }
 
         return PNone.NONE;
     }
+
 }

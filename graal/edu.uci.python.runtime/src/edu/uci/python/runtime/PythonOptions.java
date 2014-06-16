@@ -51,9 +51,9 @@ public class PythonOptions {
 
     public static final boolean IntrinsifyBuiltinCalls = true;
 
-    public static final int AttributeAccessInlineCacheMaxDepth = 7;
+    public static final int AttributeAccessInlineCacheMaxDepth = 20;
 
-    public static final int CallSiteInlineCacheMaxDepth = 5;
+    public static final int CallSiteInlineCacheMaxDepth = 20;
 
     public static final boolean GenerateObjectStorage = false;
 
@@ -61,6 +61,8 @@ public class PythonOptions {
     public static boolean InlineGeneratorCalls = true;
 
     public static boolean OptimizeGeneratorExpressions = true;
+
+    public static boolean TraceGeneratorInlining = false;
 
     // Profiling
     public static boolean ProfileCalls = false;
