@@ -1,5 +1,11 @@
 __author__ = 'zwei'
 
+import sys, os, time
+
+# setup path
+path = os.path.join(os.path.dirname(__file__), 'sympy')
+sys.path.append(path)
+
 from sympy.unify.core import Compound, Variable, CondVariable, allcombinations
 from sympy.unify import core
 
