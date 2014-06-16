@@ -1046,7 +1046,8 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitYield(Yield node) throws Exception {
         environment.setToGeneratorScope();
-        PNode right = (PNode) visit(node.getInternalValue());
+        expr value = node.getInternalValue();
+        PNode right = value != null ? (PNode) visit(value) : EmptyNode.create();
         return factory.createYield(right, environment.getReturnSlot());
     }
 

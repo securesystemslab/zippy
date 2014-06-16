@@ -37,13 +37,13 @@ from .series import *
 from .functions import *
 from .ntheory import *
 from .concrete import *
-from .simplify import *
+# from .simplify import *
 from .sets import *
 from .solvers import *
 from .matrices import *
 from .geometry import *
 from .utilities import *
-from .integrals import *
+# from .integrals import *
 from .tensor import *
 from .parsing import *
 from .calculus import *
@@ -58,7 +58,7 @@ from .printing import ccode, fcode, jscode, mathematica_code, latex, preview
 from .printing import python, print_python, srepr, sstr, sstrrepr
 from .interactive import init_session, init_printing
 
-evalf._create_evalf_table()
+# evalf._create_evalf_table()
 
 # This is slow to import:
 #import abc

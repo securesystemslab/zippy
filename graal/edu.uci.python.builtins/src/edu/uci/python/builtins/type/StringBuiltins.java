@@ -206,4 +206,14 @@ public final class StringBuiltins extends PythonBuiltins {
         }
     }
 
+    // str.lower()
+    @Builtin(name = "lower", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class LowerNode extends PythonBuiltinNode {
+
+        @Specialization(order = 0)
+        public String lower(String self) {
+            return self.toLowerCase();
+        }
+    }
+
 }
