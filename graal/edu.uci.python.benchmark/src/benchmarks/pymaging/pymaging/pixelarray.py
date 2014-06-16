@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import array
-import copy
+# import copy
 
 
 class GenericPixelArray(object):
@@ -75,7 +75,7 @@ class GenericPixelArray(object):
         return new_pixel_array
 
     def copy(self):
-        return get_pixel_array(copy.copy(self.data), self.width, self.height, self.pixelsize)
+        return get_pixel_array(self.data, self.width, self.height, self.pixelsize)
 
     def remove_lines(self, offset, amount):
         """
@@ -135,7 +135,8 @@ class GenericPixelArray(object):
 
 class PixelArray1(GenericPixelArray):
     def __init__(self, data, width, height):
-        super(PixelArray1, self).__init__(data, width, height, 1)
+        # super(PixelArray1, self).__init__(data, width, height, 1)
+        GenericPixelArray.__init__(self, data, width, height, 1)
 
     def get(self, x, y):
         """
@@ -154,7 +155,8 @@ class PixelArray1(GenericPixelArray):
 
 class PixelArray2(GenericPixelArray):
     def __init__(self, data, width, height):
-        super(PixelArray2, self).__init__(data, width, height, 2)
+        # super(PixelArray2, self).__init__(data, width, height, 2)
+        GenericPixelArray.__init__(self, data, width, height, 2)
 
     def get(self, x, y):
         """
@@ -174,7 +176,8 @@ class PixelArray2(GenericPixelArray):
 
 class PixelArray3(GenericPixelArray):
     def __init__(self, data, width, height):
-        super(PixelArray3, self).__init__(data, width, height, 3)
+        # super(PixelArray3, self).__init__(data, width, height, 3)
+        GenericPixelArray.__init__(self, data, width, height, 3)
 
     def get(self, x, y):
         """
@@ -195,7 +198,8 @@ class PixelArray3(GenericPixelArray):
 
 class PixelArray4(GenericPixelArray):
     def __init__(self, data, width, height):
-        super(PixelArray4, self).__init__(data, width, height, 4)
+        # super(PixelArray4, self).__init__(data, width, height, 4)
+        GenericPixelArray.__init__(self, data, width, height, 4)
 
     def get(self, x, y):
         """

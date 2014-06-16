@@ -183,7 +183,15 @@ public final class PTuple extends PImmutableSequence implements Comparable<Objec
 
     @Override
     public int index(Object value) {
-        throw new UnsupportedOperationException();
+        for (int i = 0; i < array.length; i++) {
+            Object val = array[i];
+
+            if (val.equals(value)) {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     public int compareTo(Object o) {

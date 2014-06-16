@@ -6,7 +6,7 @@ import sys, os, time
 path = os.path.join(os.path.dirname(__file__), 'pymaging')
 sys.path.append(path)
 
-from pymaging.shapes import Line, Pixel
+from pymaging.shapes import Line
 from pymaging.webcolors import Black, White
 from pymaging.test_utils import image_factory
 
