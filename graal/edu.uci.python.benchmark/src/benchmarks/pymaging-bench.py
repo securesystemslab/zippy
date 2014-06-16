@@ -71,7 +71,7 @@ def measure():
     print("pymaging-draw: " + duration)
 
 # warm up
-num =  int(sys.argv[1]) # 200
+num =  int(sys.argv[1]) # 5000
 for i in range(50):
     main(100)
 
