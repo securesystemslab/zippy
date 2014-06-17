@@ -85,7 +85,12 @@ public class ProfilerTranslator implements NodeVisitor {
             createWrapperNode((PNode) node);
         } else if (node instanceof IfNode) {
             createWrapperNode((PNode) node);
+        } else if (node instanceof BreakNode) {
+            createWrapperNode((PNode) node);
+        } else if (node instanceof ContinueNode) {
+            createWrapperNode((PNode) node);
         }
+
         return true;
     }
 

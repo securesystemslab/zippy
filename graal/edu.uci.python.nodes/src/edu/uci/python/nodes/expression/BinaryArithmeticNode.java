@@ -50,6 +50,16 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return ExactMath.addExact(left, right);
         }
 
+        @Specialization(order = 6)
+        BigInteger doIntegerBigInteger(int left, BigInteger right) {
+            return BigInteger.valueOf(left).add(right);
+        }
+
+        @Specialization(order = 7)
+        BigInteger doBigIntegerInteger(BigInteger left, int right) {
+            return left.add(BigInteger.valueOf(right));
+        }
+
         @Specialization(order = 10)
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.add(right);
@@ -200,63 +210,75 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @SlowPath
         @Specialization(order = 1)
+        BigInteger doIntegerBigInteger(int left, BigInteger right) {
+            return BigInteger.valueOf(left).multiply(right);
+        }
+
+        @SlowPath
+        @Specialization(order = 2)
+        BigInteger doIntegerBigInteger(BigInteger left, int right) {
+            return left.multiply(BigInteger.valueOf(right));
+        }
+
+        @SlowPath
+        @Specialization(order = 3)
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.multiply(right);
         }
 
-        @Specialization(order = 2)
+        @Specialization(order = 4)
         double doDouble(double left, double right) {
             return left * right;
         }
 
-        @Specialization(order = 3)
+        @Specialization(order = 5)
         PComplex doDoubleComplex(double left, PComplex right) {
             PComplex result = new PComplex(left * right.getReal(), left * right.getImag());
             return result;
         }
 
-        @Specialization(order = 4)
+        @Specialization(order = 6)
         PComplex doComplexDouble(PComplex left, double right) {
             PComplex result = new PComplex(left.getReal() * right, left.getImag() * right);
             return result;
         }
 
-        @Specialization(order = 5)
+        @Specialization(order = 7)
         PComplex doComplex(PComplex left, PComplex right) {
             return left.mul(right);
         }
 
-        @Specialization(order = 6)
+        @Specialization(order = 8)
         PList doIntPList(int left, PList right) {
             return right.__mul__(left);
         }
 
-        @Specialization(order = 7)
+        @Specialization(order = 9)
         PList doPListInt(PList left, int right) {
             return left.__mul__(right);
         }
 
-        @Specialization(order = 8)
+        @Specialization(order = 10)
         PTuple doIntPTuple(int left, PTuple right) {
             return right.__mul__(left);
         }
 
-        @Specialization(order = 9)
+        @Specialization(order = 11)
         PTuple doPTupleInt(PTuple left, int right) {
             return left.__mul__(right);
         }
 
-        @Specialization(order = 10)
+        @Specialization(order = 12)
         PArray doIntPArray(int left, PArray right) {
             return right.__mul__(left);
         }
 
-        @Specialization(order = 11)
+        @Specialization(order = 13)
         PArray doPArrayInt(PArray left, int right) {
             return left.__mul__(right);
         }
 
-        @Specialization(order = 12)
+        @Specialization(order = 14)
         String doIntString(int left, String right) {
             String str = right;
             for (int i = 0; i < left - 1; i++) {
@@ -266,7 +288,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return str;
         }
 
-        @Specialization(order = 13)
+        @Specialization(order = 15)
         String doStringInt(String left, int right) {
             String str = left;
             for (int i = 0; i < right - 1; i++) {
