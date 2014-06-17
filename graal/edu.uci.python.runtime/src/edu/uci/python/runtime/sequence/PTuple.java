@@ -198,4 +198,19 @@ public final class PTuple extends PImmutableSequence implements Comparable<Objec
         return SequenceUtil.cmp(this, (PSequence) o);
     }
 
+    @Override
+    public boolean equals(Object other) {
+        if (!(other instanceof PTuple)) {
+            return false;
+        }
+
+        PTuple otherTuple = (PTuple) other;
+        return Arrays.equals(array, otherTuple.array);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
 }
