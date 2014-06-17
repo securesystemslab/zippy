@@ -99,8 +99,4 @@ public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
         return new String(chars);
     }
 
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + " = " + getLeftNode() + "[" + getRightNode() + "]";
-    }
 }

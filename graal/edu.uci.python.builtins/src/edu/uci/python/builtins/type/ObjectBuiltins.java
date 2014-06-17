@@ -44,6 +44,15 @@ public class ObjectBuiltins extends PythonBuiltins {
         return ObjectBuiltinsFactory.getFactories();
     }
 
+    @Builtin(name = "__eq__", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    public abstract static class EqNode extends PythonBuiltinNode {
+
+        @Specialization
+        public boolean eq(PythonObject self, PythonObject other) {
+            return self == other;
+        }
+    }
+
     @Builtin(name = "__str__", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class StrNode extends PythonBuiltinNode {
 
