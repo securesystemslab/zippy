@@ -125,8 +125,8 @@ public final class PRange extends PImmutableSequence {
             throw new RuntimeException();
         }
 
-        final int newStart = Math.max(start, slice.getStart());
-        final int newStop = slice.getStop() == SequenceUtil.MISSING_INDEX ? stop : Math.min(stop, slice.getStop());
+        final int newStart = slice.getStart() == SequenceUtil.MISSING_INDEX ? start : start + slice.getStart();
+        final int newStop = slice.getStop() == SequenceUtil.MISSING_INDEX ? stop : Math.min(stop, start + slice.getStop());
         return new PRange(newStart, newStop, step);
     }
 

@@ -82,6 +82,12 @@ public class GeneratorTests {
     }
 
     @Test
+    public void partition() {
+        Path script = Paths.get("generator-partition-test.py");
+        assertPrints("[range(0, 1), range(1, 2), range(2, 3)]\n", script);
+    }
+
+    @Test
     public void objectsInList() {
         Path script = Paths.get("generator-objects-test.py");
         assertPrints("1\n2\n10\n11\n", script);

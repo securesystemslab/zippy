@@ -90,4 +90,13 @@ public class PRangeTests {
         assertPrints("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]\n", source);
     }
 
+    @Test
+    public void slice() {
+        String source = "r3 = range(3)\n" + //
+                        "print(r3[:1])\n" + //
+                        "print(r3[1:])\n" + //
+                        "r3 = range(1, 3)\n" + //
+                        "print(r3[1:])\n";
+        assertPrints("range(0, 1)\nrange(1, 3)\nrange(2, 3)\n", source);
+    }
 }
