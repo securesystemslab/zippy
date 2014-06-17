@@ -220,6 +220,12 @@ public final class StringBuiltins extends PythonBuiltins {
     @Builtin(name = "split", maxNumOfArguments = 3)
     public abstract static class SplitNode extends PythonBuiltinNode {
 
+        @SuppressWarnings("unused")
+        @Specialization
+        public PList doSplit(String self, PNone sep, PNone maxsplit) {
+            return splitfields(self, -1);
+        }
+
         @Specialization
         public PList doSplit(String self, @SuppressWarnings("unused") PNone sep, int maxsplit) {
             return splitfields(self, maxsplit);
