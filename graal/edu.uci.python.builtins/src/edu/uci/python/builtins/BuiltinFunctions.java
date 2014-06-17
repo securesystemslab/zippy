@@ -504,9 +504,13 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
-        @Specialization(order = 10)
-        public boolean isinstance(@SuppressWarnings("unused") int val, PythonBuiltinClass cls) {
+        @Specialization(order = 10, guards = "is2ndNotTuple")
+        public boolean isinstance(@SuppressWarnings("unused") int val, Object cls) {
             return PInt.__class__ == cls;
+        }
+
+        protected static boolean is2ndNotTuple(@SuppressWarnings("unused") Object first, Object second) {
+            return !(second instanceof PTuple);
         }
 
         @ExplodeLoop
@@ -533,8 +537,8 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
-        @Specialization(order = 20)
-        public boolean isinstance(PythonBuiltinObject obj, PythonBuiltinClass cls) {
+        @Specialization(order = 20, guards = "is2ndNotTuple")
+        public boolean isinstance(PythonBuiltinObject obj, Object cls) {
             return obj.__class__() == cls;
         }
 
@@ -560,27 +564,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
             }
 
             return false;
-        }
-
-        @Specialization(order = 30)
-        public Object isinstance(Object object, Object clazz) {
-            if (object instanceof String && clazz instanceof PythonClass) {
-                PythonClass pythonClass = (PythonClass) clazz;
-
-                if (pythonClass.getName().equals("str")) {
-                    return true;
-                }
-
-                return false;
-            } else if (object instanceof PythonObject && clazz instanceof PythonClass) {
-                PythonObject basicObject = (PythonObject) object;
-                PythonClass pythonClass = (PythonClass) clazz;
-                return isInstancePythonClass(basicObject, pythonClass);
-            } else if (object instanceof PNone && clazz instanceof PythonBuiltinClass) {
-                return false;
-            }
-
-            throw new RuntimeException("isinstance is not supported for " + object + " " + object.getClass() + ", " + clazz + " " + clazz.getClass());
         }
     }
 

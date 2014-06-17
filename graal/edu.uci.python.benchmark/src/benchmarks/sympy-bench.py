@@ -21,7 +21,7 @@ def is_commutative(x):
 
 
 def unify(a, b, s={}):
-    return core.unify(a, b, s=s)
+    return core.unify(a, b, s)
 
 def test_basic():
     assert list(unify(a, x, {})) == [{x: a}]
