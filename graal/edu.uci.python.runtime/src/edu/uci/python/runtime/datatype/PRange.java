@@ -105,7 +105,7 @@ public final class PRange extends PImmutableSequence {
         int index = SequenceUtil.normalizeIndex(idx, length);
 
         if (index > length - 1) {
-            CompilerDirectives.transferToInterpreter();
+            CompilerDirectives.transferToInterpreterAndInvalidate();
             throw Py.IndexError("range object index out of range");
         }
 
@@ -120,7 +120,14 @@ public final class PRange extends PImmutableSequence {
 
     @Override
     public Object getSlice(PSlice slice) {
-        return PNone.NONE;
+        if (step != slice.getStep()) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw new RuntimeException();
+        }
+
+        final int newStart = Math.max(start, slice.getStart());
+        final int newStop = slice.getStop() == SequenceUtil.MISSING_INDEX ? stop : Math.min(stop, slice.getStop());
+        return new PRange(newStart, newStop, step);
     }
 
     @Override
