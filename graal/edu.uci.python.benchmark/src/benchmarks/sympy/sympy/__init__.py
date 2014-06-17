@@ -31,7 +31,7 @@ SYMPY_DEBUG = __sympy_debug()
 
 # from .core import *
 # from .logic import *
-from .assumptions import *
+# from .assumptions import *
 # from .polys import *
 # from .series import *
 # from .functions import *
@@ -42,10 +42,10 @@ from .sets import *
 # from .solvers import *
 # from .matrices import *
 # from .geometry import *
-from .utilities import *
+# from .utilities import *
 # from .integrals import *
 # from .tensor import *
-from .parsing import *
+# from .parsing import *
 # from .calculus import *
 # Adds about .04-.05 seconds of import time
 # from combinatorics import *

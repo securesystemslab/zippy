@@ -5,8 +5,8 @@ from itertools import combinations, permutations, product, product as cartes
 import random
 from operator import gt
 
-from sympy.core.decorators import deprecated
-from sympy.core import Basic, C
+# from sympy.core.decorators import deprecated
+# from sympy.core import Basic, C
 
 # this is the logical location of these functions
 from sympy.core.compatibility import (
@@ -14,8 +14,8 @@ from sympy.core.compatibility import (
     iterable, ordered, xrange
 )
 
-from sympy.utilities.enumerative import (
-    multiset_partitions_taocp, list_visitor, MultisetPartitionTraverser)
+# from sympy.utilities.enumerative import (
+#     multiset_partitions_taocp, list_visitor, MultisetPartitionTraverser)
 
 
 def flatten(iterable, levels=None, cls=None):
@@ -1750,8 +1750,8 @@ def generate_derangements(perm):
             yield pi
 
 
-@deprecated(
-    useinstead="bracelets", deprecated_since_version="0.7.3")
+# @deprecated(
+#     useinstead="bracelets", deprecated_since_version="0.7.3")
 def unrestricted_necklace(n, k):
     """Wrapper to necklaces to return a free (unrestricted) necklace."""
     return necklaces(n, k, free=True)
