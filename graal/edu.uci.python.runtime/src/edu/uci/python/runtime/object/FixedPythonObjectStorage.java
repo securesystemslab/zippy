@@ -26,7 +26,7 @@ package edu.uci.python.runtime.object;
 
 import edu.uci.python.runtime.standardtype.*;
 
-public class FixedPythonObjectStorage extends PythonObject {
+public class FixedPythonObjectStorage extends PythonObject implements Comparable<Object> {
 
     public static final int PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT = 5;
     protected int primitiveInt0;
@@ -55,6 +55,10 @@ public class FixedPythonObjectStorage extends PythonObject {
 
     public static PythonObject create(PythonClass clazz) {
         return new FixedPythonObjectStorage(clazz);
+    }
+
+    public int compareTo(Object o) {
+        return this.equals(o) ? 0 : 1;
     }
 
 }

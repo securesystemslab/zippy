@@ -26,6 +26,8 @@ package edu.uci.python.runtime.sequence.storage;
 
 import java.util.*;
 
+import com.oracle.truffle.api.nodes.*;
+
 import edu.uci.python.runtime.sequence.*;
 
 public final class ObjectSequenceStorage extends BasicSequenceStorage {
@@ -211,12 +213,21 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
+    @ExplodeLoop
     public boolean equals(SequenceStorage other) {
         if (other.length() != length()) {
             return false;
         }
 
-        return Arrays.equals(values, other.getInternalArray());
+        int nominalLength = length() <= other.length() ? length() : other.length();
+        Object[] otherArray = other.getInternalArray();
+        for (int i = 0; i < nominalLength; i++) {
+            if (!values[i].equals(otherArray[i])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }
