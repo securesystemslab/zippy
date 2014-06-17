@@ -35,7 +35,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class PythonObject {
+public abstract class PythonObject implements Comparable<Object> {
 
     @CompilationFinal protected PythonClass pythonClass;
 
@@ -274,6 +274,11 @@ public abstract class PythonObject {
         }
 
         return getPythonClass();
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        return this.equals(o) ? 0 : 1;
     }
 
     @Override

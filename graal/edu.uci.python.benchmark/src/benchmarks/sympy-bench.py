@@ -40,8 +40,9 @@ test_basic()
 def test_ops():
     assert list(unify(C('Add', (a,b,c)), C('Add', (a,x,y)), {})) == \
             [{x:b, y:c}]
-    assert list(unify(C('Add', (C('Mul', (1,2)), b,c)), C('Add', (x,y,c)), {})) == \
-            [{x: C('Mul', (1,2)), y:b}]
+    cmul = C('Mul', (1,2))
+    assert list(unify(C('Add', (cmul, b,c)), C('Add', (x,y,c)), {})) == \
+            [{x: cmul, y:b}]
 
 test_ops()
 
