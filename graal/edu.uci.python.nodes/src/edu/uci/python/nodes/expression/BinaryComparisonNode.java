@@ -385,6 +385,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     public abstract static class InNode extends BinaryComparisonNode {
 
         @Specialization
+        public boolean doString(String left, String right) {
+            return right.contains(left);
+        }
+
+        @Specialization
         public boolean doBaseSet(Object left, PBaseSet right) {
             return right.contains(left);
         }

@@ -848,9 +848,18 @@ public class PythonTreeTranslator extends Visitor {
                 current = factory.createIf(factory.toBooleanCastNode((PNode) visit(conditions.get(0))), current, EmptyNode.create());
             }
 
-            PNode target = ((ReadNode) visit(comp.getInternalTarget())).makeWriteNode(EmptyNode.create());
+            PNode iterWrite;
+            if (comp.getInternalTarget() instanceof Tuple) {
+                // Unpacking
+                List<PNode> targets = assigns.walkTarget(comp.getInternalTarget(), EmptyNode.create());
+                iterWrite = targets.remove(0);
+                current = factory.createBlock(factory.createBlock(targets), current);
+            } else {
+                iterWrite = ((ReadNode) visit(comp.getInternalTarget())).makeWriteNode(EmptyNode.create());
+            }
+
             PNode iterator = (PNode) visit(comp.getInternalIter());
-            current = createForInScope(target, iterator, current);
+            current = createForInScope(iterWrite, iterator, current);
         }
 
         assert current != null;
@@ -1046,7 +1055,8 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitYield(Yield node) throws Exception {
         environment.setToGeneratorScope();
-        PNode right = (PNode) visit(node.getInternalValue());
+        expr value = node.getInternalValue();
+        PNode right = value != null ? (PNode) visit(value) : EmptyNode.create();
         return factory.createYield(right, environment.getReturnSlot());
     }
 

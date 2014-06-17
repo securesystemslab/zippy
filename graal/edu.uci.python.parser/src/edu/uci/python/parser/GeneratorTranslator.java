@@ -220,7 +220,7 @@ public class GeneratorTranslator {
 
             node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
         } else if (node instanceof ElseNode || node instanceof BreakTargetNode || node instanceof TryExceptNode || node instanceof ExceptNode || node instanceof StopIterationTargetNode ||
-                        node instanceof ContinueTargetNode) {
+                        node instanceof ContinueTargetNode || node instanceof TryFinallyNode) {
             // do nothing for now
         } else {
             TranslationUtil.notCovered();

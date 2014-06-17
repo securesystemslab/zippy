@@ -81,4 +81,12 @@ public class ListComprehensionTests {
         assertPrints("{0: [2, 1], 1: [0, 2], 2: [1, 0]}\n", source);
     }
 
+    @Test
+    public void unpacking() {
+        String source = "dct = {10:1, 20:2,30:3}\n" + //
+                        "lst = [a + b for a, b in dct.items()]\n" + //
+                        "print(lst)\n";
+        assertPrints("[11, 22, 33]\n", source);
+    }
+
 }

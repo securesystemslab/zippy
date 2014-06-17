@@ -138,7 +138,7 @@ public class AssignmentTranslator {
         return factory.createBlock(writes);
     }
 
-    private List<PNode> walkTarget(expr target, PNode rightHandSide) throws Exception {
+    public List<PNode> walkTarget(expr target, PNode rightHandSide) throws Exception {
         List<PNode> writes = new ArrayList<>();
 
         if (isDecomposable(target)) {
