@@ -25,6 +25,7 @@
 #ifndef GPU_HSAIL_VM_GPU_HSAIL_HPP
 #define GPU_HSAIL_VM_GPU_HSAIL_HPP
 
+#include "runtime/gpu.hpp"
 #include "utilities/exceptions.hpp"
 #include "graal/graalEnv.hpp"
 #include "gpu_hsail_Frame.hpp"
