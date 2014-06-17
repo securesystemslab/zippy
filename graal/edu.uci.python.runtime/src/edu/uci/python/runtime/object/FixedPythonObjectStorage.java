@@ -62,32 +62,4 @@ public class FixedPythonObjectStorage extends PythonObject implements Comparable
         return this.equals(o) ? 0 : 1;
     }
 
-    @Override
-    public boolean equals(Object other) {
-        if (!(other instanceof PythonObject)) {
-            return false;
-        }
-
-        PythonObject otherObj = (PythonObject) other;
-        if (otherObj.getObjectLayout() != getObjectLayout()) {
-            return false;
-        }
-
-        ObjectLayout layout = getObjectLayout();
-        for (StorageLocation location : layout.getAllStorageLocations().values()) {
-            boolean equals = location.read(this).equals(location.read(otherObj));
-
-            if (!equals) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
 }
