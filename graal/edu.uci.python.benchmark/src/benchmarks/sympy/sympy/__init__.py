@@ -38,7 +38,7 @@ SYMPY_DEBUG = __sympy_debug()
 # from .ntheory import *
 # from .concrete import *
 # from .simplify import *
-from .sets import *
+# from .sets import *
 # from .solvers import *
 # from .matrices import *
 # from .geometry import *

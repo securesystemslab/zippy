@@ -7,11 +7,11 @@ from .iterables import (flatten, group, take, subsets,
     prefixes, postfixes, sift, topological_sort, unflatten,
     has_dups, has_variety, reshape, default_sort_key, ordered)
 
-from .lambdify import lambdify
+# from .lambdify import lambdify
 from .source import source
 
-from .decorator import threaded, xthreaded, public
+# from .decorator import threaded, xthreaded, public
 
-from .runtests import test, doctest
-
-from .timeutils import timed
+# from .runtests import test, doctest
+#
+# from .timeutils import timed

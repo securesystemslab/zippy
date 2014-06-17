@@ -521,6 +521,18 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
+        @ExplodeLoop
+        @Specialization(order = 15)
+        public boolean isinstance(@SuppressWarnings("unused") String val, PTuple classTuple) {
+            for (int i = 0; i < classTuple.len(); i++) {
+                if (PString.__class__ == classTuple.getItem(i)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         @Specialization(order = 20)
         public boolean isinstance(PythonBuiltinObject obj, PythonBuiltinClass cls) {
             return obj.__class__() == cls;
@@ -531,6 +543,18 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public boolean isinstance(PythonBuiltinObject obj, PTuple classTuple) {
             for (int i = 0; i < classTuple.len(); i++) {
                 if (obj.__class__() == classTuple.getItem(i)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        @ExplodeLoop
+        @Specialization(order = 26)
+        public boolean isinstance(PythonObject obj, PTuple classTuple) {
+            for (int i = 0; i < classTuple.len(); i++) {
+                if (obj.getPythonClass() == classTuple.getItem(i)) {
                     return true;
                 }
             }

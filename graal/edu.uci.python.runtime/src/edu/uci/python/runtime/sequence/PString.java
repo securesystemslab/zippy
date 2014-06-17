@@ -31,7 +31,7 @@ import edu.uci.python.runtime.sequence.storage.*;
 
 public final class PString extends PImmutableSequence {
 
-    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PString.class);
+    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PString.class);
 
     private final String value;
 
