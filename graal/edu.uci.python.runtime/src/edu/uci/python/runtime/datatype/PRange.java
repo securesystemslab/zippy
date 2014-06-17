@@ -115,7 +115,7 @@ public final class PRange extends PImmutableSequence {
     @SuppressWarnings("hiding")
     @Override
     public Object getSlice(int start, int stop, int step, int length) {
-        return PNone.NONE;
+        throw new UnsupportedOperationException();
     }
 
     @Override
