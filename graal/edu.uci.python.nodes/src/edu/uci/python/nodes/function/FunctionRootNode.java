@@ -193,7 +193,7 @@ public final class FunctionRootNode extends RootNode {
         inlinable &= generatorNodeCount < 300;
         inlinable &= callerNodeCount < 900;
 
-        if (callerNodeCount / generatorNodeCount < 5 && callerNodeCount + generatorNodeCount < 1000) {
+        if (callerNodeCount / generatorNodeCount < 5) {
             inlinable = true;
         }
 
@@ -203,7 +203,7 @@ public final class FunctionRootNode extends RootNode {
             if (inlinable) {
                 ps.println("[ZipPy] decide to inline " + genfun.getCallTarget() + " in " + getRootNode());
             } else {
-                ps.println("[ZipPy] failed to inline " + genfun.getCallTarget() + " in " + getRootNode());
+                ps.println("[ZipPy] failed to inline " + genfun.getCallTarget() + " in " + getRootNode() + " gen: " + generatorNodeCount + " caller: " + callerNodeCount);
             }
         }
 

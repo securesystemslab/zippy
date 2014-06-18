@@ -107,7 +107,6 @@ def unify(x, y, s=None):
             if is_associative(x) and is_associative(y):
                 a, b = (x, y) if len(x.args) < len(y.args) else (y, x)
                 for aaargs, bbargs in allcombinations(a.args, b.args, 'associative'):
-
                     aa = [unpack(Compound(a.op, arg)) for arg in aaargs]
                     bb = [unpack(Compound(b.op, arg)) for arg in bbargs]
                     for match in unify(aa, bb, sop):
