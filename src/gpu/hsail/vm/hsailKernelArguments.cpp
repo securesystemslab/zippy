@@ -21,6 +21,7 @@
  * questions.
  *
  */
+#include "precompiled.hpp"
 #include "hsailKernelArguments.hpp"
 
 void HSAILKernelArguments::collectArgs() {
