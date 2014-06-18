@@ -124,6 +124,16 @@ public class PythonTreeTranslator extends Visitor {
         }
     }
 
+    public RootNode assignSourceToRootNode(PythonTree node, RootNode rootNode) {
+        String identifier = node.getText();
+        int charStartIndex = node.getCharStartIndex();
+        int charStopIndex = node.getCharStopIndex();
+        int charLength = charStopIndex - charStartIndex;
+        SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
+        rootNode.assignSourceSection(sourceSection);
+        return rootNode;
+    }
+
     @Override
     public Object visitModule(org.python.antlr.ast.Module node) throws Exception {
         environment.beginScope(node, ScopeInfo.ScopeKind.Module);
@@ -212,6 +222,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode body = factory.createBlock(statements);
         body = factory.createBlock(argumentLoads, body);
         body = new ReturnTargetNode(body, factory.createReadLocal(environment.getReturnSlot()));
+        assignSourceFromNode(node, body);
 
         /**
          * Defaults
@@ -224,7 +235,7 @@ public class PythonTreeTranslator extends Visitor {
         FrameDescriptor fd = environment.getCurrentFrame();
         String fullName = enclosingClassName == null ? name : enclosingClassName + '.' + name;
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, fullName, environment.isInGeneratorScope(), fd, body);
-        funcRoot.assignSourceSection(source.createSection(node.getText(), (node.getLine() - 1), (node.getCharPositionInLine() + 1), node.getTokenStartIndex(), node.getText().length()));
+        assignSourceToRootNode(node, funcRoot);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
         result.addParsedFunction(name, funcRoot);
 

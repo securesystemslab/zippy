@@ -72,8 +72,6 @@ public final class FunctionRootNode extends RootNode {
     @Child protected PNode body;
     private PNode uninitializedBody;
 
-    @Child protected PNode profiler;
-
     public FunctionRootNode(PythonContext context, String functionName, boolean isGenerator, FrameDescriptor frameDescriptor, PNode body) {
         super(null, frameDescriptor); // SourceSection is not supported yet.
         this.context = context;
@@ -81,12 +79,6 @@ public final class FunctionRootNode extends RootNode {
         this.isGenerator = isGenerator;
         this.body = NodeUtil.cloneNode(body);
         this.uninitializedBody = NodeUtil.cloneNode(body);
-
-        if (PythonOptions.ProfileCalls) {
-            this.profiler = new ProfilerNode(this);
-        } else {
-            this.profiler = EmptyNode.create();
-        }
     }
 
     public PythonContext getContext() {
@@ -129,9 +121,7 @@ public final class FunctionRootNode extends RootNode {
                 optimizeHelper();
             }
         }
-        if (PythonOptions.ProfileCalls) {
-            profiler.execute(frame);
-        }
+
         return body.execute(frame);
     }
 
@@ -331,7 +321,7 @@ public final class FunctionRootNode extends RootNode {
 
     @Override
     public String toString() {
-        return "<function " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
+        return "<function root " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
     }
 
 }

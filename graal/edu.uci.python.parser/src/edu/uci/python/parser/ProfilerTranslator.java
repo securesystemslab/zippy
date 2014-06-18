@@ -30,6 +30,7 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.frame.*;
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.nodes.subscript.*;
@@ -57,73 +58,86 @@ public class ProfilerTranslator implements NodeVisitor {
          * Profile binary operations:BinaryArithmeticNode, BinaryBitwiseNode, BinaryBooleanNode,
          * BinaryComparisonNode, SubscriptLoadIndexNode, SubscriptLoadSliceNode, SubscriptDeleteNode
          */
-        if (node instanceof BinaryArithmeticNode) {
-            createWrapperNode((PNode) node);
+        if (node instanceof FunctionRootNode) {
+            FunctionRootNode rootNode = (FunctionRootNode) node;
+            PNode body = rootNode.getBody();
+            createCallNodeWrapper(body);
+        } else if (node instanceof BinaryArithmeticNode) {
+            createWrapper((PNode) node);
         } else if (node instanceof BinaryBitwiseNode) {
-            createWrapperNode((PNode) node);
+            createWrapper((PNode) node);
         } else if (node instanceof BinaryBooleanNode) {
-            createWrapperNode((PNode) node);
+            createWrapper((PNode) node);
         } else if (node instanceof BinaryComparisonNode) {
-            createWrapperNode((PNode) node);
+            createWrapper((PNode) node);
         } else if (node instanceof SubscriptLoadIndexNode) {
-            createWrapperNode((PNode) node);
+            createWrapper((PNode) node);
         } else if (node instanceof SubscriptLoadSliceNode) {
-            createWrapperNode((PNode) node);
+            createWrapper((PNode) node);
         } else if (node instanceof SubscriptDeleteNode) {
-            createWrapperNode((PNode) node);
+            createWrapper((PNode) node);
         } else if (node instanceof SubscriptStoreIndexNode) {
-            createWrapperNode((PNode) node);
+            createWrapper((PNode) node);
         } else if (node instanceof SubscriptStoreSliceNode) {
-            createWrapperNode((PNode) node);
+            createWrapper((PNode) node);
         } else if (node instanceof WriteLocalVariableNode) {
-            createWriteNodeWrapperNode((PNode) node);
+            createWriteNodeWrapper((PNode) node);
         } else if (node instanceof ReadLocalVariableNode) {
-            createWrapperNode((PNode) node);
+            createWrapper((PNode) node);
         } else if (node instanceof SetAttributeNode) {
-            createWriteNodeWrapperNode((PNode) node);
+            createWriteNodeWrapper((PNode) node);
         } else if (node instanceof GetAttributeNode) {
-            createWrapperNode((PNode) node);
+            createWrapper((PNode) node);
         } else if (node instanceof IfNode) {
-            createWrapperNode((PNode) node);
+            createWrapper((PNode) node);
         } else if (node instanceof BreakNode) {
-            createWrapperNode((PNode) node);
+            createWrapper((PNode) node);
         } else if (node instanceof ContinueNode) {
-            createWrapperNode((PNode) node);
+            createWrapper((PNode) node);
         }
 
         return true;
     }
 
-    private PythonWrapperNode createWrapperNode(PNode node) {
-        if (node.getSourceSection() == null) {
-            if (PythonOptions.TraceNodesWithoutSourceSection) {
-                ProfilerResultPrinter.addNodeEmptySourceSection(node);
-                return null;
-            } else {
-                throw new RuntimeException("Source is not assigned for " + node);
-            }
+    private PythonWrapperNode createWrapper(PNode node) {
+        if (hasSourceSection(node)) {
+            PythonWrapperNode wrapperNode = astProber.probeAsStatement(node);
+            node.replace(wrapperNode);
+            wrapperNode.adoptChildren();
+            return wrapperNode;
         }
 
-        PythonWrapperNode wrapperNode = astProber.probeAsStatement(node);
-        node.replace(wrapperNode);
-        wrapperNode.adoptChildren();
-        return wrapperNode;
+        return null;
     }
 
-    private PythonWriteNodeWrapperNode createWriteNodeWrapperNode(PNode node) {
-        if (node.getSourceSection() == null) {
-            if (PythonOptions.TraceNodesWithoutSourceSection) {
-                ProfilerResultPrinter.addNodeEmptySourceSection(node);
-                return null;
-            } else {
-                throw new RuntimeException("Source is not assigned for " + node);
-            }
+    private PythonWriteNodeWrapperNode createWriteNodeWrapper(PNode node) {
+        if (hasSourceSection(node)) {
+            PythonWriteNodeWrapperNode wrapperNode = astProber.probeAsWriteNode(node);
+            node.replace(wrapperNode);
+            wrapperNode.adoptChildren();
+            return wrapperNode;
         }
 
-        PythonWriteNodeWrapperNode wrapperNode = astProber.probeAsWriteNode(node);
-        node.replace(wrapperNode);
-        wrapperNode.adoptChildren();
-        return wrapperNode;
+        return null;
     }
 
+    private PythonWrapperNode createCallNodeWrapper(PNode node) {
+        if (hasSourceSection(node)) {
+            PythonWrapperNode wrapperNode = astProber.probeAsCall(node);
+            node.replace(wrapperNode);
+            wrapperNode.adoptChildren();
+            return wrapperNode;
+        }
+
+        return null;
+    }
+
+    private static boolean hasSourceSection(PNode node) {
+        if (node.getSourceSection() == null) {
+            ProfilerResultPrinter.addNodeEmptySourceSection(node);
+            return false;
+        }
+
+        return true;
+    }
 }

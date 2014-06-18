@@ -41,6 +41,7 @@ public class PythonNodeProber implements ASTNodeProber {
     private final PythonContext context;
 
     private static Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments = new HashMap<>();
+    private static Map<PythonWrapperNode, ProfilerInstrument> callWrapperToInstruments = new HashMap<>();
 
     public PythonNodeProber(PythonContext context) {
         this.context = context;
@@ -82,7 +83,27 @@ public class PythonNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
+    public PythonWrapperNode probeAsCall(PNode node) {
+        PythonWrapperNode wrapper;
+        if (node instanceof PythonWrapperNode) {
+            wrapper = (PythonWrapperNode) node;
+        } else {
+            wrapper = new PythonWrapperNode(context, node);
+            wrapper.getProbe().tagAs(StandardTag.CALL);
+            wrapper.assignSourceSection(node.getSourceSection());
+        }
+
+        ProfilerInstrument profilerInstrument = new ProfilerInstrument();
+        wrapper.getProbe().addInstrument(profilerInstrument);
+        callWrapperToInstruments.put(wrapper, profilerInstrument);
+        return wrapper;
+    }
+
     public static Map<PythonWrapperNode, ProfilerInstrument> getWrapperToInstruments() {
         return wrapperToInstruments;
+    }
+
+    public static Map<PythonWrapperNode, ProfilerInstrument> getCallWrapperToInstruments() {
+        return callWrapperToInstruments;
     }
 }
