@@ -224,6 +224,7 @@ pythonGeneratorBenchmarks = {
     'simplejson-bench': '10000',
     'whoosh-bench'    : '5000',
     'pymaging-bench'  : '5000',
+    'sympy-bench'     : '20000',
 }
 
 specjvm2008Names = [
