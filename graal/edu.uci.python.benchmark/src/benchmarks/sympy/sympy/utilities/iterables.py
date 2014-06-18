@@ -2047,32 +2047,32 @@ def kbins(l, k, ordered=None):
     if ordered is None:
         for p in partition(l, k):
             yield p
-    # elif ordered == 11:
-    #     for pl in multiset_permutations(l):
-    #         pl = list(pl)
-    #         for p in partition(pl, k):
-    #             yield p
-    # elif ordered == 00:
-    #     for p in multiset_partitions(l, k):
-    #         yield p
-    # elif ordered == 10:
-    #     for p in multiset_partitions(l, k):
-    #         for perm in permutations(p):
-    #             yield list(perm)
-    # elif ordered == 1:
-    #     for kgot, p in partitions(len(l), k, size=True):
-    #         if kgot != k:
-    #             continue
-    #         for li in multiset_permutations(l):
-    #             rv = []
-    #             i = j = 0
-    #             li = list(li)
-    #             for size, multiplicity in sorted(p.items()):
-    #                 for m in range(multiplicity):
-    #                     j = i + size
-    #                     rv.append(li[i: j])
-    #                     i = j
-    #             yield rv
+    elif ordered == 11:
+        for pl in multiset_permutations(l):
+            pl = list(pl)
+            for p in partition(pl, k):
+                yield p
+    elif ordered == 00:
+        for p in multiset_partitions(l, k):
+            yield p
+    elif ordered == 10:
+        for p in multiset_partitions(l, k):
+            for perm in permutations(p):
+                yield list(perm)
+    elif ordered == 1:
+        for kgot, p in partitions(len(l), k, size=True):
+            if kgot != k:
+                continue
+            for li in multiset_permutations(l):
+                rv = []
+                i = j = 0
+                li = list(li)
+                for size, multiplicity in sorted(p.items()):
+                    for m in range(multiplicity):
+                        j = i + size
+                        rv.append(li[i: j])
+                        i = j
+                yield rv
     else:
         raise ValueError(
             'ordered must be one of 00, 01, 10 or 11, not %s' % ordered)
