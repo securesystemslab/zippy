@@ -32,7 +32,6 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.function.*;
-import edu.uci.python.runtime.*;
 
 /**
  * @author Gulfem
@@ -70,7 +69,6 @@ public class ProfilerResultPrinter {
             Entry<PythonWrapperNode, ProfilerInstrument> entry = (Entry<PythonWrapperNode, ProfilerInstrument>) it.next();
             PythonWrapperNode wrapper = entry.getKey();
             ProfilerInstrument instrument = entry.getValue();
-
             Node child = wrapper.getChild();
             out.format("%-50s", child.getClass().getSimpleName());
             out.format("%15s", instrument.getCounter());
@@ -78,7 +76,41 @@ public class ProfilerResultPrinter {
             out.format("%11s", child.getSourceSection().getStartColumn());
             out.format("%11s", child.getSourceSection().getCharLength());
             out.println();
+        }
+    }
 
+    public static void printCallProfilerInstrumenterResults() {
+        Map<PythonWrapperNode, ProfilerInstrument> sorted = sortByValue(PythonNodeProber.getCallWrapperToInstruments());
+
+        /**
+         * 50 is the length of the text by default padding left padding is added, so space is added
+         * to the beginning of the string, minus sign adds padding to the right
+         */
+
+        PrintStream out = System.out;
+        out.format("%-50s", "Function Name");
+        out.format("%-20s", "Number of Calls");
+        out.format("%-9s", "Line");
+        out.format("%-11s", "Column");
+        out.format("%-11s", "Length");
+        out.println();
+        out.println("==============                                    ===============     ====     ======     ======");
+
+        @SuppressWarnings("rawtypes")
+        Iterator it = sorted.entrySet().iterator();
+        while (it.hasNext()) {
+            @SuppressWarnings("unchecked")
+            Entry<PythonWrapperNode, ProfilerInstrument> entry = (Entry<PythonWrapperNode, ProfilerInstrument>) it.next();
+            PythonWrapperNode wrapper = entry.getKey();
+            ProfilerInstrument instrument = entry.getValue();
+            Node child = wrapper.getChild();
+            FunctionRootNode rootNode = (FunctionRootNode) (wrapper.getParent());
+            out.format("%-50s", rootNode.getFunctionName());
+            out.format("%15s", instrument.getCounter());
+            out.format("%9s", child.getSourceSection().getStartLine());
+            out.format("%11s", child.getSourceSection().getStartColumn());
+            out.format("%11s", child.getSourceSection().getCharLength());
+            out.println();
         }
     }
 
@@ -97,82 +129,6 @@ public class ProfilerResultPrinter {
             result.put(entry.getKey(), entry.getValue());
         }
         return result;
-    }
-
-    /**
-     * "Function Name"(13 char) + "17 space" + + "5 space" + "Number of Calls"(15 char).
-     */
-
-    public static void printFunctionInvocationProfilerResults() {
-        List<ProfilerNode> profiledNodes = ProfilerNode.getProfiledNodes();
-        if (PythonOptions.SortProfilerResults) {
-            sortTheProfilerList(profiledNodes);
-        }
-
-        // CheckStyle: stop system..print check
-        PrintStream out = System.out;
-        out.format("%-30s", "Function Name");
-        out.format("%20s", "Number of Calls");
-        out.println();
-        out.println("=============                      ===============");
-        // CheckStyle: resume system..print check
-
-        for (int i = 0; i < profiledNodes.size(); i++) {
-            ProfilerNode profilerNode = profiledNodes.get(i);
-            Node profiledNode = profilerNode.getProfiledNode();
-            if (profiledNode instanceof RootNode) {
-                printInvocationCountOfRootNode((RootNode) profiledNode, profilerNode.getProfilerResult());
-            }
-        }
-    }
-
-    private static void printInvocationCountOfRootNode(RootNode profiledRootNode, long profilerResult) {
-        if (profilerResult > 0) {
-            String functionName = null;
-
-            if (profiledRootNode instanceof FunctionRootNode) {
-                FunctionRootNode functionRootNode = (FunctionRootNode) profiledRootNode;
-                functionName = functionRootNode.getFunctionName();
-            } else if (profiledRootNode instanceof BuiltinFunctionRootNode) {
-                /**
-                 * For better performance and specialization in builtins, we do create a different
-                 * PBuiltinFunction, and BuiltinFrunctionRootNode, and CallTarget for the same
-                 * builtin function. For ex, abs might appear multiple times in this list with
-                 * different invocation counts.
-                 */
-                BuiltinFunctionRootNode builtinFunctionRootNode = (BuiltinFunctionRootNode) profiledRootNode;
-                functionName = builtinFunctionRootNode.getFunctionName();
-            } else {
-                throw new RuntimeException("Unknown root node type " + profiledRootNode + " " + profiledRootNode.getClass());
-            }
-
-            printInvocationCount(functionName, profilerResult);
-            // CheckStyle: stop system..print check
-            PrintStream out = System.out;
-            out.println();
-            // CheckStyle: resume system..print check
-        } else if (profilerResult < 0) {
-            throw new RuntimeException("Profiler result can't be less than 0: " + profilerResult + " for " + profiledRootNode);
-        }
-    }
-
-    private static void printInvocationCount(String functionName, long invocationCount) {
-        // CheckStyle: stop system..print check
-        System.out.format("%-30s", functionName);
-        System.out.format("%20s", invocationCount);
-        // CheckStyle: resume system..print check
-    }
-
-    private static void sortTheProfilerList(List<ProfilerNode> list) {
-        if (!list.isEmpty()) {
-            Collections.sort(list, new Comparator<ProfilerNode>() {
-                @Override
-                public int compare(ProfilerNode p1, ProfilerNode p2) {
-                    // Descending order
-                    return Long.compare(p2.getProfilerResult(), p1.getProfilerResult());
-                }
-            });
-        }
     }
 
     public static void printNodesEmptySourceSections() {
