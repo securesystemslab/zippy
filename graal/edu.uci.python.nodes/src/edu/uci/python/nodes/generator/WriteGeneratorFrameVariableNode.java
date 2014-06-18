@@ -73,7 +73,7 @@ public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode impl
     @Specialization(order = 1, guards = "isNotIllegal")
     public PNone writeNone(VirtualFrame frame, PNone right) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
-        mframe.setObject(frameSlot, PNone.NONE);
+        setObject(mframe, PNone.NONE);
         return right;
     }
 
