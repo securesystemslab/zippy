@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
+ * modification, are permitted provided that the following conditions are met: 
+ * 
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
+ *    list of conditions and the following disclaimer. 
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
+ *    and/or other materials provided with the distribution. 
+ * 
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -86,23 +86,38 @@ public abstract class FrameSlotNode extends PNode {
     }
 
     protected final boolean isBooleanKind() {
-        return isKind(FrameSlotKind.Boolean) || setToKind(FrameSlotKind.Boolean);
+        return isKind(FrameSlotKind.Boolean);
     }
 
     protected final boolean isIntegerKind() {
-        return isKind(FrameSlotKind.Int) || setToKind(FrameSlotKind.Int);
+        return isKind(FrameSlotKind.Int) || booleanToInt();
     }
 
     protected final boolean isDoubleKind() {
-        return isKind(FrameSlotKind.Double) || setToKind(FrameSlotKind.Double);
+        if (isKind(FrameSlotKind.Double) || intToDouble()) {
+            return true;
+        }
+        if (frameSlot.getKind() != FrameSlotKind.Double) {
+            CompilerDirectives.transferToInterpreter();
+            frameSlot.setKind(FrameSlotKind.Double);
+        }
+        return true;
+    }
+
+    protected final boolean isIntOrObjectKind() {
+        return isKind(FrameSlotKind.Int) || isKind(FrameSlotKind.Object);
     }
 
     protected final boolean isObjectKind() {
-        return isKind(FrameSlotKind.Object) || setToKind(FrameSlotKind.Object);
+        if (frameSlot.getKind() != FrameSlotKind.Object) {
+            CompilerDirectives.transferToInterpreter();
+            frameSlot.setKind(FrameSlotKind.Object);
+        }
+        return true;
     }
 
     private boolean isKind(FrameSlotKind kind) {
-        return frameSlot.getKind() == kind || initialSetKind(kind);
+        return frameSlot.getKind() == kind || initialSetKind(kind) || noneToKind(kind);
     }
 
     private boolean initialSetKind(FrameSlotKind kind) {
@@ -114,10 +129,28 @@ public abstract class FrameSlotNode extends PNode {
         return false;
     }
 
-    private boolean setToKind(FrameSlotKind toKind) {
-        if (frameSlot.getKind() != toKind) {
+    private boolean noneToKind(FrameSlotKind kind) {
+        if (frameSlot.getKind() == FrameSlotKind.None) {
             CompilerDirectives.transferToInterpreter();
-            frameSlot.setKind(toKind);
+            frameSlot.setKind(kind);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean booleanToInt() {
+        if (frameSlot.getKind() == FrameSlotKind.Boolean) {
+            CompilerDirectives.transferToInterpreter();
+            frameSlot.setKind(FrameSlotKind.Int);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean intToDouble() {
+        if (frameSlot.getKind() == FrameSlotKind.Int) {
+            CompilerDirectives.transferToInterpreter();
+            frameSlot.setKind(FrameSlotKind.Double);
             return true;
         }
         return false;

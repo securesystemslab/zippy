@@ -73,7 +73,7 @@ public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode impl
     @Specialization(order = 1, guards = "isNotIllegal")
     public PNone writeNone(VirtualFrame frame, PNone right) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
-        setObject(mframe, PNone.NONE);
+        mframe.setObject(frameSlot, PNone.NONE);
         return right;
     }
 
@@ -91,10 +91,11 @@ public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode impl
         return value;
     }
 
-    @Specialization(order = 4, guards = "isObjectKind")
+    @Specialization(order = 4, guards = "isIntOrObjectKind")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         setObject(mframe, value);
+        frameSlot.setKind(FrameSlotKind.Object);
         return value;
     }
 
