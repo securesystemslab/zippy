@@ -97,10 +97,6 @@ public abstract class FrameSlotNode extends PNode {
         return isKind(FrameSlotKind.Double) || setToKind(FrameSlotKind.Double);
     }
 
-    protected final boolean isIntOrObjectKind() {
-        return isKind(FrameSlotKind.Int) || isKind(FrameSlotKind.Object);
-    }
-
     protected final boolean isObjectKind() {
         return isKind(FrameSlotKind.Object) || setToKind(FrameSlotKind.Object);
     }
