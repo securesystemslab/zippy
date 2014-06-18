@@ -5188,6 +5188,9 @@ _JNI_IMPORT_OR_EXPORT_ jint JNICALL JNI_CreateJavaVM(JavaVM **vm, void **penv, v
       }
     } else {
       // Graal is initialized on a CompilerThread
+      if (BootstrapGraal) {
+        GraalCompiler::instance()->bootstrap();
+      }
     }
 #endif
 
