@@ -38,6 +38,29 @@ oop HSAILArgumentsBase::next_arg(BasicType expectedType) {
   return arg;
 }
 
+void HSAILArgumentsBase::collectArgs() {
+  if (TraceGPUInteraction) {
+    tty->print_cr("[HSAIL] %s::collectArgs, sig:%s  args length=%d", argsBuilderName(), _signature->as_C_string(), _length);
+  }
+  if (!_is_static) {
+    // First object in args should be 'this'
+    oop arg = _args->obj_at(_index++);
+    assert(arg->is_instance() && (!arg->is_array()), "First arg should be 'this'");
+    if (TraceGPUInteraction) {
+      tty->print_cr("[HSAIL] %s, instance method, this " PTR_FORMAT ", is a %s", argsBuilderName(), (address) arg, arg->klass()->external_name());
+    }
+    pushObject(arg);
+  } else {
+    if (TraceGPUInteraction) {
+      tty->print_cr("[HSAIL] %s, static method", argsBuilderName());
+    }
+  }
+  // Iterate over the entire signature
+  iterate();
+
+  pushTrailingArgs();
+}
+
 void HSAILArgumentsBase::do_bool() {
   // Get the boxed value
   oop arg = _args->obj_at(_index++);
