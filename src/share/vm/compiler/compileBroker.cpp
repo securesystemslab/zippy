@@ -805,7 +805,7 @@ void CompileBroker::compilation_init() {
 
 #if defined(COMPILERGRAAL)
   _compilers[1] = graal;
-  c2_count = UseGraalCompilationQueue ? 0 : c2_count;
+  c2_count = UseGraalCompilationQueue ? 0 : FLAG_IS_DEFAULT(GraalThreads) ? c2_count : GraalThreads;
 #endif // COMPILERGRAAL
 
 #ifdef COMPILER2
