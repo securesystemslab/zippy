@@ -86,8 +86,14 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
 
         @SuppressWarnings("unused")
-        @Specialization
-        public boolean doNone(PythonObject left, PNone none) {
+        @Specialization(order = 100, guards = "isNotPythonObject")
+        Object doPythonObject(Object left, PythonObject right) {
+            return false;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 110, guards = "is2ndNotPythonObject")
+        Object doPythonObject(PythonObject left, Object right) {
             return false;
         }
 

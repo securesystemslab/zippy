@@ -291,4 +291,12 @@ public abstract class PNode extends Node {
         return false;
     }
 
+    protected static boolean isNotPythonObject(Object obj) {
+        return !(obj instanceof PythonObject);
+    }
+
+    protected static boolean is2ndNotPythonObject(@SuppressWarnings("unused") Object first, Object second) {
+        return !(second instanceof PythonObject);
+    }
+
 }

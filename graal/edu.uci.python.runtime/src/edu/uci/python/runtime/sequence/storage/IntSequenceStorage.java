@@ -303,7 +303,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public boolean equals(SequenceStorage other) {
-        if (other.length() != length()) {
+        if (other.length() != length() || !(other instanceof IntSequenceStorage)) {
             return false;
         }
 

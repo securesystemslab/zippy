@@ -203,7 +203,7 @@ public final class FunctionRootNode extends RootNode {
         inlinable &= generatorNodeCount < 300;
         inlinable &= callerNodeCount < 900;
 
-        if (callerNodeCount / generatorNodeCount < 5) {
+        if (callerNodeCount / generatorNodeCount < 5 && callerNodeCount + generatorNodeCount < 1000) {
             inlinable = true;
         }
 
