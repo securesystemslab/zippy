@@ -190,8 +190,8 @@ public final class FunctionRootNode extends RootNode {
 
         int callerNodeCount = getDeepNodeCount(this);
         int generatorNodeCount = getDeepNodeCount(genfun.getFunctionRootNode());
-        inlinable &= generatorNodeCount < 300;
-        inlinable &= callerNodeCount < 900;
+        inlinable &= generatorNodeCount < 330;
+        inlinable &= callerNodeCount < 20000;
 
         if (callerNodeCount / generatorNodeCount < 5) {
             inlinable = true;

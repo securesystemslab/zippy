@@ -210,7 +210,7 @@ def partition(it, part):
     >>> partition((10, 20, 30, 40), [[0, 1, 2], [3]])
     ((10, 20, 30), (40,))
     """
-    return type(it)([index(it, ind) for ind in part])
+    return [index(it, ind) for ind in part]
 
 def index(it, ind):
     """ Fancy indexing into an indexable iterable (tuple, list)
@@ -219,4 +219,4 @@ def index(it, ind):
     >>> index([10, 20, 30], (1, 2, 0))
     [20, 30, 10]
     """
-    return type(it)([it[i] for i in ind])
+    return [it[i] for i in ind]

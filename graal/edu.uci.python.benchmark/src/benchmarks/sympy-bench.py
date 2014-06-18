@@ -48,8 +48,8 @@ def test_ops():
 # test_ops()
 
 def main(n):
-    C1 = C('Add', [i for i in range(10)])
-    C2 = C('Add', [Variable(i) for i in range(10)])
+    C1 = C('Add', [i for i in range(8)])
+    C2 = C('Add', [Variable(i) for i in range(8)])
 
     for idx in range(n):
         lst = []
@@ -68,7 +68,7 @@ def measure():
 
 # warm up
 num = int(sys.argv[1]) # 10000
-for idx in range(50):
+for idx in range(100):
     main(1000)
 
 measure()
