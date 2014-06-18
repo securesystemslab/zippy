@@ -66,6 +66,7 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         addType(PFloat.class, (PythonBuiltinClass) builtinsModule.getAttribute("float"));
 
         addType(PList.class, createType("list", context, builtinsModule, new ListBuiltins()));
+        addType(PTuple.class, createType("tuple", context, builtinsModule, new TupleBuiltins()));
         addType(PString.class, createType("str", context, builtinsModule, new StringBuiltins()));
         addType(PDict.class, createType("dict", context, builtinsModule, new DictBuiltins()));
         addType(PSet.class, createType("set", context, builtinsModule, new SetBuiltins()));

@@ -32,7 +32,7 @@ import edu.uci.python.runtime.iterator.*;
 
 public final class PSet extends PBaseSet {
 
-    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PSet.class);
+    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PSet.class);
 
     public PSet() {
         super();

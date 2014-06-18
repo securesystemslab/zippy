@@ -22,29 +22,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatype;
+package edu.uci.python.builtins.type;
 
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtin.*;
-import edu.uci.python.runtime.standardtype.*;
+import java.util.*;
 
-public class PFloat extends PythonBuiltinObject {
+import com.oracle.truffle.api.dsl.*;
 
-    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PFloat.class);
+import edu.uci.python.builtins.*;
+import edu.uci.python.nodes.function.*;
+import edu.uci.python.runtime.sequence.*;
 
-    private final double value;
-
-    public PFloat(double value) {
-        this.value = value;
-    }
+/**
+ * @author zwei
+ */
+public class TupleBuiltins extends PythonBuiltins {
 
     @Override
-    public PythonBuiltinClass __class__() {
-        return __class__;
+    protected List<? extends NodeFactory<? extends PythonBuiltinNode>> getNodeFactories() {
+        return TupleBuiltinsFactory.getFactories();
     }
 
-    public double getValue() {
-        return value;
+    // index(element)
+    @Builtin(name = "index", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    public abstract static class IndexNode extends PythonBuiltinNode {
+
+        @Specialization
+        int index(PTuple self, Object value) {
+            return self.index(value);
+        }
     }
 
 }
