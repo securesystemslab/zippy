@@ -112,6 +112,23 @@ public class SpecialMethodTests {
     }
 
     @Test
+    public void __eq__() {
+        String source = "class Num:\n" + //
+                        "  def __init__(self, n):\n" + //
+                        "    self.n = n\n" + //
+                        "  def __eq__(self, other):\n" + //
+                        "    return type(self) == type(other) and self.n == other.n\n" + //
+                        "  def __repr__(self):\n" + //
+                        "    return self.n\n" + //
+                        "" + //
+                        "n0 = Num(1)\n" + //
+                        "n1 = Num(1)\n" + //
+                        "print(n0 == n1)\n" + //
+                        "print(object() == object())\n";
+        assertPrints("True\nFalse\n", source);
+    }
+
+    @Test
     public void __len__() {
         String source = "class Num:\n" + //
                         "  def __init__(self, n):\n" + //

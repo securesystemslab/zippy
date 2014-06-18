@@ -28,6 +28,7 @@ import java.math.*;
 
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.object.*;
@@ -80,22 +81,24 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
 
         @Specialization
-        public boolean doPythonObject(PythonObject left, PythonObject right) {
-            return left == right;
+        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
+            return doSpecialMethodCall(frame, "__eq__", left, right);
         }
 
         @SuppressWarnings("unused")
-        @Specialization
-        public boolean doNone(PythonObject left, PNone none) {
+        @Specialization(order = 100, guards = "isNotPythonObject")
+        Object doPythonObject(Object left, PythonObject right) {
+            return false;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 110, guards = "is2ndNotPythonObject")
+        Object doPythonObject(PythonObject left, Object right) {
             return false;
         }
 
         /**
          * This is a fix for comparisons involving a PyInteger.
-         *
-         * @param left
-         * @param right
-         * @return comparison result
          */
         @Generic
         public boolean doGeneric(Object left, Object right) {

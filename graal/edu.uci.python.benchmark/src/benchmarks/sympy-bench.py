@@ -9,8 +9,8 @@ sys.path.append(path)
 from sympy.unify.core import Compound, Variable, CondVariable, allcombinations
 from sympy.unify import core
 
-a,b,c = 'abc'
-w,x,y,z = map(Variable, 'wxyz')
+a, b, c, d, e, f, g, h, i, j, k, l, m, n = 'abcdefghijklmn'
+o, p, q, r, s, t, u, v, w, x, y, z = map(Variable, 'opqrstuvwxyz')
 
 C = Compound
 
@@ -35,7 +35,7 @@ def test_basic():
     assert list(unify((y, z), (x, x), {}))!= []
     assert list(unify((a, (b, c)), (a, (x, y)), {})) == [{x: b, y: c}]
 
-test_basic()
+# test_basic()
 
 def test_ops():
     assert list(unify(C('Add', (a,b,c)), C('Add', (a,x,y)), {})) == \
@@ -44,59 +44,34 @@ def test_ops():
     assert list(unify(C('Add', (cmul, b,c)), C('Add', (x,y,c)), {})) == \
             [{x: cmul, y:b}]
 
-test_ops()
+# for i in range(1000):
+# test_ops()
 
-def test_associative():
-    c1 = C('Add', (1,2,3))
-    c2 = C('Add', (x,y))
-    result = list(unify(c1, c2, {}))
-    assert tuple(unify(c1, c2, {})) == ({x: 1, y: C('Add', (2, 3))},
-                                         {x: C('Add', (1, 2)), y: 3})
+def main(n):
+    C1 = C('And', [i for i in range(100)])
+    C2 = C('And', [Variable(i) for i in range(100)])
 
-def test_commutative():
-    c1 = C('CAdd', (1,2,3))
-    c2 = C('CAdd', (x,y))
-    result = list(unify(c1, c2, {}))
-    assert  {x: 1, y: C('CAdd', (2, 3))} in result
-    assert ({x: 2, y: C('CAdd', (1, 3))} in result or
-            {x: 2, y: C('CAdd', (3, 1))} in result)
+    for idx in range(n):
+        lst = []
+        for elem in core.unify(C1, C2, {}):
+            lst.append(elem)
 
-def _test_combinations_assoc():
-    assert set(allcombinations((1,2,3), (a,b), True)) == \
-        set(((((1, 2), (3,)), (a, b)), (((1,), (2, 3)), (a, b))))
+    return lst
 
-def _test_combinations_comm():
-    assert set(allcombinations((1,2,3), (a,b), None)) == \
-        set(((((1,), (2, 3)), ('a', 'b')), (((2,), (3, 1)), ('a', 'b')),
-             (((3,), (1, 2)), ('a', 'b')), (((1, 2), (3,)), ('a', 'b')),
-             (((2, 3), (1,)), ('a', 'b')), (((3, 1), (2,)), ('a', 'b'))))
+def measure():
+    print("Start timing...")
+    start = time.time()
+    lst = main(num)
+    duration = "%.3f\n" % (time.time() - start)
+    # print(lst)
+    print("sympy-unify: " + duration)
 
-def test_allcombinations():
-    assert set(allcombinations((1,2), (1,2), 'commutative')) ==\
-        set(((((1,),(2,)), ((1,),(2,))), (((1,),(2,)), ((2,),(1,)))))
+# warm up
+num = int(sys.argv[1]) # 10000
+for idx in range(50):
+    main(1000)
+
+measure()
 
 
-def test_commutativity():
-    c1 = Compound('CAdd', (a, b))
-    c2 = Compound('CAdd', (x, y))
-    assert is_commutative(c1) and is_commutative(c2)
-    assert len(list(unify(c1, c2, {}))) == 2
-
-
-def test_CondVariable():
-    expr = C('CAdd', (1, 2))
-    x = Variable('x')
-    y = CondVariable('y', lambda a: a % 2 == 0)
-    z = CondVariable('z', lambda a: a > 3)
-    pattern = C('CAdd', (x, y))
-    assert list(unify(expr, pattern, {})) == \
-            [{x: 1, y: 2}]
-
-    z = CondVariable('z', lambda a: a > 3)
-    pattern = C('CAdd', (z, y))
-
-    assert list(unify(expr, pattern, {})) == []
-
-def test_defaultdict():
-    assert next(unify(Variable('x'), 'foo')) == {Variable('x'): 'foo'}
 

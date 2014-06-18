@@ -1128,13 +1128,13 @@ public final class BuiltinFunctions extends PythonBuiltins {
         @Specialization
         @SuppressWarnings("unused")
         public Object type(String value) {
-            return getContext().getBuiltins().getAttribute("str");
+            return PString.__class__;
         }
 
         @Specialization
         @SuppressWarnings("unused")
         public Object type(PList value) {
-            return getContext().getBuiltins().getAttribute("list");
+            return PList.__class__;
         }
 
         @Specialization
