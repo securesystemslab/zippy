@@ -183,6 +183,7 @@ pythonBenchmarks = {
     'simplejson-bench': '10000',
     'whoosh-bench'    : '5000',
     'pymaging-bench'  : '5000',
+    'sympy-bench'     : '20000',
 }
 
 python2Benchmarks = {
@@ -209,6 +210,7 @@ python2Benchmarks = {
     'simplejson-bench': '10000',
     'whoosh-bench'    : '5000',
     'pymaging-bench'  : '5000',
+    'sympy-bench'     : '20000',
 }
 
 pythonGeneratorBenchmarks = {
