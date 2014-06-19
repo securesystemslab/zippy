@@ -34,7 +34,7 @@ public class PSlice {
 
     private int start;
     private int stop;
-    private int step;
+    private final int step;
 
     public PSlice(int start, int stop, int step) {
         this.start = start;
@@ -42,19 +42,19 @@ public class PSlice {
         this.step = step;
     }
 
-    public int getStart() {
+    public final int getStart() {
         return start;
     }
 
-    public int getStop() {
+    public final int getStop() {
         return stop;
     }
 
-    public int getStep() {
+    public final int getStep() {
         return step;
     }
 
-    public int computeActualIndices(int len) {
+    public final int computeActualIndices(int len) {
         int length;
 
         if (step == 0) {

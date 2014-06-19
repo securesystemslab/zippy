@@ -41,6 +41,7 @@ public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
         return SubscriptStoreSliceNodeFactory.create(getPrimary(), getSlice(), rhs);
     }
 
+    @ExplodeLoop
     @Specialization(order = 0)
     public String doString(String primary, PSlice slice) {
         final int length = slice.computeActualIndices(primary.length());
