@@ -805,7 +805,19 @@ void CompileBroker::compilation_init() {
 
 #if defined(COMPILERGRAAL)
   _compilers[1] = graal;
-  c2_count = UseGraalCompilationQueue ? 0 : FLAG_IS_DEFAULT(GraalThreads) ? c2_count : GraalThreads;
+  if (UseGraalCompilationQueue) {
+    c2_count = 0;
+  } else {
+    if (FLAG_IS_DEFAULT(GraalThreads)) {
+      if (!TieredCompilation && FLAG_IS_DEFAULT(BootstrapGraal) || BootstrapGraal) {
+        // Graal will bootstrap so give it the same number of threads
+        // as we would give the Java based compilation queue.
+        c2_count = os::active_processor_count();
+      }
+    } else {
+      c2_count = GraalThreads;
+    }
+  }
 #endif // COMPILERGRAAL
 
 #ifdef COMPILER2
