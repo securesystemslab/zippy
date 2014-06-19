@@ -342,10 +342,6 @@ public class NodeFactory {
         return new BooleanLiteralNode(value);
     }
 
-    public PNode createNoneLiteral() {
-        return new NoneLiteralNode();
-    }
-
     public PNode createObjectLiteral(Object obj) {
         return new ObjectLiteralNode(obj);
     }

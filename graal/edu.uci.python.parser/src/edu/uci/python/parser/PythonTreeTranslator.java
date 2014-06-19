@@ -787,13 +787,13 @@ public class PythonTreeTranslator extends Visitor {
         PNode upper = (PNode) (node.getInternalUpper() == null ? null : visit(node.getInternalUpper()));
         PNode step = (PNode) (node.getInternalStep() == null ? null : visit(node.getInternalStep()));
 
-        if (lower == null || lower instanceof NoneLiteralNode) {
+        if (lower == null || lower instanceof EmptyNode) {
             lower = factory.createIntegerLiteral(SequenceUtil.MISSING_INDEX);
         }
-        if (upper == null || upper instanceof NoneLiteralNode) {
+        if (upper == null || upper instanceof EmptyNode) {
             upper = factory.createIntegerLiteral(SequenceUtil.MISSING_INDEX);
         }
-        if (step == null || step instanceof NoneLiteralNode) {
+        if (step == null || step instanceof EmptyNode) {
             step = factory.createIntegerLiteral(1);
         }
 

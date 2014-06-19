@@ -31,9 +31,21 @@ import edu.uci.python.runtime.datatype.*;
 
 public abstract class SliceNode extends TernaryOpNode {
 
-    @Specialization
+    @Specialization(order = 1)
     public PSlice doPSlice(int start, int stop, int step) {
         return new PSlice(start, stop, step);
+    }
+
+    @SuppressWarnings("unused")
+    @Specialization(order = 2)
+    public PSlice doSlice(int start, PNone stop, PNone step) {
+        return new PSlice.PStartSlice(start);
+    }
+
+    @SuppressWarnings("unused")
+    @Specialization(order = 3)
+    public PSlice doSlice(PNone start, int stop, PNone step) {
+        return new PSlice.PStopSlice(stop);
     }
 
 }

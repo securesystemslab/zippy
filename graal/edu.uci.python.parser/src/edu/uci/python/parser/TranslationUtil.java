@@ -71,7 +71,7 @@ public class TranslationUtil {
         NodeFactory factory = NodeFactory.getInstance();
 
         if (name.equals("None")) {
-            return factory.createNoneLiteral();
+            return EmptyNode.create();
         } else if (name.equals("True")) {
             return factory.createBooleanLiteral(true);
         } else if (name.equals("False")) {
