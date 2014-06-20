@@ -40,47 +40,88 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class EqualNode extends BinaryComparisonNode {
 
-        @Specialization
+        @Specialization(order = 0)
+        boolean doBoolean(boolean left, boolean right) {
+            return left == right;
+        }
+
+        @Specialization(order = 5)
         boolean doInteger(int left, int right) {
             return left == right;
         }
 
-        @Specialization
+        @Specialization(order = 10)
         boolean doBigInteger(BigInteger left, BigInteger right) {
             return left.equals(right);
         }
 
-        @Specialization
+        @Specialization(order = 15)
         boolean doDouble(double left, double right) {
             return left == right;
         }
 
-        @Specialization
+        @Specialization(order = 20)
         boolean doComplex(PComplex left, PComplex right) {
             return left.equals(right);
         }
 
-        @Specialization
+        @Specialization(order = 21)
+        boolean doChar(char left, char right) {
+            return left == right;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 22)
+        boolean doIntString(int left, String right) {
+            return false;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 23)
+        boolean doIntString(String left, int right) {
+            return false;
+        }
+
+        @Specialization(order = 25)
         boolean doString(String left, String right) {
             return left.equals(right);
         }
 
-        @Specialization
+        @Specialization(order = 30)
+        boolean doPTuple(PTuple left, PTuple right) {
+            return left.equals(right);
+        }
+
+        @Specialization(order = 36, guards = "areBothIntStorage")
+        boolean doPListInt(PList left, PList right) {
+            IntSequenceStorage leftStore = (IntSequenceStorage) left.getStorage();
+            IntSequenceStorage rightStore = (IntSequenceStorage) right.getStorage();
+            return leftStore.equals(rightStore);
+        }
+
+        @Specialization(order = 37, guards = "areBothObjectStorage")
+        boolean doPListObject(PList left, PList right) {
+            ObjectSequenceStorage leftStore = (ObjectSequenceStorage) left.getStorage();
+            ObjectSequenceStorage rightStore = (ObjectSequenceStorage) right.getStorage();
+            return leftStore.equals(rightStore);
+        }
+
+        @Specialization(order = 40)
         boolean doPList(PList left, PList right) {
             return left.equals(right);
         }
 
-        @Specialization
+        @Specialization(order = 50)
         boolean doPDict(PDict left, PDict right) {
             return left.equals(right);
         }
 
-        @Specialization
+        @Specialization(order = 60)
         public boolean doPythonClass(PythonClass left, PythonClass right) {
             return left == right;
         }
 
-        @Specialization
+        @Specialization(order = 70)
         Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
             return doSpecialMethodCall(frame, "__eq__", left, right);
         }

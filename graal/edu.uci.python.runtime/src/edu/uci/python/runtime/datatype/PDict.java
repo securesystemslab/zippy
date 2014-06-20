@@ -25,6 +25,7 @@
 package edu.uci.python.runtime.datatype;
 
 import java.util.*;
+import java.util.Map.Entry;
 
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
@@ -122,8 +123,8 @@ public final class PDict extends PythonBuiltinObject implements PIterable {
         int length = map.size();
         int i = 0;
 
-        for (Object key : map.keySet()) {
-            buf.append(key.toString() + ": " + map.get(key));
+        for (Entry<?, ?> entry : map.entrySet()) {
+            buf.append(entry.getKey() + ": " + entry.getValue());
 
             if (i < length - 1) {
                 buf.append(", ");
