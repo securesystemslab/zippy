@@ -191,7 +191,7 @@ public final class FunctionRootNode extends RootNode {
         int callerNodeCount = getDeepNodeCount(this);
         int generatorNodeCount = getDeepNodeCount(genfun.getFunctionRootNode());
         inlinable &= generatorNodeCount < 330;
-        inlinable &= callerNodeCount < 20000;
+        inlinable &= callerNodeCount < 21000;
 
         if (callerNodeCount / generatorNodeCount < 5) {
             inlinable = true;
@@ -201,7 +201,7 @@ public final class FunctionRootNode extends RootNode {
             PrintStream ps = System.out;
 
             if (inlinable) {
-                ps.println("[ZipPy] decide to inline " + genfun.getCallTarget() + " in " + getRootNode());
+                ps.println("[ZipPy] decide to inline " + genfun.getCallTarget() + " in " + getRootNode() + " gen: " + generatorNodeCount + " caller: " + callerNodeCount);
             } else {
                 ps.println("[ZipPy] failed to inline " + genfun.getCallTarget() + " in " + getRootNode() + " gen: " + generatorNodeCount + " caller: " + callerNodeCount);
             }
