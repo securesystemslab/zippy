@@ -43,6 +43,8 @@ public class ProfilerResultPrinter {
 
     static List<PNode> nodesEmptySourceSections = new ArrayList<>();
 
+    private static PrintStream out = System.out;
+
     public static void addNodeEmptySourceSection(PNode node) {
         nodesEmptySourceSections.add(node);
     }
@@ -60,7 +62,6 @@ public class ProfilerResultPrinter {
          * to the beginning of the string, minus sign adds padding to the right
          */
 
-        PrintStream out = System.out;
         out.format("%-50s", "Node");
         out.format("%-20s", "Counter");
         out.format("%-9s", "Line");
@@ -97,7 +98,6 @@ public class ProfilerResultPrinter {
          * to the beginning of the string, minus sign adds padding to the right
          */
 
-        PrintStream out = System.out;
         out.format("%-50s", "Function Name");
         out.format("%-20s", "Number of Calls");
         out.format("%-9s", "Line");
@@ -133,7 +133,6 @@ public class ProfilerResultPrinter {
         Map<PythonWrapperNode, ProfilerInstrument> thens = PythonNodeProber.getThenWrapperToInstruments();
         Map<PythonWrapperNode, ProfilerInstrument> elses = PythonNodeProber.getElseWrapperToInstruments();
 
-        PrintStream out = System.out;
         out.format("%-20s", "If Counter");
         out.format("%15s", "Then Counter");
         out.format("%20s", "Else Counter");
@@ -188,10 +187,8 @@ public class ProfilerResultPrinter {
     }
 
     public static void printNodesEmptySourceSections() {
-        // CheckStyle: stop system..print check
         for (PNode node : nodesEmptySourceSections) {
-            System.out.println(node);
+            out.println(node);
         }
-        // CheckStyle: resume system..print check
     }
 }

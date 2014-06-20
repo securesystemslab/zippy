@@ -46,6 +46,25 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
     public abstract static class AddNode extends BinaryArithmeticNode {
 
+        @Specialization(order = 0)
+        int doBoolean(boolean left, boolean right) {
+            final int leftInt = left ? 1 : 0;
+            final int rightInt = right ? 1 : 0;
+            return leftInt + rightInt;
+        }
+
+        @Specialization(order = 1)
+        int doBoolean(int left, boolean right) {
+            final int rightInt = right ? 1 : 0;
+            return left + rightInt;
+        }
+
+        @Specialization(order = 2)
+        int doBoolean(boolean left, int right) {
+            final int leftInt = left ? 1 : 0;
+            return leftInt + right;
+        }
+
         @Specialization(rewriteOn = ArithmeticException.class, order = 5)
         int doInteger(int left, int right) {
             return ExactMath.addExact(left, right);
@@ -66,6 +85,18 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.add(right);
         }
 
+        @Specialization(order = 13)
+        double doDoubleBoolean(double left, boolean right) {
+            final double rightDouble = right ? 1.0 : 0.0;
+            return left + rightDouble;
+        }
+
+        @Specialization(order = 14)
+        double doDoubleBoolean(boolean left, double right) {
+            final double leftDouble = left ? 1.0 : 0.0;
+            return leftDouble + right;
+        }
+
         @Specialization(order = 15)
         double doDoubleInt(double left, int right) {
             return left + right;
@@ -82,6 +113,13 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization(order = 30)
+        PComplex doComplexInt(PComplex left, boolean right) {
+            final double rightDouble = right ? 1.0 : 0.0;
+            PComplex result = new PComplex(left.getReal() + rightDouble, left.getImag());
+            return result;
+        }
+
+        @Specialization(order = 32)
         PComplex doComplexInt(PComplex left, int right) {
             PComplex result = new PComplex(left.getReal() + right, left.getImag());
             return result;
