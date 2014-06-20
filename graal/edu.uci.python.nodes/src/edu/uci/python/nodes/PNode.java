@@ -36,6 +36,8 @@ import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.datatype.PSlice.PStartSlice;
+import edu.uci.python.runtime.datatype.PSlice.PStopSlice;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.object.*;
@@ -163,6 +165,14 @@ public abstract class PNode extends Node {
 
     public PZip executePZip(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPZip(execute(frame));
+    }
+
+    public PStartSlice executePStartSlice(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPStartSlice(execute(frame));
+    }
+
+    public PStopSlice executePStopSlice(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPStopSlice(execute(frame));
     }
 
     public PSlice executePSlice(VirtualFrame frame) throws UnexpectedResultException {
