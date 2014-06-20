@@ -505,14 +505,23 @@ def _installGraalJarInJdks(graalDist):
             jreLibDir = join(jdks, e, 'jre', 'lib')
             if exists(jreLibDir):
                 def install(srcJar, dstDir):
-                    # do a copy and then a move to get atomic updating (on Unix)
                     name = os.path.basename(srcJar)
-                    fd, tmp = tempfile.mkstemp(suffix='', prefix=name, dir=dstDir)
-                    shutil.copyfile(srcJar, tmp)
-                    os.close(fd)
                     dstJar = join(dstDir, name)
-                    shutil.move(tmp, dstJar)
-                    os.chmod(dstJar, JDK_UNIX_PERMISSIONS)
+                    if mx.get_env('SYMLINK_GRAAL_JAR', None) == 'true':
+                        # Using symlinks is much faster than copying but may
+                        # cause issues if graal.jar is being updated while
+                        # the VM is running.
+                        if not os.path.islink(dstJar) or not os.path.realpath(dstJar) == srcJar:
+                            if exists(dstJar):
+                                os.remove(dstJar)
+                            os.symlink(srcJar, dstJar)
+                    else:
+                        # do a copy and then a move to get atomic updating (on Unix)
+                        fd, tmp = tempfile.mkstemp(suffix='', prefix=name, dir=dstDir)
+                        shutil.copyfile(srcJar, tmp)
+                        os.close(fd)
+                        shutil.move(tmp, dstJar)
+                        os.chmod(dstJar, JDK_UNIX_PERMISSIONS)
 
                 install(graalJar, jreLibDir)
                 if graalDist.sourcesPath:
