@@ -205,6 +205,55 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
         }
     }
 
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
+    public static final class GeneratorGeneratorForNode extends GeneratorForNode {
+
+        public GeneratorGeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body, int iteratorSlot) {
+            super(target, getIterator, body, iteratorSlot);
+        }
+
+        protected PGenerator getPGenerator(VirtualFrame frame) {
+            return CompilerDirectives.unsafeCast(getIterator(frame), PGenerator.class, false);
+        }
+
+        @Override
+        protected void executeIterator(VirtualFrame frame) throws StopIterationException {
+            if (getIterator(frame) != null) {
+                return;
+            }
+
+            try {
+                setIterator(frame, getIterator.executePGenerator(frame));
+            } catch (UnexpectedResultException e) {
+                throw new RuntimeException();
+            }
+
+            target.executeWith(frame, getPGenerator(frame).__next__());
+            incrementCounter();
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            try {
+                executeIterator(frame);
+            } catch (StopIterationException e) {
+                return doReturn(frame);
+            }
+
+            try {
+                while (true) {
+                    body.executeVoid(frame);
+                    target.executeWith(frame, getPGenerator(frame).__next__());
+                    incrementCounter();
+                }
+            } catch (StopIterationException e) {
+
+            }
+
+            return doReturn(frame);
+        }
+    }
+
     @NodeInfo(cost = NodeCost.POLYMORPHIC)
     public static final class GenericGeneratorForNode extends GeneratorForNode {
 
@@ -255,6 +304,8 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
                 replace(new RangeGeneratorForNode(target, getIterator, body, this.getIteratorSlot()));
             } else if (iterator instanceof PSequenceIterator) {
                 replace(new SequenceGeneratorForNode(target, getIterator, body, this.getIteratorSlot()));
+            } else if (iterator instanceof PGenerator) {
+                replace(new GeneratorGeneratorForNode(target, getIterator, body, this.getIteratorSlot()));
             } else {
                 replace(new GenericGeneratorForNode(target, getIterator, body, this.getIteratorSlot()));
             }

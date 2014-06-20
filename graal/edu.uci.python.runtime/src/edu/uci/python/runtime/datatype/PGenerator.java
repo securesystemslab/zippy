@@ -31,7 +31,7 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 
-public class PGenerator implements PIterator {
+public final class PGenerator implements PIterator {
 
     protected final String name;
     protected final CallTarget callTarget;

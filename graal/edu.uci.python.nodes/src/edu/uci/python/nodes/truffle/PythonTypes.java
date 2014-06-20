@@ -70,6 +70,7 @@ import edu.uci.python.runtime.standardtype.*;
                 PStartSlice.class, //
                 PStopSlice.class, //
                 PSlice.class, //
+                PGenerator.class, //
                 PRangeIterator.class, //
                 PIntegerSequenceIterator.class, //
                 PSequenceIterator.class, //
