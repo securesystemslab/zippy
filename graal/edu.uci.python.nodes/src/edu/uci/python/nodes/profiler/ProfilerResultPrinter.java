@@ -31,7 +31,9 @@ import java.util.Map.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.function.*;
+import edu.uci.python.runtime.*;
 
 /**
  * @author Gulfem
@@ -45,8 +47,13 @@ public class ProfilerResultPrinter {
         nodesEmptySourceSections.add(node);
     }
 
-    public static void printProfilerInstrumenterResults() {
-        Map<PythonWrapperNode, ProfilerInstrument> sorted = sortByValue(PythonNodeProber.getWrapperToInstruments());
+    public static void printNodeProfilerResults() {
+        Map<PythonWrapperNode, ProfilerInstrument> nodes;
+        if (PythonOptions.SortProfilerResults) {
+            nodes = sortByValue(PythonNodeProber.getWrapperToInstruments());
+        } else {
+            nodes = PythonNodeProber.getWrapperToInstruments();
+        }
 
         /**
          * 50 is the length of the text by default padding left padding is added, so space is added
@@ -62,11 +69,9 @@ public class ProfilerResultPrinter {
         out.println();
         out.println("=============                                     ===============     ====     ======     ======");
 
-        @SuppressWarnings("rawtypes")
-        Iterator it = sorted.entrySet().iterator();
+        Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = nodes.entrySet().iterator();
         while (it.hasNext()) {
-            @SuppressWarnings("unchecked")
-            Entry<PythonWrapperNode, ProfilerInstrument> entry = (Entry<PythonWrapperNode, ProfilerInstrument>) it.next();
+            Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
             PythonWrapperNode wrapper = entry.getKey();
             ProfilerInstrument instrument = entry.getValue();
             Node child = wrapper.getChild();
@@ -79,8 +84,13 @@ public class ProfilerResultPrinter {
         }
     }
 
-    public static void printCallProfilerInstrumenterResults() {
-        Map<PythonWrapperNode, ProfilerInstrument> sorted = sortByValue(PythonNodeProber.getCallWrapperToInstruments());
+    public static void printCallProfilerResults() {
+        Map<PythonWrapperNode, ProfilerInstrument> calls;
+        if (PythonOptions.SortProfilerResults) {
+            calls = sortByValue(PythonNodeProber.getCallWrapperToInstruments());
+        } else {
+            calls = PythonNodeProber.getCallWrapperToInstruments();
+        }
 
         /**
          * 50 is the length of the text by default padding left padding is added, so space is added
@@ -94,13 +104,11 @@ public class ProfilerResultPrinter {
         out.format("%-11s", "Column");
         out.format("%-11s", "Length");
         out.println();
-        out.println("==============                                    ===============     ====     ======     ======");
+        out.println("===============                                    ===============     ====     ======     ======");
 
-        @SuppressWarnings("rawtypes")
-        Iterator it = sorted.entrySet().iterator();
+        Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = calls.entrySet().iterator();
         while (it.hasNext()) {
-            @SuppressWarnings("unchecked")
-            Entry<PythonWrapperNode, ProfilerInstrument> entry = (Entry<PythonWrapperNode, ProfilerInstrument>) it.next();
+            Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
             PythonWrapperNode wrapper = entry.getKey();
             ProfilerInstrument instrument = entry.getValue();
             Node child = wrapper.getChild();
@@ -110,6 +118,54 @@ public class ProfilerResultPrinter {
             out.format("%9s", child.getSourceSection().getStartLine());
             out.format("%11s", child.getSourceSection().getStartColumn());
             out.format("%11s", child.getSourceSection().getCharLength());
+            out.println();
+        }
+    }
+
+    public static void printIfProfilerResults() {
+        Map<PythonWrapperNode, ProfilerInstrument> conditions;
+        if (PythonOptions.SortProfilerResults) {
+            conditions = sortByValue(PythonNodeProber.getConditionWrapperToInstruments());
+        } else {
+            conditions = PythonNodeProber.getConditionWrapperToInstruments();
+        }
+
+        Map<PythonWrapperNode, ProfilerInstrument> thens = PythonNodeProber.getThenWrapperToInstruments();
+        Map<PythonWrapperNode, ProfilerInstrument> elses = PythonNodeProber.getElseWrapperToInstruments();
+
+        PrintStream out = System.out;
+        out.format("%-20s", "If Counter");
+        out.format("%15s", "Then Counter");
+        out.format("%20s", "Else Counter");
+        out.format("%9s", "Line");
+        out.format("%11s", "Column");
+        out.format("%11s", "Length");
+        out.println();
+        out.println("===========            ============        ============     ====     ======     ======");
+
+        Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = conditions.entrySet().iterator();
+        while (it.hasNext()) {
+            Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
+            PythonWrapperNode conditionWrapper = entry.getKey();
+            ProfilerInstrument conditionInstrument = entry.getValue();
+            IfNode ifNode = (IfNode) conditionWrapper.getParent().getParent();
+            PNode thenNode = ifNode.getThen();
+            PNode elseNode = ifNode.getElse();
+            ProfilerInstrument thenInstrument = thens.get(thenNode);
+
+            out.format("%11s", conditionInstrument.getCounter());
+            out.format("%24s", thenInstrument.getCounter());
+
+            if (!(ifNode.getElse() instanceof EmptyNode)) {
+                ProfilerInstrument elseInstrument = elses.get(elseNode);
+                out.format("%20s", elseInstrument.getCounter());
+            } else {
+                out.format("%20s", "-");
+            }
+
+            out.format("%9s", ifNode.getSourceSection().getStartLine());
+            out.format("%11s", ifNode.getSourceSection().getStartColumn());
+            out.format("%11s", ifNode.getSourceSection().getCharLength());
             out.println();
         }
     }

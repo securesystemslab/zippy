@@ -133,6 +133,28 @@ public class PythonTreeTranslator extends Visitor {
         return rootNode;
     }
 
+    public PNode assignSourceToBlockNode(PNode node, List<PNode> children) {
+        String identifier = "identifier";
+        PNode firstChild = children.get(0);
+        PNode lastChild = children.get(children.size() - 1);
+
+        try {
+            if (firstChild.getSourceSection() == null) {
+                throw new RuntimeException("Node " + node.getClass().getSimpleName() + "'s left node " + firstChild.getClass().getSimpleName() + "does not have a source section");
+            } else if (lastChild.getSourceSection() == null) {
+                throw new RuntimeException("Node " + node.getClass().getSimpleName() + "'s right node " + lastChild.getClass().getSimpleName() + "does not have a source section");
+            }
+            int charStartIndex = firstChild.getSourceSection().getCharIndex();
+            int charStopIndex = lastChild.getSourceSection().getCharEndIndex();
+            int charLength = charStopIndex - charStartIndex;
+            SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
+            node.assignSourceSection(sourceSection);
+            return node;
+        } catch (RuntimeException e) {
+            return node;
+        }
+    }
+
     @Override
     public Object visitModule(org.python.antlr.ast.Module node) throws Exception {
         environment.beginScope(node, ScopeInfo.ScopeKind.Module);
@@ -149,7 +171,6 @@ public class PythonTreeTranslator extends Visitor {
         for (int i = 0; i < stmts.size(); i++) {
             stmt statementObject = stmts.get(i);
             PNode statement = (PNode) visit(statementObject);
-
             // Statements like Global is ignored
             if (EmptyNode.isEmpty(statement)) {
                 continue;
@@ -919,12 +940,26 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitIf(If node) throws Exception {
-        List<PNode> then = visitStatements(node.getInternalBody());
+        List<stmt> thenStmt = node.getInternalBody();
+        List<PNode> then = visitStatements(thenStmt);
         List<PNode> orelse = visitStatements(node.getInternalOrelse());
         PNode test = (PNode) visit(node.getInternalTest());
         PNode thenPart = factory.createBlock(then);
+
+        if (thenPart instanceof EmptyNode) {
+            assignSourceFromNode(thenStmt.get(0), thenPart);
+        } else {
+            assignSourceToBlockNode(thenPart, then);
+        }
+
         PNode elsePart = factory.createBlock(orelse);
-        return assignSourceFromNode(node, factory.createIf(factory.toBooleanCastNode(test), thenPart, elsePart));
+        if (!(elsePart instanceof EmptyNode)) {
+            assignSourceToBlockNode(elsePart, orelse);
+        }
+
+        CastToBooleanNode castToBooleanNode = factory.toBooleanCastNode(test);
+        PNode ifNode = assignSourceFromNode(node, factory.createIf(castToBooleanNode, thenPart, elsePart));
+        return ifNode;
     }
 
     @Override
