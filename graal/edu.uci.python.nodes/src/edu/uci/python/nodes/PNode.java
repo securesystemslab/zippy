@@ -274,6 +274,10 @@ public abstract class PNode extends Node {
         return list.getStorage() instanceof IntSequenceStorage;
     }
 
+    protected static boolean areBothIntStorage(PList first, PList second) {
+        return first.getStorage() instanceof IntSequenceStorage && second.getStorage() instanceof IntSequenceStorage;
+    }
+
     protected static boolean isDoubleStorage(PList list) {
         return list.getStorage() instanceof DoubleSequenceStorage;
     }
@@ -288,6 +292,10 @@ public abstract class PNode extends Node {
 
     protected static boolean is2ndObjectStorage(@SuppressWarnings("unused") Object first, PList list) {
         return list.getStorage() instanceof ObjectSequenceStorage;
+    }
+
+    protected static boolean areBothObjectStorage(PList first, PList second) {
+        return first.getStorage() instanceof ObjectSequenceStorage && second.getStorage() instanceof ObjectSequenceStorage;
     }
 
     protected static boolean isObjectStorageIterator(PSequenceIterator iterator) {
