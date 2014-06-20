@@ -30,7 +30,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class PFloat extends PythonBuiltinObject {
 
-    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PFloat.class);
+    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PFloat.class);
 
     private final double value;
 

@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -25,17 +25,16 @@
 package edu.uci.python.runtime.datatype;
 
 import org.python.core.*;
+
+import com.oracle.truffle.api.*;
+
 import static edu.uci.python.runtime.sequence.SequenceUtil.*;
 
 public class PSlice {
 
     private int start;
     private int stop;
-    private int step;
-
-    public PSlice(int start, int stop) {
-        this(start, stop, 1);
-    }
+    private final int step;
 
     public PSlice(int start, int stop, int step) {
         this.start = start;
@@ -43,34 +42,23 @@ public class PSlice {
         this.step = step;
     }
 
-    public int getStart() {
+    public final int getStart() {
         return start;
     }
 
-    public void setStart(int start) {
-        this.start = start;
-    }
-
-    public int getStop() {
+    public final int getStop() {
         return stop;
     }
 
-    public void setStop(int stop) {
-        this.stop = stop;
-    }
-
-    public int getStep() {
+    public final int getStep() {
         return step;
     }
 
-    public void setStep(int step) {
-        this.step = step;
-    }
-
-    public int computeActualIndices(int len) {
+    public final int computeActualIndices(int len) {
         int length;
 
         if (step == 0) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
             throw Py.ValueError("slice step cannot be zero");
         }
 
@@ -136,4 +124,25 @@ public class PSlice {
 
         return ret;
     }
+
+    /**
+     * Stop is missing.
+     */
+    public static final class PStartSlice extends PSlice {
+
+        public PStartSlice(int start) {
+            super(start, MISSING_INDEX, 1);
+        }
+    }
+
+    /**
+     * Start is missing.
+     */
+    public static final class PStopSlice extends PSlice {
+
+        public PStopSlice(int stop) {
+            super(MISSING_INDEX, stop, 1);
+        }
+    }
+
 }

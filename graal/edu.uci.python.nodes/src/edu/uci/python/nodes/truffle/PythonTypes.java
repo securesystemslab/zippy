@@ -33,6 +33,8 @@ import com.oracle.truffle.api.dsl.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.datatype.PSlice.PStartSlice;
+import edu.uci.python.runtime.datatype.PSlice.PStopSlice;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.object.*;
@@ -65,6 +67,8 @@ import edu.uci.python.runtime.standardtype.*;
                 PBaseSet.class, //
                 PEnumerate.class, //
                 PZip.class, //
+                PStartSlice.class, //
+                PStopSlice.class, //
                 PSlice.class, //
                 PRangeIterator.class, //
                 PIntegerSequenceIterator.class, //

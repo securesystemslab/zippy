@@ -37,7 +37,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public final class PDict extends PythonBuiltinObject implements PIterable {
 
-    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PDict.class);
+    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PDict.class);
 
     private final Map<Object, Object> map;
 

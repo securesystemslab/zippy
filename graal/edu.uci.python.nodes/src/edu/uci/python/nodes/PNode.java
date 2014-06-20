@@ -36,6 +36,8 @@ import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.datatype.PSlice.PStartSlice;
+import edu.uci.python.runtime.datatype.PSlice.PStopSlice;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.object.*;
@@ -165,6 +167,14 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPZip(execute(frame));
     }
 
+    public PStartSlice executePStartSlice(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPStartSlice(execute(frame));
+    }
+
+    public PStopSlice executePStopSlice(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPStopSlice(execute(frame));
+    }
+
     public PSlice executePSlice(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPSlice(execute(frame));
     }
@@ -264,6 +274,10 @@ public abstract class PNode extends Node {
         return list.getStorage() instanceof IntSequenceStorage;
     }
 
+    protected static boolean areBothIntStorage(PList first, PList second) {
+        return first.getStorage() instanceof IntSequenceStorage && second.getStorage() instanceof IntSequenceStorage;
+    }
+
     protected static boolean isDoubleStorage(PList list) {
         return list.getStorage() instanceof DoubleSequenceStorage;
     }
@@ -278,6 +292,10 @@ public abstract class PNode extends Node {
 
     protected static boolean is2ndObjectStorage(@SuppressWarnings("unused") Object first, PList list) {
         return list.getStorage() instanceof ObjectSequenceStorage;
+    }
+
+    protected static boolean areBothObjectStorage(PList first, PList second) {
+        return first.getStorage() instanceof ObjectSequenceStorage && second.getStorage() instanceof ObjectSequenceStorage;
     }
 
     protected static boolean isObjectStorageIterator(PSequenceIterator iterator) {

@@ -109,7 +109,7 @@ public class SequenceStorageTests {
     }
 
     @Test
-    public void objectExtend() throws SequenceStoreException {
+    public void objectExtend() {
         ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
         ObjectSequenceStorage other = new ObjectSequenceStorage(getObjectValues());
         store.extend(other);

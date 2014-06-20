@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,22 +22,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.literal;
+package edu.uci.python.builtins.type;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import java.util.*;
 
-import edu.uci.python.runtime.datatype.*;
+import com.oracle.truffle.api.dsl.*;
 
-public final class NoneLiteralNode extends LiteralNode {
+import edu.uci.python.builtins.*;
+import edu.uci.python.nodes.function.*;
+import edu.uci.python.runtime.sequence.*;
+
+/**
+ * @author zwei
+ */
+public class TupleBuiltins extends PythonBuiltins {
 
     @Override
-    public boolean executeBoolean(VirtualFrame frame) {
-        return false;
+    protected List<? extends NodeFactory<? extends PythonBuiltinNode>> getNodeFactories() {
+        return TupleBuiltinsFactory.getFactories();
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return PNone.NONE;
+    // index(element)
+    @Builtin(name = "index", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    public abstract static class IndexNode extends PythonBuiltinNode {
+
+        @Specialization
+        int index(PTuple self, Object value) {
+            return self.index(value);
+        }
     }
 
 }

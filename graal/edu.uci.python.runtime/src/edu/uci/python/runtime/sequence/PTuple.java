@@ -26,12 +26,16 @@ package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
 public final class PTuple extends PImmutableSequence implements Comparable<Object> {
+
+    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PTuple.class);
 
     private final Object[] array;
 

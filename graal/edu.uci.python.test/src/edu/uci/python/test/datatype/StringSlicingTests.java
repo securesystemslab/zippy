@@ -28,7 +28,7 @@ import static edu.uci.python.test.PythonTests.*;
 
 import org.junit.*;
 
-public class StringSlicingTest {
+public class StringSlicingTests {
 
     @Test
     public void slice0() {

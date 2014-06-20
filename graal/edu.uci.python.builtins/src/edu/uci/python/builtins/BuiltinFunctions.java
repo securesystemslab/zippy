@@ -1103,26 +1103,14 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization
         @SuppressWarnings("unused")
-        public Object type(boolean value) {
-            return getContext().getBuiltins().getAttribute("bool");
-        }
-
-        @Specialization
-        @SuppressWarnings("unused")
         public Object type(int value) {
-            return getContext().getBuiltins().getAttribute("int");
+            return PInt.__class__;
         }
 
         @Specialization
         @SuppressWarnings("unused")
         public Object type(double value) {
-            return getContext().getBuiltins().getAttribute("float");
-        }
-
-        @Specialization
-        @SuppressWarnings("unused")
-        public Object type(PComplex value) {
-            return getContext().getBuiltins().getAttribute("complex");
+            return PFloat.__class__;
         }
 
         @Specialization
@@ -1140,25 +1128,19 @@ public final class BuiltinFunctions extends PythonBuiltins {
         @Specialization
         @SuppressWarnings("unused")
         public Object type(PTuple value) {
-            return getContext().getBuiltins().getAttribute("tuple");
+            return PTuple.__class__;
         }
 
         @Specialization
         @SuppressWarnings("unused")
         public Object type(PSet value) {
-            return getContext().getBuiltins().getAttribute("set");
-        }
-
-        @Specialization
-        @SuppressWarnings("unused")
-        public Object type(PRange value) {
-            return getContext().getBuiltins().getAttribute("range");
+            return PSet.__class__;
         }
 
         @Specialization
         @SuppressWarnings("unused")
         public Object type(PDict value) {
-            return getContext().getBuiltins().getAttribute("dict");
+            return PDict.__class__;
         }
 
         @Generic

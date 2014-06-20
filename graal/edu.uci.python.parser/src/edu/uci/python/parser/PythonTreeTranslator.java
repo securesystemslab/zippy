@@ -53,7 +53,6 @@ import edu.uci.python.nodes.subscript.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 import static edu.uci.python.parser.TranslationUtil.*;
 
@@ -804,20 +803,9 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitSlice(Slice node) throws Exception {
-        PNode lower = (PNode) (node.getInternalLower() == null ? null : visit(node.getInternalLower()));
-        PNode upper = (PNode) (node.getInternalUpper() == null ? null : visit(node.getInternalUpper()));
-        PNode step = (PNode) (node.getInternalStep() == null ? null : visit(node.getInternalStep()));
-
-        if (lower == null || lower instanceof NoneLiteralNode) {
-            lower = factory.createIntegerLiteral(SequenceUtil.MISSING_INDEX);
-        }
-        if (upper == null || upper instanceof NoneLiteralNode) {
-            upper = factory.createIntegerLiteral(SequenceUtil.MISSING_INDEX);
-        }
-        if (step == null || step instanceof NoneLiteralNode) {
-            step = factory.createIntegerLiteral(1);
-        }
-
+        PNode lower = (PNode) (node.getInternalLower() == null ? EmptyNode.create() : visit(node.getInternalLower()));
+        PNode upper = (PNode) (node.getInternalUpper() == null ? EmptyNode.create() : visit(node.getInternalUpper()));
+        PNode step = (PNode) (node.getInternalStep() == null ? EmptyNode.create() : visit(node.getInternalStep()));
         return assignSourceFromNode(node, factory.createSlice(lower, upper, step));
     }
 

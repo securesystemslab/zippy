@@ -31,6 +31,8 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.datatype.PSlice.PStartSlice;
+import edu.uci.python.runtime.datatype.PSlice.PStopSlice;
 import edu.uci.python.runtime.sequence.*;
 
 @NodeInfo(shortName = "subscript_load_slice")
@@ -41,6 +43,7 @@ public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
         return SubscriptStoreSliceNodeFactory.create(getPrimary(), getSlice(), rhs);
     }
 
+    @ExplodeLoop
     @Specialization(order = 0)
     public String doString(String primary, PSlice slice) {
         final int length = slice.computeActualIndices(primary.length());
@@ -74,7 +77,19 @@ public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
         return tuple.getSlice(slice);
     }
 
-    @Specialization(order = 6)
+    @Specialization(order = 11)
+    public Object doPRange(PRange range, PStartSlice slice) {
+        final int newStart = range.getStart() + slice.getStart();
+        return new PRange(newStart, range.getStop(), range.getStep());
+    }
+
+    @Specialization(order = 12)
+    public Object doPRange(PRange range, PStopSlice slice) {
+        final int newStop = Math.min(range.getStop(), range.getStart() + slice.getStop());
+        return new PRange(range.getStart(), newStop, range.getStep());
+    }
+
+    @Specialization(order = 15)
     public Object doPRange(PRange range, PSlice slice) {
         return range.getSlice(slice);
     }
@@ -82,7 +97,7 @@ public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
     /**
      * Unboxed array reads.
      */
-    @Specialization(order = 15)
+    @Specialization(order = 20)
     public Object doPArray(PArray primary, PSlice slice) {
         return primary.getSlice(slice);
     }

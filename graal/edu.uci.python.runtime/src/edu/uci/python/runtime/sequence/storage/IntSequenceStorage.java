@@ -253,6 +253,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         }
     }
 
+    @ExplodeLoop
     public void extendWithIntStorage(IntSequenceStorage other) {
         int extendedLength = length + other.length();
         ensureCapacity(extendedLength);
@@ -265,6 +266,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         length = extendedLength;
     }
 
+    @ExplodeLoop
     @Override
     public void reverse() {
         int head = 0;
@@ -278,6 +280,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         }
     }
 
+    @ExplodeLoop
     @Override
     public void sort() {
         int[] copy = Arrays.copyOf(values, length);
@@ -301,6 +304,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         return 0;
     }
 
+    @ExplodeLoop
     @Override
     public boolean equals(SequenceStorage other) {
         if (other.length() != length() || !(other instanceof IntSequenceStorage)) {

@@ -40,6 +40,7 @@ import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.misc.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
@@ -113,7 +114,23 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left + right;
         }
 
-        @Specialization(order = 70)
+        @Specialization(order = 70, guards = "areBothIntStorage")
+        PList doPListInt(PList left, PList right) {
+            IntSequenceStorage leftStore = (IntSequenceStorage) left.getStorage().copy();
+            IntSequenceStorage rightStore = (IntSequenceStorage) right.getStorage();
+            leftStore.extendWithIntStorage(rightStore);
+            return new PList(leftStore);
+        }
+
+        @Specialization(order = 71, guards = "areBothObjectStorage")
+        PList doPListObject(PList left, PList right) {
+            ObjectSequenceStorage leftStore = (ObjectSequenceStorage) left.getStorage().copy();
+            ObjectSequenceStorage rightStore = (ObjectSequenceStorage) right.getStorage();
+            leftStore.extend(rightStore);
+            return new PList(leftStore);
+        }
+
+        @Specialization(order = 73)
         PList doPList(PList left, PList right) {
             return left.__add__(right);
         }
