@@ -35,7 +35,7 @@ import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 
-public class GeneratorForNode extends LoopNode implements GeneratorControlNode {
+public abstract class GeneratorForNode extends LoopNode implements GeneratorControlNode {
 
     @Child protected WriteGeneratorFrameVariableNode target;
     @Child protected GetIteratorNode getIterator;
@@ -105,20 +105,7 @@ public class GeneratorForNode extends LoopNode implements GeneratorControlNode {
         return doReturn(frame);
     }
 
-    protected void executeIterator(VirtualFrame frame) throws StopIterationException {
-        if (getIterator(frame) != null) {
-            return;
-        }
-
-        try {
-            setIterator(frame, getIterator.executePIterator(frame));
-        } catch (UnexpectedResultException e) {
-            throw new RuntimeException();
-        }
-
-        target.executeWith(frame, getIterator(frame).__next__());
-        incrementCounter();
-    }
+    protected abstract void executeIterator(VirtualFrame frame) throws StopIterationException;
 
     public static final class RangeGeneratorForNode extends GeneratorForNode {
 
@@ -127,7 +114,7 @@ public class GeneratorForNode extends LoopNode implements GeneratorControlNode {
         }
 
         protected PRangeIterator getPRangeIterator(VirtualFrame frame) {
-            return (PRangeIterator) getIterator(frame);
+            return CompilerDirectives.unsafeCast(getIterator(frame), PRangeIterator.class, false);
         }
 
         @Override
@@ -172,6 +159,22 @@ public class GeneratorForNode extends LoopNode implements GeneratorControlNode {
 
         public GenericGeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body, int iteratorSlot) {
             super(target, getIterator, body, iteratorSlot);
+        }
+
+        @Override
+        protected void executeIterator(VirtualFrame frame) throws StopIterationException {
+            if (getIterator(frame) != null) {
+                return;
+            }
+
+            try {
+                setIterator(frame, getIterator.executePIterator(frame));
+            } catch (UnexpectedResultException e) {
+                throw new RuntimeException();
+            }
+
+            target.executeWith(frame, getIterator(frame).__next__());
+            incrementCounter();
         }
     }
 
