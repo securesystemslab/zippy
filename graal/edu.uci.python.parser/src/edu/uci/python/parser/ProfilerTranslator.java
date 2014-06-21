@@ -64,22 +64,26 @@ public class ProfilerTranslator implements NodeVisitor {
             if (node instanceof IfNode) {
                 IfNode ifNode = (IfNode) node;
                 /**
-                 * If node has a condition node which is a castToBooleanNode. CastToBooleanNode has
-                 * a child which is the actual condition. So be careful while profiling if nodes. Do
-                 * not profile if nodes and condition nodes together, because prober increments
-                 * counter twice for the same node.
+                 * 1) If node has a condition node which is a castToBooleanNode. CastToBooleanNode
+                 * has a child which is the actual condition. So be careful while profiling if
+                 * nodes. Do not profile if nodes and condition nodes together, because prober
+                 * increments counter twice for the same node. <br>
+                 * 2) If nodes in a comprehension does not yet have a source section, so such if
+                 * nodes are not profiled.
                  */
-                CastToBooleanNode castToBooleanNode = ifNode.getCondition();
-                PNode conditionNode = castToBooleanNode.getOperand();
-                createConditionNodeWrapper(conditionNode);
-                PNode thenNode = ifNode.getThen();
-                PNode elseNode = ifNode.getElse();
-                createThenNodeWrapper(thenNode);
-                /**
-                 * Only create a wrapper node if an else exists.
-                 */
-                if (!(elseNode instanceof EmptyNode)) {
-                    createElseNodeWrapper(elseNode);
+                if (hasSourceSection(ifNode)) {
+                    CastToBooleanNode castToBooleanNode = ifNode.getCondition();
+                    PNode conditionNode = castToBooleanNode.getOperand();
+                    createConditionNodeWrapper(conditionNode);
+                    PNode thenNode = ifNode.getThen();
+                    PNode elseNode = ifNode.getElse();
+                    createThenNodeWrapper(thenNode);
+                    /**
+                     * Only create a wrapper node if an else exists.
+                     */
+                    if (!(elseNode instanceof EmptyNode)) {
+                        createElseNodeWrapper(elseNode);
+                    }
                 }
             }
         } else if (PythonOptions.ProfileNodes) {
@@ -193,7 +197,6 @@ public class ProfilerTranslator implements NodeVisitor {
     private static boolean hasSourceSection(PNode node) {
         if (node.getSourceSection() == null) {
             ProfilerResultPrinter.addNodeEmptySourceSection(node);
-            System.out.println("EMPTY SOURCE SECTION " + node + " root " + node.getSourceSection());
             return false;
         }
 

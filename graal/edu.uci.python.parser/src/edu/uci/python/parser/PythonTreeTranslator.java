@@ -138,20 +138,37 @@ public class PythonTreeTranslator extends Visitor {
         PNode firstChild = children.get(0);
         PNode lastChild = children.get(children.size() - 1);
 
-        try {
-            if (firstChild.getSourceSection() == null) {
-                throw new RuntimeException("Node " + node.getClass().getSimpleName() + "'s left node " + firstChild.getClass().getSimpleName() + "does not have a source section");
-            } else if (lastChild.getSourceSection() == null) {
-                throw new RuntimeException("Node " + node.getClass().getSimpleName() + "'s right node " + lastChild.getClass().getSimpleName() + "does not have a source section");
+        /**
+         * If a block has only one statement, then the source section of the block is assigned from
+         * its only statement.
+         */
+
+        if (children.size() == 1) {
+            try {
+                if (firstChild.getSourceSection() == null) {
+                    throw new RuntimeException("Node " + node.getClass().getSimpleName() + "'s left node " + firstChild.getClass().getSimpleName() + " does not have a source section");
+                }
+                node.assignSourceSection(firstChild.getSourceSection());
+            } catch (RuntimeException e) {
+                return node;
             }
-            int charStartIndex = firstChild.getSourceSection().getCharIndex();
-            int charStopIndex = lastChild.getSourceSection().getCharEndIndex();
-            int charLength = charStopIndex - charStartIndex;
-            SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
-            node.assignSourceSection(sourceSection);
             return node;
-        } catch (RuntimeException e) {
-            return node;
+        } else {
+            try {
+                if (firstChild.getSourceSection() == null) {
+                    throw new RuntimeException("Node " + node.getClass().getSimpleName() + "'s left node " + firstChild.getClass().getSimpleName() + " does not have a source section");
+                } else if (lastChild.getSourceSection() == null) {
+                    throw new RuntimeException("Node " + node.getClass().getSimpleName() + "'s right node " + lastChild.getClass().getSimpleName() + " does not have a source section");
+                }
+                int charStartIndex = firstChild.getSourceSection().getCharIndex();
+                int charStopIndex = lastChild.getSourceSection().getCharEndIndex();
+                int charLength = charStopIndex - charStartIndex;
+                SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
+                node.assignSourceSection(sourceSection);
+                return node;
+            } catch (RuntimeException e) {
+                return node;
+            }
         }
     }
 
@@ -218,6 +235,7 @@ public class PythonTreeTranslator extends Visitor {
 
     private Object visitFunctionDefinition(FunctionDef node) throws Exception {
         String name = node.getInternalName();
+        Name nameNode = node.getInternalNameNode();
         String enclosingClassName = environment.isInClassScope() ? environment.getCurrentScopeId() : null;
 
         /**
@@ -272,9 +290,7 @@ public class PythonTreeTranslator extends Visitor {
         }
         environment.endScope(node);
         PNode functionNameWriteNode = environment.findVariable(name).makeWriteNode(funcDef);
-        return assignSourceFromNode(node, functionNameWriteNode);
-
-        // return environment.findVariable(name).makeWriteNode(funcDef);
+        return assignSourceFromNode(nameNode, functionNameWriteNode);
     }
 
     @Override
@@ -518,14 +534,22 @@ public class PythonTreeTranslator extends Visitor {
         PythonModule relativeto = this.module;
 
         String importName = aliaz.getInternalName();
+
         if (importName.equals("*")) {
             return createSingleImportStarStatement(relativeto, fromModuleName);
         }
 
         String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
+        Name importNameNode = aliaz.getInternalAsnameNode();
         PNode importNode = factory.createImportFrom(context, relativeto, fromModuleName, importName);
         ReadNode read = environment.findVariable(target);
-        return read.makeWriteNode(importNode);
+        PNode writeNode = read.makeWriteNode(importNode);
+
+        if (importNameNode != null) {
+            assignSourceFromNode(importNameNode, writeNode);
+        }
+
+        return writeNode;
     }
 
     private PNode createSingleImportStarStatement(PythonModule relativeto, String fromModuleName) {
@@ -578,6 +602,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitClassDef(ClassDef node) throws Exception {
         String name = node.getInternalName();
+        Name nameNode = node.getInternalNameNode();
         List<PNode> bases = walkExprList(node.getInternalBases());
         assert bases.size() <= 1 : "Multiple super class is not supported yet!";
 
@@ -599,7 +624,8 @@ public class PythonTreeTranslator extends Visitor {
 
         PNode classDef = factory.createClassDef(context, this.module.getModuleName(), name, baseNodes, funcDef);
         ReadNode read = environment.findVariable(name);
-        return read.makeWriteNode(classDef);
+        PNode writeNode = read.makeWriteNode(classDef);
+        return assignSourceFromNode(nameNode, writeNode);
     }
 
     @Override
@@ -865,7 +891,8 @@ public class PythonTreeTranslator extends Visitor {
 
             List<expr> conditions = comp.getInternalIfs();
             if (conditions != null && !conditions.isEmpty()) {
-                current = factory.createIf(factory.toBooleanCastNode((PNode) visit(conditions.get(0))), current, EmptyNode.create());
+                PNode condition = (PNode) visit(conditions.get(0));
+                current = factory.createIf(factory.toBooleanCastNode(condition), current, EmptyNode.create());
             }
 
             PNode iterWrite;
@@ -898,7 +925,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode body = factory.createYield((PNode) visit(node.getInternalElt()), environment.getReturnSlot());
         body = visitComprehensions(node.getInternalGenerators(), factory.createBlock(body));
         body = new ReturnTargetNode(body, factory.createReadLocal(environment.getReturnSlot()));
-        int lineNum = node.getLine() - 1;
+        int lineNum = node.getLine();
         GeneratorExpressionNode genExprDef = createGeneratorExpressionDefinition((StatementNode) body, lineNum);
         genExprDef.setEnclosingFrameDescriptor(environment.getEnclosingFrame());
         environment.endScope(node);
@@ -947,9 +974,9 @@ public class PythonTreeTranslator extends Visitor {
         PNode thenPart = factory.createBlock(then);
 
         if (thenPart instanceof EmptyNode) {
-            assignSourceFromNode(thenStmt.get(0), thenPart);
+            thenPart = assignSourceFromNode(thenStmt.get(0), thenPart);
         } else {
-            assignSourceToBlockNode(thenPart, then);
+            thenPart = assignSourceToBlockNode(thenPart, then);
         }
 
         PNode elsePart = factory.createBlock(orelse);
@@ -958,7 +985,13 @@ public class PythonTreeTranslator extends Visitor {
         }
 
         CastToBooleanNode castToBooleanNode = factory.toBooleanCastNode(test);
-        PNode ifNode = assignSourceFromNode(node, factory.createIf(castToBooleanNode, thenPart, elsePart));
+        PNode ifNode = factory.createIf(castToBooleanNode, thenPart, elsePart);
+        if (!(elsePart instanceof EmptyNode)) {
+            assignSourceFromChildren(ifNode, test, elsePart);
+        } else {
+            assignSourceFromChildren(ifNode, test, thenPart);
+        }
+
         return ifNode;
     }
 
@@ -1091,7 +1124,7 @@ public class PythonTreeTranslator extends Visitor {
         environment.setToGeneratorScope();
         expr value = node.getInternalValue();
         PNode right = value != null ? (PNode) visit(value) : EmptyNode.create();
-        return factory.createYield(right, environment.getReturnSlot());
+        return assignSourceFromNode(node, factory.createYield(right, environment.getReturnSlot()));
     }
 
     @Override
