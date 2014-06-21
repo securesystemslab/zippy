@@ -32,9 +32,9 @@ import static edu.uci.python.runtime.sequence.SequenceUtil.*;
 
 public class PSlice {
 
-    private int start;
-    private int stop;
-    private final int step;
+    protected int start;
+    protected int stop;
+    protected final int step;
 
     public PSlice(int start, int stop, int step) {
         this.start = start;
@@ -54,7 +54,7 @@ public class PSlice {
         return step;
     }
 
-    public final int computeActualIndices(int len) {
+    public int computeActualIndices(int len) {
         int length;
 
         if (step == 0) {
@@ -133,6 +133,34 @@ public class PSlice {
         public PStartSlice(int start) {
             super(start, MISSING_INDEX, 1);
         }
+
+        @Override
+        public int computeActualIndices(int len) {
+
+            if (start < 0) {
+                start += len;
+            }
+            if (start < 0) {
+                start = 0;
+            }
+            if (start >= len) {
+                start = len;
+            }
+
+            stop = len;
+
+            if (stop < start) {
+                stop = start;
+            }
+
+            int length = (stop - start + step - 1) / step;
+
+            if (length < 0) {
+                length = 0;
+            }
+
+            return length;
+        }
     }
 
     /**
@@ -142,6 +170,33 @@ public class PSlice {
 
         public PStopSlice(int stop) {
             super(MISSING_INDEX, stop, 1);
+        }
+
+        @Override
+        public int computeActualIndices(int len) {
+            start = 0;
+
+            if (stop < 0) {
+                stop += len;
+            }
+            if (stop < 0) {
+                stop = -1;
+            }
+            if (stop > len) {
+                stop = len;
+            }
+
+            if (stop < start) {
+                stop = start;
+            }
+
+            int length = (stop - start + step - 1) / step;
+
+            if (length < 0) {
+                length = 0;
+            }
+
+            return length;
         }
     }
 

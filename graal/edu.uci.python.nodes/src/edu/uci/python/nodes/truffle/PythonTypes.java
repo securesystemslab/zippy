@@ -70,6 +70,7 @@ import edu.uci.python.runtime.standardtype.*;
                 PStartSlice.class, //
                 PStopSlice.class, //
                 PSlice.class, //
+                PGenerator.class, //
                 PRangeIterator.class, //
                 PIntegerSequenceIterator.class, //
                 PSequenceIterator.class, //
@@ -88,7 +89,6 @@ public class PythonTypes {
     /**
      * Type coercion: Python bool to Python int (Integer).
      */
-    @ImplicitCast
     public int booleanToInt(boolean value) {
         return value ? 1 : 0;
     }

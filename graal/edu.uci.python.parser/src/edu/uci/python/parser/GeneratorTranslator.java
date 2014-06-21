@@ -209,7 +209,7 @@ public class GeneratorTranslator {
             ForNode forNode = (ForNode) node;
             WriteGeneratorFrameVariableNode target = (WriteGeneratorFrameVariableNode) forNode.getTarget();
             GetIteratorNode getIter = (GetIteratorNode) forNode.getIterator();
-            node.replace(new GeneratorForNode(target, getIter, forNode.getBody(), nextGeneratorForNodeSlot()));
+            node.replace(GeneratorForNode.create(target, getIter, forNode.getBody(), nextGeneratorForNodeSlot()));
         } else if (node instanceof BlockNode) {
             BlockNode block = (BlockNode) node;
             int slotOfBlockIndex = nextGeneratorBlockIndexSlot();

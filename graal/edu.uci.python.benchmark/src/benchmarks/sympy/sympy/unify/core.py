@@ -199,11 +199,11 @@ def allcombinations(A, B, ordered):
     sm, bg = (A, B) if len(A) < len(B) else (B, A)
     for part in kbins(range(len(bg)), len(sm), None):
         if bg == B:
-            yield tuple((a,) for a in A), partition(B, part)
+            yield list((a,) for a in A), core_partition(B, part)
         else:
-            yield partition(A, part), tuple((b,) for b in B)
+            yield core_partition(A, part), list((b,) for b in B)
 
-def partition(it, part):
+def core_partition(it, part):
     """ Partition a tuple/list into pieces defined by indices
 
     >>> from sympy.unify.core import partition

@@ -35,7 +35,7 @@ def test_basic():
     assert list(unify((y, z), (x, x), {}))!= []
     assert list(unify((a, (b, c)), (a, (x, y)), {})) == [{x: b, y: c}]
 
-test_basic()
+# test_basic()
 
 def test_ops():
     assert list(unify(C('Add', (a,b,c)), C('Add', (a,x,y)), {})) == \
@@ -45,7 +45,7 @@ def test_ops():
             [{x: cmul, y:b}]
 
 
-test_ops()
+# test_ops()
 
 def main(n):
     C1 = C('Add', [i for i in range(8)])

@@ -2045,12 +2045,12 @@ def kbins(l, k, ordered=None):
     """
 
     if ordered is None:
-        for p in partition(l, k):
+        for p in iter_partition(l, k):
             yield p
     elif ordered == 11:
         for pl in multiset_permutations(l):
             pl = list(pl)
-            for p in partition(pl, k):
+            for p in iter_partition(pl, k):
                 yield p
     elif ordered == 00:
         for p in multiset_partitions(l, k):
@@ -2077,7 +2077,7 @@ def kbins(l, k, ordered=None):
         raise ValueError(
             'ordered must be one of 00, 01, 10 or 11, not %s' % ordered)
 
-def partition(lista, bins):
+def iter_partition(lista, bins):
     #  EnricoGiampieri's partition generator from
     #  http://stackoverflow.com/questions/13131491/
     #  partition-n-items-into-k-bins-in-python-lazily
@@ -2085,6 +2085,6 @@ def partition(lista, bins):
         yield [lista]
     elif len(lista) > 1 and bins > 1:
         for i in range(1, len(lista)):
-            for part in partition(lista[i:], bins - 1):
+            for part in iter_partition(lista[i:], bins - 1):
                 if len([lista[:i]] + part) == bins:
                     yield [lista[:i]] + part
