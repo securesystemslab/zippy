@@ -68,29 +68,31 @@ public class InputEdge {
     private final int from;
     private final int to;
     private final String label;
+    private final String type;
     private State state;
 
     public InputEdge(char toIndex, int from, int to) {
-        this((char) 0, toIndex, from, to, null);
+        this((char) 0, toIndex, from, to, null, null);
     }
 
     public InputEdge(char fromIndex, char toIndex, int from, int to) {
-        this(fromIndex, toIndex, from, to, null);
+        this(fromIndex, toIndex, from, to, null, null);
     }
 
-    public InputEdge(char fromIndex, char toIndex, int from, int to, String label) {
+    public InputEdge(char fromIndex, char toIndex, int from, int to, String label, String type) {
         this.toIndex = toIndex;
         this.fromIndex = fromIndex;
         this.from = from;
         this.to = to;
         this.state = State.SAME;
         this.label = label;
+        this.type = type;
     }
 
     static WeakHashMap<InputEdge, WeakReference<InputEdge>> immutableCache = new WeakHashMap<>();
 
-    public static synchronized InputEdge createImmutable(char fromIndex, char toIndex, int from, int to, String label) {
-        InputEdge edge = new InputEdge(fromIndex, toIndex, from, to, label, State.IMMUTABLE);
+    public static synchronized InputEdge createImmutable(char fromIndex, char toIndex, int from, int to, String label, String type) {
+        InputEdge edge = new InputEdge(fromIndex, toIndex, from, to, label, type, State.IMMUTABLE);
         WeakReference<InputEdge> result = immutableCache.get(edge);
         if (result != null) {
             InputEdge edge2 = result.get();
@@ -102,13 +104,14 @@ public class InputEdge {
         return edge;
     }
 
-    public InputEdge(char fromIndex, char toIndex, int from, int to, String label, State state) {
+    public InputEdge(char fromIndex, char toIndex, int from, int to, String label, String type, State state) {
         this.toIndex = toIndex;
         this.fromIndex = fromIndex;
         this.from = from;
         this.to = to;
         this.state = state;
         this.label = label;
+        this.type = type;
     }
 
     public State getState() {
@@ -144,6 +147,10 @@ public class InputEdge {
 
     public String getLabel() {
         return label;
+    }
+    
+    public String getType() {
+        return type;
     }
 
     @Override

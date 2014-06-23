@@ -55,11 +55,13 @@ public class Connection implements Source.Provider, Link {
     private ConnectionStyle style;
     private List<Point> controlPoints;
     private String label;
+    private String type;
 
-    protected Connection(InputSlot inputSlot, OutputSlot outputSlot, String label) {
+    protected Connection(InputSlot inputSlot, OutputSlot outputSlot, String label, String type) {
         this.inputSlot = inputSlot;
         this.outputSlot = outputSlot;
         this.label = label;
+        this.type = type;
         this.inputSlot.connections.add(this);
         this.outputSlot.connections.add(this);
         controlPoints = new ArrayList<>();
@@ -105,6 +107,10 @@ public class Connection implements Source.Provider, Link {
     public String getLabel() {
         return label;
     }
+    
+    public String getType() {
+        return type;
+    }
 
     public void remove() {
         inputSlot.getFigure().removePredecessor(outputSlot.getFigure());
@@ -116,10 +122,12 @@ public class Connection implements Source.Provider, Link {
     public String getToolTipText() {
         StringBuilder builder = new StringBuilder();
         if (label != null) {
-            builder.append(label).append(": from ");
-        } else {
-            builder.append("From ");
+            builder.append(label).append(": ");
         }
+        if (type != null) {
+            builder.append(type).append(" ");
+        }
+        builder.append("from ");
         builder.append(getOutputSlot().getFigure().getSource().getSourceNodes().get(0).getId());
         builder.append(" to ");
         builder.append(getInputSlot().getFigure().getSource().getSourceNodes().get(0).getId());

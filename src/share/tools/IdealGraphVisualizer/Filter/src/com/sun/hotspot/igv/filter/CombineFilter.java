@@ -97,7 +97,7 @@ public class CombineFilter extends AbstractFilter {
 
                         for (InputSlot s : f.getInputSlots()) {
                             for (Connection c : s.getConnections()) {
-                                Connection newConn = diagram.createConnection(slot, c.getOutputSlot(), c.getLabel());
+                                Connection newConn = diagram.createConnection(slot, c.getOutputSlot(), c.getLabel(), c.getType());
                                 newConn.setColor(c.getColor());
                                 newConn.setStyle(c.getStyle());
                             }
@@ -154,7 +154,7 @@ public class CombineFilter extends AbstractFilter {
                                     }
                                 }
                                 for (Connection c : nextSlot.getConnections()) {
-                                    Connection newConn = diagram.createConnection(c.getInputSlot(), slot, c.getLabel());
+                                    Connection newConn = diagram.createConnection(c.getInputSlot(), slot, c.getLabel(), c.getType());
                                     newConn.setColor(c.getColor());
                                     newConn.setStyle(c.getStyle());
                                 }

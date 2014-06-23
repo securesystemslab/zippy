@@ -82,10 +82,10 @@ public class Diagram {
         return f;
     }
 
-    public Connection createConnection(InputSlot inputSlot, OutputSlot outputSlot, String label) {
+    public Connection createConnection(InputSlot inputSlot, OutputSlot outputSlot, String label, String type) {
         assert inputSlot.getFigure().getDiagram() == this;
         assert outputSlot.getFigure().getDiagram() == this;
-        return new Connection(inputSlot, outputSlot, label);
+        return new Connection(inputSlot, outputSlot, label, type);
     }
     
     public Map<InputNode, Set<Figure>> calcSourceToFigureRelation() {
@@ -145,7 +145,7 @@ public class Diagram {
             }
             InputSlot inputSlot = toFigure.getInputSlots().get(toIndex);
 
-            Connection c = d.createConnection(inputSlot, outputSlot, e.getLabel());
+            Connection c = d.createConnection(inputSlot, outputSlot, e.getLabel(), e.getType());
 
             if (e.getState() == InputEdge.State.NEW) {
                 c.setStyle(Connection.ConnectionStyle.BOLD);
