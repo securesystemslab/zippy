@@ -90,7 +90,7 @@ public abstract class FrameSlotNode extends PNode {
     }
 
     protected final boolean isIntegerKind() {
-        return isKind(FrameSlotKind.Int) || booleanToInt();
+        return isKind(FrameSlotKind.Int) || setToKind(FrameSlotKind.Int);
     }
 
     protected final boolean isDoubleKind() {
@@ -129,8 +129,8 @@ public abstract class FrameSlotNode extends PNode {
         return false;
     }
 
-    private boolean noneToKind(FrameSlotKind kind) {
-        if (frameSlot.getKind() == FrameSlotKind.None) {
+    private boolean setToKind(FrameSlotKind kind) {
+        if (frameSlot.getKind() != kind) {
             CompilerDirectives.transferToInterpreter();
             frameSlot.setKind(kind);
             return true;
@@ -138,10 +138,10 @@ public abstract class FrameSlotNode extends PNode {
         return false;
     }
 
-    private boolean booleanToInt() {
-        if (frameSlot.getKind() == FrameSlotKind.Boolean) {
+    private boolean noneToKind(FrameSlotKind kind) {
+        if (frameSlot.getKind() == FrameSlotKind.None) {
             CompilerDirectives.transferToInterpreter();
-            frameSlot.setKind(FrameSlotKind.Int);
+            frameSlot.setKind(kind);
             return true;
         }
         return false;
