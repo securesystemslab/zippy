@@ -1211,6 +1211,13 @@ void CompileBroker::compile_method_base(methodHandle method,
     // Should this thread wait for completion of the compile?
     blocking = is_compile_blocking(method, osr_bci);
 
+#ifdef COMPILERGRAAL
+    // Don't allow blocking compiles for requests triggered by Graal.
+    if (blocking && thread->is_Compiler_thread()) {
+      blocking = false;
+    }
+#endif
+
     // We will enter the compilation in the queue.
     // 14012000: Note that this sets the queued_for_compile bits in
     // the target method. We can now reason that a method cannot be
