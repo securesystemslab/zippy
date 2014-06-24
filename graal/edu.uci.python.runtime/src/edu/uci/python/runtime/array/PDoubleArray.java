@@ -160,12 +160,13 @@ public final class PDoubleArray extends PArray {
 
     @Override
     public String toString() {
-        StringBuilder buf = new StringBuilder("(");
+        StringBuilder buf = new StringBuilder();
+        buf.append("array('d', [");
         for (int i = 0; i < array.length - 1; i++) {
-            buf.append(array[i] + " ");
+            buf.append(array[i] + ", ");
         }
         buf.append(array[array.length - 1]);
-        buf.append(")");
+        buf.append("])");
         return buf.toString();
     }
 }

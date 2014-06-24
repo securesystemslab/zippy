@@ -83,7 +83,8 @@ public final class PIntArray extends PArray {
     }
 
     public int getIntItemInBound(int idx) {
-        return ObjectLayoutUtil.readIntArrayUnsafeAt(array, idx, null);
+        return array[idx];
+        // return ObjectLayoutUtil.readIntArrayUnsafeAt(array, idx, null);
     }
 
     @Override
@@ -159,13 +160,13 @@ public final class PIntArray extends PArray {
 
     @Override
     public String toString() {
-        StringBuilder buf = new StringBuilder("(");
+        StringBuilder buf = new StringBuilder();
+        buf.append("array('i', [");
         for (int i = 0; i < array.length - 1; i++) {
-            buf.append(array[i] + " ");
+            buf.append(array[i] + ", ");
         }
         buf.append(array[array.length - 1]);
-        buf.append(")");
+        buf.append("])");
         return buf.toString();
     }
-
 }
