@@ -1868,6 +1868,20 @@ def sl(args):
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
 
+def jol(args):
+    """Java Object Layout"""
+    jolurl = "http://lafo.ssw.uni-linz.ac.at/truffle/jol/jol-internals.jar"
+    joljar = "lib/jol-internals.jar"
+    if not exists(joljar):
+        mx.download(joljar, [jolurl])
+
+    candidates = mx.findclass(args, logToConsole=False, matcher=lambda s, classname: s == classname or classname.endswith('.' + s) or classname.endswith('$' + s))
+    if len(candidates) > 10:
+        print "Found %d candidates. Please be more precise." % (len(candidates))
+        return
+
+    vm(['-javaagent:' + joljar, '-cp', os.pathsep.join([mx.classpath(), joljar]), "org.openjdk.jol.MainObjectInternals"] + candidates)
+
 def site(args):
     """create a website containing javadoc and the project dependency graph"""
 
@@ -2094,7 +2108,8 @@ def mx_init(suite):
         'vmfg': [vmfg, '[-options] class [args...]'],
         'deoptalot' : [deoptalot, '[n]'],
         'longtests' : [longtests, ''],
-        'sl' : [sl, '[SL args|@VM options]']
+        'sl' : [sl, '[SL args|@VM options]'],
+        'jol' : [jol, ''],
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])

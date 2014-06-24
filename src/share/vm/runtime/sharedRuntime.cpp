@@ -886,7 +886,7 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
             // If there's no PcDesc then we'll die way down inside of
             // deopt instead of just getting normal error reporting,
             // so only go there if it will succeed.
-            target_pc = deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_null_check);
+            return deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_null_check);
           } else {
 #endif
           target_pc = nm->continuation_for_implicit_exception(pc);
@@ -910,7 +910,7 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 #endif
 #ifdef GRAAL
         if (nm->is_compiled_by_graal() && nm->pc_desc_at(pc) != NULL) {
-          target_pc = deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_div0_check);
+          return deoptimize_for_implicit_exception(thread, pc, nm, Deoptimization::Reason_div0_check);
         } else {
 #endif
         target_pc = nm->continuation_for_implicit_exception(pc);
@@ -928,11 +928,17 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
 
     assert(exception_kind == IMPLICIT_NULL || exception_kind == IMPLICIT_DIVIDE_BY_ZERO, "wrong implicit exception kind");
 
-    // for AbortVMOnException flag
-    NOT_PRODUCT(Exceptions::debug_check_abort("java.lang.NullPointerException"));
     if (exception_kind == IMPLICIT_NULL) {
+#ifndef PRODUCT
+      // for AbortVMOnException flag
+      Exceptions::debug_check_abort("java.lang.NullPointerException");
+#endif //PRODUCT
       Events::log_exception(thread, "Implicit null exception at " INTPTR_FORMAT " to " INTPTR_FORMAT, pc, target_pc);
     } else {
+#ifndef PRODUCT
+      // for AbortVMOnException flag
+      Exceptions::debug_check_abort("java.lang.ArithmeticException");
+#endif //PRODUCT
       Events::log_exception(thread, "Implicit division by zero exception at " INTPTR_FORMAT " to " INTPTR_FORMAT, pc, target_pc);
     }
     return target_pc;

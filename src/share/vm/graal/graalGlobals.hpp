@@ -52,6 +52,9 @@
   COMPILERGRAAL_PRESENT(product(bool, BootstrapGraal, true,                 \
           "Bootstrap Graal before running Java main method"))               \
                                                                             \
+  COMPILERGRAAL_PRESENT(product(bool, PrintBootstrap, true,                 \
+          "Print Graal bootstrap progress and summary"))                    \
+                                                                            \
   COMPILERGRAAL_PRESENT(product(intx, GraalThreads, 1,                      \
           "Force number of Graal compiler threads to use"))                 \
                                                                             \

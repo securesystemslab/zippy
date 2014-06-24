@@ -125,7 +125,9 @@ void GraalCompiler::bootstrap() {
   if (!UseGraalCompilationQueue) {
     ResourceMark rm;
     HandleMark hm;
-    tty->print("Bootstrapping Graal");
+    if (PrintBootstrap) {
+      tty->print("Bootstrapping Graal");
+    }
     jlong start = os::javaTimeMillis();
 
     Array<Method*>* objectMethods = InstanceKlass::cast(SystemDictionary::Object_klass())->methods();
@@ -147,14 +149,17 @@ void GraalCompiler::bootstrap() {
       os::sleep(THREAD, sleep_time, true);
       sleep_time = 100;
       qsize = CompileBroker::queue_size(CompLevel_full_optimization);
-      while (z < (_compiled / 100)) {
+      if (PrintBootstrap) {
+        while (z < (_compiled / 100)) {
           ++z;
           tty->print_raw(".");
+        }
       }
-
     } while (qsize != 0);
 
-    tty->print_cr(" in %d ms (compiled %d methods)", os::javaTimeMillis() - start, _compiled);
+    if (PrintBootstrap) {
+      tty->print_cr(" in %d ms (compiled %d methods)", os::javaTimeMillis() - start, _compiled);
+    }
   } else {
 
     TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/CompilationQueue", THREAD);
