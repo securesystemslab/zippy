@@ -143,7 +143,6 @@ public class PythonTypes {
         return new PComplex(value.doubleValue(), 0);
     }
 
-    @ImplicitCast
     public PComplex doubleToPComplex(double value) {
         return new PComplex(value, 0);
     }
