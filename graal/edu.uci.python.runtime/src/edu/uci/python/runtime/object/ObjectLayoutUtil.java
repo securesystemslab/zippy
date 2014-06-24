@@ -90,8 +90,6 @@ public class ObjectLayoutUtil {
 
     public static final int readIntArrayUnsafeAt(int[] array, int index, Object locationIdentity) {
         return CompilerDirectives.unsafeGetInt(array, Unsafe.ARRAY_INT_BASE_OFFSET + Unsafe.ARRAY_INT_INDEX_SCALE * index, true, locationIdentity);
-        // return CompilerDirectives.unsafeGetInt(getPrimitiveLocals(), (long) slot.getIndex() *
-// Unsafe.ARRAY_LONG_INDEX_SCALE + Unsafe.ARRAY_LONG_BASE_OFFSET, true, slot);
     }
 
     public static final void writeIntArrayUnsafeAt(int[] array, int index, int value, Object locationIdentity) {
