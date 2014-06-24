@@ -152,20 +152,22 @@ public class ProfilerResultPrinter {
             PNode elseNode = ifNode.getElse();
             ProfilerInstrument thenInstrument = thens.get(thenNode);
 
-            out.format("%11s", conditionInstrument.getCounter());
-            out.format("%24s", thenInstrument.getCounter());
+            if (conditionInstrument.getCounter() > 0) {
+                out.format("%11s", conditionInstrument.getCounter());
+                out.format("%24s", thenInstrument.getCounter());
 
-            if (!(ifNode.getElse() instanceof EmptyNode)) {
-                ProfilerInstrument elseInstrument = elses.get(elseNode);
-                out.format("%20s", elseInstrument.getCounter());
-            } else {
-                out.format("%20s", "-");
+                if (!(ifNode.getElse() instanceof EmptyNode)) {
+                    ProfilerInstrument elseInstrument = elses.get(elseNode);
+                    out.format("%20s", elseInstrument.getCounter());
+                } else {
+                    out.format("%20s", "-");
+                }
+
+                out.format("%9s", ifNode.getSourceSection().getStartLine());
+                out.format("%11s", ifNode.getSourceSection().getStartColumn());
+                out.format("%11s", ifNode.getSourceSection().getCharLength());
+                out.println();
             }
-
-            out.format("%9s", ifNode.getSourceSection().getStartLine());
-            out.format("%11s", ifNode.getSourceSection().getStartColumn());
-            out.format("%11s", ifNode.getSourceSection().getCharLength());
-            out.println();
         }
     }
 
