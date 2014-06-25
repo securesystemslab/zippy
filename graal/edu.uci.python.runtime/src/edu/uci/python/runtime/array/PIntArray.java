@@ -26,10 +26,11 @@ package edu.uci.python.runtime.array;
 
 import java.util.*;
 
+import org.python.core.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 
 public final class PIntArray extends PArray {
@@ -79,22 +80,38 @@ public final class PIntArray extends PArray {
 
     @Override
     public Object getItem(int idx) {
-        return getIntItemInBound(idx);
+        return getIntItemBoundCheck(idx);
+    }
+
+    public int getIntItemBoundCheck(int idx) {
+        int index = SequenceUtil.normalizeIndex(idx, array.length);
+        if (index < array.length) {
+            return getIntItemInBound(index);
+        } else {
+            throw Py.IndexError("array index out of range");
+        }
     }
 
     public int getIntItemInBound(int idx) {
         return array[idx];
-        // return ObjectLayoutUtil.readIntArrayUnsafeAt(array, idx, null);
     }
 
     @Override
     public void setItem(int idx, Object value) {
-        int index = SequenceUtil.normalizeIndex(idx, array.length);
-        setIntItemInBound(index, (int) value);
+        setIntItemBoundCheck(idx, (int) value);
+    }
+
+    public void setIntItemBoundCheck(int idx, int value) {
+        final int index = SequenceUtil.normalizeIndex(idx, array.length);
+        if (index < array.length) {
+            setIntItemInBound(index, value);
+        } else {
+            throw Py.IndexError("array assignment index out of range");
+        }
     }
 
     public void setIntItemInBound(int idx, int value) {
-        ObjectLayoutUtil.writeIntArrayUnsafeAt(array, idx, value, null);
+        array[idx] = value;
     }
 
     @Override

@@ -27,6 +27,8 @@ package edu.uci.python.runtime.sequence.storage;
 import java.io.*;
 import java.util.*;
 
+import org.python.core.*;
+
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.*;
@@ -89,6 +91,15 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     @Override
     public Object getItemInBound(int idx) {
         return getIntItemInBound(idx);
+    }
+
+    public int getIntItemBoundCheck(int idx) {
+        int index = SequenceUtil.normalizeIndex(idx, values.length);
+        if (index < values.length) {
+            return getIntItemInBound(index);
+        } else {
+            throw Py.IndexError("list index out of range");
+        }
     }
 
     public int getIntItemInBound(int idx) {
