@@ -24,10 +24,6 @@
  */
 package edu.uci.python.runtime.sequence;
 
-import org.python.core.*;
-
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
-
 public class SequenceUtil {
 
     public static final int MISSING_INDEX = Integer.MIN_VALUE;
@@ -94,11 +90,6 @@ public class SequenceUtil {
         } else {
             return index;
         }
-    }
-
-    @SlowPath
-    public static char throwIndexError(String message) {
-        throw Py.IndexError(message);
     }
 
 }

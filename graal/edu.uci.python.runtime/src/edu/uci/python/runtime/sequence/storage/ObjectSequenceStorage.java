@@ -49,24 +49,6 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
         return values[idx];
     }
 
-    public Object getItemBoundCheck(int idx) {
-        int index = SequenceUtil.normalizeIndex(idx, length);
-        if (index < length) {
-            return getItemInBound(index);
-        } else {
-            return SequenceUtil.throwIndexError("list index out of range");
-        }
-    }
-
-    public void setItemBoundCheck(int idx, Object value) {
-        int index = SequenceUtil.normalizeIndex(idx, length);
-        if (index < length) {
-            setItemInBound(index, value);
-        } else {
-            SequenceUtil.throwIndexError("list assignment index out of range");
-        }
-    }
-
     @Override
     public void setItemInBound(int idx, Object value) {
         values[idx] = value;

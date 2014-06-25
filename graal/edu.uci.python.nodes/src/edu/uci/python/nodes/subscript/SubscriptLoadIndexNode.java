@@ -61,36 +61,39 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     }
 
     @Specialization(order = 1, guards = "isIntStorage")
-    public int doPListInt(PList primary, int index) {
+    public int doPListInt(PList primary, int idx) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
-        return store.getIntItemBoundCheck(index);
+        int index = SequenceUtil.normalizeIndex(idx, store.length());
+        return store.getIntItemInBound(index);
     }
 
     @Specialization(order = 2, guards = "isDoubleStorage")
-    public double doPListDouble(PList primary, int index) {
+    public double doPListDouble(PList primary, int idx) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
-        return store.getDoubleItemBoundCheck(index);
+        int index = SequenceUtil.normalizeIndex(idx, store.length());
+        return store.getDoubleItemInBound(index);
     }
 
     @Specialization(order = 3, guards = "isObjectStorage")
-    public Object doPListObject(PList primary, int index) {
+    public Object doPListObject(PList primary, int idx) {
         final ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
-        return store.getItemBoundCheck(index);
+        int index = SequenceUtil.normalizeIndex(idx, store.length());
+        return store.getItemInBound(index);
     }
 
     @Specialization(order = 5)
-    public Object doPList(PList list, int index) {
-        return list.getItem(index);
+    public Object doPList(PList list, int idx) {
+        return list.getItem(idx);
     }
 
     @Specialization(order = 7)
-    public Object doPTuple(PTuple tuple, int index) {
-        return tuple.getItem(index);
+    public Object doPTuple(PTuple tuple, int idx) {
+        return tuple.getItem(idx);
     }
 
     @Specialization(order = 10)
-    public Object doPRange(PRange primary, int index) {
-        return primary.getItem(index);
+    public Object doPRange(PRange primary, int idx) {
+        return primary.getItem(idx);
     }
 
     /**

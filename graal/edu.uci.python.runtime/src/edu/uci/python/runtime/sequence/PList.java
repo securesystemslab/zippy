@@ -93,7 +93,7 @@ public class PList extends PSequence {
         if (index < store.length()) {
             return store.getItemInBound(index);
         } else {
-            return SequenceUtil.throwIndexError("list index out of range");
+            throw Py.IndexError("list index out of range");
         }
     }
 
@@ -113,7 +113,7 @@ public class PList extends PSequence {
                 }
             }
         } else {
-            SequenceUtil.throwIndexError("list assignment index out of range");
+            throw Py.IndexError("list assignment index out of range");
         }
     }
 

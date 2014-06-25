@@ -87,15 +87,6 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
         return getDoubleItemInBound(idx);
     }
 
-    public double getDoubleItemBoundCheck(int idx) {
-        int index = SequenceUtil.normalizeIndex(idx, length);
-        if (index < length) {
-            return getDoubleItemInBound(index);
-        } else {
-            return SequenceUtil.throwIndexError("list index out of range");
-        }
-    }
-
     public double getDoubleItemInBound(int idx) {
         return values[idx];
     }
@@ -106,15 +97,6 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
             setDoubleItemInBound(idx, (double) value);
         } else {
             throw SequenceStoreException.INSTANCE;
-        }
-    }
-
-    public void setDoubleItemBoundCheck(int idx, double value) {
-        int index = SequenceUtil.normalizeIndex(idx, length);
-        if (index < length) {
-            setDoubleItemInBound(index, value);
-        } else {
-            SequenceUtil.throwIndexError("list assignment index out of range");
         }
     }
 

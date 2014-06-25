@@ -91,15 +91,6 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         return getIntItemInBound(idx);
     }
 
-    public int getIntItemBoundCheck(int idx) {
-        int index = SequenceUtil.normalizeIndex(idx, length);
-        if (index < length) {
-            return getIntItemInBound(index);
-        } else {
-            return SequenceUtil.throwIndexError("list index out of range");
-        }
-    }
-
     public int getIntItemInBound(int idx) {
         return values[idx];
     }
@@ -110,15 +101,6 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
             setIntItemInBound(idx, (int) value);
         } else {
             throw SequenceStoreException.INSTANCE;
-        }
-    }
-
-    public void setIntItemBoundCheck(int idx, int value) {
-        int index = SequenceUtil.normalizeIndex(idx, length);
-        if (index < length) {
-            setIntItemInBound(index, value);
-        } else {
-            SequenceUtil.throwIndexError("list assignment index out of range");
         }
     }
 

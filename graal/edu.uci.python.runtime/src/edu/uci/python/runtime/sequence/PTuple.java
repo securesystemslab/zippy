@@ -78,8 +78,13 @@ public final class PTuple extends PImmutableSequence implements Comparable<Objec
 
     @Override
     public Object getItem(int idx) {
-        int index = SequenceUtil.normalizeIndex(idx, array.length);
-        return array[index];
+        int checkedIdx = idx;
+
+        if (idx < 0) {
+            checkedIdx += array.length;
+        }
+
+        return array[checkedIdx];
     }
 
     @Override

@@ -40,16 +40,18 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
     }
 
     @Specialization(order = 1, guards = "isIntStorage")
-    public Object doPListInt(PList primary, int index, int value) {
+    public Object doPListInt(PList primary, int idx, int value) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
-        store.setIntItemBoundCheck(index, value);
+        final int index = SequenceUtil.normalizeIndex(idx, store.length());
+        store.setIntItemInBound(index, value);
         return PNone.NONE;
     }
 
     @Specialization(order = 2, guards = "isDoubleStorage")
-    public Object doPListDouble(PList primary, int index, double value) {
+    public Object doPListDouble(PList primary, int idx, double value) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
-        store.setDoubleItemBoundCheck(index, value);
+        final int index = SequenceUtil.normalizeIndex(idx, store.length());
+        store.setDoubleItemInBound(index, value);
         return PNone.NONE;
     }
 
@@ -73,19 +75,19 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
      */
     @Specialization(order = 10)
     public Object doPArrayInt(PIntArray primary, int index, int value) {
-        primary.setIntItemBoundCheck(index, value);
+        primary.setIntItemInBound(index, value);
         return PNone.NONE;
     }
 
     @Specialization(order = 11)
     public double doPArrayDouble(PDoubleArray primary, int index, double value) {
-        primary.setDoubleItemBoundCheck(index, value);
+        primary.setDoubleItemInBound(index, value);
         return 0;
     }
 
     @Specialization(order = 12)
     public char doPArrayChar(PCharArray primary, int index, char value) {
-        primary.setCharItemBoundCheck(index, value);
+        primary.setCharItemInBound(index, value);
         return 0;
     }
 
