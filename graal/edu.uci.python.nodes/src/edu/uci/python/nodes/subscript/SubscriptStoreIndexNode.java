@@ -40,16 +40,16 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
     }
 
     @Specialization(order = 1, guards = "isIntStorage")
-    public Object doPListInt(PList primary, int idx, int value) {
+    public Object doPListInt(PList primary, int index, int value) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
-        store.setIntItemBoundCheck(idx, value);
+        store.setIntItemBoundCheck(index, value);
         return PNone.NONE;
     }
 
     @Specialization(order = 2, guards = "isDoubleStorage")
-    public Object doPListDouble(PList primary, int idx, double value) {
+    public Object doPListDouble(PList primary, int index, double value) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
-        store.setDoubleItemInBound(idx, value);
+        store.setDoubleItemBoundCheck(index, value);
         return PNone.NONE;
     }
 
@@ -72,20 +72,20 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
      * Unboxed array stores.
      */
     @Specialization(order = 10)
-    public Object doPArrayInt(PIntArray primary, int idx, int value) {
-        primary.setIntItemBoundCheck(idx, value);
+    public Object doPArrayInt(PIntArray primary, int index, int value) {
+        primary.setIntItemBoundCheck(index, value);
         return PNone.NONE;
     }
 
     @Specialization(order = 11)
-    public double doPArrayDouble(PDoubleArray primary, int idx, double value) {
-        primary.setDoubleItemBoundCheck(idx, value);
+    public double doPArrayDouble(PDoubleArray primary, int index, double value) {
+        primary.setDoubleItemBoundCheck(index, value);
         return 0;
     }
 
     @Specialization(order = 12)
-    public char doPArrayChar(PCharArray primary, int idx, char value) {
-        primary.setCharItemBoundCheck(idx, value);
+    public char doPArrayChar(PCharArray primary, int index, char value) {
+        primary.setCharItemBoundCheck(index, value);
         return 0;
     }
 

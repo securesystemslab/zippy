@@ -79,18 +79,18 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     }
 
     @Specialization(order = 5)
-    public Object doPList(PList list, int idx) {
-        return list.getItem(idx);
+    public Object doPList(PList list, int index) {
+        return list.getItem(index);
     }
 
     @Specialization(order = 7)
-    public Object doPTuple(PTuple tuple, int idx) {
-        return tuple.getItem(idx);
+    public Object doPTuple(PTuple tuple, int index) {
+        return tuple.getItem(index);
     }
 
     @Specialization(order = 10)
-    public Object doPRange(PRange primary, int idx) {
-        return primary.getItem(idx);
+    public Object doPRange(PRange primary, int index) {
+        return primary.getItem(index);
     }
 
     /**
@@ -107,18 +107,18 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
      * Unboxed array reads.
      */
     @Specialization(order = 12)
-    public int doPIntArray(PIntArray primary, int idx) {
-        return primary.getIntItemBoundCheck(idx);
+    public int doPIntArray(PIntArray primary, int index) {
+        return primary.getIntItemInBound(index);
     }
 
     @Specialization(order = 13)
-    public double doPDoubleArray(PDoubleArray primary, int idx) {
-        return primary.getDoubleItemBoundCheck(idx);
+    public double doPDoubleArray(PDoubleArray primary, int index) {
+        return primary.getDoubleItemInBound(index);
     }
 
     @Specialization(order = 14)
-    public char doPCharArray(PCharArray primary, int idx) {
-        return primary.getCharItemBoundCheck(idx);
+    public char doPCharArray(PCharArray primary, int index) {
+        return primary.getCharItemInBound(index);
     }
 
     @Specialization(order = 15)
