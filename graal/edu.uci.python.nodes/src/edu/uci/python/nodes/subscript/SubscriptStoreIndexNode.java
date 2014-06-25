@@ -24,8 +24,6 @@
  */
 package edu.uci.python.nodes.subscript;
 
-import org.python.core.*;
-
 import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.*;
@@ -45,12 +43,7 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
     public Object doPListInt(PList primary, int idx, int value) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
         final int index = SequenceUtil.normalizeIndex(idx, store.length());
-        if (index < primary.len()) {
-            store.setIntItemInBound(index, value);
-        } else {
-            throw Py.IndexError("list assignment index out of range");
-        }
-
+        store.setIntItemInBound(index, value);
         return PNone.NONE;
     }
 
@@ -58,12 +51,7 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
     public Object doPListDouble(PList primary, int idx, double value) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
         final int index = SequenceUtil.normalizeIndex(idx, store.length());
-        if (index < primary.len()) {
-            store.setDoubleItemInBound(index, value);
-        } else {
-            throw Py.IndexError("list assignment index out of range");
-        }
-
+        store.setDoubleItemInBound(index, value);
         return PNone.NONE;
     }
 
@@ -86,20 +74,20 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
      * Unboxed array stores.
      */
     @Specialization(order = 10)
-    public Object doPArrayInt(PIntArray primary, int idx, int value) {
-        primary.setIntItemBoundCheck(idx, value);
+    public Object doPArrayInt(PIntArray primary, int index, int value) {
+        primary.setIntItemInBound(index, value);
         return PNone.NONE;
     }
 
     @Specialization(order = 11)
-    public double doPArrayDouble(PDoubleArray primary, int idx, double value) {
-        primary.setDoubleItemBoundCheck(idx, value);
+    public double doPArrayDouble(PDoubleArray primary, int index, double value) {
+        primary.setDoubleItemInBound(index, value);
         return 0;
     }
 
     @Specialization(order = 12)
-    public char doPArrayChar(PCharArray primary, int idx, char value) {
-        primary.setCharItemBoundCheck(idx, value);
+    public char doPArrayChar(PCharArray primary, int index, char value) {
+        primary.setCharItemInBound(index, value);
         return 0;
     }
 

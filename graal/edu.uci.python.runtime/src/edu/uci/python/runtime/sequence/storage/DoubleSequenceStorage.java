@@ -26,8 +26,6 @@ package edu.uci.python.runtime.sequence.storage;
 
 import java.util.*;
 
-import org.python.core.*;
-
 import edu.uci.python.runtime.sequence.*;
 
 public final class DoubleSequenceStorage extends BasicSequenceStorage {
@@ -87,15 +85,6 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
     @Override
     public Object getItemInBound(int idx) {
         return getDoubleItemInBound(idx);
-    }
-
-    public double getDoubleItemBoundCheck(int idx) {
-        int index = SequenceUtil.normalizeIndex(idx, values.length);
-        if (index < values.length) {
-            return getDoubleItemInBound(index);
-        } else {
-            throw Py.IndexError("list index out of range");
-        }
     }
 
     public double getDoubleItemInBound(int idx) {

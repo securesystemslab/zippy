@@ -61,21 +61,24 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     }
 
     @Specialization(order = 1, guards = "isIntStorage")
-    public int doPListInt(PList primary, int index) {
+    public int doPListInt(PList primary, int idx) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
-        return store.getIntItemBoundCheck(index);
+        int index = SequenceUtil.normalizeIndex(idx, store.length());
+        return store.getIntItemInBound(index);
     }
 
     @Specialization(order = 2, guards = "isDoubleStorage")
-    public double doPListDouble(PList primary, int index) {
+    public double doPListDouble(PList primary, int idx) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
-        return store.getDoubleItemBoundCheck(index);
+        int index = SequenceUtil.normalizeIndex(idx, store.length());
+        return store.getDoubleItemInBound(index);
     }
 
     @Specialization(order = 3, guards = "isObjectStorage")
-    public Object doPListObject(PList primary, int index) {
+    public Object doPListObject(PList primary, int idx) {
         final ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
-        return store.getItemBoundCheck(index);
+        int index = SequenceUtil.normalizeIndex(idx, store.length());
+        return store.getItemInBound(index);
     }
 
     @Specialization(order = 5)
@@ -107,18 +110,18 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
      * Unboxed array reads.
      */
     @Specialization(order = 12)
-    public int doPIntArray(PIntArray primary, int idx) {
-        return primary.getIntItemBoundCheck(idx);
+    public int doPIntArray(PIntArray primary, int index) {
+        return primary.getIntItemInBound(index);
     }
 
     @Specialization(order = 13)
-    public double doPDoubleArray(PDoubleArray primary, int idx) {
-        return primary.getDoubleItemBoundCheck(idx);
+    public double doPDoubleArray(PDoubleArray primary, int index) {
+        return primary.getDoubleItemInBound(index);
     }
 
     @Specialization(order = 14)
-    public char doPCharArray(PCharArray primary, int idx) {
-        return primary.getCharItemBoundCheck(idx);
+    public char doPCharArray(PCharArray primary, int index) {
+        return primary.getCharItemInBound(index);
     }
 
     @Specialization(order = 15)
