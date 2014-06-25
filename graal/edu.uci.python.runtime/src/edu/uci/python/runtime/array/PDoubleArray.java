@@ -80,6 +80,10 @@ public final class PDoubleArray extends PArray {
 
     @Override
     public Object getItem(int idx) {
+        return getDoubleItemBoundCheck(idx);
+    }
+
+    public double getDoubleItemBoundCheck(int idx) {
         int index = SequenceUtil.normalizeIndex(idx, array.length);
         if (index < array.length) {
             return getDoubleItemInBound(index);
@@ -94,9 +98,13 @@ public final class PDoubleArray extends PArray {
 
     @Override
     public void setItem(int idx, Object value) {
-        int index = SequenceUtil.normalizeIndex(idx, array.length);
+        setDoubleItemBoundCheck(idx, (double) value);
+    }
+
+    public void setDoubleItemBoundCheck(int idx, double value) {
+        final int index = SequenceUtil.normalizeIndex(idx, array.length);
         if (index < array.length) {
-            setDoubleItemInBound(index, (double) value);
+            setDoubleItemInBound(index, value);
         } else {
             throw Py.IndexError("array assignment index out of range");
         }

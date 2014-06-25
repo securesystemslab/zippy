@@ -69,6 +69,10 @@ public final class PCharArray extends PArray {
 
     @Override
     public Object getItem(int idx) {
+        return getCharItemBoundCheck(idx);
+    }
+
+    public char getCharItemBoundCheck(int idx) {
         int index = SequenceUtil.normalizeIndex(idx, array.length);
         if (index < array.length) {
             return getCharItemInBound(index);
@@ -83,9 +87,13 @@ public final class PCharArray extends PArray {
 
     @Override
     public void setItem(int idx, Object value) {
-        int index = SequenceUtil.normalizeIndex(idx, array.length);
+        setCharItemBoundCheck(idx, (char) value);
+    }
+
+    public void setCharItemBoundCheck(int idx, char value) {
+        final int index = SequenceUtil.normalizeIndex(idx, array.length);
         if (index < array.length) {
-            setCharItemInBound(index, (char) value);
+            setCharItemInBound(index, value);
         } else {
             throw Py.IndexError("array assignment index out of range");
         }
