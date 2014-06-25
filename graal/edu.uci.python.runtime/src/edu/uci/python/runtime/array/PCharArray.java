@@ -26,8 +26,6 @@ package edu.uci.python.runtime.array;
 
 import java.util.*;
 
-import org.python.core.*;
-
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -77,7 +75,7 @@ public final class PCharArray extends PArray {
         if (index < array.length) {
             return getCharItemInBound(index);
         } else {
-            throw Py.IndexError("array index out of range");
+            return SequenceUtil.throwIndexError("array index out of range");
         }
     }
 
@@ -95,7 +93,7 @@ public final class PCharArray extends PArray {
         if (index < array.length) {
             setCharItemInBound(index, value);
         } else {
-            throw Py.IndexError("array assignment index out of range");
+            SequenceUtil.throwIndexError("array assignment index out of range");
         }
     }
 

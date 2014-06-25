@@ -24,8 +24,6 @@
  */
 package edu.uci.python.nodes.subscript;
 
-import org.python.core.*;
-
 import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.*;
@@ -44,26 +42,14 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
     @Specialization(order = 1, guards = "isIntStorage")
     public Object doPListInt(PList primary, int idx, int value) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
-        final int index = SequenceUtil.normalizeIndex(idx, store.length());
-        if (index < primary.len()) {
-            store.setIntItemInBound(index, value);
-        } else {
-            throw Py.IndexError("list assignment index out of range");
-        }
-
+        store.setIntItemBoundCheck(idx, value);
         return PNone.NONE;
     }
 
     @Specialization(order = 2, guards = "isDoubleStorage")
     public Object doPListDouble(PList primary, int idx, double value) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
-        final int index = SequenceUtil.normalizeIndex(idx, store.length());
-        if (index < primary.len()) {
-            store.setDoubleItemInBound(index, value);
-        } else {
-            throw Py.IndexError("list assignment index out of range");
-        }
-
+        store.setDoubleItemInBound(idx, value);
         return PNone.NONE;
     }
 

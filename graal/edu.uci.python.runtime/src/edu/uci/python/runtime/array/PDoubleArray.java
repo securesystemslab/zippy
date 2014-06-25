@@ -26,8 +26,6 @@ package edu.uci.python.runtime.array;
 
 import java.util.*;
 
-import org.python.core.*;
-
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
@@ -88,7 +86,7 @@ public final class PDoubleArray extends PArray {
         if (index < array.length) {
             return getDoubleItemInBound(index);
         } else {
-            throw Py.IndexError("array index out of range");
+            return SequenceUtil.throwIndexError("array index out of range");
         }
     }
 
@@ -106,7 +104,7 @@ public final class PDoubleArray extends PArray {
         if (index < array.length) {
             setDoubleItemInBound(index, value);
         } else {
-            throw Py.IndexError("array assignment index out of range");
+            SequenceUtil.throwIndexError("array assignment index out of range");
         }
     }
 
