@@ -59,7 +59,7 @@ def measure():
     print("euler31: " + duration)
 
 # warm up
-for i in range(2500): # 300
+for i in range(2000): # 300
     solve(40)
 
 measure()
