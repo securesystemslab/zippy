@@ -64,10 +64,10 @@ public class ProfilerTranslator implements NodeVisitor {
             if (node instanceof IfNode) {
                 IfNode ifNode = (IfNode) node;
                 /**
-                 * 1) If node has a condition node which is a castToBooleanNode. CastToBooleanNode
-                 * has a child which is the actual condition. So be careful while profiling if
-                 * nodes. Do not profile if nodes and condition nodes together, because prober
-                 * increments counter twice for the same node. <br>
+                 * 1) If node has a condition node which is a castToBooleanNode. <br>
+                 * CastToBooleanNode has a child which is the actual condition. So be careful while
+                 * profiling if nodes. Do not profile if nodes and condition nodes together, because
+                 * prober increments counter twice for the same node. <br>
                  * 2) If nodes in a comprehension does not yet have a source section, so such if
                  * nodes are not profiled.
                  */
@@ -79,7 +79,7 @@ public class ProfilerTranslator implements NodeVisitor {
                     PNode elseNode = ifNode.getElse();
                     createThenNodeWrapper(thenNode);
                     /**
-                     * Only create a wrapper node if an else exists.
+                     * Only create a wrapper node if an else part exists.
                      */
                     if (!(elseNode instanceof EmptyNode)) {
                         createElseNodeWrapper(elseNode);
