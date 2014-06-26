@@ -54,6 +54,9 @@
 #include "runtime/fprofiler.hpp"
 #include "runtime/frame.inline.hpp"
 #include "runtime/gpu.hpp"
+#ifdef GRAAL
+# include "hsail/vm/gpu_hsail.hpp"
+#endif
 #include "runtime/init.hpp"
 #include "runtime/interfaceSupport.hpp"
 #include "runtime/java.hpp"
@@ -1467,8 +1470,11 @@ void JavaThread::initialize() {
   clear_must_deopt_id();
   set_monitor_chunks(NULL);
   set_next(NULL);
+#ifdef GRAAL
   set_gpu_exception_bci(0);
   set_gpu_exception_method(NULL);  
+  set_gpu_hsail_deopt_info(NULL);  
+#endif
   set_thread_state(_thread_new);
 #if INCLUDE_NMT
   set_recorder(NULL);
@@ -2853,6 +2859,13 @@ void JavaThread::oops_do(OopClosure* f, CLDToOopClosure* cld_f, CodeBlobClosure*
     // a scan.
     cf->do_code_blob(_scanned_nmethod);
   }
+
+#ifdef GRAAL
+  Hsail::HSAILDeoptimizationInfo* gpu_hsail_deopt_info = (Hsail::HSAILDeoptimizationInfo*) get_gpu_hsail_deopt_info();
+  if (gpu_hsail_deopt_info != NULL) {
+    gpu_hsail_deopt_info->oops_do(f);
+  }
+#endif
 }
 
 void JavaThread::nmethods_do(CodeBlobClosure* cf) {

@@ -28,6 +28,7 @@
 #include "runtime/gpu.hpp"
 #include "utilities/exceptions.hpp"
 #include "graal/graalEnv.hpp"
+#include "gpu_hsail_OopMapHelper.hpp"
 #include "gpu_hsail_Frame.hpp"
 #include "gpu_hsail_Tlab.hpp"
 
@@ -101,9 +102,11 @@ class Hsail : public Gpu {
     jint _deopt_next_index;
     jint _num_slots;
     jint _deopt_span;
+    jint _deopt_work_index;           // how far we are in processing the deopts
     HSAILTlabInfo** _cur_tlab_info;   // copy of what was in the HSAILAllocationInfo, to avoid an extra indirection
     HSAILAllocationInfo* _alloc_info;
     char _ignore;
+    jobject _oop_map_array;
     // keep a pointer last so save area following it is word aligned
     jboolean* _never_ran_array; 
 
@@ -119,14 +122,16 @@ class Hsail : public Gpu {
       return (jbyte*) (this) + hdr_size();
     }
 
-    inline HSAILDeoptimizationInfo(int numSlots, int bytesPerSaveArea, int dimX, HSAILAllocationInfo* allocInfo) {
+    inline HSAILDeoptimizationInfo(int numSlots, int bytesPerSaveArea, int dimX, HSAILAllocationInfo* allocInfo, jobject oop_map_array) {
       _notice_safepoints = &Hsail::_notice_safepoints;
       _deopt_occurred = 0;
       _deopt_next_index = 0;
+      _deopt_work_index = 0;
       _num_slots = numSlots;
       _never_ran_array = NEW_C_HEAP_ARRAY(jboolean, dimX, mtInternal);
       memset(_never_ran_array, 0, dimX * sizeof(jboolean));
       _alloc_info = allocInfo;
+      _oop_map_array = oop_map_array;
       _deopt_span = sizeof(HSAILKernelDeoptimization) + sizeof(HSAILFrame) + bytesPerSaveArea;
       if (TraceGPUInteraction) {
         tty->print_cr("HSAILDeoptimizationInfo allocated, %d slots of size %d, total size = 0x%lx bytes", _num_slots, _deopt_span, (_num_slots * _deopt_span + sizeof(HSAILDeoptimizationInfo)));
@@ -143,15 +148,19 @@ class Hsail : public Gpu {
     inline jint num_deopts() { return _deopt_next_index; }
     inline jboolean* never_ran_array() { return _never_ran_array; }
     inline jint num_slots() {return _num_slots;}
+    inline void set_deopt_work_index(int val) { _deopt_work_index = val; }
+    inline jint deopt_work_index() { return _deopt_work_index; }
 
     inline HSAILKernelDeoptimization* get_deopt_save_state(int slot) {
       // use _deopt_span to index into _deopt_states
       return (HSAILKernelDeoptimization*) (save_area_start() + _deopt_span * slot);
     }
 
-    void setCurTlabInfos(HSAILTlabInfo** ptlabInfos) {
+    void set_cur_tlabInfos(HSAILTlabInfo** ptlabInfos) {
       _cur_tlab_info = ptlabInfos;
     }
+
+    void oops_do(OopClosure* f);
 
     void* operator new (size_t hdrSize, int numSlots, int bytesPerSaveArea) {
       assert(hdrSize <= hdr_size(), "");
@@ -175,10 +184,10 @@ private:
   JNIEXPORT static jlong generate_kernel(JNIEnv* env, jclass, jbyteArray code_handle, jstring name_handle);
 
   // static native boolean executeKernel0(HotSpotInstalledCode kernel, int jobSize, Object[] args);
-  JNIEXPORT static jboolean execute_kernel_void_1d(JNIEnv* env, jclass, jobject hotspotInstalledCode, jint dimX, jobject args, jobject oopsSave,
+  JNIEXPORT static jboolean execute_kernel_void_1d(JNIEnv* env, jclass, jobject hotspotInstalledCode, jint dimX, jobject args,
                                                    jobject donorThreads, int allocBytesPerWorkitem, jobject oop_map_array);
 
-  static jboolean execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod* nm, jobject oopsSave,
+  static jboolean execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod* nm,
                                                   jobject donorThreads, int allocBytesPerWorkitem, jobject oop_map_array, TRAPS);
 
   static void register_heap();
