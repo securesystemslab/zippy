@@ -92,7 +92,7 @@ public abstract class ForNode extends LoopNode {
 
         while (index < store.length()) {
             loopBodyBranch.enter();
-            ((WriteNode) target).executeWrite(frame, store.getIntItemInBound(index++));
+            ((WriteNode) target).executeWrite(frame, store.getIntItemNormalized(index++));
             body.executeVoid(frame);
 
             if (CompilerDirectives.inInterpreter()) {
@@ -159,7 +159,7 @@ public abstract class ForNode extends LoopNode {
 
         while (index < store.length()) {
             loopBodyBranch.enter();
-            ((WriteNode) target).executeWrite(frame, store.getItemInBound(index++));
+            ((WriteNode) target).executeWrite(frame, store.getItemNormalized(index++));
             body.executeVoid(frame);
 
             if (CompilerDirectives.inInterpreter()) {

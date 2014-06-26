@@ -43,7 +43,7 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
     public Object doPListInt(PList primary, int idx, int value) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
         final int index = SequenceUtil.normalizeIndex(idx, store.length());
-        store.setIntItemInBound(index, value);
+        store.setIntItemNormalized(index, value);
         return PNone.NONE;
     }
 
@@ -51,7 +51,7 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
     public Object doPListDouble(PList primary, int idx, double value) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
         final int index = SequenceUtil.normalizeIndex(idx, store.length());
-        store.setDoubleItemInBound(index, value);
+        store.setDoubleItemNormalized(index, value);
         return PNone.NONE;
     }
 

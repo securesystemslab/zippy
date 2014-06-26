@@ -64,21 +64,21 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     public int doPListInt(PList primary, int idx) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
         int index = SequenceUtil.normalizeIndex(idx, store.length());
-        return store.getIntItemInBound(index);
+        return store.getIntItemNormalized(index);
     }
 
     @Specialization(order = 2, guards = "isDoubleStorage")
     public double doPListDouble(PList primary, int idx) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
         int index = SequenceUtil.normalizeIndex(idx, store.length());
-        return store.getDoubleItemInBound(index);
+        return store.getDoubleItemNormalized(index);
     }
 
     @Specialization(order = 3, guards = "isObjectStorage")
     public Object doPListObject(PList primary, int idx) {
         final ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
         int index = SequenceUtil.normalizeIndex(idx, store.length());
-        return store.getItemInBound(index);
+        return store.getItemNormalized(index);
     }
 
     @Specialization(order = 5)

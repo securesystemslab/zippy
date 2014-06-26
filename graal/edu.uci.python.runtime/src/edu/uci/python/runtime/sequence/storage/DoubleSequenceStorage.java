@@ -87,11 +87,11 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public Object getItemInBound(int idx) {
-        return getDoubleItemInBound(idx);
+    public Object getItemNormalized(int idx) {
+        return getDoubleItemNormalized(idx);
     }
 
-    public double getDoubleItemInBound(int idx) {
+    public double getDoubleItemNormalized(int idx) {
         try {
             return values[idx];
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -101,15 +101,15 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public void setItemInBound(int idx, Object value) throws SequenceStoreException {
+    public void setItemNormalized(int idx, Object value) throws SequenceStoreException {
         if (value instanceof Double) {
-            setDoubleItemInBound(idx, (double) value);
+            setDoubleItemNormalized(idx, (double) value);
         } else {
             throw SequenceStoreException.INSTANCE;
         }
     }
 
-    public void setDoubleItemInBound(int idx, double value) {
+    public void setDoubleItemNormalized(int idx, double value) {
         try {
             values[idx] = value;
         } catch (ArrayIndexOutOfBoundsException e) {

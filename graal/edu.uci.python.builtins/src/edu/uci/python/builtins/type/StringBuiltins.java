@@ -98,7 +98,7 @@ public final class StringBuiltins extends PythonBuiltins {
             ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
 
             for (int i = 0; i < list.len() - 1; i++) {
-                sb.append(store.getItemInBound(i));
+                sb.append(store.getItemNormalized(i));
                 sb.append(string);
             }
 

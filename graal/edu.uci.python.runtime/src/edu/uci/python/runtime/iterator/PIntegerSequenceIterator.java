@@ -43,7 +43,7 @@ public final class PIntegerSequenceIterator implements PIterator, PIntegerIterat
     @Override
     public int __nextInt__() {
         if (index < sequence.length()) {
-            return sequence.getIntItemInBound(index++);
+            return sequence.getIntItemNormalized(index++);
         }
 
         throw StopIterationException.INSTANCE;

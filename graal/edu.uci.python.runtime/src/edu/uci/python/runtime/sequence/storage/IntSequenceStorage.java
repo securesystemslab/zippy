@@ -90,11 +90,11 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public Object getItemInBound(int idx) {
-        return getIntItemInBound(idx);
+    public Object getItemNormalized(int idx) {
+        return getIntItemNormalized(idx);
     }
 
-    public int getIntItemInBound(int idx) {
+    public int getIntItemNormalized(int idx) {
         try {
             return values[idx];
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -104,15 +104,15 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public void setItemInBound(int idx, Object value) throws SequenceStoreException {
+    public void setItemNormalized(int idx, Object value) throws SequenceStoreException {
         if (value instanceof Integer) {
-            setIntItemInBound(idx, (int) value);
+            setIntItemNormalized(idx, (int) value);
         } else {
             throw SequenceStoreException.INSTANCE;
         }
     }
 
-    public void setIntItemInBound(int idx, int value) {
+    public void setIntItemNormalized(int idx, int value) {
         try {
             values[idx] = value;
         } catch (ArrayIndexOutOfBoundsException e) {

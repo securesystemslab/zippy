@@ -48,7 +48,7 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public Object getItemInBound(int idx) {
+    public Object getItemNormalized(int idx) {
         try {
             return values[idx];
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -58,7 +58,7 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public void setItemInBound(int idx, Object value) {
+    public void setItemNormalized(int idx, Object value) {
         try {
             values[idx] = value;
         } catch (ArrayIndexOutOfBoundsException e) {

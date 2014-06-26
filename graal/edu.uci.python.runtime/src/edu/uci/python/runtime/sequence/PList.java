@@ -90,30 +90,22 @@ public class PList extends PSequence {
     @Override
     public final Object getItem(int idx) {
         int index = SequenceUtil.normalizeIndex(idx, store.length());
-        if (index < store.length()) {
-            return store.getItemInBound(index);
-        } else {
-            throw Py.IndexError("list index out of range");
-        }
+        return store.getItemNormalized(index);
     }
 
     @Override
     public final void setItem(int idx, Object value) {
         int index = SequenceUtil.normalizeIndex(idx, store.length());
-        if (index < store.length()) {
-            try {
-                store.setItemInBound(index, value);
-            } catch (SequenceStoreException e) {
-                store = store.generalizeFor(value);
+        try {
+            store.setItemNormalized(index, value);
+        } catch (SequenceStoreException e) {
+            store = store.generalizeFor(value);
 
-                try {
-                    store.setItemInBound(idx, value);
-                } catch (SequenceStoreException ex) {
-                    throw new IllegalStateException();
-                }
+            try {
+                store.setItemNormalized(idx, value);
+            } catch (SequenceStoreException ex) {
+                throw new IllegalStateException();
             }
-        } else {
-            throw Py.IndexError("list assignment index out of range");
         }
     }
 
@@ -177,7 +169,7 @@ public class PList extends PSequence {
         StringBuilder buf = new StringBuilder("[");
 
         for (int i = 0; i < store.length(); i++) {
-            Object item = store.getItemInBound(i);
+            Object item = store.getItemNormalized(i);
 
             if (item instanceof String) {
                 buf.append("'" + item.toString() + "'");

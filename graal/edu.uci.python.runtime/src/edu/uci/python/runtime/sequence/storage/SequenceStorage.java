@@ -34,9 +34,9 @@ public abstract class SequenceStorage {
 
     public abstract Object[] getCopyOfInternalArray();
 
-    public abstract Object getItemInBound(int idx);
+    public abstract Object getItemNormalized(int idx);
 
-    public abstract void setItemInBound(int idx, Object value) throws SequenceStoreException;
+    public abstract void setItemNormalized(int idx, Object value) throws SequenceStoreException;
 
     public abstract void insertItem(int idx, Object value) throws SequenceStoreException;
 
