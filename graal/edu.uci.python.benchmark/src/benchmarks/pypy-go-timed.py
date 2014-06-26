@@ -435,8 +435,8 @@ def measure(n):
     duration = "%.3f\n" % (time.time() - start)
     print("pypy-go: " + duration)
 
-for i in range(2):
-    main(1)
+for i in range(20):
+    main(10)
 
 
 measure(int(sys.argv[1]))

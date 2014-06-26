@@ -68,8 +68,12 @@ public abstract class ReadVariableNode extends FrameSlotNode implements ReadNode
         CompilerDirectives.transferToInterpreterAndInvalidate();
         ReadVariableNode readNode;
 
-        if (!isNotIllegal() && !frameSlot.getIdentifier().equals("<return_val>")) {
-            throw Py.UnboundLocalError("local variable '" + frameSlot.getIdentifier() + "' referenced before assignment");
+        try {
+            if (accessingFrame.isObject(frameSlot) && accessingFrame.getObject(frameSlot) == null && !frameSlot.getIdentifier().equals("<return_val>")) {
+                throw Py.UnboundLocalError("local variable '" + frameSlot.getIdentifier() + "' referenced before assignment");
+            }
+        } catch (FrameSlotTypeException e) {
+            throw new IllegalStateException();
         }
 
         if (accessingFrame.isObject(frameSlot)) {
