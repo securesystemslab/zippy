@@ -27,7 +27,7 @@ package edu.uci.python.runtime.iterator;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.exception.*;
 
-public class PIntArrayIterator implements PIterator, PIntegerIterator {
+public final class PIntArrayIterator implements PIterator, PIntegerIterator {
 
     private final PIntArray array;
     private int index;
@@ -39,7 +39,7 @@ public class PIntArrayIterator implements PIterator, PIntegerIterator {
     @Override
     public int __nextInt__() {
         if (index < array.len()) {
-            return array.getIntItemInBound(index++);
+            return array.getIntItemNormalized(index++);
         }
 
         throw StopIterationException.INSTANCE;

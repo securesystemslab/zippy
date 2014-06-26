@@ -111,7 +111,7 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
      */
     @Specialization(order = 12)
     public int doPIntArray(PIntArray primary, int index) {
-        return primary.getIntItemInBound(index);
+        return primary.getIntItemNormalized(index);
     }
 
     @Specialization(order = 13)
