@@ -26,6 +26,10 @@ package edu.uci.python.runtime.sequence.storage;
 
 import java.util.*;
 
+import org.python.core.*;
+
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.sequence.*;
 
 public final class DoubleSequenceStorage extends BasicSequenceStorage {
@@ -88,7 +92,12 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
     }
 
     public double getDoubleItemInBound(int idx) {
-        return values[idx];
+        try {
+            return values[idx];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("list index out of range");
+        }
     }
 
     @Override
@@ -101,7 +110,12 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
     }
 
     public void setDoubleItemInBound(int idx, double value) {
-        values[idx] = value;
+        try {
+            values[idx] = value;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("list assignment index out of range");
+        }
     }
 
     @Override

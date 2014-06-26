@@ -140,4 +140,32 @@ public class ListTests {
         assertPrints("[1, 2, 3]\n4\n", source);
     }
 
+    @Test
+    public void indexOutOfBound() {
+        String source = "lst = [1,2,3,4]\n" + //
+                        "lst[5]\n";
+        assertError("IndexError: list index out of range\n", source);
+    }
+
+    @Test
+    public void assignIndexOutOfBound() {
+        String source = "lst = [1,2,3,4]\n" + //
+                        "lst[5] = 42\n";
+        assertError("IndexError: list assignment index out of range\n", source);
+    }
+
+    @Test
+    public void indexOutOfBoundDouble() {
+        String source = "lst = [1.0,2.0,3.0,4.0]\n" + //
+                        "lst[5]\n";
+        assertError("IndexError: list index out of range\n", source);
+    }
+
+    @Test
+    public void assignIndexOutOfBoundDouble() {
+        String source = "lst = [1.0,2.0,3.0,4.0]\n" + //
+                        "lst[5] = 4.2\n";
+        assertError("IndexError: list assignment index out of range\n", source);
+    }
+
 }
