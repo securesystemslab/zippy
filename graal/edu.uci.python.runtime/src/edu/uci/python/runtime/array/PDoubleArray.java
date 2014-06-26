@@ -28,6 +28,8 @@ import java.util.*;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
@@ -81,29 +83,31 @@ public final class PDoubleArray extends PArray {
     @Override
     public Object getItem(int idx) {
         int index = SequenceUtil.normalizeIndex(idx, array.length);
-        if (index < array.length) {
-            return getDoubleItemInBound(index);
-        } else {
-            throw Py.IndexError("array index out of range");
-        }
+        return getDoubleItemNormalized(index);
     }
 
-    public double getDoubleItemInBound(int idx) {
-        return array[idx];
+    public double getDoubleItemNormalized(int idx) {
+        try {
+            return array[idx];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("array index out of range");
+        }
     }
 
     @Override
     public void setItem(int idx, Object value) {
         int index = SequenceUtil.normalizeIndex(idx, array.length);
-        if (index < array.length) {
-            setDoubleItemInBound(index, (double) value);
-        } else {
-            throw Py.IndexError("array assignment index out of range");
-        }
+        setDoubleItemNormalized(index, (double) value);
     }
 
-    public void setDoubleItemInBound(int idx, double value) {
-        array[idx] = value;
+    public void setDoubleItemNormalized(int idx, double value) {
+        try {
+            array[idx] = value;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("array assignment index out of range");
+        }
     }
 
     @Override

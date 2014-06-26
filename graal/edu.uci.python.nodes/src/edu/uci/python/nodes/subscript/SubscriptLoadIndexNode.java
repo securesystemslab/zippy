@@ -116,12 +116,12 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
 
     @Specialization(order = 13)
     public double doPDoubleArray(PDoubleArray primary, int index) {
-        return primary.getDoubleItemInBound(index);
+        return primary.getDoubleItemNormalized(index);
     }
 
     @Specialization(order = 14)
     public char doPCharArray(PCharArray primary, int index) {
-        return primary.getCharItemInBound(index);
+        return primary.getCharItemNormalized(index);
     }
 
     @Specialization(order = 15)

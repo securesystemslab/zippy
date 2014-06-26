@@ -28,6 +28,8 @@ import java.util.*;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -70,29 +72,31 @@ public final class PCharArray extends PArray {
     @Override
     public Object getItem(int idx) {
         int index = SequenceUtil.normalizeIndex(idx, array.length);
-        if (index < array.length) {
-            return getCharItemInBound(index);
-        } else {
-            throw Py.IndexError("array index out of range");
-        }
+        return getCharItemNormalized(index);
     }
 
-    public char getCharItemInBound(int idx) {
-        return array[idx];
+    public char getCharItemNormalized(int idx) {
+        try {
+            return array[idx];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("array index out of range");
+        }
     }
 
     @Override
     public void setItem(int idx, Object value) {
         int index = SequenceUtil.normalizeIndex(idx, array.length);
-        if (index < array.length) {
-            setCharItemInBound(index, (char) value);
-        } else {
-            throw Py.IndexError("array assignment index out of range");
-        }
+        setCharItemNormalized(index, (char) value);
     }
 
-    public void setCharItemInBound(int idx, char value) {
-        array[idx] = value;
+    public void setCharItemNormalized(int idx, char value) {
+        try {
+            array[idx] = value;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("array assignment index out of range");
+        }
     }
 
     @Override
