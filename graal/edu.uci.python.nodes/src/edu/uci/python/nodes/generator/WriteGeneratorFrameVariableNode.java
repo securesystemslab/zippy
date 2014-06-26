@@ -64,9 +64,10 @@ public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode impl
 
     public abstract Object executeWith(VirtualFrame frame, Object value);
 
-    @SuppressWarnings("unused")
     @Specialization(order = 0, guards = "isNoneKind")
     public PNone writeNoneInitial(VirtualFrame frame, PNone right) {
+        MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
+        mframe.setObject(frameSlot, PNone.NONE);
         return right;
     }
 
