@@ -26,6 +26,10 @@ package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
+import org.python.core.*;
+
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
@@ -78,13 +82,13 @@ public final class PTuple extends PImmutableSequence implements Comparable<Objec
 
     @Override
     public Object getItem(int idx) {
-        int checkedIdx = idx;
-
-        if (idx < 0) {
-            checkedIdx += array.length;
+        int index = SequenceUtil.normalizeIndex(idx, this.len());
+        try {
+            return array[index];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("tuple index out of range");
         }
-
-        return array[checkedIdx];
     }
 
     @Override

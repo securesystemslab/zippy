@@ -43,4 +43,11 @@ public class TupleTest {
         assertPrints("True\n", source);
     }
 
+    @Test
+    public void indexOutOfBound() {
+        String source = "tup = (1,2,3,4)\n" + //
+                        "tup[5]\n";
+        assertError("IndexError: tuple index out of range\n", source);
+    }
+
 }
