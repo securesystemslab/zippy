@@ -178,12 +178,6 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
         if (!runtime.isCompiling(this)) {
             performInlining();
 
-            // zwei
-            if (TrufflePrintCompiledAST.getValue()) {
-                OUT.println(" ------------- " + getRootNode() + " ------------- ");
-                NodeUtil.printCompactTree(OUT, getRootNode());
-            }
-
             if (inliningPerformed) {
                 logOptimizingQueued(this);
                 runtime.compile(this, TruffleBackgroundCompilation.getValue());
