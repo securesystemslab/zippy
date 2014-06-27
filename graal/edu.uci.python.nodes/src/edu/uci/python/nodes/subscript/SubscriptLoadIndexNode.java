@@ -101,6 +101,16 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         return list.getItem(idx);
     }
 
+    @Specialization(order = 8, guards = "isIndexPositive")
+    public Object doPTuplePositive(PTuple tuple, int idx) {
+        return tuple.getItemNormalized(idx);
+    }
+
+    @Specialization(order = 9, guards = "isIndexNegative")
+    public Object doPTupleNegative(PTuple tuple, int idx) {
+        return tuple.getItemNormalized(idx + tuple.len());
+    }
+
     @Specialization(order = 10)
     public Object doPTuple(PTuple tuple, int idx) {
         return tuple.getItem(idx);
