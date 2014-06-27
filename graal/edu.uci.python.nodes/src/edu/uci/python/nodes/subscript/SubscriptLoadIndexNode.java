@@ -116,7 +116,17 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         return tuple.getItem(idx);
     }
 
-    @Specialization(order = 11)
+    @Specialization(order = 11, guards = "isIndexPositive")
+    public Object doPRangePositive(PRange primary, int idx) {
+        return primary.getItemNormalized(idx);
+    }
+
+    @Specialization(order = 12, guards = "isIndexNegative")
+    public Object doPRangeNegative(PRange primary, int idx) {
+        return primary.getItemNormalized(idx + primary.len());
+    }
+
+    @Specialization(order = 13)
     public Object doPRange(PRange primary, int idx) {
         return primary.getItem(idx);
     }
@@ -124,7 +134,7 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     /**
      * PDict lookup using key.
      */
-    @Specialization(order = 12)
+    @Specialization(order = 15)
     public Object doPDict(PDict primary, Object key) {
         final Object result = primary.getItem(key);
         assert result != null;

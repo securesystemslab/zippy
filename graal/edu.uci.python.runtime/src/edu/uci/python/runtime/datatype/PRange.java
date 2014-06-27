@@ -102,9 +102,12 @@ public final class PRange extends PImmutableSequence {
 
     @Override
     public Object getItem(int idx) {
-        int index = SequenceUtil.normalizeIndex(idx, length);
+        final int index = SequenceUtil.normalizeIndex(idx, length);
+        return getItemNormalized(index);
+    }
 
-        if (index > length - 1) {
+    public Object getItemNormalized(int index) {
+        if (index >= length) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
             throw Py.IndexError("range object index out of range");
         }
@@ -112,9 +115,8 @@ public final class PRange extends PImmutableSequence {
         return index * step + start;
     }
 
-    @SuppressWarnings("hiding")
     @Override
-    public Object getSlice(int start, int stop, int step, int length) {
+    public Object getSlice(int sliceStart, int sliceStop, int sliceStep, int slicelength) {
         throw new UnsupportedOperationException();
     }
 
