@@ -55,6 +55,8 @@ def main(n):
     return ret
 
 def measure():
+    for i in range(3):
+        main(num)
     print("Start timing...")
     start = time.time()
     json = main(num)

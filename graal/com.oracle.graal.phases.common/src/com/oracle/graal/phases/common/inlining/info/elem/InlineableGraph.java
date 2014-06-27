@@ -42,69 +42,122 @@ public class InlineableGraph implements Inlineable {
     private final StructuredGraph graph;
 
     public InlineableGraph(final ResolvedJavaMethod method, final Invoke invoke, final HighTierContext context, CanonicalizerPhase canonicalizer) {
-        this.graph = buildGraph(method, invoke, context, canonicalizer);
+        StructuredGraph original = getOriginalGraph(method, context, canonicalizer);
+        // TODO copying the graph is only necessary if it is modified or if it contains any invokes
+        this.graph = original.copy();
+        specializeGraphToArguments(invoke, context, canonicalizer);
     }
 
-    private static StructuredGraph buildGraph(final ResolvedJavaMethod method, final Invoke invoke, final HighTierContext context, CanonicalizerPhase canonicalizer) {
-        final StructuredGraph newGraph;
-        final boolean parseBytecodes;
-
-        // TODO (chaeubl): copying the graph is only necessary if it is modified or if it contains
-        // any invokes
-        StructuredGraph intrinsicGraph = InliningUtil.getIntrinsicGraph(context.getReplacements(), method);
-        if (intrinsicGraph != null) {
-            newGraph = intrinsicGraph.copy();
-            parseBytecodes = false;
-        } else {
-            StructuredGraph cachedGraph = getCachedGraph(method, context);
-            if (cachedGraph != null) {
-                newGraph = cachedGraph.copy();
-                parseBytecodes = false;
-            } else {
-                newGraph = new StructuredGraph(method);
-                parseBytecodes = true;
-            }
+    /**
+     * This method looks up in a cache the graph for the argument, if not found bytecode is parsed.
+     * The graph thus obtained is returned, ie the caller is responsible for cloning before
+     * modification.
+     */
+    private static StructuredGraph getOriginalGraph(final ResolvedJavaMethod method, final HighTierContext context, CanonicalizerPhase canonicalizer) {
+        StructuredGraph result = InliningUtil.getIntrinsicGraph(context.getReplacements(), method);
+        if (result != null) {
+            return result;
         }
+        result = getCachedGraph(method, context);
+        if (result != null) {
+            return result;
+        }
+        return parseBytecodes(method, context, canonicalizer);
+    }
 
-        try (Debug.Scope s = Debug.scope("InlineGraph", newGraph)) {
-            if (parseBytecodes) {
-                parseBytecodes(newGraph, context, canonicalizer);
-            }
+    /**
+     * @return true iff one or more parameters <code>newGraph</code> were specialized to account for
+     *         a constant argument, or an argument with a more specific stamp.
+     */
+    private boolean specializeGraphToArguments(final Invoke invoke, final HighTierContext context, CanonicalizerPhase canonicalizer) {
+        try (Debug.Scope s = Debug.scope("InlineGraph", graph)) {
 
-            boolean callerHasMoreInformationAboutArguments = false;
-            NodeInputList<ValueNode> args = invoke.callTarget().arguments();
-            ArrayList<Node> parameterUsages = new ArrayList<>();
-            for (ParameterNode param : newGraph.getNodes(ParameterNode.class).snapshot()) {
-                ValueNode arg = args.get(param.index());
-                if (arg.isConstant()) {
-                    Constant constant = arg.asConstant();
-                    newGraph.replaceFloating(param, ConstantNode.forConstant(constant, context.getMetaAccess(), newGraph));
-                    callerHasMoreInformationAboutArguments = true;
-                    param.usages().snapshotTo(parameterUsages);
-                } else {
-                    Stamp joinedStamp = param.stamp().join(arg.stamp());
-                    if (joinedStamp != null && !joinedStamp.equals(param.stamp())) {
-                        param.setStamp(joinedStamp);
-                        callerHasMoreInformationAboutArguments = true;
-                        param.usages().snapshotTo(parameterUsages);
-                    }
-                }
-            }
-
-            if (callerHasMoreInformationAboutArguments) {
-                if (OptCanonicalizer.getValue()) {
-                    canonicalizer.applyIncremental(newGraph, context, parameterUsages);
-                }
+            ArrayList<Node> parameterUsages = replaceParamsWithMoreInformativeArguments(invoke, context);
+            if (parameterUsages != null && OptCanonicalizer.getValue()) {
+                assert !parameterUsages.isEmpty() : "The caller didn't have more information about arguments after all";
+                canonicalizer.applyIncremental(graph, context, parameterUsages);
+                return true;
             } else {
                 // TODO (chaeubl): if args are not more concrete, inlining should be avoided
                 // in most cases or we could at least use the previous graph size + invoke
                 // probability to check the inlining
+                return false;
             }
 
-            return newGraph;
         } catch (Throwable e) {
             throw Debug.handle(e);
         }
+    }
+
+    private static boolean isArgMoreInformativeThanParam(ValueNode arg, ParameterNode param) {
+        if (arg.isConstant()) {
+            return true;
+        } else {
+            Stamp joinedStamp = param.stamp().join(arg.stamp());
+            if (joinedStamp != null && !joinedStamp.equals(param.stamp())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * This method detects:
+     * <ul>
+     * <li>
+     * constants among the arguments to the <code>invoke</code></li>
+     * <li>
+     * arguments with more precise type than that declared by the corresponding parameter</li>
+     * </ul>
+     *
+     * <p>
+     * The corresponding parameters are updated to reflect the above information. Before doing so,
+     * their usages are added to <code>parameterUsages</code> for later incremental
+     * canonicalization.
+     * </p>
+     *
+     * @return null if no incremental canonicalization is need, a list of nodes for such
+     *         canonicalization otherwise.
+     */
+    private ArrayList<Node> replaceParamsWithMoreInformativeArguments(final Invoke invoke, final HighTierContext context) {
+        NodeInputList<ValueNode> args = invoke.callTarget().arguments();
+        ArrayList<Node> parameterUsages = null;
+        List<ParameterNode> params = graph.getNodes(ParameterNode.class).snapshot();
+        assert params.size() <= args.size();
+        /*
+         * param-nodes that aren't used (eg, as a result of canonicalization) don't occur in
+         * `params`. Thus, in general, the sizes of `params` and `args` don't always match. Still,
+         * it's always possible to pair a param-node with its corresponding arg-node using
+         * param.index() as index into `args`.
+         */
+        for (ParameterNode param : params) {
+            if (param.usages().isNotEmpty()) {
+                ValueNode arg = args.get(param.index());
+                if (arg.isConstant()) {
+                    Constant constant = arg.asConstant();
+                    parameterUsages = trackParameterUsages(param, parameterUsages);
+                    // collect param usages before replacing the param
+                    graph.replaceFloating(param, ConstantNode.forConstant(constant, context.getMetaAccess(), graph));
+                    // param-node gone, leaving a gap in the sequence given by param.index()
+                } else {
+                    Stamp joinedStamp = param.stamp().join(arg.stamp());
+                    if (joinedStamp != null && !joinedStamp.equals(param.stamp())) {
+                        param.setStamp(joinedStamp);
+                        parameterUsages = trackParameterUsages(param, parameterUsages);
+                    } else {
+                        assert !isArgMoreInformativeThanParam(arg, param);
+                    }
+                }
+            }
+        }
+        assert (parameterUsages == null) || (!parameterUsages.isEmpty());
+        return parameterUsages;
+    }
+
+    private static ArrayList<Node> trackParameterUsages(ParameterNode param, ArrayList<Node> parameterUsages) {
+        ArrayList<Node> result = (parameterUsages == null) ? new ArrayList<>() : parameterUsages;
+        param.usages().snapshotTo(result);
+        return result;
     }
 
     private static StructuredGraph getCachedGraph(ResolvedJavaMethod method, HighTierContext context) {
@@ -118,25 +171,31 @@ public class InlineableGraph implements Inlineable {
     }
 
     /**
-     * This method builds the IR nodes for <code>newGraph</code> and canonicalizes them. Provided
-     * profiling info is mature, the resulting graph is cached.
+     * This method builds the IR nodes for the given <code>method</code> and canonicalizes them.
+     * Provided profiling info is mature, the resulting graph is cached. The caller is responsible
+     * for cloning before modification.</p>
      */
-    private static StructuredGraph parseBytecodes(StructuredGraph newGraph, HighTierContext context, CanonicalizerPhase canonicalizer) {
-        if (context.getGraphBuilderSuite() != null) {
-            context.getGraphBuilderSuite().apply(newGraph, context);
-        }
-        assert newGraph.start().next() != null : "graph needs to be populated the GraphBuilderSuite";
+    private static StructuredGraph parseBytecodes(ResolvedJavaMethod method, HighTierContext context, CanonicalizerPhase canonicalizer) {
+        StructuredGraph newGraph = new StructuredGraph(method);
+        try (Debug.Scope s = Debug.scope("InlineGraph", newGraph)) {
+            if (context.getGraphBuilderSuite() != null) {
+                context.getGraphBuilderSuite().apply(newGraph, context);
+            }
+            assert newGraph.start().next() != null : "graph needs to be populated by the GraphBuilderSuite";
 
-        new DeadCodeEliminationPhase().apply(newGraph);
+            new DeadCodeEliminationPhase().apply(newGraph);
 
-        if (OptCanonicalizer.getValue()) {
-            canonicalizer.apply(newGraph, context);
-        }
+            if (OptCanonicalizer.getValue()) {
+                canonicalizer.apply(newGraph, context);
+            }
 
-        if (context.getGraphCache() != null) {
-            context.getGraphCache().put(newGraph.method(), newGraph.copy());
+            if (context.getGraphCache() != null) {
+                context.getGraphCache().put(newGraph.method(), newGraph);
+            }
+            return newGraph;
+        } catch (Throwable e) {
+            throw Debug.handle(e);
         }
-        return newGraph;
     }
 
     @Override

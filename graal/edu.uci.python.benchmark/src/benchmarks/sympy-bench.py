@@ -59,6 +59,8 @@ def main(n):
     return lst
 
 def measure():
+    for i in range(3):
+        main(num)
     print("Start timing...")
     start = time.time()
     lst = main(num)
