@@ -53,23 +53,35 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 3, guards = "isDoubleStorage")
+    @Specialization(order = 3, guards = {"isDoubleStorage", "isIndexPositive"})
     public Object doPListDouble(PList primary, int idx, double value) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
-        final int index = SequenceUtil.normalizeIndex(idx, store.length());
-        store.setDoubleItemNormalized(index, value);
+        store.setDoubleItemNormalized(idx, value);
         return PNone.NONE;
     }
 
-    @Specialization(order = 5, guards = "isObjectStorage")
+    @Specialization(order = 4, guards = {"isDoubleStorage", "isIndexNegative"})
+    public Object doPListDoubleNegative(PList primary, int idx, double value) {
+        final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
+        store.setDoubleItemNormalized(idx + store.length(), value);
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 5, guards = {"isObjectStorage", "isIndexPositive"})
     public Object doPListObject(PList primary, int idx, Object value) {
         final ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
-        final int index = SequenceUtil.normalizeIndex(idx, store.length());
-        store.setItemNormalized(index, value);
+        store.setItemNormalized(idx, value);
         return PNone.NONE;
     }
 
-    @Specialization(order = 7)
+    @Specialization(order = 6, guards = {"isObjectStorage", "isIndexNegative"})
+    public Object doPListObjectNegative(PList primary, int idx, Object value) {
+        final ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
+        store.setItemNormalized(idx + store.length(), value);
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 14)
     public Object doPList(PList list, int idx, Object value) {
         list.setItem(idx, value);
         return PNone.NONE;
@@ -78,7 +90,7 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
     /**
      * PDict key & value store.
      */
-    @Specialization(order = 8)
+    @Specialization(order = 15)
     public Object doPDict(PDict primary, Object key, Object value) {
         primary.setItem(key, value);
         return PNone.NONE;
@@ -87,28 +99,22 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
     /**
      * Unboxed array stores.
      */
-    @Specialization(order = 10)
+    @Specialization(order = 20)
     public Object doPArrayInt(PIntArray primary, int index, int value) {
         primary.setIntItemNormalized(index, value);
         return PNone.NONE;
     }
 
-    @Specialization(order = 11)
+    @Specialization(order = 22)
     public double doPArrayDouble(PDoubleArray primary, int index, double value) {
         primary.setDoubleItemNormalized(index, value);
         return 0;
     }
 
-    @Specialization(order = 12)
+    @Specialization(order = 24)
     public char doPArrayChar(PCharArray primary, int index, char value) {
         primary.setCharItemNormalized(index, value);
         return 0;
-    }
-
-    @Specialization(order = 17)
-    public Object doPArrayChar(PArray primary, int index, char value) {
-        primary.setItem(index, value);
-        return PNone.NONE;
     }
 
 }
