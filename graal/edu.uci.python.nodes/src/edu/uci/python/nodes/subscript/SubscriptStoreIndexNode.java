@@ -99,21 +99,39 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
     /**
      * Unboxed array stores.
      */
-    @Specialization(order = 20)
+    @Specialization(order = 20, guards = "isIndexPositive")
     public Object doPArrayInt(PIntArray primary, int index, int value) {
         primary.setIntItemNormalized(index, value);
         return PNone.NONE;
     }
 
-    @Specialization(order = 22)
+    @Specialization(order = 21, guards = "isIndexNegative")
+    public Object doPArrayIntNegative(PIntArray primary, int index, int value) {
+        primary.setIntItemNormalized(index + primary.len(), value);
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 22, guards = "isIndexPositive")
     public double doPArrayDouble(PDoubleArray primary, int index, double value) {
         primary.setDoubleItemNormalized(index, value);
         return 0;
     }
 
-    @Specialization(order = 24)
+    @Specialization(order = 23, guards = "isIndexNegative")
+    public double doPArrayDoubleNegative(PDoubleArray primary, int index, double value) {
+        primary.setDoubleItemNormalized(index + primary.len(), value);
+        return 0;
+    }
+
+    @Specialization(order = 24, guards = "isIndexPositive")
     public char doPArrayChar(PCharArray primary, int index, char value) {
         primary.setCharItemNormalized(index, value);
+        return 0;
+    }
+
+    @Specialization(order = 25, guards = "isIndexNegative")
+    public char doPArrayCharNegative(PCharArray primary, int index, char value) {
+        primary.setCharItemNormalized(index + primary.len(), value);
         return 0;
     }
 
