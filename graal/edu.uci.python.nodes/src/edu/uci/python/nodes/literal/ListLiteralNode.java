@@ -58,11 +58,6 @@ public abstract class ListLiteralNode extends LiteralNode {
         return new PList(SequenceStorageFactory.createStorage(evaluated));
     }
 
-    @Override
-    public String toString() {
-        return "list";
-    }
-
     public static class UninitializedListLiteralNode extends ListLiteralNode {
 
         public UninitializedListLiteralNode(PNode[] values) {
@@ -89,8 +84,6 @@ public abstract class ListLiteralNode extends LiteralNode {
                 replace(new IntListLiteralNode(values));
             } else if (store instanceof DoubleSequenceStorage) {
                 replace(new DoubleListLiteralNode(values));
-            } else if (store instanceof StringSequenceStorage) {
-                replace(new StringListLiteralNode(values));
             } else {
                 replace(new ObjectListLiteralNode(values));
             }
@@ -127,8 +120,6 @@ public abstract class ListLiteralNode extends LiteralNode {
                 newList = (PList) replace(new IntListLiteralNode(values)).execute(frame);
             } else if (store instanceof DoubleSequenceStorage) {
                 newList = (PList) replace(new DoubleListLiteralNode(values)).execute(frame);
-            } else if (store instanceof StringSequenceStorage) {
-                newList = (PList) replace(new StringListLiteralNode(values)).execute(frame);
             } else {
                 newList = (PList) replace(new ObjectListLiteralNode(values)).execute(frame);
             }
@@ -192,35 +183,6 @@ public abstract class ListLiteralNode extends LiteralNode {
             }
 
             return new PList(new DoubleSequenceStorage(elements));
-        }
-    }
-
-    public static final class StringListLiteralNode extends ListLiteralNode {
-
-        public StringListLiteralNode(PNode[] values) {
-            super(values);
-        }
-
-        @ExplodeLoop
-        @Override
-        public Object execute(VirtualFrame frame) {
-            final String[] elements = new String[values.length];
-
-            for (int i = 0; i < values.length; i++) {
-                try {
-                    elements[i] = values[i].executeString(frame);
-                } catch (UnexpectedResultException e) {
-                    final Object[] evaluated = new Object[i];
-
-                    for (int j = 0; j < i; j++) {
-                        evaluated[j] = elements[j];
-                    }
-
-                    doGeneric(frame, evaluated);
-                }
-            }
-
-            return new PList(new StringSequenceStorage(elements));
         }
     }
 

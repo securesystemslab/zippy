@@ -37,8 +37,8 @@ import edu.uci.python.runtime.*;
 
 public class PythonWrapperNode extends PNode implements Wrapper {
 
-    @Child private PNode child;
-    private final Probe probe;
+    @Child protected PNode child;
+    protected final Probe probe;
 
     public PythonWrapperNode(PythonContext context, PNode child) {
         /**

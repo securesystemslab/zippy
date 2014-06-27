@@ -1,0 +1,135 @@
+python-graph
+A library for working with graphs in Python
+--------------------------------------------------------------------------------
+
+
+SUMMARY
+
+python-graph is a library for working with graphs in Python.
+
+This software provides ﻿a suitable data structure for representing graphs and a
+whole set of important algorithms.
+
+
+INSTALLING
+
+To install the core module, run:
+
+	make install-core
+
+To install the dot language support, run:
+
+	make install-dot
+
+Alternatively, if you don't have make, you can install the modules by running:
+
+	./setup.py install
+
+inside the module directory.
+
+
+DOCUMENTATION
+
+To generate the API documentation for this package, run:
+
+	make docs
+
+You'll need epydoc installed in your system.
+
+
+WEBSITE
+
+The latest version of this package can be found at:
+
+	http://code.google.com/p/python-graph/
+
+Please report bugs at:
+
+	http://code.google.com/p/python-graph/issues/list
+
+
+PROJECT COMMITTERS
+
+Pedro Matiello <pmatiello@gmail.com>
+	* Project maintainer/leader;
+	* Graph, Digraph and Hipergraph classes;
+	* Accessibility algorithms;
+	* Cut-node and cut-edge detection;
+	* Cycle detection;
+	* Depth-first and Breadth-first searching;
+	* Minimal Spanning Tree (Prim's algorithm);
+	* Random graph generation;
+	* Topological sorting;
+	* Traversals;
+	* XML reading/writing;
+	* Refactoring.
+
+Christian Muise <christian.muise@gmail.com>
+	* Project commiter;
+	* Dot file reading/writing;
+	* Hypergraph class;
+	* Refactoring.
+
+Salim Fadhley <sal@stodge.org>
+	* Project commiter;
+	* Porting of Roy Smith's A* implementation to python-graph;
+	* Edmond Chow's heuristic for A*;
+	* Refactoring.
+
+Tomaz Kovacic <tomaz.kovacic@gmail.com>
+	* Project commiter;
+	* Transitive edge detection;
+	* Critical path algorithm;
+	* Bellman-Ford algorithm;
+	* Logo design.
+
+
+CONTRIBUTORS
+
+Eugen Zagorodniy <e.zagorodniy@gmail.com>
+	* Mutual Accessibility (Tarjan's Algorithm).
+
+Johannes Reinhardt <jreinhardt@ist-dein-freund.de>
+	* Maximum-flow algorithm;
+	* Gomory-Hu cut-tree algorithm;
+	* Refactoring.
+	
+Juarez Bochi <jbochi@gmail.com>
+	* Pagerank algorithm.
+
+Nathan Davis <davisn90210@gmail.com>
+	* Faster node insertion.
+
+Paul Harrison <pfh@logarithmic.net>
+	* Mutual Accessibility (Tarjan's Algorithm).
+
+Peter Sagerson <peter.sagerson@gmail.com>
+	* Performance improvements on shortest path algorithm.
+
+Rhys Ulerich <rhys.ulerich@gmail.com>
+	* Dijkstra's Shortest path algorithm.
+
+Roy Smith <roy@panix.com>
+	* Heuristic Searching (A* algorithm).
+
+Zsolt Haraszti <zsolt@drawwell.net>
+	* Weighted random generated graphs.
+
+Anand Jeyahar  <anand.jeyahar@gmail.com>
+	* Edge deletion on hypergraphs (bug fix).
+
+Emanuele Zattin <emanuelez@gmail.com>
+	* Hyperedge relinking (bug fix).
+
+Jonathan Sternberg <jonathansternberg@gmail.com>
+	* Graph comparison (bug fix);
+	* Proper isolation of attribute lists (bug fix).
+
+Daniel Merritt <dmerritt@gmail.com>
+	* Fixed reading of XML-stored graphs with edge attributes.
+
+
+LICENSE
+
+This software is provided under the MIT license. See accompanying COPYING file
+for details.

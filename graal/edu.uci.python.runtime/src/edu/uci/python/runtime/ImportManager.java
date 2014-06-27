@@ -25,6 +25,7 @@
 package edu.uci.python.runtime;
 
 import java.io.*;
+import java.nio.file.*;
 import java.util.*;
 
 import org.python.core.*;
@@ -43,8 +44,10 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class ImportManager {
 
-    private static final String PYTHON_LIB_PATH = getPythonLibraryPath();
     private final PythonContext context;
+
+    private final List<String> paths;
+
     private final Map<String, PythonModule> importedModules;
 
     // Unsupported Imports:
@@ -64,9 +67,13 @@ public class ImportManager {
 
     public ImportManager(PythonContext context) {
         this.context = context;
+        this.paths = new ArrayList<>();
         this.importedModules = new HashMap<>();
         this.unsupportedImports = new HashMap<>();
-        String[] unsupportedImportNames = {"re", "os", "posix", "io", "textwrap", "optparse", "functools"};
+        this.paths.add(getPythonLibraryPath());
+
+        String[] unsupportedImportNames = {"re", "os", "posix", "io", "textwrap", "optparse", "functools", "struct", "decimal", "collections", "threading", "abc", "inspect", "subprocess", "warnings"};
+
         for (String lib : unsupportedImportNames) {
             this.unsupportedImports.put(lib, true);
         }
@@ -77,34 +84,70 @@ public class ImportManager {
     }
 
     public Object importModule(PythonModule relativeto, String moduleName) {
-
-        Object importedModule = context.getPythonBuiltinsLookup().lookupModule(moduleName);
+        CompilerAsserts.neverPartOfCompilation();
 
         /**
-         * Use Jython's regex module.
+         * Look up built-in modules supported by ZipPy
+         */
+        Object importedModule = context.getPythonBuiltinsLookup().lookupModule(moduleName);
+        if (importedModule != null) {
+            return importedModule;
+        }
+
+        /**
+         * Go to Jython for blacklisted modules.
          */
         if (unsupportedImports.containsKey(moduleName)) {
             return importFromJython(moduleName);
         }
 
-        if (importedModule != null) {
-            return importedModule;
-        } else {
-            String path = getPathFromImporterPath(moduleName, relativeto.getModulePath());
+        /**
+         * Try to find user module.
+         */
+        String path = getPathFromImporterPath(moduleName, relativeto.getModulePath());
+        if (path != null) {
+            return importAndCache(path, moduleName);
+        }
+
+        /**
+         * Try to find from system paths.
+         */
+        updateSystemPathFromJython();
+        for (String directoryPath : paths) {
+            path = getPathFromLibrary(directoryPath, moduleName);
 
             if (path != null) {
-                importedModule = importAndCache(path, moduleName);
-            } else {
-                path = getPathFromLibrary(moduleName);
-                if (path != null) {
-                    importedModule = importAndCache(path, moduleName);
-                } else {
-                    importedModule = importFromJython(moduleName);
-                }
+                return importAndCache(path, moduleName);
             }
         }
 
-        return importedModule;
+        /**
+         * Eventually fall back to Jython, and might return null.
+         */
+        return importFromJython(moduleName);
+    }
+
+    private void updateSystemPathFromJython() {
+        PyList jythonSystemPaths = Py.getSystemState().path;
+
+        for (Object path : jythonSystemPaths) {
+            if (!(path instanceof String)) {
+                continue;
+            }
+
+            String stringPath = (String) path;
+            if (stringPath.contains("zippy/lib") || stringPath.contains("jython")) {
+                continue;
+            }
+
+            if (!Files.exists(Paths.get(stringPath))) {
+                continue;
+            }
+
+            if (!paths.contains(stringPath)) {
+                paths.add(stringPath);
+            }
+        }
     }
 
     private static PyObject importFromJython(String moduleName) {
@@ -127,28 +170,37 @@ public class ImportManager {
             path = new File(importingModulePath).getAbsoluteFile().getParent();
         }
 
-        if (path != null) {
-            String importedModulePath = path + File.separatorChar + filename;
-            File importingFile = new File(importedModulePath);
-            if (importingFile.exists()) {
-                return importedModulePath;
-            }
+        if (path == null) {
+            return null;
+        }
+
+        String importedModulePath = path + File.separatorChar + filename;
+        File importingFile = new File(importedModulePath);
+
+        if (importingFile.exists()) {
+            return importedModulePath;
+        }
+
+        importedModulePath = path + File.separatorChar + moduleName;
+        File importingDirectory = new File(importedModulePath);
+        importingFile = new File(importingDirectory, "__init__.py");
+        if (importingDirectory.isDirectory() && importingFile.exists()) {
+            return importingFile.toString();
         }
 
         return null;
     }
 
-    private static String getPathFromLibrary(String moduleName) {
+    private static String getPathFromLibrary(String directoryPath, String moduleName) {
         if (moduleName.equals("unittest")) {
-            String casePath = PYTHON_LIB_PATH + File.separatorChar + "unittest" + File.separatorChar + "__init__zippy.py";
+            String casePath = getPythonLibraryPath() + File.separatorChar + "unittest" + File.separatorChar + "__init__zippy.py";
             return casePath;
         }
 
-        String dirPath = PYTHON_LIB_PATH;
         String sourceName = "__init__.py";
 
         // First check for packages
-        File dir = new File(dirPath, moduleName);
+        File dir = new File(directoryPath, moduleName);
         File sourceFile = new File(dir, sourceName);
 
         boolean isPackage = false;
@@ -160,7 +212,7 @@ public class ImportManager {
 
         if (!isPackage) {
             sourceName = moduleName + ".py";
-            sourceFile = new File(dirPath, sourceName);
+            sourceFile = new File(directoryPath, sourceName);
             if (sourceFile.isFile()) {
                 String path = sourceFile.getPath();
                 return path;
@@ -183,6 +235,7 @@ public class ImportManager {
             importedModule = tryImporting(path, moduleName);
         }
 
+        assert importedModule.getAttribute("__name__").equals(moduleName);
         return importedModule;
     }
 

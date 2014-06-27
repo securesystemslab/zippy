@@ -40,7 +40,7 @@ import edu.uci.python.runtime.*;
 public class ExceptNode extends StatementNode {
 
     @Child protected PNode body;
-    @Children final PNode[] exceptType;
+    @Children private final PNode[] exceptType;
     @Child protected PNode exceptName;
 
     private final PythonContext context;

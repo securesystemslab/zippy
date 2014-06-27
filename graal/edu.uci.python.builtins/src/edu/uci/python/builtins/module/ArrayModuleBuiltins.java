@@ -151,7 +151,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                     double[] doubleArray = new double[store.length()];
 
                     for (i = 0; i < doubleArray.length; i++) {
-                        doubleArray[i] = PythonTypesGen.PYTHONTYPES.asImplicitDouble(store.getItemInBound(i));
+                        doubleArray[i] = PythonTypesGen.PYTHONTYPES.asImplicitDouble(store.getItemNormalized(i));
                     }
 
                     return new PDoubleArray(doubleArray);

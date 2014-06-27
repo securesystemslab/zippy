@@ -26,8 +26,6 @@ package edu.uci.python.runtime;
 
 import java.io.*;
 import java.lang.invoke.*;
-import java.util.*;
-import java.util.concurrent.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.instrument.*;
@@ -53,10 +51,6 @@ public class PythonContext extends ExecutionContext {
     private final PythonParser parser;
     private final ImportManager importManager;
 
-    // Parallel generators
-    private final ExecutorService executorService;
-    private final Map<String, long[]> generatorProfilingInfo;
-
     private static PythonContext currentContext;
 
     private RuntimeException currentException;
@@ -64,10 +58,10 @@ public class PythonContext extends ExecutionContext {
     public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser) {
         this.options = opts;
         this.lookup = lookup;
-        this.typeClass = new PythonBuiltinClass(this, null, "type");
+        this.typeClass = new PythonBuiltinClass(this, "type", null);
         this.objectClass = new PythonObjectClass(this);
         this.typeClass.unsafeSetSuperClass(objectClass);
-        this.moduleClass = new PythonBuiltinClass(this, objectClass, "module");
+        this.moduleClass = new PythonBuiltinClass(this, "module", objectClass);
 
         assert typeClass.usePrivateLayout() && typeClass.getObjectLayout().isEmpty();
         assert objectClass.usePrivateLayout() && objectClass.getObjectLayout().isEmpty();
@@ -80,8 +74,6 @@ public class PythonContext extends ExecutionContext {
         currentContext = this;
 
         this.builtinsModule = this.lookup.populateBuiltins(this);
-        this.executorService = Executors.newCachedThreadPool();
-        this.generatorProfilingInfo = new HashMap<>();
     }
 
     public PythonModule createMainModule(String path) {
@@ -175,28 +167,7 @@ public class PythonContext extends ExecutionContext {
         return currentException;
     }
 
-    public void submitParallelTask(Runnable task) {
-        executorService.execute(task);
-    }
-
-    public void registerGeneratorProfilingInfo(String generatorId, long innerTime, long outerTime) {
-        generatorProfilingInfo.put(generatorId, new long[]{innerTime, outerTime});
-    }
-
-    public void printGeneratorProfilingInfo() {
-        PrintStream ps = System.out;
-        ps.println("--------------- generator profiling info ---------------");
-        for (String id : generatorProfilingInfo.keySet()) {
-            long[] times = generatorProfilingInfo.get(id);
-            double innerTime = (double) times[0] / 1000000000;
-            double outerTime = (double) times[1] / 1000000000;
-            ps.printf("%25s : ", id);
-            ps.printf("inner time: %f10, outer time: %f10, in/out: %f6 \n", innerTime, outerTime, innerTime / outerTime);
-        }
-    }
-
     public void shutdown() {
-        executorService.shutdown();
     }
 
     @Override

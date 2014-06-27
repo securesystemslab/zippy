@@ -26,10 +26,13 @@ package edu.uci.python.runtime.array;
 
 import java.util.*;
 
+import org.python.core.*;
+
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 
 public final class PDoubleArray extends PArray {
@@ -79,21 +82,32 @@ public final class PDoubleArray extends PArray {
 
     @Override
     public Object getItem(int idx) {
-        return getDoubleItemInBound(idx);
+        int index = SequenceUtil.normalizeIndex(idx, array.length);
+        return getDoubleItemNormalized(index);
     }
 
-    public double getDoubleItemInBound(int idx) {
-        return ObjectLayoutUtil.readDoubleArrayUnsafeAt(array, idx, null);
+    public double getDoubleItemNormalized(int idx) {
+        try {
+            return array[idx];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("array index out of range");
+        }
     }
 
     @Override
     public void setItem(int idx, Object value) {
         int index = SequenceUtil.normalizeIndex(idx, array.length);
-        setDoubleItemInBound(index, (double) value);
+        setDoubleItemNormalized(index, (double) value);
     }
 
-    public void setDoubleItemInBound(int idx, double value) {
-        ObjectLayoutUtil.writeDoubleArrayUnsafeAt(array, idx, value, null);
+    public void setDoubleItemNormalized(int idx, double value) {
+        try {
+            array[idx] = value;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("array assignment index out of range");
+        }
     }
 
     @Override
@@ -160,12 +174,13 @@ public final class PDoubleArray extends PArray {
 
     @Override
     public String toString() {
-        StringBuilder buf = new StringBuilder("(");
+        StringBuilder buf = new StringBuilder();
+        buf.append("array('d', [");
         for (int i = 0; i < array.length - 1; i++) {
-            buf.append(array[i] + " ");
+            buf.append(array[i] + ", ");
         }
         buf.append(array[array.length - 1]);
-        buf.append(")");
+        buf.append("])");
         return buf.toString();
     }
 }

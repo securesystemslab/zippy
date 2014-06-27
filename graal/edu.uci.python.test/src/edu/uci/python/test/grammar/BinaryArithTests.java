@@ -95,4 +95,11 @@ public class BinaryArithTests {
         assertPrints("2.7440432148750915E-9\n", "print(43253252 % 0.7)");
     }
 
+    @Test
+    public void int64() {
+        String source = "BB_ALL = 0b1111111111111111111111111111111111111111111111111111111111111111\n" + //
+                        "print(BB_ALL)\n";
+        assertPrints("18446744073709551615\n", source);
+    }
+
 }

@@ -53,7 +53,6 @@ import edu.uci.python.nodes.subscript.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.standardtype.*;
 import static edu.uci.python.parser.TranslationUtil.*;
 
@@ -106,17 +105,71 @@ public class PythonTreeTranslator extends Visitor {
 
     public PNode assignSourceFromChildren(PNode truffleNode, PNode leftNode, PNode rightNode) {
         String identifier = "identifier";
-        if (leftNode.getSourceSection() == null) {
-            throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s left node " + leftNode.getClass().getSimpleName() + "does not have a source section");
-        } else if (rightNode.getSourceSection() == null) {
-            throw new RuntimeException("Node " + truffleNode + "'s right node " + rightNode.getClass().getSimpleName() + "does not have a source section");
+
+        try {
+            if (leftNode.getSourceSection() == null) {
+                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s left node " + leftNode.getClass().getSimpleName() + "does not have a source section");
+            } else if (rightNode.getSourceSection() == null) {
+                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s right node " + rightNode.getClass().getSimpleName() + "does not have a source section");
+            }
+            int charStartIndex = leftNode.getSourceSection().getCharIndex();
+            int charStopIndex = rightNode.getSourceSection().getCharEndIndex();
+            int charLength = charStopIndex - charStartIndex;
+            SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
+            truffleNode.assignSourceSection(sourceSection);
+            return truffleNode;
+        } catch (RuntimeException e) {
+            return truffleNode;
         }
-        int charStartIndex = leftNode.getSourceSection().getCharIndex();
-        int charStopIndex = rightNode.getSourceSection().getCharEndIndex();
+    }
+
+    public RootNode assignSourceToRootNode(PythonTree node, RootNode rootNode) {
+        String identifier = node.getText();
+        int charStartIndex = node.getCharStartIndex();
+        int charStopIndex = node.getCharStopIndex();
         int charLength = charStopIndex - charStartIndex;
         SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
-        truffleNode.assignSourceSection(sourceSection);
-        return truffleNode;
+        rootNode.assignSourceSection(sourceSection);
+        return rootNode;
+    }
+
+    public PNode assignSourceToBlockNode(PNode node, List<PNode> children) {
+        String identifier = "identifier";
+        PNode firstChild = children.get(0);
+        PNode lastChild = children.get(children.size() - 1);
+
+        /**
+         * If a block has only one statement, then the source section of the block is assigned from
+         * its only statement.
+         */
+
+        if (children.size() == 1) {
+            try {
+                if (firstChild.getSourceSection() == null) {
+                    throw new RuntimeException("Node " + node.getClass().getSimpleName() + "'s left node " + firstChild.getClass().getSimpleName() + " does not have a source section");
+                }
+                node.assignSourceSection(firstChild.getSourceSection());
+            } catch (RuntimeException e) {
+                return node;
+            }
+            return node;
+        } else {
+            try {
+                if (firstChild.getSourceSection() == null) {
+                    throw new RuntimeException("Node " + node.getClass().getSimpleName() + "'s left node " + firstChild.getClass().getSimpleName() + " does not have a source section");
+                } else if (lastChild.getSourceSection() == null) {
+                    throw new RuntimeException("Node " + node.getClass().getSimpleName() + "'s right node " + lastChild.getClass().getSimpleName() + " does not have a source section");
+                }
+                int charStartIndex = firstChild.getSourceSection().getCharIndex();
+                int charStopIndex = lastChild.getSourceSection().getCharEndIndex();
+                int charLength = charStopIndex - charStartIndex;
+                SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
+                node.assignSourceSection(sourceSection);
+                return node;
+            } catch (RuntimeException e) {
+                return node;
+            }
+        }
     }
 
     @Override
@@ -125,7 +178,7 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> body = visitStatements(node.getInternalBody());
         FrameDescriptor fd = environment.getCurrentFrame();
         environment.endScope(node);
-        RootNode newNode = factory.createModule(body, fd);
+        RootNode newNode = factory.createModule(module.getModuleName(), body, fd);
         return newNode;
     }
 
@@ -135,7 +188,6 @@ public class PythonTreeTranslator extends Visitor {
         for (int i = 0; i < stmts.size(); i++) {
             stmt statementObject = stmts.get(i);
             PNode statement = (PNode) visit(statementObject);
-
             // Statements like Global is ignored
             if (EmptyNode.isEmpty(statement)) {
                 continue;
@@ -157,7 +209,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode body = (PNode) visit(node.getInternalBody());
         FrameDescriptor fd = environment.getCurrentFrame();
         environment.endScope(node);
-        return new ModuleNode(body, fd);
+        return new ModuleNode("<expression>", body, fd);
     }
 
     @Override
@@ -183,10 +235,14 @@ public class PythonTreeTranslator extends Visitor {
 
     private Object visitFunctionDefinition(FunctionDef node) throws Exception {
         String name = node.getInternalName();
+        Name nameNode = node.getInternalNameNode();
+        String enclosingClassName = environment.isInClassScope() ? environment.getCurrentScopeId() : null;
+
         /**
          * translate default arguments in FunctionDef's declaring scope.
          */
-        List<PNode> defaultArgs = walkExprList(node.getInternalArgs().getInternalDefaults());
+        List<expr> defaultExprs = node.getInternalArgs().getInternalDefaults();
+        List<PNode> defaultArgs = walkExprList(defaultExprs);
 
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
         environment.setDefaultArgumentNodes(defaultArgs);
@@ -194,7 +250,7 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Parameters
          */
-        Arity arity = createArity(name, node.getInternalArgs());
+        Arity arity = createArity(name, node.getInternalArgs(), node.getInternalDecorator_list());
         PNode argumentLoads = visitArgs(node.getInternalArgs());
 
         /**
@@ -204,6 +260,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode body = factory.createBlock(statements);
         body = factory.createBlock(argumentLoads, body);
         body = new ReturnTargetNode(body, factory.createReadLocal(environment.getReturnSlot()));
+        assignSourceFromNode(node, body);
 
         /**
          * Defaults
@@ -214,8 +271,9 @@ public class PythonTreeTranslator extends Visitor {
          * Function root
          */
         FrameDescriptor fd = environment.getCurrentFrame();
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, environment.isInGeneratorScope(), fd, body);
-        funcRoot.assignSourceSection(source.createSection(node.getText(), (node.getLine() - 1), (node.getCharPositionInLine() + 1), node.getTokenStartIndex(), node.getText().length()));
+        String fullName = enclosingClassName == null ? name : enclosingClassName + '.' + name;
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, fullName, environment.isInGeneratorScope(), fd, body);
+        assignSourceToRootNode(node, funcRoot);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
         result.addParsedFunction(name, funcRoot);
 
@@ -225,13 +283,14 @@ public class PythonTreeTranslator extends Visitor {
         PNode funcDef;
         if (environment.isInGeneratorScope()) {
             GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
-            funcDef = GeneratorFunctionDefinitionNode.create(name, context, arity, defaults, gtran.translate(), fd, gtran.createParallelGeneratorCallTarget(), environment.needsDeclarationFrame(),
+            funcDef = GeneratorFunctionDefinitionNode.create(name, enclosingClassName, context, arity, defaults, gtran.translate(), fd, environment.needsDeclarationFrame(),
                             gtran.getNumOfActiveFlags(), gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
         } else {
-            funcDef = new FunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
+            funcDef = new FunctionDefinitionNode(name, enclosingClassName, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
         environment.endScope(node);
-        return environment.findVariable(name).makeWriteNode(funcDef);
+        PNode functionNameWriteNode = environment.findVariable(name).makeWriteNode(funcDef);
+        return assignSourceFromNode(nameNode, functionNameWriteNode);
     }
 
     @Override
@@ -239,7 +298,8 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * translate default arguments in FunctionDef's declaring scope.
          */
-        List<PNode> defaultArgs = walkExprList(node.getInternalArgs().getInternalDefaults());
+        List<expr> defaultExprs = node.getInternalArgs().getInternalDefaults();
+        List<PNode> defaultArgs = walkExprList(defaultExprs);
 
         String name = "anonymous";
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
@@ -248,7 +308,7 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Parameters
          */
-        Arity arity = createArity(name, node.getInternalArgs());
+        Arity arity = createArity(name, node.getInternalArgs(), new ArrayList<expr>());
         PNode argumentLoads = visitArgs(node.getInternalArgs());
 
         /**
@@ -277,10 +337,10 @@ public class PythonTreeTranslator extends Visitor {
         PNode funcDef;
         if (environment.isInGeneratorScope()) {
             GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
-            funcDef = GeneratorFunctionDefinitionNode.create(name, context, arity, defaults, gtran.translate(), fd, gtran.createParallelGeneratorCallTarget(), environment.needsDeclarationFrame(),
-                            gtran.getNumOfActiveFlags(), gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
+            funcDef = GeneratorFunctionDefinitionNode.create(name, null, context, arity, defaults, gtran.translate(), fd, environment.needsDeclarationFrame(), gtran.getNumOfActiveFlags(),
+                            gtran.getNumOfGeneratorBlockNode(), gtran.getNumOfGeneratorForNode());
         } else {
-            funcDef = new FunctionDefinitionNode(name, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
+            funcDef = new FunctionDefinitionNode(name, null, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
 
         environment.endScope(node);
@@ -307,7 +367,7 @@ public class PythonTreeTranslator extends Visitor {
                         gtran.getNumOfGeneratorForNode());
     }
 
-    public Arity createArity(String functionName, arguments node) {
+    public Arity createArity(String functionName, arguments node, List<expr> decorators) {
         boolean takesVarArgs = false;
         /**
          * takesKeywordArg is true by default, because in Python every parameter can be passed as a
@@ -341,7 +401,27 @@ public class PythonTreeTranslator extends Visitor {
         }
 
         int minNumOfArgs = numOfArguments - numOfDefaultArguments;
-        return new Arity(functionName, minNumOfArgs, maxNumOfArgs, takesFixedNumOfArgs, takesKeywordArg, takesVarArgs, parameterIds);
+
+        /**
+         * Decorators: classmethod or staticmethod.
+         */
+        String decoratorName = null;
+        if (decorators.size() == 1 && decorators.get(0) instanceof Name) {
+            Name decoratorId = (Name) decorators.get(0);
+            decoratorName = decoratorId.getInternalId();
+        }
+
+        boolean isClassMethod = false;
+        boolean isStaticMethod = false;
+        if (decoratorName != null) {
+            if (decoratorName.equals("classmethod")) {
+                isClassMethod = true;
+            } else if (decoratorName.equals("staticmethod")) {
+                isStaticMethod = true;
+            }
+        }
+
+        return new Arity(functionName, minNumOfArgs, maxNumOfArgs, takesFixedNumOfArgs, takesKeywordArg, takesVarArgs, isClassMethod, isStaticMethod, parameterIds);
     }
 
     public PNode visitArgs(arguments node) throws Exception {
@@ -353,11 +433,15 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Argument reads.
          */
+        List<expr> argExprs = node.getInternalArgs();
+        // List<expr> defaultArgs = node.getInternalDefaults();
         List<PNode> argumentReads = new ArrayList<>();
-        for (int i = 0; i < node.getInternalArgs().size(); i++) {
+
+        for (int i = 0; i < argExprs.size(); i++) {
             expr arg = node.getInternalArgs().get(i);
             assert arg instanceof Name;
-            argumentReads.add((PNode) visit(arg));
+            PNode argumentReadNode = (PNode) visit(arg);
+            argumentReads.add(argumentReadNode);
         }
 
         /**
@@ -381,9 +465,11 @@ public class PythonTreeTranslator extends Visitor {
         int sizeOfParams = node.getInternalArgs().size();
         int sizeOfDefaults = environment.getDefaultArgumentNodes().size();
         ReadDefaultArgumentNode[] defaultReads = new ReadDefaultArgumentNode[sizeOfDefaults];
+
         for (int i = 0; i < sizeOfDefaults; i++) {
             defaultReads[i] = new ReadDefaultArgumentNode();
         }
+
         environment.setDefaultArgumentReads(defaultReads);
 
         /**
@@ -395,7 +481,20 @@ public class PythonTreeTranslator extends Visitor {
         int offset = sizeOfParams - sizeOfDefaults;
         for (int i = 0; i < sizeOfDefaults; i++) {
             FrameSlotNode slotNode = (FrameSlotNode) argumentReads.get(i + offset);
-            defaultWrites[i] = factory.createWriteLocal(defaultReads[i], slotNode.getSlot());
+            PNode defaultWriteNode = factory.createWriteLocal(defaultReads[i], slotNode.getSlot());
+            /**
+             * Two WriteLocalNode are created for every default argument. We have to give different
+             * source sections to these write nodes. <br>
+             * WriteLocalVariableUninitializedNode ----> This WriteNode is created in this for loop <br>
+             * rightNode = ReadDefaultArgumentNode <br>
+             * ApplyArgumentsNode <br>
+             * WriteLocalVariableUninitializedNode <br>
+             * rightNode = UninitializedReadArgumentNode <br>
+             * PNode defaultArgName = argumentReads.get(i+ offset); <br>
+             * PNode defaultArgValue = (PNode) visit(defaultArgs.get(i));<br>
+             * assignSourceFromChildren(defaultWriteNode, defaultArgName, defaultArgValue);
+             */
+            defaultWrites[i] = defaultWriteNode;
         }
 
         PNode loadDefaults = factory.createBlock(defaultWrites);
@@ -431,18 +530,26 @@ public class PythonTreeTranslator extends Visitor {
         return read.makeWriteNode(importNode);
     }
 
-    private PNode createSingleImportFromStatement(alias aliaz, String fromModuleName, Integer level) {
-        PythonModule relativeto = level > 0 ? this.module : context.getMainModule();
+    private PNode createSingleImportFromStatement(alias aliaz, String fromModuleName) {
+        PythonModule relativeto = this.module;
 
         String importName = aliaz.getInternalName();
+
         if (importName.equals("*")) {
             return createSingleImportStarStatement(relativeto, fromModuleName);
         }
 
         String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
+        Name importNameNode = aliaz.getInternalAsnameNode();
         PNode importNode = factory.createImportFrom(context, relativeto, fromModuleName, importName);
         ReadNode read = environment.findVariable(target);
-        return read.makeWriteNode(importNode);
+        PNode writeNode = read.makeWriteNode(importNode);
+
+        if (importNameNode != null) {
+            assignSourceFromNode(importNameNode, writeNode);
+        }
+
+        return writeNode;
     }
 
     private PNode createSingleImportStarStatement(PythonModule relativeto, String fromModuleName) {
@@ -456,7 +563,7 @@ public class PythonTreeTranslator extends Visitor {
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-            return createSingleImportStatement(aliases.get(0));
+            return assignSourceFromNode(node, createSingleImportStatement(aliases.get(0)));
         }
 
         List<PNode> imports = new ArrayList<>();
@@ -476,13 +583,12 @@ public class PythonTreeTranslator extends Visitor {
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-
-            return createSingleImportFromStatement(aliases.get(0), node.getInternalModule(), node.getInternalLevel());
+            return createSingleImportFromStatement(aliases.get(0), node.getInternalModule());
         }
 
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
-            imports.add(createSingleImportFromStatement(aliases.get(i), node.getInternalModule(), node.getInternalLevel()));
+            imports.add(createSingleImportFromStatement(aliases.get(i), node.getInternalModule()));
         }
 
         return factory.createBlock(imports);
@@ -496,6 +602,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitClassDef(ClassDef node) throws Exception {
         String name = node.getInternalName();
+        Name nameNode = node.getInternalNameNode();
         List<PNode> bases = walkExprList(node.getInternalBases());
         assert bases.size() <= 1 : "Multiple super class is not supported yet!";
 
@@ -503,21 +610,22 @@ public class PythonTreeTranslator extends Visitor {
         PNode body = factory.createBlock(visitStatements(node.getInternalBody()));
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, false, environment.getCurrentFrame(), body);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
-        FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, context, new Arity(name, 0, 0, new ArrayList<String>()), EmptyNode.create(), ct, environment.getCurrentFrame(),
+        FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, null, context, new Arity(name, 0, 0, new ArrayList<String>()), EmptyNode.create(), ct, environment.getCurrentFrame(),
                         environment.needsDeclarationFrame());
         environment.endScope(node);
 
         // The default super class is the <class 'object'>.
-        PNode base;
+        PNode[] baseNodes;
         if (bases.size() == 0 || bases.get(0) == null) {
-            base = factory.createObjectLiteral(context.getObjectClass());
+            baseNodes = new PNode[]{factory.createObjectLiteral(context.getObjectClass())};
         } else {
-            base = bases.get(0);
+            baseNodes = bases.toArray(new PNode[bases.size()]);
         }
 
-        PNode classDef = factory.createClassDef(name, base, funcDef);
+        PNode classDef = factory.createClassDef(context, this.module.getModuleName(), name, baseNodes, funcDef);
         ReadNode read = environment.findVariable(name);
-        return read.makeWriteNode(classDef);
+        PNode writeNode = read.makeWriteNode(classDef);
+        return assignSourceFromNode(nameNode, writeNode);
     }
 
     @Override
@@ -721,20 +829,9 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitSlice(Slice node) throws Exception {
-        PNode lower = (PNode) (node.getInternalLower() == null ? null : visit(node.getInternalLower()));
-        PNode upper = (PNode) (node.getInternalUpper() == null ? null : visit(node.getInternalUpper()));
-        PNode step = (PNode) (node.getInternalStep() == null ? null : visit(node.getInternalStep()));
-
-        if (lower == null || lower instanceof NoneLiteralNode) {
-            lower = factory.createIntegerLiteral(SequenceUtil.MISSING_INDEX);
-        }
-        if (upper == null || upper instanceof NoneLiteralNode) {
-            upper = factory.createIntegerLiteral(SequenceUtil.MISSING_INDEX);
-        }
-        if (step == null || step instanceof NoneLiteralNode) {
-            step = factory.createIntegerLiteral(1);
-        }
-
+        PNode lower = (PNode) (node.getInternalLower() == null ? EmptyNode.create() : visit(node.getInternalLower()));
+        PNode upper = (PNode) (node.getInternalUpper() == null ? EmptyNode.create() : visit(node.getInternalUpper()));
+        PNode step = (PNode) (node.getInternalStep() == null ? EmptyNode.create() : visit(node.getInternalStep()));
         return assignSourceFromNode(node, factory.createSlice(lower, upper, step));
     }
 
@@ -794,12 +891,22 @@ public class PythonTreeTranslator extends Visitor {
 
             List<expr> conditions = comp.getInternalIfs();
             if (conditions != null && !conditions.isEmpty()) {
-                current = factory.createIf(factory.toBooleanCastNode((PNode) visit(conditions.get(0))), current, EmptyNode.create());
+                PNode condition = (PNode) visit(conditions.get(0));
+                current = factory.createIf(factory.toBooleanCastNode(condition), current, EmptyNode.create());
             }
 
-            PNode target = ((ReadNode) visit(comp.getInternalTarget())).makeWriteNode(EmptyNode.create());
+            PNode iterWrite;
+            if (comp.getInternalTarget() instanceof Tuple) {
+                // Unpacking
+                List<PNode> targets = assigns.walkTarget(comp.getInternalTarget(), EmptyNode.create());
+                iterWrite = targets.remove(0);
+                current = factory.createBlock(factory.createBlock(targets), current);
+            } else {
+                iterWrite = ((ReadNode) visit(comp.getInternalTarget())).makeWriteNode(EmptyNode.create());
+            }
+
             PNode iterator = (PNode) visit(comp.getInternalIter());
-            current = createForInScope(target, iterator, current);
+            current = createForInScope(iterWrite, iterator, current);
         }
 
         assert current != null;
@@ -818,7 +925,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode body = factory.createYield((PNode) visit(node.getInternalElt()), environment.getReturnSlot());
         body = visitComprehensions(node.getInternalGenerators(), factory.createBlock(body));
         body = new ReturnTargetNode(body, factory.createReadLocal(environment.getReturnSlot()));
-        int lineNum = node.getLine() - 1;
+        int lineNum = node.getLine();
         GeneratorExpressionNode genExprDef = createGeneratorExpressionDefinition((StatementNode) body, lineNum);
         genExprDef.setEnclosingFrameDescriptor(environment.getEnclosingFrame());
         environment.endScope(node);
@@ -827,17 +934,19 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitReturn(Return node) throws Exception {
+        expr returnValue = node.getInternalValue();
         PNode value = null;
         StatementNode returnNode = null;
 
-        if (node.getInternalValue() != null) {
-            value = (PNode) visit(node.getInternalValue());
+        if (returnValue != null) {
+            value = (PNode) visit(returnValue);
         }
 
         if (value == null) {
             returnNode = factory.createReturn();
         } else {
             PNode write = factory.createWriteLocal(value, environment.getReturnSlot());
+            assignSourceFromNode(returnValue, write);
             returnNode = factory.createFrameReturn(write);
         }
 
@@ -858,12 +967,32 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitIf(If node) throws Exception {
-        List<PNode> then = visitStatements(node.getInternalBody());
+        List<stmt> thenStmt = node.getInternalBody();
+        List<PNode> then = visitStatements(thenStmt);
         List<PNode> orelse = visitStatements(node.getInternalOrelse());
         PNode test = (PNode) visit(node.getInternalTest());
         PNode thenPart = factory.createBlock(then);
+
+        if (thenPart instanceof EmptyNode) {
+            thenPart = assignSourceFromNode(thenStmt.get(0), thenPart);
+        } else {
+            thenPart = assignSourceToBlockNode(thenPart, then);
+        }
+
         PNode elsePart = factory.createBlock(orelse);
-        return assignSourceFromNode(node, factory.createIf(factory.toBooleanCastNode(test), thenPart, elsePart));
+        if (!(elsePart instanceof EmptyNode)) {
+            assignSourceToBlockNode(elsePart, orelse);
+        }
+
+        CastToBooleanNode castToBooleanNode = factory.toBooleanCastNode(test);
+        PNode ifNode = factory.createIf(castToBooleanNode, thenPart, elsePart);
+        if (!(elsePart instanceof EmptyNode)) {
+            assignSourceFromChildren(ifNode, test, elsePart);
+        } else {
+            assignSourceFromChildren(ifNode, test, thenPart);
+        }
+
+        return ifNode;
     }
 
     @Override
@@ -993,8 +1122,9 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitYield(Yield node) throws Exception {
         environment.setToGeneratorScope();
-        PNode right = (PNode) visit(node.getInternalValue());
-        return factory.createYield(right, environment.getReturnSlot());
+        expr value = node.getInternalValue();
+        PNode right = value != null ? (PNode) visit(value) : EmptyNode.create();
+        return assignSourceFromNode(node, factory.createYield(right, environment.getReturnSlot()));
     }
 
     @Override

@@ -28,6 +28,8 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.control.*;
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
@@ -52,6 +54,10 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
 
         ShapeCheckNode check = ShapeCheckNode.create(primary, specialMethodId, primary.isOwnAttribute(specialMethodId));
         assert check != null;
+
+        if (callee instanceof PGeneratorFunction) {
+            return new GeneratorDispatchSpecialNode((PGeneratorFunction) callee, check, next);
+        }
 
         if (!reflected) {
             return new LinkedDispatchSpecialNode(callee, check, next);
@@ -122,6 +128,60 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
                 return executeCallAndRewrite(next, frame, left, right);
             }
         }
+    }
+
+    public static final class GeneratorDispatchSpecialNode extends LinkedDispatchSpecialNode implements GeneratorDispatch {
+
+        private final PGeneratorFunction genfunc;
+
+        public GeneratorDispatchSpecialNode(PGeneratorFunction genfunc, ShapeCheckNode check, UninitializedDispatchSpecialNode next) {
+            super(genfunc, check, next);
+            this.genfunc = genfunc;
+        }
+
+        @Override
+        public Node getCallNode() {
+            if (getParent() instanceof GetIteratorNode) {
+                return this;
+            } else {
+                return getParent();
+            }
+        }
+
+        public PGeneratorFunction getGeneratorFunction() {
+            return genfunc;
+        }
+
+        @Override
+        protected void onAdopt() {
+            RootNode root = getRootNode();
+            if (root instanceof FunctionRootNode) {
+                ((FunctionRootNode) root).reportGeneratorDispatch();
+            }
+        }
+
+        @Override
+        public NodeCost getCost() {
+            return getCost(next);
+        }
+
+        public ShapeCheckNode getCheckNode() {
+            return check;
+        }
+
+        @Override
+        public Object executeCall(VirtualFrame frame, Object left, Object right) {
+            try {
+                if (accept(left)) {
+                    return genfunc.call(PArguments.createWithUserArguments(left, right));
+                } else {
+                    return next.executeCall(frame, left, right);
+                }
+            } catch (InvalidAssumptionException ex) {
+                return executeCallAndRewrite(next, frame, left, right);
+            }
+        }
+
     }
 
     @NodeInfo(cost = NodeCost.MEGAMORPHIC)

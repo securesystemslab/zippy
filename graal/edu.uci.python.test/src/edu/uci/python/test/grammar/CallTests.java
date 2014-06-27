@@ -105,4 +105,16 @@ public class CallTests {
         assertPrints("do stuff A\ndo stuff B\n", script);
     }
 
+    @Test
+    public void classmethod() {
+        Path script = Paths.get("call-classmethod-test.py");
+        assertPrints("True\nTrue\nFalse\nTrue\nFalse\n", script);
+    }
+
+    @Test
+    public void staticmethod() {
+        Path script = Paths.get("call-staticmethod-test.py");
+        assertPrints("True\nTrue\nFalse\nTrue\nFalse\n", script);
+    }
+
 }

@@ -26,12 +26,20 @@ package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
+import org.python.core.*;
+
+import com.oracle.truffle.api.*;
+
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
 public final class PTuple extends PImmutableSequence implements Comparable<Object> {
+
+    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PTuple.class);
 
     private final Object[] array;
 
@@ -74,13 +82,17 @@ public final class PTuple extends PImmutableSequence implements Comparable<Objec
 
     @Override
     public Object getItem(int idx) {
-        int checkedIdx = idx;
+        final int index = SequenceUtil.normalizeIndex(idx, this.len());
+        return getItemNormalized(index);
+    }
 
-        if (idx < 0) {
-            checkedIdx += array.length;
+    public Object getItemNormalized(int index) {
+        try {
+            return array[index];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("tuple index out of range");
         }
-
-        return array[checkedIdx];
     }
 
     @Override
@@ -183,11 +195,34 @@ public final class PTuple extends PImmutableSequence implements Comparable<Objec
 
     @Override
     public int index(Object value) {
-        throw new UnsupportedOperationException();
+        for (int i = 0; i < array.length; i++) {
+            Object val = array[i];
+
+            if (val.equals(value)) {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
     public int compareTo(Object o) {
         return SequenceUtil.cmp(this, (PSequence) o);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (!(other instanceof PTuple)) {
+            return false;
+        }
+
+        PTuple otherTuple = (PTuple) other;
+        return Arrays.equals(array, otherTuple.array);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
     }
 
 }

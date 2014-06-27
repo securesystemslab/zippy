@@ -39,7 +39,7 @@ public final class PMethod extends PythonBuiltinObject implements PythonCallable
     private final RootCallTarget callTarget;
 
     public PMethod(PythonObject self, PFunction function) {
-        this.self = self;
+        this.self = function.isClassMethod() ? self.asPythonClass() : self;
         this.function = function;
         this.callTarget = function.getCallTarget();
     }
@@ -52,10 +52,15 @@ public final class PMethod extends PythonBuiltinObject implements PythonCallable
         return self;
     }
 
+    @Override
+    public boolean isGeneratorFunction() {
+        return function instanceof PGeneratorFunction;
+    }
+
     public Object call(Object[] arguments) {
-        PArguments.insertSelf(arguments, self);
-        PArguments.setDeclarationFrame(arguments, function.getDeclarationFrame());
-        return callTarget.call(arguments);
+        Object[] withSelf = PArguments.insertSelf(arguments, self);
+        PArguments.setDeclarationFrame(withSelf, function.getDeclarationFrame());
+        return callTarget.call(withSelf);
     }
 
     /**
@@ -68,9 +73,9 @@ public final class PMethod extends PythonBuiltinObject implements PythonCallable
             return slowPathCallForUnitTest(arguments, keywords);
         }
 
-        Object[] processed = PArguments.insertSelf(arguments, self);
-        PArguments.setDeclarationFrame(processed, function.getDeclarationFrame());
-        return callTarget.call(PArguments.applyKeywordArgs(getArity(), processed, keywords));
+        Object[] withSelf = PArguments.insertSelf(arguments, self);
+        PArguments.setDeclarationFrame(withSelf, function.getDeclarationFrame());
+        return callTarget.call(PArguments.applyKeywordArgs(getArity(), withSelf, keywords));
     }
 
     /**
@@ -112,6 +117,11 @@ public final class PMethod extends PythonBuiltinObject implements PythonCallable
          * TODO Causes problem in unit test, so arity check is not performed on PMethod.
          */
         // function.arityCheck(numOfArgs + 1, numOfKeywords, keywords);
+    }
+
+    @Override
+    public boolean isClassMethod() {
+        return function.getArity().isClassMethod();
     }
 
     @Override

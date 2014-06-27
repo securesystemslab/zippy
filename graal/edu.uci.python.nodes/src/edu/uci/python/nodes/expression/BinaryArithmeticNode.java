@@ -38,71 +38,158 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.misc.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
     public abstract static class AddNode extends BinaryArithmeticNode {
 
-        @Specialization(rewriteOn = ArithmeticException.class, order = 0)
+        @Specialization(order = 0)
+        int doBoolean(boolean left, boolean right) {
+            final int leftInt = left ? 1 : 0;
+            final int rightInt = right ? 1 : 0;
+            return leftInt + rightInt;
+        }
+
+        @Specialization(order = 1)
+        int doBoolean(int left, boolean right) {
+            final int rightInt = right ? 1 : 0;
+            return left + rightInt;
+        }
+
+        @Specialization(order = 2)
+        int doBoolean(boolean left, int right) {
+            final int leftInt = left ? 1 : 0;
+            return leftInt + right;
+        }
+
+        @Specialization(rewriteOn = ArithmeticException.class, order = 5)
         int doInteger(int left, int right) {
             return ExactMath.addExact(left, right);
         }
 
-        @Specialization(order = 1)
+        @Specialization(order = 6)
+        BigInteger doIntegerBigInteger(int left, BigInteger right) {
+            return BigInteger.valueOf(left).add(right);
+        }
+
+        @Specialization(order = 7)
+        BigInteger doBigIntegerInteger(BigInteger left, int right) {
+            return left.add(BigInteger.valueOf(right));
+        }
+
+        @Specialization(order = 10)
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.add(right);
         }
 
-        @Specialization(order = 2)
+        @Specialization(order = 13)
+        double doDoubleBoolean(double left, boolean right) {
+            final double rightDouble = right ? 1.0 : 0.0;
+            return left + rightDouble;
+        }
+
+        @Specialization(order = 14)
+        double doDoubleBoolean(boolean left, double right) {
+            final double leftDouble = left ? 1.0 : 0.0;
+            return leftDouble + right;
+        }
+
+        @Specialization(order = 15)
+        double doDoubleInt(double left, int right) {
+            return left + right;
+        }
+
+        @Specialization(order = 16)
+        double doDoubleInt(int left, double right) {
+            return left + right;
+        }
+
+        @Specialization(order = 20)
         double doDouble(double left, double right) {
             return left + right;
         }
 
-        @Specialization(order = 3)
+        @Specialization(order = 30)
+        PComplex doComplexInt(PComplex left, boolean right) {
+            final double rightDouble = right ? 1.0 : 0.0;
+            PComplex result = new PComplex(left.getReal() + rightDouble, left.getImag());
+            return result;
+        }
+
+        @Specialization(order = 32)
+        PComplex doComplexInt(PComplex left, int right) {
+            PComplex result = new PComplex(left.getReal() + right, left.getImag());
+            return result;
+        }
+
+        @Specialization(order = 35)
         PComplex doDoubleComplex(double left, PComplex right) {
             PComplex result = new PComplex(left + right.getReal(), right.getImag());
             return result;
         }
 
-        @Specialization(order = 4)
+        @Specialization(order = 40)
         PComplex doComplexDouble(PComplex left, double right) {
             PComplex result = new PComplex(left.getReal() + right, left.getImag());
             return result;
         }
 
-        @Specialization(order = 5)
+        @Specialization(order = 45)
+        PComplex doComplex(BigInteger left, PComplex right) {
+            return new PComplex(left.doubleValue(), 0).add(right);
+        }
+
+        @Specialization(order = 50)
         PComplex doComplex(PComplex left, PComplex right) {
             return left.add(right);
         }
 
-        @Specialization(order = 6)
+        @Specialization(order = 60)
         String doString(String left, String right) {
             return left + right;
         }
 
-        @Specialization(order = 7)
+        @Specialization(order = 70, guards = "areBothIntStorage")
+        PList doPListInt(PList left, PList right) {
+            IntSequenceStorage leftStore = (IntSequenceStorage) left.getStorage().copy();
+            IntSequenceStorage rightStore = (IntSequenceStorage) right.getStorage();
+            leftStore.extendWithIntStorage(rightStore);
+            return new PList(leftStore);
+        }
+
+        @Specialization(order = 71, guards = "areBothObjectStorage")
+        PList doPListObject(PList left, PList right) {
+            ObjectSequenceStorage leftStore = (ObjectSequenceStorage) left.getStorage().copy();
+            ObjectSequenceStorage rightStore = (ObjectSequenceStorage) right.getStorage();
+            leftStore.extend(rightStore);
+            return new PList(leftStore);
+        }
+
+        @Specialization(order = 73)
         PList doPList(PList left, PList right) {
             return left.__add__(right);
         }
 
-        @Specialization(order = 8)
+        @Specialization(order = 80)
         PTuple doPTuple(PTuple left, PTuple right) {
             return left.__add__(right);
         }
 
-        @Specialization(order = 9)
+        @Specialization(order = 90)
         PArray doPArray(PArray left, PArray right) {
             return left.__add__(right);
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 10)
+        @Specialization(order = 100)
         int doNoneInt(PNone left, int right) {
             return right;
         }
 
-        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        @Specialization(order = 200, guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__add__", left, right);
         }
@@ -126,29 +213,39 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.subtract(right);
         }
 
-        @Specialization(order = 2)
+        @Specialization(order = 10)
         double doDouble(double left, double right) {
             return left - right;
         }
 
-        @Specialization(order = 3)
+        @Specialization(order = 11)
+        double doBigIntegerDouble(BigInteger left, double right) {
+            return left.doubleValue() - right;
+        }
+
+        @Specialization(order = 12)
+        double doBigIntegerDouble(double left, BigInteger right) {
+            return left - right.doubleValue();
+        }
+
+        @Specialization(order = 13)
         PComplex doDoubleComplex(double left, PComplex right) {
             PComplex result = new PComplex(left - right.getReal(), -right.getImag());
             return result;
         }
 
-        @Specialization(order = 4)
+        @Specialization(order = 14)
         PComplex doComplexDoulbe(PComplex left, double right) {
             PComplex result = new PComplex(left.getReal() - right, left.getImag());
             return result;
         }
 
-        @Specialization(order = 5)
+        @Specialization(order = 15)
         PComplex doComplex(PComplex left, PComplex right) {
             return left.sub(right);
         }
 
-        @Specialization(order = 6)
+        @Specialization(order = 16)
         PBaseSet doPBaseSet(PBaseSet left, PBaseSet right) {
             return left.difference(right);
         }
@@ -168,63 +265,75 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @SlowPath
         @Specialization(order = 1)
+        BigInteger doIntegerBigInteger(int left, BigInteger right) {
+            return BigInteger.valueOf(left).multiply(right);
+        }
+
+        @SlowPath
+        @Specialization(order = 2)
+        BigInteger doIntegerBigInteger(BigInteger left, int right) {
+            return left.multiply(BigInteger.valueOf(right));
+        }
+
+        @SlowPath
+        @Specialization(order = 3)
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.multiply(right);
         }
 
-        @Specialization(order = 2)
+        @Specialization(order = 4)
         double doDouble(double left, double right) {
             return left * right;
         }
 
-        @Specialization(order = 3)
+        @Specialization(order = 5)
         PComplex doDoubleComplex(double left, PComplex right) {
             PComplex result = new PComplex(left * right.getReal(), left * right.getImag());
             return result;
         }
 
-        @Specialization(order = 4)
+        @Specialization(order = 6)
         PComplex doComplexDouble(PComplex left, double right) {
             PComplex result = new PComplex(left.getReal() * right, left.getImag() * right);
             return result;
         }
 
-        @Specialization(order = 5)
+        @Specialization(order = 7)
         PComplex doComplex(PComplex left, PComplex right) {
             return left.mul(right);
         }
 
-        @Specialization(order = 6)
+        @Specialization(order = 8)
         PList doIntPList(int left, PList right) {
             return right.__mul__(left);
         }
 
-        @Specialization(order = 7)
+        @Specialization(order = 9)
         PList doPListInt(PList left, int right) {
             return left.__mul__(right);
         }
 
-        @Specialization(order = 8)
+        @Specialization(order = 10)
         PTuple doIntPTuple(int left, PTuple right) {
             return right.__mul__(left);
         }
 
-        @Specialization(order = 9)
+        @Specialization(order = 11)
         PTuple doPTupleInt(PTuple left, int right) {
             return left.__mul__(right);
         }
 
-        @Specialization(order = 10)
+        @Specialization(order = 12)
         PArray doIntPArray(int left, PArray right) {
             return right.__mul__(left);
         }
 
-        @Specialization(order = 11)
+        @Specialization(order = 13)
         PArray doPArrayInt(PArray left, int right) {
             return left.__mul__(right);
         }
 
-        @Specialization(order = 12)
+        @Specialization(order = 14)
         String doIntString(int left, String right) {
             String str = right;
             for (int i = 0; i < left - 1; i++) {
@@ -234,7 +343,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return str;
         }
 
-        @Specialization(order = 13)
+        @Specialization(order = 15)
         String doStringInt(String left, int right) {
             String str = left;
             for (int i = 0; i < right - 1; i++) {
@@ -272,17 +381,27 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return (double) left / right;
         }
 
-        @Specialization(order = 1)
+        @Specialization(order = 5)
         double doBigInteger(BigInteger left, BigInteger right) {
-            return left.divide(right).doubleValue();
+            return FastMathUtil.slowPathDivide(left, right).doubleValue();
         }
 
-        @Specialization(order = 2)
+        @Specialization(order = 10)
         double doDouble(double left, double right) {
             return left / right;
         }
 
-        @Specialization(order = 3)
+        @Specialization(order = 11)
+        double doBigIntegerDouble(BigInteger left, double right) {
+            return left.doubleValue() / right;
+        }
+
+        @Specialization(order = 12)
+        double doBigIntegerDouble(double left, BigInteger right) {
+            return left / right.doubleValue();
+        }
+
+        @Specialization(order = 13)
         PComplex doDoubleComplex(double left, PComplex right) {
             double opNormSq = right.getReal() * right.getReal() + right.getImag() * right.getImag();
             PComplex conjugate = right.getConjugate();
@@ -291,7 +410,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return new PComplex(realPart / opNormSq, imagPart / opNormSq);
         }
 
-        @Specialization(order = 4)
+        @Specialization(order = 14)
         PComplex doComplexDouble(PComplex left, double right) {
             double opNormSq = right * right;
             double realPart = left.getReal() * right;
@@ -299,7 +418,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return new PComplex(realPart / opNormSq, imagPart / opNormSq);
         }
 
-        @Specialization(order = 5)
+        @Specialization(order = 15)
         PComplex doComplex(PComplex left, PComplex right) {
             return left.div(right);
         }
@@ -324,7 +443,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
-            return left.divide(right);
+            return FastMathUtil.slowPathDivide(left, right);
         }
 
         @Specialization
@@ -365,6 +484,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left < 0;
         }
 
+        @SlowPath
         @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.mod(right);

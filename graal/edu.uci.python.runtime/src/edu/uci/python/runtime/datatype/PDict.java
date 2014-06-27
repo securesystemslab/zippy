@@ -25,6 +25,7 @@
 package edu.uci.python.runtime.datatype;
 
 import java.util.*;
+import java.util.Map.Entry;
 
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
@@ -37,7 +38,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public final class PDict extends PythonBuiltinObject implements PIterable {
 
-    private static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PDict.class);
+    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PDict.class);
 
     private final Map<Object, Object> map;
 
@@ -122,8 +123,8 @@ public final class PDict extends PythonBuiltinObject implements PIterable {
         int length = map.size();
         int i = 0;
 
-        for (Object key : map.keySet()) {
-            buf.append(key.toString() + ": " + map.get(key));
+        for (Entry<?, ?> entry : map.entrySet()) {
+            buf.append(entry.getKey() + ": " + entry.getValue());
 
             if (i < length - 1) {
                 buf.append(", ");
@@ -139,6 +140,21 @@ public final class PDict extends PythonBuiltinObject implements PIterable {
     @Override
     public int len() {
         return map.size();
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (!(other instanceof PDict)) {
+            return false;
+        }
+
+        PDict otherDict = (PDict) other;
+        return map.equals(otherDict.getMap());
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
     }
 
     @Override

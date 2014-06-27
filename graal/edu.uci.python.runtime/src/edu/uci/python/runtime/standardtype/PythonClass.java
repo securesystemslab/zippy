@@ -27,6 +27,8 @@ package edu.uci.python.runtime.standardtype;
 import java.lang.invoke.*;
 import java.util.*;
 
+import org.python.util.*;
+
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
@@ -44,10 +46,11 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
     private final String className;
     private final PythonContext context;
 
-    // TODO: Multiple inheritance and MRO...
-    @CompilationFinal private PythonClass superClass;
-
-    private final Set<PythonClass> subClasses = Collections.newSetFromMap(new WeakHashMap<PythonClass, Boolean>());
+    /**
+     * TODO: Compute complete MRO...
+     */
+    @CompilationFinal private PythonClass[] baseClasses;
+    @CompilationFinal private PythonClass[] methodResolutionOrder;
 
     /**
      * Object layout of the instances of this class.
@@ -55,30 +58,29 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
     @CompilationFinal private ObjectLayout instanceObjectLayout;
     @CompilationFinal private MethodHandle instanceConstructor;
 
-    public PythonClass(PythonClass superClass, String name) {
-        this(superClass.getContext(), superClass, name);
-    }
+    private final Set<PythonClass> subClasses = Collections.newSetFromMap(new WeakHashMap<PythonClass, Boolean>());
 
-    /**
-     * This constructor supports initialization and solves boot-order problems and should not
-     * normally be used from outside this class.
-     */
-    public PythonClass(PythonContext context, PythonClass superClass, String name) {
+    public PythonClass(PythonContext context, String name, PythonClass... baseClasses) {
         super(context.getTypeClass());
         this.context = context;
         this.className = name;
 
-        if (superClass == null) {
-            this.superClass = context.getObjectClass();
+        if (baseClasses.length == 0) {
+            this.baseClasses = new PythonClass[]{context.getObjectClass()};
+        } else if (baseClasses.length == 1 && baseClasses[0] == null) {
+            this.baseClasses = new PythonClass[]{};
         } else {
-            unsafeSetSuperClass(superClass);
+            unsafeSetSuperClass(baseClasses);
         }
+
+        // Compute MRO
+        computeMethodResolutionOrder();
 
         // Does not inherit instanceObjectLayout from the TypeClass.
         setObjectLayout(ObjectLayout.empty());
 
         // Inherite InstanceObjectLayout when possible
-        instanceObjectLayout = superClass == null ? ObjectLayout.empty() : new ObjectLayout(getName(), superClass.getInstanceObjectLayout());
+        instanceObjectLayout = this.baseClasses.length == 0 ? ObjectLayout.empty() : new ObjectLayout(getName(), this.baseClasses[0].getInstanceObjectLayout());
 
         switchToPrivateLayout();
 
@@ -87,7 +89,11 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
     }
 
     public PythonClass getSuperClass() {
-        return superClass;
+        return baseClasses.length > 0 ? baseClasses[0] : null;
+    }
+
+    public PythonClass[] getMethodResolutionOrder() {
+        return methodResolutionOrder;
     }
 
     @Override
@@ -103,14 +109,80 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
         return instanceConstructor;
     }
 
+    private void computeMethodResolutionOrder() {
+        PythonClass[] currentMRO = null;
+
+        if (baseClasses.length == 0) {
+            currentMRO = new PythonClass[]{this};
+        } else if (baseClasses.length == 1) {
+            PythonClass[] baseMRO = baseClasses[0].getMethodResolutionOrder();
+
+            if (baseMRO == null) {
+                currentMRO = new PythonClass[]{this};
+            } else {
+                currentMRO = new PythonClass[baseMRO.length + 1];
+                System.arraycopy(baseMRO, 0, currentMRO, 1, baseMRO.length);
+                currentMRO[0] = this;
+            }
+        } else {
+            MROMergeState[] toMerge = new MROMergeState[baseClasses.length + 1];
+
+            for (int i = 0; i < baseClasses.length; i++) {
+                toMerge[i] = new MROMergeState();
+                toMerge[i].mro = baseClasses[i].getMethodResolutionOrder();
+            }
+
+            toMerge[baseClasses.length] = new MROMergeState();
+            toMerge[baseClasses.length].mro = baseClasses;
+            List<PythonClass> mro = Generic.list();
+            mro.add(this);
+            currentMRO = mergeMROs(toMerge, mro);
+        }
+
+        methodResolutionOrder = currentMRO;
+    }
+
+    PythonClass[] mergeMROs(MROMergeState[] toMerge, List<PythonClass> mro) {
+        int idx;
+        scan: for (idx = 0; idx < toMerge.length; idx++) {
+            if (toMerge[idx].isMerged()) {
+                continue scan;
+            }
+
+            PythonClass candidate = toMerge[idx].getCandidate();
+            for (MROMergeState mergee : toMerge) {
+                if (mergee.pastnextContains(candidate)) {
+                    continue scan;
+                }
+            }
+
+            mro.add(candidate);
+
+            for (MROMergeState element : toMerge) {
+                element.noteMerged(candidate);
+            }
+
+            // restart scan
+            idx = -1;
+        }
+
+        for (MROMergeState mergee : toMerge) {
+            if (!mergee.isMerged()) {
+                throw new IllegalStateException();
+            }
+        }
+
+        return mro.toArray(new PythonClass[mro.size()]);
+    }
+
     @Override
     public PythonObject getValidStorageFullLookup(String attributeId) {
         PythonObject storage = null;
 
         if (isOwnAttribute(attributeId)) {
             storage = this;
-        } else if (superClass != null) {
-            storage = superClass.getValidStorageFullLookup(attributeId);
+        } else if (baseClasses.length > 0) {
+            storage = baseClasses[0].getValidStorageFullLookup(attributeId);
         }
 
         return storage;
@@ -138,7 +210,7 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
 
         // Continue the look up in PythonType.
         if (storageLocation == null) {
-            return superClass == null ? PNone.NONE : superClass.getAttribute(name);
+            return baseClasses.length == 0 ? PNone.NONE : baseClasses[0].getAttribute(name);
         }
 
         return storageLocation.read(this);
@@ -148,10 +220,15 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
      * This method supports initialization and solves boot-order problems and should not normally be
      * used.
      */
-    public void unsafeSetSuperClass(PythonClass newSuperClass) {
-        assert superClass == null;
-        superClass = newSuperClass;
-        superClass.subClasses.add(this);
+    public void unsafeSetSuperClass(PythonClass... newBaseClasses) {
+        assert baseClasses == null || baseClasses.length == 0;
+        baseClasses = newBaseClasses;
+
+        for (PythonClass base : baseClasses) {
+            if (base != null) {
+                base.subClasses.add(this);
+            }
+        }
     }
 
     public final Set<PythonClass> getSubClasses() {

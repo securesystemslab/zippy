@@ -365,66 +365,6 @@ public final class NodeUtil {
         return (T) clone;
     }
 
-    /**
-     * Added by zwei to makes it easier to find a matching node between a tree and its cloned tree.
-     */
-    @SuppressWarnings("unchecked")
-    public static <T extends Node> T findMatchingNodeIn(T toMatch, Node root) {
-        for (Node candidate : NodeUtil.findAllNodeInstances(root, toMatch.getClass())) {
-            if (matchNodes(toMatch, candidate)) {
-                return (T) candidate;
-            }
-        }
-
-        throw new IllegalStateException();
-    }
-
-    public static boolean matchNodes(Node toMatch, Node candidate) {
-        if (!toMatch.getClass().equals(candidate.getClass())) {
-            return false; // not the same exact class
-        }
-
-        NodeClass nodeClass = NodeClass.get(toMatch.getClass());
-
-        /**
-         * zwei: only compares parent node and data fields for now.
-         */
-        if (!nodeClassEquals(toMatch, candidate, nodeClass.parentOffset)) {
-            return false;
-        }
-
-        for (NodeField nfield : nodeClass.getFields()) {
-            if (nfield.kind != NodeFieldKind.DATA) {
-                continue;
-            }
-
-            /**
-             * boolean fields are ignored.
-             */
-            if (nfield.getType().equals(boolean.class)) {
-                continue;
-            }
-
-            if (!nodeFieldEquals(toMatch, candidate, nfield.offset)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private static boolean nodeClassEquals(Node toMatch, Node candidate, long nodeOffset) {
-        Object left = unsafe.getObject(toMatch, nodeOffset);
-        Object right = unsafe.getObject(candidate, nodeOffset);
-        return left.getClass().equals(right.getClass());
-    }
-
-    private static boolean nodeFieldEquals(Node toMatch, Node candidate, long fieldOffset) {
-        Object left = unsafe.getObject(toMatch, fieldOffset);
-        Object right = unsafe.getObject(candidate, fieldOffset);
-        return left == right;
-    }
-
     public static List<Node> findNodeChildren(Node node) {
         List<Node> nodes = new ArrayList<>();
         NodeClass nodeClass = NodeClass.get(node.getClass());

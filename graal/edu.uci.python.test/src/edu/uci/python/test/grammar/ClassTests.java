@@ -103,7 +103,7 @@ public class ClassTests {
                         "    class_attr = assertEqual\n" + //
                         "\n" + //
                         "print(Foo.class_attr)\n";
-        assertPrintContains("<function assertEqual", source);
+        assertPrintContains("<function Foo.assertEqual", source);
     }
 
     @Test
@@ -182,6 +182,25 @@ public class ClassTests {
                         "b.num = 4\n" + //
                         "print(a.child.num)\n";
         assertPrints("4\n", source);
+    }
+
+    /**
+     * zwei: Disabled before MRO is wired in for attribute access look up.
+     */
+    // @Test
+    public void multipleInheritance() {
+        String source = "class common:\n" + //
+                        "    def __repr__(self):\n" + //
+                        "        return 'common'\n" + //
+                        "class labeling:\n" + //
+                        "    pass\n" + //
+                        "class basegraph:\n" + //
+                        "    pass\n" + //
+                        "class graph(basegraph, common, labeling):\n" + //
+                        "    def __init__(self):\n" + //
+                        "        pass\n" + //
+                        "print(repr(graph()))\n";
+        assertPrints("common\n", source);
     }
 
 }

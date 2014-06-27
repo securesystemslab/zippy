@@ -26,10 +26,13 @@ package edu.uci.python.runtime.array;
 
 import java.util.*;
 
+import org.python.core.*;
+
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 
 public final class PIntArray extends PArray {
@@ -79,21 +82,32 @@ public final class PIntArray extends PArray {
 
     @Override
     public Object getItem(int idx) {
-        return getIntItemInBound(idx);
+        int index = SequenceUtil.normalizeIndex(idx, array.length);
+        return getIntItemNormalized(index);
     }
 
-    public int getIntItemInBound(int idx) {
-        return ObjectLayoutUtil.readIntArrayUnsafeAt(array, idx, null);
+    public int getIntItemNormalized(int idx) {
+        try {
+            return array[idx];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("array index out of range");
+        }
     }
 
     @Override
     public void setItem(int idx, Object value) {
         int index = SequenceUtil.normalizeIndex(idx, array.length);
-        setIntItemInBound(index, (int) value);
+        setIntItemNormalized(index, (int) value);
     }
 
-    public void setIntItemInBound(int idx, int value) {
-        ObjectLayoutUtil.writeIntArrayUnsafeAt(array, idx, value, null);
+    public void setIntItemNormalized(int idx, int value) {
+        try {
+            array[idx] = value;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("array assignment index out of range");
+        }
     }
 
     @Override
@@ -159,13 +173,13 @@ public final class PIntArray extends PArray {
 
     @Override
     public String toString() {
-        StringBuilder buf = new StringBuilder("(");
+        StringBuilder buf = new StringBuilder();
+        buf.append("array('i', [");
         for (int i = 0; i < array.length - 1; i++) {
-            buf.append(array[i] + " ");
+            buf.append(array[i] + ", ");
         }
         buf.append(array[array.length - 1]);
-        buf.append(")");
+        buf.append("])");
         return buf.toString();
     }
-
 }

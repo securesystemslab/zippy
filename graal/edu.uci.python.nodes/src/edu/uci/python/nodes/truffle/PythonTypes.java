@@ -31,7 +31,10 @@ import org.python.core.*;
 import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.runtime.array.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.datatype.PSlice.PStartSlice;
+import edu.uci.python.runtime.datatype.PSlice.PStopSlice;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.object.*;
@@ -44,12 +47,13 @@ import edu.uci.python.runtime.standardtype.*;
                 double.class, //
                 PComplex.class, //
                 char.class, //
-                String.class,
-
+                String.class, //
                 PyObject.class, //
                 PString.class, //
+                PythonBuiltinClass.class, //
                 PythonClass.class, //
                 PDict.class, //
+                PBytes.class, //
                 PList.class, //
                 PTuple.class, //
                 PRange.class, //
@@ -63,7 +67,10 @@ import edu.uci.python.runtime.standardtype.*;
                 PBaseSet.class, //
                 PEnumerate.class, //
                 PZip.class, //
+                PStartSlice.class, //
+                PStopSlice.class, //
                 PSlice.class, //
+                PGenerator.class, //
                 PRangeIterator.class, //
                 PIntegerSequenceIterator.class, //
                 PSequenceIterator.class, //
@@ -82,7 +89,6 @@ public class PythonTypes {
     /**
      * Type coercion: Python bool to Python int (Integer).
      */
-    @ImplicitCast
     public int booleanToInt(boolean value) {
         return value ? 1 : 0;
     }
@@ -92,7 +98,6 @@ public class PythonTypes {
      * Python bool to Python int (BigInteger); <br>
      * Python int to int (Integer to BigInteger).
      */
-    @ImplicitCast
     public BigInteger booleanToBigInteger(boolean value) {
         return value ? BigInteger.valueOf(1) : BigInteger.valueOf(0);
     }
@@ -107,7 +112,6 @@ public class PythonTypes {
      * Python bool to Python float (double); <br>
      * Python int to float (Integer or BigInteger to double).
      */
-    @ImplicitCast
     public double booleanToDouble(boolean value) {
         return value ? 1.0D : 0.0D;
     }
@@ -117,7 +121,6 @@ public class PythonTypes {
         return value;
     }
 
-    @ImplicitCast
     public double bigIntegerToDouble(BigInteger value) {
         return value.doubleValue();
     }
@@ -128,22 +131,18 @@ public class PythonTypes {
      * Python int to Python complex (Integer or BigInteger to PComplex); <br>
      * Python float to Python complex (double to PComplex).
      */
-    @ImplicitCast
     public PComplex booleanToPComplex(boolean value) {
         return value ? new PComplex(1, 0) : new PComplex(0, 0);
     }
 
-    @ImplicitCast
     public PComplex intToPComplex(int value) {
         return new PComplex(value, 0);
     }
 
-    @ImplicitCast
     public PComplex bigIntegerToPComplex(BigInteger value) {
         return new PComplex(value.doubleValue(), 0);
     }
 
-    @ImplicitCast
     public PComplex doubleToPComplex(double value) {
         return new PComplex(value, 0);
     }

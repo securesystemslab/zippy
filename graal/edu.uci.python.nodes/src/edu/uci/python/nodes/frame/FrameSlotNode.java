@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,7 +26,6 @@ package edu.uci.python.nodes.frame;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
-
 import edu.uci.python.nodes.*;
 
 public abstract class FrameSlotNode extends PNode {
@@ -81,27 +80,16 @@ public abstract class FrameSlotNode extends PNode {
         return frameSlot.getKind() != FrameSlotKind.Illegal;
     }
 
-    protected final boolean isNoneKind() {
-        return isKind(FrameSlotKind.None);
-    }
-
     protected final boolean isBooleanKind() {
         return isKind(FrameSlotKind.Boolean);
     }
 
     protected final boolean isIntegerKind() {
-        return isKind(FrameSlotKind.Int) || booleanToInt();
+        return isKind(FrameSlotKind.Int);
     }
 
     protected final boolean isDoubleKind() {
-        if (isKind(FrameSlotKind.Double) || intToDouble()) {
-            return true;
-        }
-        if (frameSlot.getKind() != FrameSlotKind.Double) {
-            CompilerDirectives.transferToInterpreter();
-            frameSlot.setKind(FrameSlotKind.Double);
-        }
-        return true;
+        return isKind(FrameSlotKind.Double) || intToDouble();
     }
 
     protected final boolean isIntOrObjectKind() {
@@ -117,31 +105,13 @@ public abstract class FrameSlotNode extends PNode {
     }
 
     private boolean isKind(FrameSlotKind kind) {
-        return frameSlot.getKind() == kind || initialSetKind(kind) || noneToKind(kind);
+        return frameSlot.getKind() == kind || initialSetKind(kind);
     }
 
     private boolean initialSetKind(FrameSlotKind kind) {
         if (frameSlot.getKind() == FrameSlotKind.Illegal) {
             CompilerDirectives.transferToInterpreter();
             frameSlot.setKind(kind);
-            return true;
-        }
-        return false;
-    }
-
-    private boolean noneToKind(FrameSlotKind kind) {
-        if (frameSlot.getKind() == FrameSlotKind.None) {
-            CompilerDirectives.transferToInterpreter();
-            frameSlot.setKind(kind);
-            return true;
-        }
-        return false;
-    }
-
-    private boolean booleanToInt() {
-        if (frameSlot.getKind() == FrameSlotKind.Boolean) {
-            CompilerDirectives.transferToInterpreter();
-            frameSlot.setKind(FrameSlotKind.Int);
             return true;
         }
         return false;
@@ -154,11 +124,6 @@ public abstract class FrameSlotNode extends PNode {
             return true;
         }
         return false;
-    }
-
-    @Override
-    public String toString() {
-        return this.getClass().getSimpleName() + "(" + frameSlot + ")";
     }
 
     /**

@@ -75,17 +75,17 @@ public class NodeFactory {
         return (T) NodeUtil.cloneNode(orig);
     }
 
-    public RootNode createModule(List<PNode> body, FrameDescriptor fd) {
+    public RootNode createModule(String name, List<PNode> body, FrameDescriptor fd) {
         PNode block = createBlock(body);
-        return new ModuleNode(block, fd);
+        return new ModuleNode(name, block, fd);
     }
 
     public FunctionRootNode createFunctionRoot(PythonContext context, String functionName, boolean isGenerator, FrameDescriptor frameDescriptor, PNode body) {
         return new FunctionRootNode(context, functionName, isGenerator, frameDescriptor, body);
     }
 
-    public ClassDefinitionNode createClassDef(String name, PNode superclass, FunctionDefinitionNode definitnionFunction) {
-        return new ClassDefinitionNode(name, superclass, definitnionFunction);
+    public ClassDefinitionNode createClassDef(PythonContext context, String moduleName, String name, PNode[] baseClasses, FunctionDefinitionNode definitnionFunction) {
+        return ClassDefinitionNodeFactory.create(context, moduleName, name, baseClasses, definitnionFunction);
     }
 
     public PNode createBlock(List<PNode> statements) {
@@ -340,10 +340,6 @@ public class NodeFactory {
 
     public PNode createBooleanLiteral(boolean value) {
         return new BooleanLiteralNode(value);
-    }
-
-    public PNode createNoneLiteral() {
-        return new NoneLiteralNode();
     }
 
     public PNode createObjectLiteral(Object obj) {

@@ -26,6 +26,10 @@ package edu.uci.python.runtime.sequence.storage;
 
 import java.util.*;
 
+import org.python.core.*;
+
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.sequence.*;
 
 public final class DoubleSequenceStorage extends BasicSequenceStorage {
@@ -83,25 +87,35 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public Object getItemInBound(int idx) {
-        return getDoubleItemInBound(idx);
+    public Object getItemNormalized(int idx) {
+        return getDoubleItemNormalized(idx);
     }
 
-    public double getDoubleItemInBound(int idx) {
-        return values[idx];
+    public double getDoubleItemNormalized(int idx) {
+        try {
+            return values[idx];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("list index out of range");
+        }
     }
 
     @Override
-    public void setItemInBound(int idx, Object value) throws SequenceStoreException {
+    public void setItemNormalized(int idx, Object value) throws SequenceStoreException {
         if (value instanceof Double) {
-            setDoubleItemInBound(idx, (double) value);
+            setDoubleItemNormalized(idx, (double) value);
         } else {
             throw SequenceStoreException.INSTANCE;
         }
     }
 
-    public void setDoubleItemInBound(int idx, double value) {
-        values[idx] = value;
+    public void setDoubleItemNormalized(int idx, double value) {
+        try {
+            values[idx] = value;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("list assignment index out of range");
+        }
     }
 
     @Override

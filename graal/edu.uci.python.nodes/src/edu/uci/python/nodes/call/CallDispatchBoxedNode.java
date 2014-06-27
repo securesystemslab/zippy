@@ -30,6 +30,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
+import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
@@ -50,9 +51,13 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         return replace(next).executeCall(frame, primaryObj, arguments, keywords);
     }
 
-    protected static CallDispatchBoxedNode create(PythonObject primary, String calleeName, PythonCallable callee, PNode calleeNode, PKeyword[] keywords) {
-        UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(callee.getName(), calleeNode, keywords.length != 0);
+    protected static CallDispatchBoxedNode create(PythonObject primary, String calleeName, PythonCallable callee, PNode calleeNode, PKeyword[] keywords, boolean passPrimaryAsArgument) {
+        UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(callee.getName(), calleeNode, keywords.length != 0, passPrimaryAsArgument);
         ShapeCheckNode check;
+
+        if (primary instanceof PythonModule && callee instanceof PMethod) {
+            return new GenericDispatchBoxedNode(calleeName, calleeNode, passPrimaryAsArgument);
+        }
 
         if (primary instanceof PythonModule) {
             if (calleeNode instanceof ReadGlobalNode) {
@@ -73,8 +78,8 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         /**
          * Treat generator as slow path for now.
          */
-        if (callee instanceof PGeneratorFunction) {
-            return new DispatchGeneratorBoxedNode(callee, check, next);
+        if (callee.isGeneratorFunction()) {
+            return new GeneratorDispatchBoxedNode(callee, check, next);
         }
 
         assert check != null;
@@ -144,18 +149,34 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         }
     }
 
-    public static final class DispatchGeneratorBoxedNode extends CallDispatchBoxedNode implements GeneratorDispatch {
+    public static final class GeneratorDispatchBoxedNode extends CallDispatchBoxedNode implements GeneratorDispatch {
 
         @Child protected ShapeCheckNode check;
         @Child protected CallDispatchBoxedNode next;
-        private final PythonCallable generator;
+        private final PGeneratorFunction generator;
 
-        public DispatchGeneratorBoxedNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
+        public GeneratorDispatchBoxedNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             this.check = check;
             this.next = next;
-            this.generator = callee;
-            assert callee instanceof PGeneratorFunction;
+
+            if (callee instanceof PGeneratorFunction) {
+                this.generator = (PGeneratorFunction) callee;
+            } else if (callee instanceof PMethod) {
+                this.generator = (PGeneratorFunction) ((PMethod) callee).__func__();
+            } else {
+                throw new IllegalStateException();
+            }
+
+            assert this.generator != null;
+        }
+
+        @Override
+        protected void onAdopt() {
+            RootNode root = getRootNode();
+            if (root instanceof FunctionRootNode) {
+                ((FunctionRootNode) root).reportGeneratorDispatch();
+            }
         }
 
         @Override
@@ -182,12 +203,12 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         @Override
         public PGeneratorFunction getGeneratorFunction() {
-            return (PGeneratorFunction) generator;
+            return generator;
         }
 
         @Override
-        public PythonCallNode getCallNode() {
-            return (PythonCallNode) getTop().getParent();
+        public Node getCallNode() {
+            return getTop().getParent();
         }
     }
 
@@ -195,10 +216,12 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
     public static final class GenericDispatchBoxedNode extends CallDispatchBoxedNode {
 
         @Child protected PNode calleeNode;
+        private final boolean isPrimaryPassedInArguments;
 
-        public GenericDispatchBoxedNode(String calleeName, PNode calleeNode) {
+        public GenericDispatchBoxedNode(String calleeName, PNode calleeNode, boolean isPrimaryPassedInArguments) {
             super(calleeName);
             this.calleeNode = calleeNode;
+            this.isPrimaryPassedInArguments = isPrimaryPassedInArguments;
         }
 
         @Override
@@ -211,6 +234,10 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                 throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
             }
 
+            if (callee instanceof PMethod && isPrimaryPassedInArguments) {
+                return ((PMethod) callee).__func__().call(arguments);
+            }
+
             return callee.call(arguments);
         }
     }
@@ -220,11 +247,13 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
         @Child protected PNode calleeNode;
         private final boolean hasKeyword;
+        private final boolean isPrimaryPassedInArguments;
 
-        public UninitializedDispatchBoxedNode(String calleeName, PNode calleeNode, boolean hasKeyword) {
+        public UninitializedDispatchBoxedNode(String calleeName, PNode calleeNode, boolean hasKeyword, boolean isPrimaryPassedInArguments) {
             super(calleeName);
             this.calleeNode = calleeNode;
             this.hasKeyword = hasKeyword;
+            this.isPrimaryPassedInArguments = isPrimaryPassedInArguments;
         }
 
         @Override
@@ -242,9 +271,9 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
                     throw new IllegalStateException("Call to " + e.getMessage() + " not supported.");
                 }
 
-                specialized = replace(create(primaryObj, calleeName, callee, calleeNode, keywords));
+                specialized = replace(create(primaryObj, calleeName, callee, calleeNode, keywords, isPrimaryPassedInArguments));
             } else {
-                specialized = getTop().replace(new GenericDispatchBoxedNode(calleeName, calleeNode));
+                specialized = getTop().replace(new GenericDispatchBoxedNode(calleeName, calleeNode, isPrimaryPassedInArguments));
             }
 
             return specialized.executeCall(frame, primaryObj, arguments, keywords);

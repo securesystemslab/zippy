@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -24,51 +24,53 @@
  */
 package edu.uci.python.nodes.subscript;
 
-import java.math.BigInteger;
-
-import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.datatype.*;
+import static edu.uci.python.runtime.sequence.SequenceUtil.*;
 
 public abstract class SliceNode extends TernaryOpNode {
 
-    @Specialization
+    @Specialization(order = 0)
     public PSlice doPSlice(int start, int stop, int step) {
         return new PSlice(start, stop, step);
     }
 
-    @Specialization
-    public PSlice doPSlice(BigInteger start, BigInteger stop, BigInteger step) {
-        return new PSlice(start.intValue(), stop.intValue(), step.intValue());
+    @SuppressWarnings("unused")
+    @Specialization(order = 1)
+    public PSlice doSlice(PNone start, int stop, int step) {
+        return new PSlice(MISSING_INDEX, stop, step);
     }
 
-    @Generic
-    public Object doGeneric(Object startObj, Object stopObj, Object stepObj) {
-        int start = 0;
+    @SuppressWarnings("unused")
+    @Specialization(order = 2)
+    public PSlice doPSlice(int start, int stop, PNone step) {
+        return new PSlice(start, stop, 1);
+    }
 
-        if (startObj instanceof Integer) {
-            start = (Integer) startObj;
-        } else if (startObj instanceof BigInteger) {
-            start = ((BigInteger) startObj).intValue();
-        }
+    @SuppressWarnings("unused")
+    @Specialization(order = 3)
+    public PSlice doSlice(int start, PNone stop, PNone step) {
+        return new PSlice.PStartSlice(start);
+    }
 
-        int stop = 0;
-        if (stopObj instanceof Integer) {
-            stop = (Integer) stopObj;
-        } else if (stopObj instanceof BigInteger) {
-            stop = ((BigInteger) stopObj).intValue();
-        }
+    @SuppressWarnings("unused")
+    @Specialization(order = 4)
+    public PSlice doSlice(PNone start, int stop, PNone step) {
+        return new PSlice.PStopSlice(stop);
+    }
 
-        int step = 1;
-        if (stepObj instanceof Integer) {
-            step = (Integer) stepObj;
-        } else if (stepObj instanceof BigInteger) {
-            step = ((BigInteger) stepObj).intValue();
-        }
+    @SuppressWarnings("unused")
+    @Specialization(order = 5)
+    public PSlice doSlice(PNone start, PNone stop, int step) {
+        return new PSlice(MISSING_INDEX, MISSING_INDEX, step);
+    }
 
-        return new PSlice(start, stop, step);
+    @SuppressWarnings("unused")
+    @Specialization(order = 6)
+    public PSlice doSlice(PNone start, PNone stop, PNone step) {
+        return new PSlice(MISSING_INDEX, MISSING_INDEX, 1);
     }
 
 }

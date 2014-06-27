@@ -24,13 +24,17 @@
  */
 package edu.uci.python.builtins;
 
+import java.math.*;
 import java.util.*;
 
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
@@ -46,7 +50,6 @@ import edu.uci.python.runtime.standardtype.*;
 /**
  * @author Gulfem
  * @author zwei
- *
  */
 public final class BuiltinConstructors extends PythonBuiltins {
 
@@ -87,6 +90,17 @@ public final class BuiltinConstructors extends PythonBuiltins {
         @Generic
         public boolean bool(Object object) {
             return JavaTypeConversions.toBoolean(object);
+        }
+    }
+
+    // bytes([source[, encoding[, errors]]])
+    @Builtin(name = "bytes", minNumOfArguments = 0, maxNumOfArguments = 3, isConstructor = true)
+    public abstract static class BytesNode extends PythonBuiltinNode {
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public PBytes bytes(PNone source, PNone encoding, PNone errors) {
+            return new PBytes();
         }
     }
 
@@ -289,16 +303,30 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         @SuppressWarnings("unused")
         @Specialization(guards = "noKeywordArg")
+        public BigInteger createInt(BigInteger arg, Object keywordArg) {
+            return arg;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(guards = "noKeywordArg")
         public Object createInt(double arg, Object keywordArg) {
             return JavaTypeConversions.doubleToInt(arg);
         }
 
+        @SuppressWarnings("unused")
         @Specialization
-        public Object createInt(Object arg, Object keywordArg) {
-            if (arg instanceof PNone) {
-                return 0;
-            }
+        public int createInt(PNone none, Object keywordArg) {
+            return 0;
+        }
 
+        @SuppressWarnings("unused")
+        @Specialization(guards = "noKeywordArg")
+        public Object createInt(String arg, Object keywordArg) {
+            return JavaTypeConversions.stringToInt(arg, 10);
+        }
+
+        @Generic
+        public Object createInt(Object arg, Object keywordArg) {
             if (keywordArg instanceof PNone) {
                 return JavaTypeConversions.toInt(arg);
             } else {
@@ -530,6 +558,11 @@ public final class BuiltinConstructors extends PythonBuiltins {
     public abstract static class StrNode extends PythonBuiltinNode {
 
         @Specialization
+        public String str(int val) {
+            return Integer.toString(val);
+        }
+
+        @Specialization
         public String str(PythonObject obj) {
             return PythonBuiltinNode.callAttributeSlowPath(obj, "__str__");
         }
@@ -569,9 +602,17 @@ public final class BuiltinConstructors extends PythonBuiltins {
     @Builtin(name = "zip", minNumOfArguments = 0, takesVariableArguments = true, isConstructor = true)
     public abstract static class ZipNode extends PythonBuiltinNode {
 
+        @Child protected GetIteratorNode getIterator;
+
+        @ExplodeLoop
         @Specialization
         public PZip zip(PTuple args) {
-            PIterable[] iterables = new PIterable[args.len()];
+            if (getIterator == null) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                getIterator = insert(GetIteratorNodeFactory.create(EmptyNode.create()));
+            }
+
+            PIterator[] iterables = new PIterator[args.len()];
 
             for (int i = 0; i < args.len(); i++) {
                 iterables[i] = getIterable(args.getItem(i));
@@ -580,14 +621,12 @@ public final class BuiltinConstructors extends PythonBuiltins {
             return new PZip(iterables);
         }
 
-        private static PIterable getIterable(Object arg) {
-            if (arg instanceof PIterable) {
-                return (PIterable) arg;
-            } else if (arg instanceof String) {
-                return new PString((String) arg);
+        private PIterator getIterable(Object arg) {
+            try {
+                return PythonTypesGen.PYTHONTYPES.expectPIterator(getIterator.executeWith(null, arg));
+            } catch (UnexpectedResultException e) {
+                throw new RuntimeException("zip does not support iterable object " + arg.getClass());
             }
-
-            throw new RuntimeException("zip does not support iterable object " + arg.getClass());
         }
     }
 

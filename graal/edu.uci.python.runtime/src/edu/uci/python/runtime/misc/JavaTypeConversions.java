@@ -73,6 +73,8 @@ public class JavaTypeConversions {
     }
 
     public static Object toInt(Object arg) {
+        CompilerAsserts.neverPartOfCompilation();
+
         if (arg instanceof Integer || arg instanceof BigInteger) {
             return arg;
         } else if (arg instanceof Double) {

@@ -34,8 +34,6 @@ import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
-import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.sequence.storage.*;
 
 /**
  * @author Gulfem
@@ -52,26 +50,6 @@ public abstract class PythonBuiltinNode extends PNode {
      */
     protected static boolean emptyArguments(VirtualFrame frame) {
         return PArguments.getUserArgumentLength(frame) == 0;
-    }
-
-    protected static boolean isIntStorage(PList list) {
-        return list.getStorage() instanceof IntSequenceStorage;
-    }
-
-    protected static boolean isDoubleStorage(PList list) {
-        return list.getStorage() instanceof DoubleSequenceStorage;
-    }
-
-    protected static boolean isObjectStorage(PList list) {
-        return list.getStorage() instanceof ObjectSequenceStorage;
-    }
-
-    protected static boolean isBasicStorage(PList list) {
-        return list.getStorage() instanceof BasicSequenceStorage;
-    }
-
-    protected static boolean isEmptyStorage(PList list) {
-        return list.getStorage() instanceof EmptySequenceStorage;
     }
 
     /**

@@ -77,18 +77,22 @@ public class ZipPyConsole extends InteractiveConsole {
             result.visualizeToNetwork();
         }
 
-        if (PythonOptions.ProfileGeneratorCalls) {
-            context.printGeneratorProfilingInfo();
-        }
-
         if (PythonOptions.ProfileCalls) {
             printBanner("Call Profiling Results");
-            ProfilerResultPrinter.printFunctionInvocationProfilerResults();
+            ProfilerResultPrinter.printCallProfilerResults();
         }
 
-        if (PythonOptions.AddProfilingInstrumentation) {
+        if (PythonOptions.ProfileIfNodes) {
+            printBanner("If Node Profiling Results");
+            ProfilerResultPrinter.printIfProfilerResults();
+        } else if (PythonOptions.ProfileNodes) {
             printBanner("Node Profiling Results");
-            ProfilerResultPrinter.printProfilerInstrumenterResults();
+            ProfilerResultPrinter.printNodeProfilerResults();
+        }
+
+        if (PythonOptions.TraceNodesWithoutSourceSection) {
+            printBanner("Nodes That Have Empty Source Sections");
+            ProfilerResultPrinter.printNodesEmptySourceSections();
         }
 
         Py.flushLine();

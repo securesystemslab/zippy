@@ -27,20 +27,19 @@ package edu.uci.python.runtime.datatype;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 
-public class PGenerator implements PIterator {
+public final class PGenerator implements PIterator {
 
     protected final String name;
     protected final CallTarget callTarget;
     protected final FrameDescriptor frameDescriptor;
     protected final Object[] arguments;
 
-    public static PGenerator create(String name, PythonContext context, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments,
-                    int numOfActiveFlags, int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
+    public static PGenerator create(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments, int numOfActiveFlags,
+                    int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         /**
          * Setting up the persistent frame in {@link #arguments}.
          */
@@ -49,12 +48,7 @@ public class PGenerator implements PIterator {
         PArguments.setDeclarationFrame(arguments, declarationFrame);
         PArguments.setGeneratorFrame(arguments, generatorFrame);
         PArguments.setControlData(arguments, generatorArgs);
-
-        if (PythonOptions.ProfileGeneratorCalls) {
-            return new PProfilingGenerator(name, callTarget, frameDescriptor, arguments, context);
-        } else {
-            return new PGenerator(name, callTarget, frameDescriptor, arguments);
-        }
+        return new PGenerator(name, callTarget, frameDescriptor, arguments);
     }
 
     public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, Object[] arguments) {

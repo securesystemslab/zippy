@@ -42,10 +42,10 @@ public class DefaultParametersNode extends StatementNode {
     private final ReadDefaultArgumentNode[] defaultReads; // It's parked here, but not adopted.
 
     public DefaultParametersNode(PNode[] functionDefaults, ReadDefaultArgumentNode[] defaultReads) {
-        assert functionDefaults != null & functionDefaults.length > 0;
-        assert defaultReads != null & defaultReads.length > 0;
         this.functionDefaults = functionDefaults;
         this.defaultReads = defaultReads;
+        assert functionDefaults != null & functionDefaults.length > 0;
+        assert defaultReads != null & defaultReads.length > 0;
     }
 
     @ExplodeLoop

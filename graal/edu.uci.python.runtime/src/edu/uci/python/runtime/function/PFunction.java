@@ -28,29 +28,24 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class PFunction extends PythonBuiltinObject implements PythonCallable {
 
     private final String name;
+    private final String enclosingClassName;
     private final Arity arity;
     private final RootCallTarget callTarget;
     private final FrameDescriptor frameDescriptor;
     private final MaterializedFrame declarationFrame;
-    protected final PythonContext context;
 
-    public PFunction(String name, PythonContext context, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
+    public PFunction(String name, String enclosingClassName, Arity arity, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame) {
         this.name = name;
+        this.enclosingClassName = enclosingClassName;
         this.arity = arity;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
         this.declarationFrame = declarationFrame;
-        this.context = context;
-    }
-
-    public static PFunction duplicate(PFunction function, RootCallTarget newCallTarget) {
-        return new PFunction(function.name, function.context, function.arity, newCallTarget, function.frameDescriptor, function.declarationFrame);
     }
 
     @Override
@@ -77,6 +72,16 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
     }
 
     @Override
+    public boolean isClassMethod() {
+        return arity.isClassMethod();
+    }
+
+    @Override
+    public boolean isStaticMethod() {
+        return arity.isStaticMethod();
+    }
+
+    @Override
     public Object call(Object[] arguments) {
         PArguments.setDeclarationFrame(arguments, declarationFrame);
         return callTarget.call(arguments);
@@ -100,7 +105,8 @@ public class PFunction extends PythonBuiltinObject implements PythonCallable {
 
     @Override
     public String toString() {
-        return "<function " + name + " at " + hashCode() + ">";
+        String fullName = enclosingClassName == null ? name : enclosingClassName + '.' + name;
+        return "<function " + fullName + " at " + hashCode() + ">";
     }
 
 }

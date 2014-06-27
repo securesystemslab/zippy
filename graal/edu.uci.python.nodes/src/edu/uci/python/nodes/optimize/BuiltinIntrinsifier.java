@@ -32,12 +32,10 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.call.*;
-import edu.uci.python.nodes.call.legacy.*;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
-import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 
 public class BuiltinIntrinsifier {
@@ -46,15 +44,13 @@ public class BuiltinIntrinsifier {
     @SuppressWarnings("unused") private final Assumption globalScopeUnchanged;
     @SuppressWarnings("unused") private final Assumption builtinModuleUnchanged;
 
-    private final CallBuiltinInlinedNode call;
     private final PythonCallNode callNode;
     private GeneratorExpressionNode genexp;
 
-    public BuiltinIntrinsifier(PythonContext context, Assumption globalScopeUnchanged, Assumption builtinModuleUnchanged, CallBuiltinInlinedNode call) {
+    public BuiltinIntrinsifier(PythonContext context, Assumption globalScopeUnchanged, Assumption builtinModuleUnchanged) {
         this.context = context;
         this.globalScopeUnchanged = globalScopeUnchanged;
         this.builtinModuleUnchanged = builtinModuleUnchanged;
-        this.call = call;
         this.callNode = null;
         assert PythonOptions.IntrinsifyBuiltinCalls;
     }
@@ -63,22 +59,8 @@ public class BuiltinIntrinsifier {
         this.context = context;
         this.globalScopeUnchanged = globalScopeUnchanged;
         this.builtinModuleUnchanged = builtinModuleUnchanged;
-        this.call = null;
         this.callNode = callNode;
         assert PythonOptions.IntrinsifyBuiltinCalls;
-    }
-
-    public void intrinsify() {
-        CompilerAsserts.neverPartOfCompilation();
-
-        if (isCallerGeneratorOld()) {
-            return;
-        }
-
-        IntrinsifiableBuiltin target = IntrinsifiableBuiltin.findIntrinsifiable(call.getCallee().getName());
-        if (target != null && isArgumentGeneratorExpressionOld()) {
-            transformToComprehension(target);
-        }
     }
 
     public void synthesize() {
@@ -109,39 +91,12 @@ public class BuiltinIntrinsifier {
         return false;
     }
 
-    public boolean isCallerGeneratorOld() {
-        Node current = call;
-        while (!(current instanceof ReturnTargetNode)) {
-            current = current.getParent();
-        }
-
-        if (current instanceof GeneratorReturnTargetNode) {
-            return true;
-        }
-
-        return false;
-    }
-
     private boolean isArgumentGeneratorExpression() {
-        if (callNode.getArgumentNodes().length != 1) {
+        if (callNode.getArgumentsNode().length() != 1) {
             return false;
         }
 
-        PNode arg = callNode.getArgumentNodes()[0];
-        if (arg instanceof GeneratorExpressionNode) {
-            genexp = (GeneratorExpressionNode) arg;
-            return true;
-        }
-
-        return false;
-    }
-
-    private boolean isArgumentGeneratorExpressionOld() {
-        if (call.getArguments().length != 1) {
-            return false;
-        }
-
-        PNode arg = call.getArguments()[0];
+        PNode arg = callNode.getArgumentsNode().getArguments()[0];
         if (arg instanceof GeneratorExpressionNode) {
             genexp = (GeneratorExpressionNode) arg;
             return true;

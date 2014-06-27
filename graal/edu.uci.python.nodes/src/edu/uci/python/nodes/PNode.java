@@ -34,7 +34,10 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.datatype.PSlice.PStartSlice;
+import edu.uci.python.runtime.datatype.PSlice.PStopSlice;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.object.*;
@@ -104,6 +107,10 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPComplex(execute(frame));
     }
 
+    public PBytes executeBytes(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPBytes(execute(frame));
+    }
+
     public PDict executePDictionary(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPDict(execute(frame));
     }
@@ -160,8 +167,20 @@ public abstract class PNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectPZip(execute(frame));
     }
 
+    public PStartSlice executePStartSlice(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPStartSlice(execute(frame));
+    }
+
+    public PStopSlice executePStopSlice(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPStopSlice(execute(frame));
+    }
+
     public PSlice executePSlice(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPSlice(execute(frame));
+    }
+
+    public PGenerator executePGenerator(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPGenerator(execute(frame));
     }
 
     public PDoubleIterator executePDoubleIterator(VirtualFrame frame) throws UnexpectedResultException {
@@ -182,6 +201,10 @@ public abstract class PNode extends Node {
 
     public PNone executePNone(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.PYTHONTYPES.expectPNone(execute(frame));
+    }
+
+    public PythonBuiltinClass executePythonBuiltinClass(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.PYTHONTYPES.expectPythonBuiltinClass(execute(frame));
     }
 
     public PythonBuiltinObject executePythonBuiltinObject(VirtualFrame frame) throws UnexpectedResultException {
@@ -231,20 +254,52 @@ public abstract class PNode extends Node {
     /**
      * Specialization guards.
      */
+    protected static boolean isNone(Object value) {
+        return value == PNone.NONE;
+    }
+
     protected static boolean isEmptyStorage(PList list) {
         return list.getStorage() instanceof EmptySequenceStorage;
+    }
+
+    protected static boolean is2ndEmptyStorage(@SuppressWarnings("unused") Object first, PList list) {
+        return list.getStorage() instanceof EmptySequenceStorage;
+    }
+
+    protected static boolean isBasicStorage(PList list) {
+        return list.getStorage() instanceof BasicSequenceStorage;
     }
 
     protected static boolean isIntStorage(PList list) {
         return list.getStorage() instanceof IntSequenceStorage;
     }
 
+    protected static boolean is2ndIntStorage(@SuppressWarnings("unused") Object first, PList list) {
+        return list.getStorage() instanceof IntSequenceStorage;
+    }
+
+    protected static boolean areBothIntStorage(PList first, PList second) {
+        return first.getStorage() instanceof IntSequenceStorage && second.getStorage() instanceof IntSequenceStorage;
+    }
+
     protected static boolean isDoubleStorage(PList list) {
+        return list.getStorage() instanceof DoubleSequenceStorage;
+    }
+
+    protected static boolean is2ndDoubleStorage(@SuppressWarnings("unused") Object first, PList list) {
         return list.getStorage() instanceof DoubleSequenceStorage;
     }
 
     protected static boolean isObjectStorage(PList list) {
         return list.getStorage() instanceof ObjectSequenceStorage;
+    }
+
+    protected static boolean is2ndObjectStorage(@SuppressWarnings("unused") Object first, PList list) {
+        return list.getStorage() instanceof ObjectSequenceStorage;
+    }
+
+    protected static boolean areBothObjectStorage(PList first, PList second) {
+        return first.getStorage() instanceof ObjectSequenceStorage && second.getStorage() instanceof ObjectSequenceStorage;
     }
 
     protected static boolean isObjectStorageIterator(PSequenceIterator iterator) {
@@ -256,6 +311,24 @@ public abstract class PNode extends Node {
         }
 
         return false;
+    }
+
+    protected static boolean isNotPythonObject(Object obj) {
+        return !(obj instanceof PythonObject);
+    }
+
+    protected static boolean is2ndNotPythonObject(@SuppressWarnings("unused") Object first, Object second) {
+        return !(second instanceof PythonObject);
+    }
+
+    @SuppressWarnings("unused")
+    protected static boolean isIndexPositive(Object primary, int idx) {
+        return idx >= 0;
+    }
+
+    @SuppressWarnings("unused")
+    protected static boolean isIndexNegative(Object primary, int idx) {
+        return idx < 0;
     }
 
 }

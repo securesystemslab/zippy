@@ -93,7 +93,7 @@ public class GeneratorTranslator {
 
         for (GeneratorExpressionNode genexp : NodeUtil.findAllNodeInstances(root, GeneratorExpressionNode.class)) {
             genexp.setEnclosingFrameGenerator(true);
-            NodeUtil.findMatchingNodeIn(genexp, root.getUninitializedBody()).setEnclosingFrameGenerator(true);
+            PNodeUtil.findMatchingNodeIn(genexp, root.getUninitializedBody()).setEnclosingFrameGenerator(true);
         }
 
         for (BreakNode bnode : NodeUtil.findAllNodeInstances(root, BreakNode.class)) {
@@ -209,7 +209,7 @@ public class GeneratorTranslator {
             ForNode forNode = (ForNode) node;
             WriteGeneratorFrameVariableNode target = (WriteGeneratorFrameVariableNode) forNode.getTarget();
             GetIteratorNode getIter = (GetIteratorNode) forNode.getIterator();
-            node.replace(new GeneratorForNode(target, getIter, forNode.getBody(), nextGeneratorForNodeSlot()));
+            node.replace(GeneratorForNode.create(target, getIter, forNode.getBody(), nextGeneratorForNodeSlot()));
         } else if (node instanceof BlockNode) {
             BlockNode block = (BlockNode) node;
             int slotOfBlockIndex = nextGeneratorBlockIndexSlot();
@@ -220,7 +220,7 @@ public class GeneratorTranslator {
 
             node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
         } else if (node instanceof ElseNode || node instanceof BreakTargetNode || node instanceof TryExceptNode || node instanceof ExceptNode || node instanceof StopIterationTargetNode ||
-                        node instanceof ContinueTargetNode) {
+                        node instanceof ContinueTargetNode || node instanceof TryFinallyNode) {
             // do nothing for now
         } else {
             TranslationUtil.notCovered();
@@ -249,25 +249,6 @@ public class GeneratorTranslator {
 
     public int getNumOfGeneratorForNode() {
         return numOfGeneratorForNode;
-    }
-
-    public RootCallTarget createParallelGeneratorCallTarget() {
-        if (!PythonOptions.ParallelizeGeneratorCalls) {
-            return null;
-        }
-
-        PNode parallelBody = root.getClonedUninitializedBody();
-
-        for (YieldNode yield : NodeUtil.findAllNodeInstances(parallelBody, YieldNode.class)) {
-            yield.replace(ParallelYieldNode.create(yield.getRhs()));
-        }
-
-        for (GeneratorExpressionNode genexp : NodeUtil.findAllNodeInstances(parallelBody, GeneratorExpressionNode.class)) {
-            genexp.setEnclosingFrameGenerator(false);
-        }
-
-        RootNode parallelRoot = new FunctionRootNode(context, root.getFunctionName(), true, root.getFrameDescriptor(), parallelBody);
-        return Truffle.getRuntime().createCallTarget(parallelRoot);
     }
 
 }

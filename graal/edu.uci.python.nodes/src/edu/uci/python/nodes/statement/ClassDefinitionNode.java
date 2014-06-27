@@ -24,46 +24,70 @@
  */
 package edu.uci.python.nodes.statement;
 
+import org.python.core.*;
+
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.function.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public final class ClassDefinitionNode extends StatementNode {
+@NodeChild(value = "definitionFunction", type = PNode.class)
+public abstract class ClassDefinitionNode extends StatementNode {
 
+    private final PythonContext context;
+    private final String moduleName;
     private final String name;
 
-    @Child protected PNode superClass;
-    @Child protected FunctionDefinitionNode definitionFunction;
+    @Children private final PNode[] baseNodes;
 
-    public ClassDefinitionNode(String name, PNode superClass, FunctionDefinitionNode definitionFunction) {
+    public ClassDefinitionNode(PythonContext context, String moduleName, String name, PNode[] baseClasses) {
+        this.context = context;
+        this.moduleName = moduleName;
         this.name = name;
-        this.superClass = superClass;
-        this.definitionFunction = definitionFunction;
+        this.baseNodes = baseClasses;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        PythonClass base;
-        try {
-            base = superClass.executePythonClass(frame);
-        } catch (UnexpectedResultException e) {
-            throw new IllegalStateException();
-        }
+    protected ClassDefinitionNode(ClassDefinitionNode prev) {
+        this(prev.context, prev.moduleName, prev.name, prev.baseNodes);
+    }
 
-        PythonClass newClass = new PythonClass(base, name);
-        PFunction definitionFunc;
+    @Specialization
+    Object doDefine(VirtualFrame frame, PythonCallable definitionFunc) {
+        PythonClass[] bases;
+        PythonClass newClass;
+
         try {
-            definitionFunc = (PFunction) definitionFunction.executePythonCallable(frame);
+            bases = executeBases(frame);
+            newClass = new PythonClass(context, moduleName + '.' + name, bases);
         } catch (UnexpectedResultException e) {
-            throw new IllegalStateException();
+            newClass = tryToDefineJythonSubClass(e.getResult());
         }
 
         definitionFunc.call(PArguments.createWithUserArguments(newClass));
         return newClass;
+    }
+
+    @ExplodeLoop
+    private PythonClass[] executeBases(VirtualFrame frame) throws UnexpectedResultException {
+        final PythonClass[] bases = new PythonClass[baseNodes.length];
+
+        for (int i = 0; i < baseNodes.length; i++) {
+            bases[i] = baseNodes[i].executePythonClass(frame);
+        }
+
+        return bases;
+    }
+
+    private PythonClass tryToDefineJythonSubClass(Object result) {
+        if (result instanceof PyType) {
+            return new JythonTypeSubClass(context, name, (PyType) result);
+        } else {
+            throw new IllegalStateException();
+        }
     }
 
 }

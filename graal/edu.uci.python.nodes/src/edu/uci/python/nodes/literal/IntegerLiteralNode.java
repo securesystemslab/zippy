@@ -26,16 +26,12 @@ package edu.uci.python.nodes.literal;
 
 import com.oracle.truffle.api.frame.*;
 
-public class IntegerLiteralNode extends LiteralNode {
+public final class IntegerLiteralNode extends LiteralNode {
 
     private final int value;
 
     public IntegerLiteralNode(int value) {
         this.value = value;
-    }
-
-    public int getValue() {
-        return value;
     }
 
     @Override
@@ -48,8 +44,4 @@ public class IntegerLiteralNode extends LiteralNode {
         return executeInt(frame);
     }
 
-    @Override
-    public String toString() {
-        return "int(" + value + ")";
-    }
 }

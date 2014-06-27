@@ -28,6 +28,8 @@ import java.io.*;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.*;
 
 public final class EmptySequenceStorage extends SequenceStorage {
@@ -45,8 +47,6 @@ public final class EmptySequenceStorage extends SequenceStorage {
             generalized = new IntSequenceStorage();
         } else if (value instanceof Double) {
             generalized = new DoubleSequenceStorage();
-        } else if (value instanceof String) {
-            generalized = new StringSequenceStorage();
         } else {
             generalized = new ObjectSequenceStorage();
         }
@@ -90,12 +90,14 @@ public final class EmptySequenceStorage extends SequenceStorage {
     }
 
     @Override
-    public Object getItemInBound(int idx) {
+    public Object getItemNormalized(int idx) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
         throw Py.ValueError("list index out of range");
     }
 
     @Override
-    public void setItemInBound(int idx, Object value) throws SequenceStoreException {
+    public void setItemNormalized(int idx, Object value) throws SequenceStoreException {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
         throw Py.ValueError("list assignment index out of range");
     }
 

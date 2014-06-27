@@ -26,6 +26,11 @@ package edu.uci.python.runtime.sequence.storage;
 
 import java.util.*;
 
+import org.python.core.*;
+
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.nodes.*;
+
 import edu.uci.python.runtime.sequence.*;
 
 public final class ObjectSequenceStorage extends BasicSequenceStorage {
@@ -43,13 +48,23 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public Object getItemInBound(int idx) {
-        return values[idx];
+    public Object getItemNormalized(int idx) {
+        try {
+            return values[idx];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("list index out of range");
+        }
     }
 
     @Override
-    public void setItemInBound(int idx, Object value) {
-        values[idx] = value;
+    public void setItemNormalized(int idx, Object value) {
+        try {
+            values[idx] = value;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("list assignment index out of range");
+        }
     }
 
     @Override
@@ -142,14 +157,15 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public void append(Object value) throws SequenceStoreException {
+    public void append(Object value) {
         ensureCapacity(length + 1);
         values[length] = value;
         length++;
     }
 
+    @ExplodeLoop
     @Override
-    public void extend(SequenceStorage other) throws SequenceStoreException {
+    public void extend(SequenceStorage other) {
         int extendedLength = length + other.length();
         ensureCapacity(extendedLength);
         Object[] otherValues = other.getInternalArray();
@@ -211,12 +227,21 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
+    @ExplodeLoop
     public boolean equals(SequenceStorage other) {
         if (other.length() != length()) {
             return false;
         }
 
-        return Arrays.equals(values, other.getInternalArray());
+        int nominalLength = length() <= other.length() ? length() : other.length();
+        Object[] otherArray = other.getInternalArray();
+        for (int i = 0; i < nominalLength; i++) {
+            if (!values[i].equals(otherArray[i])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }

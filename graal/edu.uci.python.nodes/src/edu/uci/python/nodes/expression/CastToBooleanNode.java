@@ -51,6 +51,11 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
 
     public abstract static class YesNode extends CastToBooleanNode {
 
+        @Specialization(order = 0)
+        boolean doBoolean(boolean operand) {
+            return operand;
+        }
+
         @Specialization(order = 1)
         boolean doInteger(int operand) {
             return operand != 0;
@@ -64,11 +69,6 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
         @Specialization(order = 3)
         boolean doDouble(double operand) {
             return operand != 0;
-        }
-
-        @Specialization(order = 4)
-        boolean doBoolean(boolean operand) {
-            return operand;
         }
 
         @Specialization(order = 5)
@@ -107,18 +107,30 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
             return false;
         }
 
-        @Specialization(order = 13, guards = "isBasicStorage")
-        public boolean doPListBasic(PList list) {
-            BasicSequenceStorage store = (BasicSequenceStorage) list.getStorage();
+        @Specialization(order = 13, guards = "isIntStorage")
+        public boolean doPListInt(PList list) {
+            IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
             return store.length() != 0;
         }
 
-        @Specialization(order = 14)
+        @Specialization(order = 14, guards = "isDoubleStorage")
+        public boolean doPListDouble(PList list) {
+            DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
+            return store.length() != 0;
+        }
+
+        @Specialization(order = 15, guards = "isObjectStorage")
+        public boolean doPListObject(PList list) {
+            ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
+            return store.length() != 0;
+        }
+
+        @Specialization(order = 18)
         boolean doPList(PList operand) {
             return operand.len() != 0;
         }
 
-        @Specialization(order = 15)
+        @Specialization(order = 20)
         boolean doPDictionary(PDict operand) {
             return operand.len() != 0;
         }
@@ -136,48 +148,71 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
 
     public abstract static class NotNode extends CastToBooleanNode {
 
-        @Specialization
+        @Specialization(order = 0)
+        boolean doBool(boolean operand) {
+            return !operand;
+        }
+
+        @Specialization(order = 1)
         boolean doInteger(int operand) {
             return operand == 0;
         }
 
-        @Specialization
+        @Specialization(order = 2)
         boolean doBigInteger(BigInteger operand) {
             return operand.compareTo(BigInteger.ZERO) == 0;
         }
 
-        @Specialization
+        @Specialization(order = 3)
         boolean doDouble(double operand) {
             return operand == 0;
         }
 
-        @Specialization
-        boolean doBoolean(boolean operand) {
-            return !operand;
-        }
-
-        @Specialization
+        @Specialization(order = 4)
         boolean doString(String operand) {
             return operand.length() == 0;
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "isNone")
+        @Specialization(order = 5, guards = "isNone")
         boolean doNone(Object operand) {
             return true;
         }
 
-        @Specialization
+        @Specialization(order = 6)
         boolean doPTuple(PTuple operand) {
             return operand.len() == 0;
         }
 
-        @Specialization
+        @Specialization(order = 10, guards = "isEmptyStorage")
+        public boolean doPListEmpty(@SuppressWarnings("unused") PList list) {
+            return false;
+        }
+
+        @Specialization(order = 11, guards = "isIntStorage")
+        public boolean doPListInt(PList list) {
+            IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
+            return store.length() == 0;
+        }
+
+        @Specialization(order = 12, guards = "isDoubleStorage")
+        public boolean doPListDouble(PList list) {
+            DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
+            return store.length() == 0;
+        }
+
+        @Specialization(order = 13, guards = "isObjectStorage")
+        public boolean doPListObject(PList list) {
+            ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
+            return store.length() == 0;
+        }
+
+        @Specialization(order = 14)
         boolean doPList(PList operand) {
             return operand.len() == 0;
         }
 
-        @Specialization
+        @Specialization(order = 15)
         boolean doPDictionary(PDict operand) {
             return operand.len() == 0;
         }

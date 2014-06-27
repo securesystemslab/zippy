@@ -28,7 +28,6 @@ import java.io.*;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -40,75 +39,14 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
-import static edu.uci.python.runtime.function.PArguments.*;
 
 public class PythonCallUtil {
-
-    private static final Object[] EMPTY_ARGUMENTS = new Object[0];
 
     protected static void logJythonRuntime(PyObject callee) {
         if (PythonOptions.TraceJythonRuntime) {
             PrintStream ps = System.out;
             ps.println("[ZipPy]: calling jython runtime function " + callee);
         }
-    }
-
-    /**
-     * Pack primary into the evaluated arguments array if passPrimary is true.
-     */
-    @ExplodeLoop
-    protected static final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary, PNode[] arguments) {
-        final int length = passPrimary ? arguments.length + 1 : arguments.length;
-        final Object[] evaluated = length == 0 ? create() : create(length);
-        final int offset;
-
-        if (passPrimary) {
-            evaluated[USER_ARGUMENTS_OFFSET] = primary;
-            offset = 1;
-        } else {
-            offset = 0;
-        }
-
-        for (int i = 0; i < arguments.length; i++) {
-            evaluated[USER_ARGUMENTS_OFFSET + i + offset] = arguments[i].execute(frame);
-        }
-
-        return evaluated;
-    }
-
-    @ExplodeLoop
-    public static final Object[] executeArguments(VirtualFrame frame, PNode[] arguments) {
-        final int length = arguments.length;
-        final Object[] evaluated = length == 0 ? create() : create(length);
-
-        for (int i = 0; i < arguments.length; i++) {
-            evaluated[USER_ARGUMENTS_OFFSET + i] = arguments[i].execute(frame);
-        }
-
-        return evaluated;
-    }
-
-    @ExplodeLoop
-    public static final Object[] executeArgumentsForJython(VirtualFrame frame, PNode[] arguments) {
-        final int length = arguments.length;
-        final Object[] evaluated = length == 0 ? EMPTY_ARGUMENTS : new Object[length];
-
-        for (int i = 0; i < arguments.length; i++) {
-            evaluated[i] = arguments[i].execute(frame);
-        }
-
-        return evaluated;
-    }
-
-    @ExplodeLoop
-    protected static final PKeyword[] executeKeywordArguments(VirtualFrame frame, PNode[] arguments) {
-        PKeyword[] evaluated = arguments.length == 0 ? PKeyword.EMPTY_KEYWORDS : new PKeyword[arguments.length];
-
-        for (int i = 0; i < arguments.length; i++) {
-            evaluated[i] = (PKeyword) arguments[i].execute(frame);
-        }
-
-        return evaluated;
     }
 
     protected static boolean isPrimaryBoxed(Object primary) {
@@ -123,20 +61,30 @@ public class PythonCallUtil {
         return PythonCallUtil.isPrimaryBoxed(primary) && callee instanceof PythonClass && !(callee instanceof PythonBuiltinClass);
     }
 
+    protected static boolean isClassMethodCall(Object primary, PythonCallable callee) {
+        return PythonCallUtil.isPrimaryBoxed(primary) && callee.isClassMethod() && !(primary instanceof PythonModule);
+    }
+
+    protected static boolean isStaticMethodCall(Object primary, PythonCallable callee) {
+        return PythonCallUtil.isPrimaryBoxed(primary) && callee.isStaticMethod() && !(primary instanceof PythonModule);
+    }
+
     protected static boolean haveToPassPrimary(Object primary, PythonCallable callee, PythonCallNode node) {
         return !isPrimaryNone(primary, node) && //
                         !(primary instanceof PythonClass) && //
                         !(primary instanceof PythonModule) && //
+                        !isStaticMethodCall(primary, callee) && //
                         !(primary instanceof PyObject) || //
-                        isConstructorCall(primary, callee);
+                        isConstructorCall(primary, callee) || //
+                        isClassMethodCall(primary, callee);
     }
 
     @ExplodeLoop
     protected static String[] getKeywordNames(PythonCallNode node) {
-        String[] keywordNames = new String[node.keywordNodes.length];
+        String[] keywordNames = new String[node.keywordsNode.length()];
 
-        for (int i = 0; i < node.keywordNodes.length; i++) {
-            KeywordLiteralNode keywordLiteral = (KeywordLiteralNode) node.keywordNodes[i];
+        for (int i = 0; i < node.keywordsNode.length(); i++) {
+            KeywordLiteralNode keywordLiteral = (KeywordLiteralNode) node.keywordsNode.getArguments()[i];
             keywordNames[i] = keywordLiteral.getName();
         }
 

@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>pygraph</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th bgcolor="#70b0f0" class="navbar-select"
+          >&nbsp;&nbsp;&nbsp;Home&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            ><a class="navbar" target="_top" href="http://code.google.com/p/python-graph/">python-graph</a></th>
+          </tr></table></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">
+      <span class="breadcrumbs">
+        Package&nbsp;pygraph
+      </span>
+    </td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+      </table>
+    </td>
+  </tr>
+</table>
+<!-- ==================== PACKAGE DESCRIPTION ==================== -->
+<h1 class="epydoc">Package pygraph</h1><p class="nomargin-top"></p>
+<p><b>python-graph</b></p>
+  <p>A library for working with graphs in Python.</p>
+
+<hr />
+<div class="fields">      <p><strong>Version:</strong>
+        1.8.2
+        <p><a href="pygraph.classes-module.html" class="link">Data 
+        structure</a> classes are located at 
+        <code>pygraph.classes</code>.</p>
+        <p><a href="pygraph.classes.exceptions-module.html" 
+        class="link">Exception</a> classes are located at 
+        <code>pygraph.classes.exceptions</code>.</p>
+        <p><a href="pygraph.algorithms.filters-module.html" 
+        class="link">Search filters</a> are located at 
+        <code>pygraph.algorithms.filters</code>.</p>
+        <p><a href="pygraph.algorithms.heuristics-module.html" 
+        class="link">Heuristics</a> for the A* algorithm are exposed in 
+        <code>pygraph.algorithms.heuristics</code>.</p>
+        <p>A quick introductory example:</p>
+<pre class="py-doctest">
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-comment"># Import the module and instantiate a graph object</span>
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> pygraph.classes.graph <span class="py-keyword">import</span> graph
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">from</span> pygraph.algorithms.searching <span class="py-keyword">import</span> depth_first_search
+<span class="py-prompt">&gt;&gt;&gt; </span>gr = graph()
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-comment"># Add nodes</span>
+<span class="py-prompt">&gt;&gt;&gt; </span>gr.add_nodes([<span class="py-string">'X'</span>,<span class="py-string">'Y'</span>,<span class="py-string">'Z'</span>])
+<span class="py-prompt">&gt;&gt;&gt; </span>gr.add_nodes([<span class="py-string">'A'</span>,<span class="py-string">'B'</span>,<span class="py-string">'C'</span>])
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-comment"># Add edges</span>
+<span class="py-prompt">&gt;&gt;&gt; </span>gr.add_edge((<span class="py-string">'X'</span>,<span class="py-string">'Y'</span>))
+<span class="py-prompt">&gt;&gt;&gt; </span>gr.add_edge((<span class="py-string">'X'</span>,<span class="py-string">'Z'</span>))
+<span class="py-prompt">&gt;&gt;&gt; </span>gr.add_edge((<span class="py-string">'A'</span>,<span class="py-string">'B'</span>))
+<span class="py-prompt">&gt;&gt;&gt; </span>gr.add_edge((<span class="py-string">'A'</span>,<span class="py-string">'C'</span>))
+<span class="py-prompt">&gt;&gt;&gt; </span>gr.add_edge((<span class="py-string">'Y'</span>,<span class="py-string">'B'</span>))
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-comment"># Depth first search rooted on node X</span>
+<span class="py-prompt">&gt;&gt;&gt; </span>st, pre, post = depth_first_search(gr, root=<span class="py-string">'X'</span>)
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-comment"># Print the spanning tree</span>
+<span class="py-prompt">&gt;&gt;&gt; </span><span class="py-keyword">print</span> st
+<span class="py-output">{'A': 'B', 'C': 'A', 'B': 'Y', 'Y': 'X', 'X': None, 'Z': 'X'}</span></pre>
+      </p>
+</div><!-- ==================== SUBMODULES ==================== -->
+<a name="section-Submodules"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td align="left" colspan="2" class="table-header">
+    <span class="table-header">Submodules</span></td>
+</tr>
+  <tr><td class="summary">
+  <ul class="nomargin">
+    <li> <strong class="uidlink"><a href="pygraph.algorithms-module.html">pygraph.algorithms</a></strong>: <em class="summary">Algorithms</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.accessibility-module.html">pygraph.algorithms.accessibility</a></strong>: <em class="summary">Accessibility algorithms.</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.critical-module.html">pygraph.algorithms.critical</a></strong>: <em class="summary">Critical path algorithms and transitivity detection algorithm.</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.cycles-module.html">pygraph.algorithms.cycles</a></strong>: <em class="summary">Cycle detection algorithms.</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.filters-module.html">pygraph.algorithms.filters</a></strong>: <em class="summary">Set of searching filters.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.filters.find-module.html">pygraph.algorithms.filters.find</a></strong>: <em class="summary">Search filter for finding a specific node.</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.filters.null-module.html">pygraph.algorithms.filters.null</a></strong>: <em class="summary">Null searching filter.</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.filters.radius-module.html">pygraph.algorithms.filters.radius</a></strong>: <em class="summary">Radial search filter.</em>    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.generators-module.html">pygraph.algorithms.generators</a></strong>: <em class="summary">Random graph generators.</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.heuristics-module.html">pygraph.algorithms.heuristics</a></strong>: <em class="summary">Set of search heuristics.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.heuristics.chow-module.html">pygraph.algorithms.heuristics.chow</a></strong>: <em class="summary">Edmond Chow's heuristic for A*.</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.heuristics.euclidean-module.html">pygraph.algorithms.heuristics.euclidean</a></strong>: <em class="summary">A* heuristic for euclidean graphs.</em>    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.minmax-module.html">pygraph.algorithms.minmax</a></strong>: <em class="summary">Minimization and maximization algorithms.</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.pagerank-module.html">pygraph.algorithms.pagerank</a></strong>: <em class="summary">PageRank algoritm</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.searching-module.html">pygraph.algorithms.searching</a></strong>: <em class="summary">Search algorithms.</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.sorting-module.html">pygraph.algorithms.sorting</a></strong>: <em class="summary">Sorting algorithms.</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.traversal-module.html">pygraph.algorithms.traversal</a></strong>: <em class="summary">Traversal algorithms.</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.utils-module.html">pygraph.algorithms.utils</a></strong>: <em class="summary">Miscellaneous useful stuff.</em>    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.classes-module.html">pygraph.classes</a></strong>: <em class="summary">Data structure classes.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="pygraph.classes.digraph-module.html">pygraph.classes.digraph</a></strong>: <em class="summary">Digraph class</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.classes.exceptions-module.html">pygraph.classes.exceptions</a></strong>: <em class="summary">Exceptions.</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.classes.graph-module.html">pygraph.classes.graph</a></strong>: <em class="summary">Graph class</em>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.classes.hypergraph-module.html">pygraph.classes.hypergraph</a></strong>: <em class="summary">Hypergraph class</em>    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.mixins-module.html">pygraph.mixins</a></strong>: <em class="summary">Mixins.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="pygraph.mixins.basegraph-module.html">pygraph.mixins.basegraph</a></strong>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.mixins.common-module.html">pygraph.mixins.common</a></strong>    </li>
+    <li> <strong class="uidlink"><a href="pygraph.mixins.labeling-module.html">pygraph.mixins.labeling</a></strong>    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.readwrite-module.html">pygraph.readwrite</a></strong>: <em class="summary">Readwrite algorithms.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="pygraph.readwrite.markup-module.html">pygraph.readwrite.markup</a></strong>: <em class="summary">Functions for reading and writing graphs in a XML markup.</em>    </li>
+    </ul>
+    </li>
+  </ul></td></tr>
+</table>
+
+<br />
+<!-- ==================== VARIABLES ==================== -->
+<a name="section-Variables"></a>
+<table class="summary" border="1" cellpadding="3"
+       cellspacing="0" width="100%" bgcolor="white">
+<tr bgcolor="#70b0f0" class="table-header">
+  <td align="left" colspan="2" class="table-header">
+    <span class="table-header">Variables</span></td>
+</tr>
+<tr>
+    <td width="15%" align="right" valign="top" class="summary">
+      <span class="summary-type">&nbsp;</span>
+    </td><td class="summary">
+        <a name="__package__"></a><span class="summary-name">__package__</span> = <code title="None">None</code>
+    </td>
+  </tr>
+</table>
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th bgcolor="#70b0f0" class="navbar-select"
+          >&nbsp;&nbsp;&nbsp;Home&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="module-tree.html">Trees</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            ><a class="navbar" target="_top" href="http://code.google.com/p/python-graph/">python-graph</a></th>
+          </tr></table></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Sat Aug 25 09:56:10 2012
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>

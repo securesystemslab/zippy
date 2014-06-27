@@ -161,7 +161,7 @@ pythonMicroBenchmarks = {
 
 pythonBenchmarks = {
     'binarytrees3t'   : '19',
-    #'fannkuchredux3t' : '11',
+    'fannkuchredux3t' : '11',
     'fasta3t'         : '25000000',
     'mandelbrot3t'    : '4000',
     'meteor3t'        : '2098',
@@ -173,9 +173,17 @@ pythonBenchmarks = {
     'ai-nqueen-timed' : '10',
     'pads-eratosthenes-timed' : '100000',
     'pads-integerpartitions' : '700',
+    'pads-lyndon'     : '100000000',
     'richards3-timed' : '200',
     'bm-float-timed'  : '1000',
     'pypy-chaos-timed': '1000',
+    'pypy-go-timed'   : '50',
+    'pypy-deltablue'  : '2000',
+    'python-graph-bench': '200',
+    'simplejson-bench': '10000',
+    'whoosh-bench'    : '5000',
+    'pymaging-bench'  : '5000',
+    'sympy-bench'     : '20000',
 }
 
 python2Benchmarks = {
@@ -191,9 +199,32 @@ python2Benchmarks = {
     'euler11-timed'   : '10000',
     'ai-nqueen-timed' : '10',
     'pads-eratosthenes-timed' : '100000',
+    'pads-integerpartitions' : '700',
+    'pads-lyndon'     : '100000000',
     'richards3-timed' : '200',
     'bm-float-timed'  : '1000',
     'pypy-chaos-timed': '1000',
+    'pypy-go-timed'   : '50',
+    'pypy-deltablue'  : '2000',
+    'python-graph-bench': '200',
+    'simplejson-bench': '10000',
+    'whoosh-bench'    : '5000',
+    'pymaging-bench'  : '5000',
+    'sympy-bench'     : '20000',
+}
+
+pythonGeneratorBenchmarks = {
+    'euler31-timed'   : '200',
+    'euler11-timed'   : '10000',
+    'ai-nqueen-timed' : '10',
+    'pads-eratosthenes-timed' : '100000',
+    'pads-integerpartitions' : '700',
+    'pads-lyndon'     : '100000000',
+    'python-graph-bench': '200',
+    'simplejson-bench': '10000',
+    'whoosh-bench'    : '5000',
+    'pymaging-bench'  : '5000',
+    'sympy-bench'     : '20000',
 }
 
 specjvm2008Names = [
@@ -408,6 +439,18 @@ def getPythonBenchmarks(vm):
         vmOpts = ['-Xms2g', '-Xmx2g']
         tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
     
+    return tests
+
+def getPythonBenchmarksNoPeeling(vm):
+    success, error, matcher = getSuccessErrorMatcher()
+    benchmarks = pythonGeneratorBenchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, "-no-generator-peeling"]
+        vmOpts = ['-Xms2g', '-Xmx2g']
+        tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+
     return tests
 
 def getPython2Benchmarks(vm):

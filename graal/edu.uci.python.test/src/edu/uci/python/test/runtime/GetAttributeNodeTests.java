@@ -112,7 +112,7 @@ public class GetAttributeNodeTests {
          * recovered from the no attribute exception, we should be able to continue.
          */
         // replace primary to a full PythonBasicObject
-        PythonClass classA = new PythonClass(context, null, "A");
+        PythonClass classA = new PythonClass(context, "A", new PythonClass[]{});
         PythonObject pbObj = PythonContext.newPythonObjectInstance(classA);
         pbObj.setAttribute("append", 42);
         PNode objNode = factory.createObjectLiteral(pbObj);
@@ -134,7 +134,7 @@ public class GetAttributeNodeTests {
         NodeFactory factory = new NodeFactory();
 
         // in object attribute
-        PythonClass classA = new PythonClass(context, null, "A");
+        PythonClass classA = new PythonClass(context, "A", new PythonClass[]{});
         PythonObject pbObj = PythonContext.newPythonObjectInstance(classA);
         pbObj.setAttribute("foo", 42);
 

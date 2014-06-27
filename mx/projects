@@ -24,7 +24,8 @@ library@CHECKSTYLE@path=lib/checkstyle-5.5-all.jar
 library@CHECKSTYLE@urls=jar:http://sourceforge.net/projects/checkstyle/files/checkstyle/5.5/checkstyle-5.5-bin.zip/download!/checkstyle-5.5/checkstyle-5.5-all.jar
 
 library@FINDBUGS@path=lib/findbugs-3.0.0-dev-20131204-e3cbbd5.jar
-library@FINDBUGS@urls=jar:http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0-dev-20131204-e3cbbd5.zip/download!/findbugs-3.0.0-dev-20131204-e3cbbd5/lib/findbugs.jar
+#library@FINDBUGS@urls=jar:http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0-dev-20131204-e3cbbd5.zip/download!/findbugs-3.0.0-dev-20131204-e3cbbd5/lib/findbugs.jar
+library@FINDBUGS@urls=https://s3.amazonaws.com/wzhang.org/findbugs-3.0.0-dev-20131204-e3cbbd5.jar
 library@FINDBUGS@sha1=539fdc73ef5f65a85c94687f6ec77dcd8493f8c1
 
 library@DACAPO@path=lib/dacapo-9.12-bach.jar
@@ -834,7 +835,7 @@ project@com.oracle.graal.truffle.hotspot.amd64@workingSets=Graal,Truffle
 project@edu.uci.python.runtime@subDir=graal
 project@edu.uci.python.runtime@sourceDirs=src
 project@edu.uci.python.runtime@dependencies=com.oracle.truffle.api,JYTHON, ASM
-project@edu.uci.python.runtime@javaCompliance=1.7
+project@edu.uci.python.runtime@javaCompliance=1.8
 project@edu.uci.python.runtime@workingSets=Truffle,Python
 
 # python.nodes
@@ -842,7 +843,7 @@ project@edu.uci.python.nodes@subDir=graal
 project@edu.uci.python.nodes@sourceDirs=src
 project@edu.uci.python.nodes@dependencies=edu.uci.python.runtime,com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
 project@edu.uci.python.nodes@checkstyle=edu.uci.python.runtime
-project@edu.uci.python.nodes@javaCompliance=1.7
+project@edu.uci.python.nodes@javaCompliance=1.8
 project@edu.uci.python.nodes@annotationProcessors=com.oracle.truffle.dsl.processor
 project@edu.uci.python.nodes@workingSets=Truffle,Python
 
@@ -851,7 +852,7 @@ project@edu.uci.python.parser@subDir=graal
 project@edu.uci.python.parser@sourceDirs=src
 project@edu.uci.python.parser@dependencies=edu.uci.python.nodes,edu.uci.python.builtins,JYTHON
 project@edu.uci.python.parser@checkstyle=edu.uci.python.runtime
-project@edu.uci.python.parser@javaCompliance=1.7
+project@edu.uci.python.parser@javaCompliance=1.8
 project@edu.uci.python.parser@workingSets=Truffle,Python
 
 # python.shell
@@ -859,7 +860,7 @@ project@edu.uci.python.shell@subDir=graal
 project@edu.uci.python.shell@sourceDirs=src
 project@edu.uci.python.shell@dependencies=JLINE09,edu.uci.python.nodes,edu.uci.python.runtime,edu.uci.python.parser,edu.uci.python.builtins,JYTHON
 project@edu.uci.python.shell@checkstyle=edu.uci.python.runtime
-project@edu.uci.python.shell@javaCompliance=1.7
+project@edu.uci.python.shell@javaCompliance=1.8
 project@edu.uci.python.shell@workingSets=Truffle,Python
 
 # python.benchmark
@@ -867,7 +868,7 @@ project@edu.uci.python.benchmark@subDir=graal
 project@edu.uci.python.benchmark@sourceDirs=src
 project@edu.uci.python.benchmark@dependencies=edu.uci.python.nodes,edu.uci.python.runtime,JUNIT
 project@edu.uci.python.benchmark@checkstyle=edu.uci.python.runtime
-project@edu.uci.python.benchmark@javaCompliance=1.7
+project@edu.uci.python.benchmark@javaCompliance=1.8
 project@edu.uci.python.benchmark@workingSets=Truffle,Python
 
 # python.test
@@ -875,7 +876,7 @@ project@edu.uci.python.test@subDir=graal
 project@edu.uci.python.test@sourceDirs=src
 project@edu.uci.python.test@dependencies=edu.uci.python.nodes,edu.uci.python.runtime,edu.uci.python.shell,JUNIT
 project@edu.uci.python.test@checkstyle=edu.uci.python.runtime
-project@edu.uci.python.test@javaCompliance=1.7
+project@edu.uci.python.test@javaCompliance=1.8
 project@edu.uci.python.test@workingSets=Truffle,Python
 
 # python.builtins
@@ -883,6 +884,6 @@ project@edu.uci.python.builtins@subDir=graal
 project@edu.uci.python.builtins@sourceDirs=src
 project@edu.uci.python.builtins@dependencies=edu.uci.python.nodes,edu.uci.python.runtime,com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
 project@edu.uci.python.builtins@checkstyle=edu.uci.python.runtime
-project@edu.uci.python.builtins@javaCompliance=1.7
+project@edu.uci.python.builtins@javaCompliance=1.8
 project@edu.uci.python.builtins@annotationProcessors=com.oracle.truffle.dsl.processor
 project@edu.uci.python.builtins@workingSets=Truffle,Python

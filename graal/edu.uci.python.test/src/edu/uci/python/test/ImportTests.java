@@ -46,4 +46,11 @@ public class ImportTests {
         assertPrints("42\n", source);
     }
 
+    @Test
+    public void module__file__() {
+        String source = "import bisect\n" + //
+                        "print(bisect.__file__)\n";
+        assertPrintContains("bisect.py\n", source);
+    }
+
 }

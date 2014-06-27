@@ -34,6 +34,7 @@ import edu.uci.python.runtime.function.*;
 public class FunctionDefinitionNode extends PNode {
 
     protected final String name;
+    protected final String enclosingClassName;
     protected final PythonContext context;
     protected final RootCallTarget callTarget;
     protected final FrameDescriptor frameDescriptor;
@@ -41,8 +42,10 @@ public class FunctionDefinitionNode extends PNode {
     protected final Arity arity;
     @Child protected PNode defaults;
 
-    public FunctionDefinitionNode(String name, PythonContext context, Arity arity, PNode defaults, RootCallTarget callTarget, FrameDescriptor frameDescriptor, boolean needsDeclarationFrame) {
+    public FunctionDefinitionNode(String name, String enclosingClassName, PythonContext context, Arity arity, PNode defaults, RootCallTarget callTarget, FrameDescriptor frameDescriptor,
+                    boolean needsDeclarationFrame) {
         this.name = name;
+        this.enclosingClassName = enclosingClassName;
         this.context = context;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
@@ -55,12 +58,7 @@ public class FunctionDefinitionNode extends PNode {
     public Object execute(VirtualFrame frame) {
         defaults.executeVoid(frame);
         MaterializedFrame declarationFrame = needsDeclarationFrame ? frame.materialize() : null;
-        return new PFunction(name, context, arity, callTarget, frameDescriptor, declarationFrame);
-    }
-
-    @Override
-    public String toString() {
-        return super.toString() + "(" + name + ")";
+        return new PFunction(name, enclosingClassName, arity, callTarget, frameDescriptor, declarationFrame);
     }
 
 }

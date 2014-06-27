@@ -86,4 +86,16 @@ public class GeneratorOptimizationTests {
         assertTrue(listComp != null);
     }
 
+    @Test
+    public void getItem() {
+        Path script = Paths.get("generator-special-getitem-test.py");
+        assertPrints("5\n", script);
+    }
+
+    @Test
+    public void polymorphic() {
+        Path script = Paths.get("generator-inline-polymorphic-test.py");
+        assertPrints("10\n10\n10\n10\n10\n", script);
+    }
+
 }

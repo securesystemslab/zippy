@@ -43,10 +43,6 @@ public class PythonOptions {
     public static boolean UsePrintFunction = false;
 
     // Runtime flags
-    public static final boolean InlineFunctionCalls = true;
-
-    public static final boolean InlineBuiltinFunctionCalls = true;
-
     public static final boolean UnboxSequenceStorage = true;
 
     public static final boolean TraceSequenceStorageGeneralization = false;
@@ -55,9 +51,9 @@ public class PythonOptions {
 
     public static final boolean IntrinsifyBuiltinCalls = true;
 
-    public static final int AttributeAccessInlineCacheMaxDepth = 5;
+    public static final int AttributeAccessInlineCacheMaxDepth = 20;
 
-    public static final int CallSiteInlineCacheMaxDepth = 5;
+    public static final int CallSiteInlineCacheMaxDepth = 20;
 
     public static final boolean GenerateObjectStorage = false;
 
@@ -66,24 +62,18 @@ public class PythonOptions {
 
     public static boolean OptimizeGeneratorExpressions = true;
 
-    // Parallel Generators
-    public static final boolean ParallelizeGeneratorCalls = false;
-
-    public static final boolean ProfileGeneratorCalls = false;
-
-    static {
-        if (ParallelizeGeneratorCalls) {
-            InlineGeneratorCalls = false;
-            OptimizeGeneratorExpressions = false;
-        }
-    }
+    public static boolean TraceGeneratorInlining = false;
 
     // Profiling
     public static boolean ProfileCalls = false;
 
-    public static boolean AddProfilingInstrumentation = false;
+    public static boolean ProfileIfNodes = false;
+
+    public static boolean ProfileNodes = false;
 
     public static boolean SortProfilerResults = false;
+
+    public static boolean TraceNodesWithoutSourceSection = false;
 
     public static final boolean CatchZippyExceptionForUnitTesting = false;
 

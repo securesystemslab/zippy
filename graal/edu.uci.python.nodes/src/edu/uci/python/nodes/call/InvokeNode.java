@@ -83,7 +83,7 @@ public abstract class InvokeNode extends Node {
     }
 
     /**
-     * Replicate the CallTarget to let each builtin call site executes its won AST.
+     * Replicate the CallTarget to let each builtin call site executes its own AST.
      */
     protected static CallTarget split(RootCallTarget callTarget) {
         CompilerAsserts.neverPartOfCompilation();

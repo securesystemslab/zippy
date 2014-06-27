@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -62,4 +62,14 @@ public class BinaryComparisonTests {
         Path script = Paths.get("compare-multiple-test.py");
         assertPrints("a = 10\n", script);
     }
+
+    @Test
+    public void notInList() {
+        String source = "print(1 not in [])\n" + //
+                        "print(1 not in [1,2,3])\n" + //
+                        "print(0.1 not in [0.1,0.2,0.3])\n" + //
+                        "print(None not in [None, None])";
+        assertPrints("True\nFalse\nFalse\nFalse\n", source);
+    }
+
 }

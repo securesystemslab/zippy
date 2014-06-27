@@ -61,10 +61,14 @@ def fannkuch(n):
                 i += 1
 
 def measure():
+    input = int(sys.argv[1])
+    for i in range(3):
+        fannkuch(input)
+
     print("Start timing...")
     start = time.time()
     
-    sum, maxflips = fannkuch(int(sys.argv[1]))
+    sum, maxflips = fannkuch(input)
     print(sum)
     print("Pfannkuchen(%d) = %d" % (int(sys.argv[1]), maxflips))
 

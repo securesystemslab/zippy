@@ -24,12 +24,15 @@
  */
 package edu.uci.python.nodes.expression;
 
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.*;
 import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.*;
 import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.sequence.storage.*;
+import edu.uci.python.runtime.object.*;
 
 @NodeChild(value = "operand", type = PNode.class)
 public abstract class UnaryOpNode extends PNode {
@@ -37,18 +40,17 @@ public abstract class UnaryOpNode extends PNode {
     public abstract PNode getOperand();
 
     /**
-     * Operand guards.
+     * Special method dispatch.
      */
-    protected static boolean isNone(Object value) {
-        return value == PNone.NONE;
-    }
+    @CompilationFinal @Child protected CallDispatchSpecialNode dispatch;
 
-    protected static boolean isBasicStorage(PList list) {
-        return list.getStorage() instanceof BasicSequenceStorage;
-    }
+    protected final Object doSpecialMethodCall(VirtualFrame frame, String specialMethodId, PythonObject operand) {
+        if (dispatch == null) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            dispatch = insert(new CallDispatchSpecialNode.UninitializedDispatchSpecialNode(specialMethodId));
+        }
 
-    protected static boolean isEmptyStorage(PList list) {
-        return list.getStorage() instanceof EmptySequenceStorage;
+        return dispatch.executeCall(frame, operand, PNone.NONE);
     }
 
 }

@@ -28,62 +28,118 @@ import java.math.*;
 
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class EqualNode extends BinaryComparisonNode {
 
-        @Specialization
+        @Specialization(order = 0)
+        boolean doBoolean(boolean left, boolean right) {
+            return left == right;
+        }
+
+        @Specialization(order = 5)
         boolean doInteger(int left, int right) {
             return left == right;
         }
 
-        @Specialization
+        @Specialization(order = 10)
         boolean doBigInteger(BigInteger left, BigInteger right) {
             return left.equals(right);
         }
 
-        @Specialization
+        @Specialization(order = 15)
         boolean doDouble(double left, double right) {
             return left == right;
         }
 
-        @Specialization
+        @Specialization(order = 20)
         boolean doComplex(PComplex left, PComplex right) {
             return left.equals(right);
         }
 
-        @Specialization
+        @Specialization(order = 21)
+        boolean doChar(char left, char right) {
+            return left == right;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 22)
+        boolean doIntString(int left, String right) {
+            return false;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 23)
+        boolean doIntString(String left, int right) {
+            return false;
+        }
+
+        @Specialization(order = 25)
         boolean doString(String left, String right) {
             return left.equals(right);
         }
 
-        @Specialization
+        @Specialization(order = 30)
+        boolean doPTuple(PTuple left, PTuple right) {
+            return left.equals(right);
+        }
+
+        @Specialization(order = 36, guards = "areBothIntStorage")
+        boolean doPListInt(PList left, PList right) {
+            IntSequenceStorage leftStore = (IntSequenceStorage) left.getStorage();
+            IntSequenceStorage rightStore = (IntSequenceStorage) right.getStorage();
+            return leftStore.equals(rightStore);
+        }
+
+        @Specialization(order = 37, guards = "areBothObjectStorage")
+        boolean doPListObject(PList left, PList right) {
+            ObjectSequenceStorage leftStore = (ObjectSequenceStorage) left.getStorage();
+            ObjectSequenceStorage rightStore = (ObjectSequenceStorage) right.getStorage();
+            return leftStore.equals(rightStore);
+        }
+
+        @Specialization(order = 40)
         boolean doPList(PList left, PList right) {
             return left.equals(right);
         }
 
-        @Specialization
-        public boolean doPythonClass(PythonClass left, PythonClass right) {
+        @Specialization(order = 50)
+        boolean doPDict(PDict left, PDict right) {
             return left.equals(right);
         }
 
+        @Specialization(order = 60)
+        public boolean doPythonClass(PythonClass left, PythonClass right) {
+            return left == right;
+        }
+
+        @Specialization(order = 70)
+        Object doPythonObject(VirtualFrame frame, PythonObject left, PythonObject right) {
+            return doSpecialMethodCall(frame, "__eq__", left, right);
+        }
+
         @SuppressWarnings("unused")
-        @Specialization
-        public boolean doNone(Object left, PNone none) {
-            return left == PNone.NONE;
+        @Specialization(order = 100, guards = "isNotPythonObject")
+        Object doPythonObject(Object left, PythonObject right) {
+            return false;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 110, guards = "is2ndNotPythonObject")
+        Object doPythonObject(PythonObject left, Object right) {
+            return false;
         }
 
         /**
          * This is a fix for comparisons involving a PyInteger.
-         *
-         * @param left
-         * @param right
-         * @return comparison result
          */
         @Generic
         public boolean doGeneric(Object left, Object right) {
@@ -124,8 +180,24 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
 
         @Specialization
-        public boolean doPythonClass(PythonClass left, PythonClass right) {
+        boolean doPDict(PDict left, PDict right) {
             return !left.equals(right);
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public boolean doObjectNone(PythonObject left, PNone right) {
+            return true;
+        }
+
+        @Specialization
+        public boolean doPythonClass(PythonClass left, PythonClass right) {
+            return left != right;
+        }
+
+        @Specialization
+        public boolean doPythonObject(PythonObject left, PythonObject right) {
+            return left != right;
         }
     }
 
@@ -198,27 +270,37 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class GreaterThanNode extends BinaryComparisonNode {
 
-        @Specialization
+        @Specialization(order = 1)
         boolean doInteger(int left, int right) {
             return left > right;
         }
 
-        @Specialization
+        @Specialization(order = 5)
         boolean doBigInteger(BigInteger left, BigInteger right) {
             return left.compareTo(right) > 0;
         }
 
-        @Specialization
+        @Specialization(order = 10)
+        boolean doIntDouble(int left, double right) {
+            return left > right;
+        }
+
+        @Specialization(order = 11)
+        boolean doIntDouble(double left, int right) {
+            return left > right;
+        }
+
+        @Specialization(order = 15)
         boolean doDouble(double left, double right) {
             return left > right;
         }
 
-        @Specialization
+        @Specialization(order = 20)
         boolean doComplex(PComplex left, PComplex right) {
             return left.greaterThan(right);
         }
 
-        @Specialization
+        @Specialization(order = 30)
         boolean doString(String left, String right) {
             return left.compareTo(right) > 0;
         }
@@ -226,33 +308,55 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class GreaterThanEqualNode extends BinaryComparisonNode {
 
-        @Specialization
+        @Specialization(order = 1)
         boolean doInteger(int left, int right) {
             return left >= right;
         }
 
-        @Specialization
+        @Specialization(order = 5)
         boolean doBigInteger(BigInteger left, BigInteger right) {
             return left.compareTo(right) >= 0;
         }
 
-        @Specialization
+        @Specialization(order = 10)
+        boolean doIntDouble(int left, double right) {
+            return left >= right;
+        }
+
+        @Specialization(order = 15)
         boolean doDouble(double left, double right) {
             return left >= right;
         }
 
-        @Specialization
+        @Specialization(order = 20)
         boolean doComplex(PComplex left, PComplex right) {
             return left.greaterEqual(right);
         }
 
-        @Specialization
+        @Specialization(order = 30)
         boolean doString(String left, String right) {
+            return left.compareTo(right) >= 0;
+        }
+
+        @Specialization(order = 40)
+        boolean doTuple(PTuple left, PTuple right) {
             return left.compareTo(right) >= 0;
         }
     }
 
     public abstract static class IsNode extends BinaryComparisonNode {
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 1)
+        boolean doInteger(int left, boolean right) {
+            return false;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(order = 2)
+        boolean doInteger(boolean left, int right) {
+            return false;
+        }
 
         @Specialization(order = 3)
         boolean doInteger(int left, int right) {
@@ -325,6 +429,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     public abstract static class InNode extends BinaryComparisonNode {
 
         @Specialization
+        public boolean doString(String left, String right) {
+            return right.contains(left);
+        }
+
+        @Specialization
         public boolean doBaseSet(Object left, PBaseSet right) {
             return right.contains(left);
         }
@@ -334,7 +443,17 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
             return right.index(left) != -1;
         }
 
-        @Specialization
+        @SuppressWarnings("unused")
+        @Specialization(order = 10, guards = "isEmptyDict")
+        public boolean doPDictionaryEmpty(Object left, PDict right) {
+            return false;
+        }
+
+        protected static boolean isEmptyDict(@SuppressWarnings("unused") Object first, PDict dict) {
+            return dict.len() == 0;
+        }
+
+        @Specialization(order = 11)
         public boolean doPDictionary(Object left, PDict right) {
             return right.hasKey(left);
         }
@@ -342,17 +461,46 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     public abstract static class NotInNode extends BinaryComparisonNode {
 
-        @Specialization
+        @Specialization(order = 5)
         public boolean doBaseSet(Object left, PBaseSet right) {
             return !right.contains(left);
         }
 
-        @Specialization
+        @SuppressWarnings("unused")
+        @Specialization(order = 10, guards = "is2ndEmptyStorage")
+        public boolean doPListEmpty(Object left, PList right) {
+            return true;
+        }
+
+        @Specialization(order = 11, guards = "is2ndIntStorage")
+        public boolean doPListInt(int left, PList right) {
+            IntSequenceStorage store = (IntSequenceStorage) right.getStorage();
+            return store.indexOfInt(left) == -1;
+        }
+
+        @Specialization(order = 12, guards = "is2ndDoubleStorage")
+        public boolean doPListDouble(double left, PList right) {
+            DoubleSequenceStorage store = (DoubleSequenceStorage) right.getStorage();
+            return store.indexOfDouble(left) == -1;
+        }
+
+        @Specialization(order = 13, guards = "is2ndObjectStorage")
+        public boolean doPListObject(Object left, PList right) {
+            ObjectSequenceStorage store = (ObjectSequenceStorage) right.getStorage();
+            return store.index(left) == -1;
+        }
+
+        @Specialization(order = 15)
+        public boolean doPList(Object left, PList right) {
+            return right.index(left) == -1;
+        }
+
+        @Specialization(order = 19)
         public boolean doPSequence(Object left, PSequence right) {
             return right.index(left) == -1;
         }
 
-        @Specialization
+        @Specialization(order = 20)
         public boolean doPDictionary(Object left, PDict right) {
             return !right.hasKey(left);
         }

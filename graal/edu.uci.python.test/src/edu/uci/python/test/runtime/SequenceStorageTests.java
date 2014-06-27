@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -39,9 +39,9 @@ public class SequenceStorageTests {
     @Test
     public void objectsGetAndSet() {
         ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
-        assertEquals(4, store.getItemInBound(3));
-        store.setItemInBound(5, 10);
-        assertEquals(10, store.getItemInBound(5));
+        assertEquals(4, store.getItemNormalized(3));
+        store.setItemNormalized(5, 10);
+        assertEquals(10, store.getItemNormalized(5));
     }
 
     @Test
@@ -50,7 +50,7 @@ public class SequenceStorageTests {
         ObjectSequenceStorage slice = (ObjectSequenceStorage) store.getSliceInBound(1, 4, 1, 3);
 
         for (int i = 0; i < 3; i++) {
-            assertEquals(i + 2, slice.getItemInBound(i));
+            assertEquals(i + 2, slice.getItemNormalized(i));
         }
     }
 
@@ -62,7 +62,7 @@ public class SequenceStorageTests {
         store.setSliceInBound(1, 4, 1, slice);
 
         for (int i = 1; i < 4; i++) {
-            assertEquals(42, store.getItemInBound(i));
+            assertEquals(42, store.getItemNormalized(i));
         }
     }
 
@@ -74,7 +74,7 @@ public class SequenceStorageTests {
         store.setSliceInBound(5, 8, 1, slice);
 
         for (int i = 5; i < 8; i++) {
-            assertEquals(42, store.getItemInBound(i));
+            assertEquals(42, store.getItemNormalized(i));
         }
     }
 
@@ -84,10 +84,10 @@ public class SequenceStorageTests {
         store.delItemInBound(4);
 
         for (int i = 0; i < 4; i++) {
-            assertEquals(i + 1, store.getItemInBound(i));
+            assertEquals(i + 1, store.getItemNormalized(i));
         }
 
-        assertEquals(6, store.getItemInBound(4));
+        assertEquals(6, store.getItemNormalized(4));
         assertEquals(5, store.length());
     }
 
@@ -95,27 +95,27 @@ public class SequenceStorageTests {
     public void objectsInsert() {
         ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
         store.insertItem(3, 42);
-        assertEquals(42, store.getItemInBound(3));
-        assertEquals(6, store.getItemInBound(6));
+        assertEquals(42, store.getItemNormalized(3));
+        assertEquals(6, store.getItemNormalized(6));
         assertEquals(7, store.length());
     }
 
     @Test
-    public void objectAppend() throws SequenceStoreException {
+    public void objectAppend() {
         ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
         store.append(42);
-        assertEquals(42, store.getItemInBound(6));
+        assertEquals(42, store.getItemNormalized(6));
         assertEquals(7, store.length());
     }
 
     @Test
-    public void objectExtend() throws SequenceStoreException {
+    public void objectExtend() {
         ObjectSequenceStorage store = new ObjectSequenceStorage(getObjectValues());
         ObjectSequenceStorage other = new ObjectSequenceStorage(getObjectValues());
         store.extend(other);
 
         for (int i = 6; i < 12; i++) {
-            assertEquals(i - 5, store.getItemInBound(i));
+            assertEquals(i - 5, store.getItemNormalized(i));
         }
 
         assertEquals(12, store.length());
@@ -131,9 +131,9 @@ public class SequenceStorageTests {
     @Test
     public void intGetAndSet() throws SequenceStoreException {
         IntSequenceStorage store = new IntSequenceStorage(getIntValues());
-        assertEquals(4, store.getItemInBound(3));
-        store.setItemInBound(5, 10);
-        assertEquals(10, store.getItemInBound(5));
+        assertEquals(4, store.getItemNormalized(3));
+        store.setItemNormalized(5, 10);
+        assertEquals(10, store.getItemNormalized(5));
     }
 
     @Test
@@ -142,7 +142,7 @@ public class SequenceStorageTests {
         IntSequenceStorage slice = (IntSequenceStorage) store.getSliceInBound(1, 4, 1, 3);
 
         for (int i = 0; i < 3; i++) {
-            assertEquals(i + 2, slice.getItemInBound(i));
+            assertEquals(i + 2, slice.getItemNormalized(i));
         }
     }
 
@@ -154,7 +154,7 @@ public class SequenceStorageTests {
         store.setSliceInBound(1, 4, 1, slice);
 
         for (int i = 1; i < 4; i++) {
-            assertEquals(42, store.getItemInBound(i));
+            assertEquals(42, store.getItemNormalized(i));
         }
     }
 
@@ -166,7 +166,7 @@ public class SequenceStorageTests {
         store.setSliceInBound(5, 8, 1, slice);
 
         for (int i = 5; i < 8; i++) {
-            assertEquals(42, store.getItemInBound(i));
+            assertEquals(42, store.getItemNormalized(i));
         }
     }
 
@@ -176,10 +176,10 @@ public class SequenceStorageTests {
         store.delItemInBound(4);
 
         for (int i = 0; i < 4; i++) {
-            assertEquals(i + 1, store.getItemInBound(i));
+            assertEquals(i + 1, store.getItemNormalized(i));
         }
 
-        assertEquals(6, store.getItemInBound(4));
+        assertEquals(6, store.getItemNormalized(4));
         assertEquals(5, store.length());
     }
 
@@ -187,8 +187,8 @@ public class SequenceStorageTests {
     public void intInsert() throws SequenceStoreException {
         IntSequenceStorage store = new IntSequenceStorage(getIntValues());
         store.insertItem(3, 42);
-        assertEquals(42, store.getItemInBound(3));
-        assertEquals(6, store.getItemInBound(6));
+        assertEquals(42, store.getItemNormalized(3));
+        assertEquals(6, store.getItemNormalized(6));
         assertEquals(7, store.length());
     }
 
@@ -196,7 +196,7 @@ public class SequenceStorageTests {
     public void intAppend() throws SequenceStoreException {
         IntSequenceStorage store = new IntSequenceStorage(getIntValues());
         store.append(42);
-        assertEquals(42, store.getItemInBound(6));
+        assertEquals(42, store.getItemNormalized(6));
         assertEquals(7, store.length());
     }
 
@@ -207,7 +207,7 @@ public class SequenceStorageTests {
         store.extend(other);
 
         for (int i = 6; i < 12; i++) {
-            assertEquals(i - 5, store.getItemInBound(i));
+            assertEquals(i - 5, store.getItemNormalized(i));
         }
 
         assertEquals(12, store.length());

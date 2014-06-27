@@ -36,7 +36,6 @@ import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.YesNodeFactory;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
@@ -389,6 +388,25 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return attrValue;
         }
 
+        @SuppressWarnings("unused")
+        @Specialization(order = 5, guards = "isForJSON")
+        public Object doPythonBuiltinObjectForJSON(PList list, String attributeId, Object defaultValue) {
+            return defaultValue;
+        }
+
+        @Specialization(order = 6)
+        public Object doPythonBuiltinObject(PythonBuiltinObject obj, String attributeId, Object defaultValue) {
+            CompilerAsserts.neverPartOfCompilation();
+
+            Object attribute = obj.__class__().getAttribute(attributeId);
+            return attribute != null ? defaultValue : attribute;
+        }
+
+        @SuppressWarnings("unused")
+        protected static boolean isForJSON(Object obj, String id, Object defaultValue) {
+            return id.equals("for_json");
+        }
+
         @Specialization
         public Object getAttr(Object object, Object name, Object defaultValue) {
             throw new RuntimeException("getAttr is not supported for " + object + " " + object.getClass() + " name " + name + " defaultValue " + defaultValue);
@@ -420,13 +438,30 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
     }
 
+    // id(object)
+    @Builtin(name = "id", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    public abstract static class IdNode extends PythonBuiltinNode {
+
+        /**
+         * zwei: This is not completely compliant with the id() implementation in CPython, which
+         * returns the internal address of the object. In Java, the internal address of an object
+         * changes during its lifetime. Therefore, using the internal address does not guarantee a
+         * consistent id during an object's lifetime. Hash code of two objects however are the same.
+         * This is conflicting with the 'identity' specification of id().
+         */
+        @Specialization
+        int doId(Object obj) {
+            return obj.hashCode();
+        }
+    }
+
     // isinstance(object, classinfo)
     @Builtin(name = "isinstance", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
     public abstract static class IsIntanceNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
         @Specialization(order = 1)
-        public Object isinstance(String str, PythonClass clazz) {
+        public boolean isinstance(String str, PythonClass clazz) {
             if (clazz.getName().equals("str")) {
                 return true;
             } else {
@@ -435,16 +470,16 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization(order = 2)
-        public Object isinstance(PythonObject object, PythonClass clazz) {
-            return isInstanceofPythonClass(object, clazz);
+        public boolean isinstance(PythonClass object, PythonClass clazz) {
+            return isInstancePythonClass(object, clazz);
         }
 
         @Specialization(order = 3)
-        public Object isinstance(PythonClass object, PythonClass clazz) {
-            return isInstanceofPythonClass(object, clazz);
+        public boolean isinstance(PythonObject object, PythonClass clazz) {
+            return isInstancePythonClass(object, clazz);
         }
 
-        private static boolean isInstanceofPythonClass(PythonObject object, PythonClass clazz) {
+        private static boolean isInstancePythonClass(PythonObject object, PythonClass clazz) {
             if (object.getPythonClass().equals(clazz)) {
                 return true;
             }
@@ -468,24 +503,66 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
-        @Specialization(order = 4)
-        public Object isinstance(Object object, Object clazz) {
-            if (object instanceof String && clazz instanceof PythonClass) {
-                PythonClass pythonClass = (PythonClass) clazz;
-                if (pythonClass.getName().equals("str")) {
+        @Specialization(order = 10, guards = "is2ndNotTuple")
+        public boolean isinstance(@SuppressWarnings("unused") int val, Object cls) {
+            return PInt.__class__ == cls;
+        }
+
+        protected static boolean is2ndNotTuple(@SuppressWarnings("unused") Object first, Object second) {
+            return !(second instanceof PTuple);
+        }
+
+        @ExplodeLoop
+        @Specialization(order = 11)
+        public boolean isinstance(@SuppressWarnings("unused") int val, PTuple classTuple) {
+            for (int i = 0; i < classTuple.len(); i++) {
+                if (PInt.__class__ == classTuple.getItem(i)) {
                     return true;
                 }
-
-                return false;
-            } else if (object instanceof PythonObject && clazz instanceof PythonClass) {
-                PythonObject basicObject = (PythonObject) object;
-                PythonClass pythonClass = (PythonClass) clazz;
-                return isInstanceofPythonClass(basicObject, pythonClass);
-            } else if (object instanceof PNone && clazz instanceof PythonBuiltinClass) {
-                return false;
             }
 
-            throw new RuntimeException("isinstance is not supported for " + object + " " + object.getClass() + ", " + clazz + " " + clazz.getClass());
+            return false;
+        }
+
+        @ExplodeLoop
+        @Specialization(order = 15)
+        public boolean isinstance(@SuppressWarnings("unused") String val, PTuple classTuple) {
+            for (int i = 0; i < classTuple.len(); i++) {
+                if (PString.__class__ == classTuple.getItem(i)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        @Specialization(order = 20, guards = "is2ndNotTuple")
+        public boolean isinstance(PythonBuiltinObject obj, Object cls) {
+            return obj.__class__() == cls;
+        }
+
+        @ExplodeLoop
+        @Specialization(order = 25)
+        public boolean isinstance(PythonBuiltinObject obj, PTuple classTuple) {
+            for (int i = 0; i < classTuple.len(); i++) {
+                if (obj.__class__() == classTuple.getItem(i)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        @ExplodeLoop
+        @Specialization(order = 26)
+        public boolean isinstance(PythonObject obj, PTuple classTuple) {
+            for (int i = 0; i < classTuple.len(); i++) {
+                if (obj.getPythonClass() == classTuple.getItem(i)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 
@@ -786,28 +863,30 @@ public final class BuiltinFunctions extends PythonBuiltins {
     }
 
     // next(iterator[, default])
+    @SuppressWarnings("unused")
     @Builtin(name = "next", minNumOfArguments = 1, maxNumOfArguments = 2)
     public abstract static class NextNode extends PythonBuiltinNode {
 
-        @SuppressWarnings("unused")
+        @Specialization
+        public int next(PRangeIterator iterator, PNone defaultObject) {
+            return iterator.__nextInt__();
+        }
+
         @Specialization
         public int next(PIntegerIterator iterator, PNone defaultObject) {
             return iterator.__nextInt__();
         }
 
-        @SuppressWarnings("unused")
         @Specialization
         public double next(PDoubleIterator iterator, PNone defaultObject) {
             return iterator.__nextDouble__();
         }
 
-        @SuppressWarnings("unused")
         @Specialization
         public Object next(PIterator iterator, PNone defaultObject) {
             return iterator.__next__();
         }
 
-        @SuppressWarnings("unused")
         @Specialization
         public Object next(Object iterator, Object defaultObject) {
             throw new RuntimeException("Unsupported iterator " + iterator);
@@ -1024,62 +1103,44 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @Specialization
         @SuppressWarnings("unused")
-        public Object type(boolean value) {
-            return getContext().getBuiltins().getAttribute("bool");
-        }
-
-        @Specialization
-        @SuppressWarnings("unused")
         public Object type(int value) {
-            return getContext().getBuiltins().getAttribute("int");
+            return PInt.__class__;
         }
 
         @Specialization
         @SuppressWarnings("unused")
         public Object type(double value) {
-            return getContext().getBuiltins().getAttribute("float");
-        }
-
-        @Specialization
-        @SuppressWarnings("unused")
-        public Object type(PComplex value) {
-            return getContext().getBuiltins().getAttribute("complex");
+            return PFloat.__class__;
         }
 
         @Specialization
         @SuppressWarnings("unused")
         public Object type(String value) {
-            return getContext().getBuiltins().getAttribute("str");
+            return PString.__class__;
         }
 
         @Specialization
         @SuppressWarnings("unused")
         public Object type(PList value) {
-            return getContext().getBuiltins().getAttribute("list");
+            return PList.__class__;
         }
 
         @Specialization
         @SuppressWarnings("unused")
         public Object type(PTuple value) {
-            return getContext().getBuiltins().getAttribute("tuple");
+            return PTuple.__class__;
         }
 
         @Specialization
         @SuppressWarnings("unused")
         public Object type(PSet value) {
-            return getContext().getBuiltins().getAttribute("set");
-        }
-
-        @Specialization
-        @SuppressWarnings("unused")
-        public Object type(PRange value) {
-            return getContext().getBuiltins().getAttribute("range");
+            return PSet.__class__;
         }
 
         @Specialization
         @SuppressWarnings("unused")
         public Object type(PDict value) {
-            return getContext().getBuiltins().getAttribute("dict");
+            return PDict.__class__;
         }
 
         @Generic

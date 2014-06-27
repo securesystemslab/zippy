@@ -24,11 +24,17 @@
  */
 package edu.uci.python.nodes.subscript;
 
+import org.python.core.*;
+
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
@@ -54,31 +60,73 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         return new String(new char[]{charactor});
     }
 
-    @Specialization(order = 1, guards = "isIntStorage")
+    @Specialization(order = 1, guards = {"isIntStorage", "isIndexPositive"})
     public int doPListInt(PList primary, int idx) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
-        int index = SequenceUtil.normalizeIndex(idx, store.length());
-        return store.getIntItemInBound(index);
+        return store.getIntItemNormalized(idx);
     }
 
-    @Specialization(order = 2, guards = "isDoubleStorage")
+    @Specialization(order = 2, guards = {"isIntStorage", "isIndexNegative"})
+    public int doPListIntNegative(PList primary, int idx) {
+        final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
+        return store.getIntItemNormalized(idx + store.length());
+    }
+
+    @Specialization(order = 3, guards = {"isDoubleStorage", "isIndexPositive"})
     public double doPListDouble(PList primary, int idx) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
-        int index = SequenceUtil.normalizeIndex(idx, store.length());
-        return store.getDoubleItemInBound(index);
+        return store.getDoubleItemNormalized(idx);
     }
 
-    @Specialization(order = 3)
-    public Object doPListObject(PList list, int idx) {
-        return list.getItem(idx);
+    @Specialization(order = 4, guards = {"isDoubleStorage", "isIndexNegative"})
+    public double doPListDoubleNegative(PList primary, int idx) {
+        final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
+        return store.getDoubleItemNormalized(idx + store.length());
+    }
+
+    @Specialization(order = 5, guards = {"isObjectStorage", "isIndexPositive"})
+    public Object doPListObject(PList primary, int idx) {
+        final ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
+        return store.getItemNormalized(idx);
+    }
+
+    @Specialization(order = 6, guards = {"isObjectStorage", "isIndexNegative"})
+    public Object doPListObjectNegative(PList primary, int idx) {
+        final ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
+        return store.getItemNormalized(idx + store.length());
     }
 
     @Specialization(order = 7)
+    public Object doPList(PList list, int idx) {
+        return list.getItem(idx);
+    }
+
+    @Specialization(order = 8, guards = "isIndexPositive")
+    public Object doPTuplePositive(PTuple tuple, int idx) {
+        return tuple.getItemNormalized(idx);
+    }
+
+    @Specialization(order = 9, guards = "isIndexNegative")
+    public Object doPTupleNegative(PTuple tuple, int idx) {
+        return tuple.getItemNormalized(idx + tuple.len());
+    }
+
+    @Specialization(order = 10)
     public Object doPTuple(PTuple tuple, int idx) {
         return tuple.getItem(idx);
     }
 
-    @Specialization(order = 10)
+    @Specialization(order = 11, guards = "isIndexPositive")
+    public Object doPRangePositive(PRange primary, int idx) {
+        return primary.getItemNormalized(idx);
+    }
+
+    @Specialization(order = 12, guards = "isIndexNegative")
+    public Object doPRangeNegative(PRange primary, int idx) {
+        return primary.getItemNormalized(idx + primary.len());
+    }
+
+    @Specialization(order = 13)
     public Object doPRange(PRange primary, int idx) {
         return primary.getItem(idx);
     }
@@ -86,7 +134,7 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     /**
      * PDict lookup using key.
      */
-    @Specialization(order = 11)
+    @Specialization(order = 15)
     public Object doPDict(PDict primary, Object key) {
         final Object result = primary.getItem(key);
         assert result != null;
@@ -96,24 +144,68 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     /**
      * Unboxed array reads.
      */
-    @Specialization(order = 12)
-    public int doPIntArray(PIntArray primary, int index) {
-        return primary.getIntItemInBound(index);
+    @Specialization(order = 20, guards = "isIndexPositive")
+    public int doPIntArray(PIntArray primary, int idx) {
+        return primary.getIntItemNormalized(idx);
     }
 
-    @Specialization(order = 13)
-    public double doPDoubleArray(PDoubleArray primary, int index) {
-        return primary.getDoubleItemInBound(index);
+    @Specialization(order = 21, guards = "isIndexNegative")
+    public int doPIntArrayNegative(PIntArray primary, int idx) {
+        return primary.getIntItemNormalized(idx + primary.len());
     }
 
-    @Specialization(order = 14)
-    public char doPCharArray(PCharArray primary, int index) {
-        return primary.getCharItemInBound(index);
+    @Specialization(order = 22, guards = "isIndexPositive")
+    public double doPDoubleArray(PDoubleArray primary, int idx) {
+        return primary.getDoubleItemNormalized(idx);
     }
 
-    @Specialization(order = 15)
-    public Object doPArray(PArray primary, int slice) {
-        return primary.getItem(slice);
+    @Specialization(order = 23, guards = "isIndexNegative")
+    public double doPDoubleArrayNegative(PDoubleArray primary, int idx) {
+        return primary.getDoubleItemNormalized(idx + primary.len());
+    }
+
+    @Specialization(order = 24, guards = "isIndexPositive")
+    public char doPCharArray(PCharArray primary, int idx) {
+        return primary.getCharItemNormalized(idx);
+    }
+
+    @Specialization(order = 25, guards = "isIndexNegative")
+    public char doPCharArrayNegative(PCharArray primary, int idx) {
+        return primary.getCharItemNormalized(idx + primary.len());
+    }
+
+    @Specialization(order = 26)
+    public Object doPArray(PArray primary, int idx) {
+        return primary.getItem(idx);
+    }
+
+    /**
+     * zwei: PythonTypesUtil does not unbox PyList. Instead we perform inplace update on PyList.
+     * This avoid unwated data strcture duplication and actually updates a PyList imported from
+     * Jython. As soon as we never have to actually read an imported PyList, this should be gone.
+     */
+    @Specialization(order = 30)
+    public Object doPyList(PyObject primary, int index) {
+        CompilerAsserts.neverPartOfCompilation();
+
+        PyList list = (PyList) primary;
+        Object value = list.get(index);
+
+        if (value instanceof PyObject) {
+            return PythonTypesUtil.unboxPyObject((PyObject) value);
+        }
+
+        return value;
+    }
+
+    @Specialization(order = 31)
+    public Object doSpecialInt(VirtualFrame frame, PythonObject primary, int index) {
+        return doSpecialMethodCall(frame, "__getitem__", primary, index);
+    }
+
+    @Specialization(order = 32)
+    public Object doSpecialObject(VirtualFrame frame, PythonObject primary, Object index) {
+        return doSpecialMethodCall(frame, "__getitem__", primary, index);
     }
 
 }

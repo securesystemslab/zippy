@@ -27,6 +27,11 @@ package edu.uci.python.runtime.sequence.storage;
 import java.io.*;
 import java.util.*;
 
+import org.python.core.*;
+
+import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.nodes.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -85,25 +90,35 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public Object getItemInBound(int idx) {
-        return getIntItemInBound(idx);
+    public Object getItemNormalized(int idx) {
+        return getIntItemNormalized(idx);
     }
 
-    public int getIntItemInBound(int idx) {
-        return values[idx];
+    public int getIntItemNormalized(int idx) {
+        try {
+            return values[idx];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("list index out of range");
+        }
     }
 
     @Override
-    public void setItemInBound(int idx, Object value) throws SequenceStoreException {
+    public void setItemNormalized(int idx, Object value) throws SequenceStoreException {
         if (value instanceof Integer) {
-            setIntItemInBound(idx, (int) value);
+            setIntItemNormalized(idx, (int) value);
         } else {
             throw SequenceStoreException.INSTANCE;
         }
     }
 
-    public void setIntItemInBound(int idx, int value) {
-        values[idx] = value;
+    public void setIntItemNormalized(int idx, int value) {
+        try {
+            values[idx] = value;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.IndexError("list assignment index out of range");
+        }
     }
 
     @Override
@@ -216,6 +231,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     }
 
+    @ExplodeLoop
     public int indexOfInt(int value) {
         for (int i = 0; i < length; i++) {
             if (values[i] == value) {
@@ -250,6 +266,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         }
     }
 
+    @ExplodeLoop
     public void extendWithIntStorage(IntSequenceStorage other) {
         int extendedLength = length + other.length();
         ensureCapacity(extendedLength);
@@ -262,6 +279,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         length = extendedLength;
     }
 
+    @ExplodeLoop
     @Override
     public void reverse() {
         int head = 0;
@@ -275,6 +293,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         }
     }
 
+    @ExplodeLoop
     @Override
     public void sort() {
         int[] copy = Arrays.copyOf(values, length);
@@ -298,9 +317,10 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         return 0;
     }
 
+    @ExplodeLoop
     @Override
     public boolean equals(SequenceStorage other) {
-        if (other.length() != length()) {
+        if (other.length() != length() || !(other instanceof IntSequenceStorage)) {
             return false;
         }
 

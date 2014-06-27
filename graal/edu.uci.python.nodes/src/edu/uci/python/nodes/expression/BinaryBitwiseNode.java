@@ -41,6 +41,11 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
         }
 
         @Specialization
+        BigInteger doBigInteger(BigInteger left, int right) {
+            return left.shiftLeft(right);
+        }
+
+        @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             /**
              * Right operand may lose precision, but it is harmless for a left shift.
@@ -54,6 +59,11 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
         @Specialization
         int doInteger(int left, int right) {
             return left >> right;
+        }
+
+        @Specialization
+        BigInteger doBigInteger(BigInteger left, int right) {
+            return left.shiftRight(right);
         }
 
         @Specialization

@@ -65,7 +65,7 @@ public abstract class PythonBuiltins {
                     // Special case for object constructor.
                     builtinClass = context.getObjectClass();
                 } else {
-                    builtinClass = new PythonBuiltinClass(context, context.getTypeClass(), builtin.name());
+                    builtinClass = new PythonBuiltinClass(context, builtin.name(), context.getTypeClass());
                 }
 
                 builtinClass.setAttributeUnsafe("__init__", function);
@@ -85,11 +85,11 @@ public abstract class PythonBuiltins {
     private static Arity createArity(Builtin builtin) {
         if (builtin.hasFixedNumOfArguments()) {
             return new Arity(builtin.name(), builtin.fixedNumOfArguments(), builtin.fixedNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
-                            builtin.takesVariableArguments(), Arrays.asList(builtin.keywordNames()));
+                            builtin.takesVariableArguments(), false, false, Arrays.asList(builtin.keywordNames()));
 
         } else {
             return new Arity(builtin.name(), builtin.minNumOfArguments(), builtin.maxNumOfArguments(), builtin.hasFixedNumOfArguments(), builtin.takesKeywordArguments(),
-                            builtin.takesVariableArguments(), Arrays.asList(builtin.keywordNames()));
+                            builtin.takesVariableArguments(), false, false, Arrays.asList(builtin.keywordNames()));
         }
     }
 

@@ -63,7 +63,8 @@ public class CommandLineParser {
                 continue;
             }
 
-            if (arg.equals("-OptimizeGeneratorExpressions:false")) {
+            if (arg.equals("-no-generator-peeling")) {
+                PythonOptions.InlineGeneratorCalls = false;
                 PythonOptions.OptimizeGeneratorExpressions = false;
                 continue;
             }
@@ -73,8 +74,13 @@ public class CommandLineParser {
                 continue;
             }
 
+            if (arg.equals("-profile-if-nodes")) {
+                PythonOptions.ProfileIfNodes = true;
+                continue;
+            }
+
             if (arg.equals("-profile-nodes")) {
-                PythonOptions.AddProfilingInstrumentation = true;
+                PythonOptions.ProfileNodes = true;
                 continue;
             }
 

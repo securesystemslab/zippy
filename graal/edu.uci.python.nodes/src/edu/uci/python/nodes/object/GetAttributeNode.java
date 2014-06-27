@@ -320,9 +320,15 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
         BoxedGetAttributeNode specialized = new BoxedGetAttributeNode(attributeId, primaryNode, dispatch);
         Object value = specialized.executeWithPrimary(frame, primary);
 
-        if (value instanceof PFunction && !(primary instanceof PythonClass) && !(primary instanceof PythonModule)) {
-            value = new PMethod(primary, (PFunction) value);
-            specialized = new BoxedGetMethodNode(attributeId, primaryNode, specialized.attribute);
+        if (value instanceof PFunction) {
+            boolean isClassMethod = ((PFunction) value).isClassMethod();
+            boolean isStaticMethod = ((PFunction) value).isStaticMethod();
+            boolean isPrimaryBindable = !(primary instanceof PythonClass) && !(primary instanceof PythonModule);
+
+            if (!isStaticMethod && (isClassMethod || isPrimaryBindable)) {
+                value = new PMethod(primary, (PFunction) value);
+                specialized = new BoxedGetMethodNode(attributeId, primaryNode, specialized.attribute);
+            }
         }
 
         replace(specialized);

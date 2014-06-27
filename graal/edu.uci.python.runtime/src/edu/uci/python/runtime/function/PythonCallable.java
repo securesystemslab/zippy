@@ -43,4 +43,16 @@ public interface PythonCallable {
 
     FrameDescriptor getFrameDescriptor();
 
+    default boolean isGeneratorFunction() {
+        return false;
+    }
+
+    default boolean isClassMethod() {
+        return false;
+    }
+
+    default boolean isStaticMethod() {
+        return false;
+    }
+
 }

@@ -32,10 +32,10 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatype.*;
 
-public class DictLiteralNode extends LiteralNode {
+public final class DictLiteralNode extends LiteralNode {
 
-    @Children final PNode[] keys;
-    @Children final PNode[] values;
+    @Children private final PNode[] keys;
+    @Children private final PNode[] values;
 
     public static LiteralNode create(PNode[] keys, PNode[] values) {
         if (keys.length == 0 && values.length == 0) {
@@ -56,7 +56,7 @@ public class DictLiteralNode extends LiteralNode {
     @ExplodeLoop
     @Override
     public PDict executePDictionary(VirtualFrame frame) {
-        final Map<Object, Object> map = new HashMap<>();
+        final Map<Object, Object> map = new TreeMap<>();
 
         for (int i = 0; i < values.length; i++) {
             final Object key = keys[i].execute(frame);
@@ -70,11 +70,6 @@ public class DictLiteralNode extends LiteralNode {
     @Override
     public Object execute(VirtualFrame frame) {
         return executePDictionary(frame);
-    }
-
-    @Override
-    public String toString() {
-        return "dict";
     }
 
     public static final class EmptyDictLiteralNode extends LiteralNode {

@@ -64,65 +64,47 @@ public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode impl
 
     public abstract Object executeWith(VirtualFrame frame, Object value);
 
-    @SuppressWarnings("unused")
-    @Specialization(order = 0, guards = "isNoneKind")
-    public PNone writeNoneInitial(VirtualFrame frame, PNone right) {
-        return right;
-    }
-
-    @Specialization(order = 1, guards = "isNotIllegal")
-    public PNone writeNone(VirtualFrame frame, PNone right) {
+    @Specialization(order = 0)
+    public PNone write(VirtualFrame frame, PNone right) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         mframe.setObject(frameSlot, PNone.NONE);
         return right;
     }
 
-    @Specialization(order = 2, guards = "isBooleanKind")
+    @Specialization(order = 1, guards = "isBooleanKind")
     public boolean write(VirtualFrame frame, boolean right) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         mframe.setBoolean(frameSlot, right);
         return right;
     }
 
-    @Specialization(order = 3, guards = "isIntegerKind")
-    public int doInteger(VirtualFrame frame, int value) {
+    @Specialization(order = 2, guards = "isIntegerKind")
+    public int write(VirtualFrame frame, int value) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         mframe.setInt(frameSlot, value);
         return value;
     }
 
-    @Specialization(order = 4, guards = "isIntOrObjectKind")
+    @Specialization(order = 3, guards = "isIntOrObjectKind")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         setObject(mframe, value);
+        frameSlot.setKind(FrameSlotKind.Object);
         return value;
     }
 
-    @Specialization(order = 5, guards = "isDoubleKind")
-    public double doDouble(VirtualFrame frame, double right) {
+    @Specialization(order = 4, guards = "isDoubleKind")
+    public double write(VirtualFrame frame, double right) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         mframe.setDouble(frameSlot, right);
         return right;
     }
 
-    @Specialization(order = 6, guards = "isObjectKind")
-    public PComplex write(VirtualFrame frame, PComplex right) {
-        MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
-        setObject(mframe, right);
-        return right;
-    }
-
-    @Specialization(order = 7, guards = "isObjectKind")
-    public String write(VirtualFrame frame, String right) {
-        MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
-        setObject(mframe, right);
-        return right;
-    }
-
-    @Specialization(guards = "isObjectKind")
+    @Specialization(order = 5, guards = "isObjectKind")
     public Object write(VirtualFrame frame, Object right) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         setObject(mframe, right);
         return right;
     }
+
 }

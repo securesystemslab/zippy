@@ -33,7 +33,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
 /**
- * This is the right hand side of Parameters' WriteLocalNode.
+ * The right hand side of Parameters' WriteLocalNode.
  *
  * @author zwei
  *
@@ -44,10 +44,6 @@ public abstract class ReadIndexedArgumentNode extends PNode {
 
     public ReadIndexedArgumentNode(int index) {
         this.index = index;
-    }
-
-    public final int getIndex() {
-        return index;
     }
 
     public static ReadIndexedArgumentNode create(int idx) {
@@ -104,7 +100,6 @@ public abstract class ReadIndexedArgumentNode extends PNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
-
             if (index >= PArguments.getUserArgumentLength(frame)) {
                 replace(new OffBoundReadArgumentNode(index));
                 return PNone.NONE;

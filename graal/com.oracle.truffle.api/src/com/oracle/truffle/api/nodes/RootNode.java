@@ -107,4 +107,11 @@ public abstract class RootNode extends Node {
         this.callTarget = callTarget;
     }
 
+    /**
+     * zwei: A callback that enables guest level transformations before Truffle compilation.
+     */
+    public boolean applyGuestTransformation() {
+        return false;
+    }
+
 }

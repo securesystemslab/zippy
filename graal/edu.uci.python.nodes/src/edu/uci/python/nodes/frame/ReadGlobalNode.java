@@ -45,7 +45,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
     protected final PythonContext context;
     protected final PythonModule globalScope;
 
-    public ReadGlobalNode(PythonContext context, PythonModule globalScope, String attributeId) {
+    private ReadGlobalNode(PythonContext context, PythonModule globalScope, String attributeId) {
         this.attributeId = attributeId;
         this.context = context;
         this.globalScope = globalScope;
@@ -152,7 +152,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
 
         public ReadBuiltinDirectNode(PythonContext context, PythonModule globalScope, String attributeId) {
             super(context, globalScope, attributeId);
-            this.builtinsModule = context.getPythonBuiltinsLookup().lookupModule("__builtins__");
+            this.builtinsModule = context.getPythonBuiltinsLookup().lookupModule("builtins");
             this.check = ShapeCheckNode.create(globalScope, builtinsModule.getObjectLayout(), 1);
             this.read = AttributeReadNode.create(builtinsModule.getOwnValidLocation(attributeId));
         }
@@ -191,7 +191,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
             Object value = globalScope.getAttribute(attributeId);
 
             if (value == PNone.NONE) {
-                value = context.getPythonBuiltinsLookup().lookupModule("__builtins__").getAttribute(attributeId);
+                value = context.getPythonBuiltinsLookup().lookupModule("builtins").getAttribute(attributeId);
             } else {
                 replace(new ReadGlobalDirectNode(context, globalScope, attributeId));
                 return value;

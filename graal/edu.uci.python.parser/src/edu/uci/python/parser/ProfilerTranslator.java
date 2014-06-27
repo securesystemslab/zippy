@@ -27,7 +27,11 @@ package edu.uci.python.parser;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.frame.*;
+import edu.uci.python.nodes.function.*;
+import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.nodes.subscript.*;
 import edu.uci.python.runtime.*;
@@ -50,49 +54,152 @@ public class ProfilerTranslator implements NodeVisitor {
 
     @Override
     public boolean visit(Node node) {
-        /**
-         * Profile binary operations:BinaryArithmeticNode, BinaryBitwiseNode, BinaryBooleanNode,
-         * BinaryComparisonNode, SubscriptLoadIndexNode, SubscriptLoadSliceNode, SubscriptDeleteNode
-         */
-        if (node instanceof BinaryArithmeticNode) {
-            createWrapperNode((PNode) node);
-        } else if (node instanceof BinaryBitwiseNode) {
-            createWrapperNode((PNode) node);
-        } else if (node instanceof BinaryBooleanNode) {
-            createWrapperNode((PNode) node);
-        } else if (node instanceof BinaryComparisonNode) {
-            createWrapperNode((PNode) node);
-        } else if (node instanceof SubscriptLoadIndexNode) {
-            createWrapperNode((PNode) node);
-        } else if (node instanceof SubscriptLoadSliceNode) {
-            createWrapperNode((PNode) node);
-        } else if (node instanceof SubscriptDeleteNode) {
-            createWrapperNode((PNode) node);
-        } else if (node instanceof SubscriptStoreIndexNode) {
-            createWrapperNode((PNode) node);
-        } else if (node instanceof SubscriptStoreSliceNode) {
-            createWrapperNode((PNode) node);
+        if (PythonOptions.ProfileCalls) {
+            if (node instanceof FunctionRootNode) {
+                FunctionRootNode rootNode = (FunctionRootNode) node;
+                PNode body = rootNode.getBody();
+                createCallNodeWrapper(body);
+            }
+        } else if (PythonOptions.ProfileIfNodes) {
+            if (node instanceof IfNode) {
+                IfNode ifNode = (IfNode) node;
+                /**
+                 * 1) If node has a condition node which is a castToBooleanNode. <br>
+                 * CastToBooleanNode has a child which is the actual condition. So be careful while
+                 * profiling if nodes. Do not profile if nodes and condition nodes together, because
+                 * prober increments counter twice for the same node. <br>
+                 * 2) If nodes in a comprehension does not yet have a source section, so such if
+                 * nodes are not profiled.
+                 */
+                if (hasSourceSection(ifNode)) {
+                    CastToBooleanNode castToBooleanNode = ifNode.getCondition();
+                    PNode conditionNode = castToBooleanNode.getOperand();
+                    createConditionNodeWrapper(conditionNode);
+                    PNode thenNode = ifNode.getThen();
+                    PNode elseNode = ifNode.getElse();
+                    createThenNodeWrapper(thenNode);
+                    /**
+                     * Only create a wrapper node if an else part exists.
+                     */
+                    if (!(elseNode instanceof EmptyNode)) {
+                        createElseNodeWrapper(elseNode);
+                    }
+                }
+            }
+        } else if (PythonOptions.ProfileNodes) {
+            /**
+             * Profile binary operations:BinaryArithmeticNode, BinaryBitwiseNode, BinaryBooleanNode,
+             * BinaryComparisonNode, SubscriptLoadIndexNode, SubscriptLoadSliceNode,
+             * SubscriptDeleteNode
+             */
+            if (node instanceof BinaryArithmeticNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof BinaryBitwiseNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof BinaryBooleanNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof BinaryComparisonNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof SubscriptLoadIndexNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof SubscriptLoadSliceNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof SubscriptDeleteNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof SubscriptStoreIndexNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof SubscriptStoreSliceNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof WriteLocalVariableNode) {
+                createWriteNodeWrapper((PNode) node);
+            } else if (node instanceof ReadLocalVariableNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof SetAttributeNode) {
+                createWriteNodeWrapper((PNode) node);
+            } else if (node instanceof GetAttributeNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof BreakNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof ContinueNode) {
+                createWrapper((PNode) node);
+            }
         }
 
-// else if (node instanceof WriteNode) {
-// createWrapperNode((PNode) node);
-// } else if (node instanceof ReadLocalVariableNode) {
-// createWrapperNode((PNode) node);
-// } else if (node instanceof ListComprehensionNode) {
-// createWrapperNode((PNode) node);
-// } else if (node instanceof IfNode) {
-// createWrapperNode((PNode) node);
-// }
         return true;
     }
 
-    private PythonWrapperNode createWrapperNode(PNode node) {
-        if (node.getSourceSection() == null) {
-            throw new RuntimeException("SOURCE IS NOT ASSIGNED " + node + " " + node.getClass());
+    private PythonWrapperNode createWrapper(PNode node) {
+        if (hasSourceSection(node)) {
+            PythonWrapperNode wrapperNode = astProber.probeAsStatement(node);
+            node.replace(wrapperNode);
+            wrapperNode.adoptChildren();
+            return wrapperNode;
         }
-        PythonWrapperNode wrapperNode = astProber.probeAsStatement(node);
-        node.replace(wrapperNode);
-        wrapperNode.adoptChildren();
-        return wrapperNode;
+
+        return null;
+    }
+
+    private PythonWriteNodeWrapperNode createWriteNodeWrapper(PNode node) {
+        if (hasSourceSection(node)) {
+            PythonWriteNodeWrapperNode wrapperNode = astProber.probeAsWriteNode(node);
+            node.replace(wrapperNode);
+            wrapperNode.adoptChildren();
+            return wrapperNode;
+        }
+
+        return null;
+    }
+
+    private PythonWrapperNode createCallNodeWrapper(PNode node) {
+        if (hasSourceSection(node)) {
+            PythonWrapperNode wrapperNode = astProber.probeAsCall(node);
+            node.replace(wrapperNode);
+            wrapperNode.adoptChildren();
+            return wrapperNode;
+        }
+
+        return null;
+    }
+
+    private PythonWrapperNode createConditionNodeWrapper(PNode node) {
+        if (hasSourceSection(node)) {
+            PythonWrapperNode wrapperNode = astProber.probeAsCondition(node);
+            node.replace(wrapperNode);
+            wrapperNode.adoptChildren();
+            return wrapperNode;
+        }
+
+        return null;
+    }
+
+    private PythonWrapperNode createThenNodeWrapper(PNode node) {
+        if (hasSourceSection(node)) {
+            PythonWrapperNode wrapperNode = astProber.probeAsThen(node);
+            node.replace(wrapperNode);
+            wrapperNode.adoptChildren();
+            return wrapperNode;
+        }
+
+        return null;
+    }
+
+    private PythonWrapperNode createElseNodeWrapper(PNode node) {
+        if (hasSourceSection(node)) {
+            PythonWrapperNode wrapperNode = astProber.probeAsElse(node);
+            node.replace(wrapperNode);
+            wrapperNode.adoptChildren();
+            return wrapperNode;
+        }
+
+        return null;
+    }
+
+    private static boolean hasSourceSection(PNode node) {
+        if (node.getSourceSection() == null) {
+            ProfilerResultPrinter.addNodeEmptySourceSection(node);
+            return false;
+        }
+
+        return true;
     }
 }

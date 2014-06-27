@@ -180,7 +180,7 @@ def main(n):
     return w
 
 def measure():
-    input = int(sys.argv[1]) #10000000
+    input = int(sys.argv[1]) #100000000
     for i in range(3):
         main(input)
 

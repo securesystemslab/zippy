@@ -65,7 +65,7 @@ public abstract class BasicSequenceStorage extends SequenceStorage {
     @Override
     public int index(Object value) {
         for (int i = 0; i < length; i++) {
-            if (getItemInBound(i).equals(value)) {
+            if (getItemNormalized(i).equals(value)) {
                 return i;
             }
         }

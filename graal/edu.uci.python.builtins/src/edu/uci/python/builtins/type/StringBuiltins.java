@@ -27,12 +27,14 @@ package edu.uci.python.builtins.type;
 import java.util.*;
 
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 /**
  * @author Gulfem
@@ -56,7 +58,7 @@ public final class StringBuiltins extends PythonBuiltins {
 
     // str.startswith(prefix[, start[, end]])
     @Builtin(name = "startswith", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
-    public abstract static class PythonStartsWithNode extends PythonBuiltinNode {
+    public abstract static class StartsWithNode extends PythonBuiltinNode {
 
         @Specialization
         public Object startsWith(String self, String prefix) {
@@ -75,8 +77,9 @@ public final class StringBuiltins extends PythonBuiltins {
 
     // str.join(iterable)
     @Builtin(name = "join", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
-    public abstract static class PythonStringJoinNode extends PythonBuiltinNode {
+    public abstract static class JoinNode extends PythonBuiltinNode {
 
+        @ExplodeLoop
         @Specialization(order = 0)
         public String join(String string, String arg) {
             StringBuilder sb = new StringBuilder();
@@ -91,7 +94,23 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @Specialization(order = 1)
+        @ExplodeLoop
+        @Specialization(order = 2, guards = "is2ndObjectStorage")
+        public String join(String string, PList list) {
+            StringBuilder sb = new StringBuilder();
+            ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
+
+            for (int i = 0; i < list.len() - 1; i++) {
+                sb.append(store.getItemNormalized(i));
+                sb.append(string);
+            }
+
+            sb.append(list.getItem(list.len() - 1));
+            return sb.toString();
+        }
+
+        @ExplodeLoop
+        @Specialization(order = 5)
         public String join(String string, PSequence seq) {
             StringBuilder sb = new StringBuilder();
 
@@ -104,7 +123,8 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @Specialization(order = 2)
+        @ExplodeLoop
+        @Specialization(order = 6)
         public String join(String string, PCharArray array) {
             StringBuilder sb = new StringBuilder();
             char[] stringList = array.getSequence();
@@ -118,7 +138,8 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @Specialization(order = 3)
+        @ExplodeLoop
+        @Specialization(order = 7)
         public String join(String string, PSet arg) {
             if (arg.len() == 0) {
                 return string.toString();
@@ -135,7 +156,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @Specialization(order = 5)
+        @Generic
         public String join(Object self, Object arg) {
             throw new RuntimeException("invalid arguments type for join(): self " + self + ", arg " + arg);
         }
@@ -143,7 +164,7 @@ public final class StringBuiltins extends PythonBuiltins {
 
     // str.upper()
     @Builtin(name = "upper", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
-    public abstract static class PythonStringUpperNode extends PythonBuiltinNode {
+    public abstract static class UpperNode extends PythonBuiltinNode {
 
         @Specialization
         public String upper(String self) {
@@ -188,6 +209,91 @@ public final class StringBuiltins extends PythonBuiltins {
             }
 
             return new String(translatedChars);
+        }
+    }
+
+    // str.lower()
+    @Builtin(name = "lower", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class LowerNode extends PythonBuiltinNode {
+
+        @Specialization(order = 0)
+        public String lower(String self) {
+            return self.toLowerCase();
+        }
+    }
+
+    // str.split
+    @Builtin(name = "split", maxNumOfArguments = 3)
+    public abstract static class SplitNode extends PythonBuiltinNode {
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public PList doSplit(String self, PNone sep, PNone maxsplit) {
+            return splitfields(self, -1);
+        }
+
+        @Specialization
+        public PList doSplit(String self, @SuppressWarnings("unused") PNone sep, int maxsplit) {
+            return splitfields(self, maxsplit);
+        }
+
+        // See {@link PyString}
+        private static PList splitfields(String s, int maxsplit) {
+            /*
+             * Result built here is a list of split parts, exactly as required for s.split(None,
+             * maxsplit). If there are to be n splits, there will be n+1 elements in L.
+             */
+            PList list = new PList();
+            int length = s.length();
+            int start = 0;
+            int splits = 0;
+            int index;
+
+            int maxsplit2 = maxsplit;
+            if (maxsplit2 < 0) {
+                // Make all possible splits: there can't be more than:
+                maxsplit2 = length;
+            }
+
+            // start is always the first character not consumed into a piece on the list
+            while (start < length) {
+
+                // Find the next occurrence of non-whitespace
+                while (start < length) {
+                    if (!Character.isWhitespace(s.charAt(start))) {
+                        // Break leaving start pointing at non-whitespace
+                        break;
+                    }
+                    start++;
+                }
+
+                if (start >= length) {
+                    // Only found whitespace so there is no next segment
+                    break;
+
+                } else if (splits >= maxsplit2) {
+                    // The next segment is the last and contains all characters up to the end
+                    index = length;
+
+                } else {
+                    // The next segment runs up to the next next whitespace or end
+                    for (index = start; index < length; index++) {
+                        if (Character.isWhitespace(s.charAt(index))) {
+                            // Break leaving index pointing at whitespace
+                            break;
+                        }
+                    }
+                }
+
+                // Make a piece from start up to index
+                list.append(s.substring(start, index));
+                splits++;
+
+                // Start next segment search at that point
+                start = index;
+            }
+
+            return list;
         }
     }
 

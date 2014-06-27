@@ -42,7 +42,6 @@ import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.*;
-import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import static edu.uci.python.nodes.function.GeneratorFunctionDefinitionNode.*;
@@ -59,7 +58,7 @@ public class GeneratorExpressionOptimizer {
 
     public void optimize() {
         if (functionRoot.isGenerator()) {
-            // Baiout if the current root is a generator root.
+            // Bailout if the current root is a generator root.
             return;
         }
 
@@ -74,6 +73,8 @@ public class GeneratorExpressionOptimizer {
                 PrintStream out = System.out;
                 out.println("[ZipPy] escapse analysis: " + genExp + " does not escape current frame");
                 transform(genExp, escapeAnalyzer);
+            } else {
+                functionRoot.reportGeneratorExpression();
             }
         }
     }
@@ -85,14 +86,15 @@ public class GeneratorExpressionOptimizer {
              */
             if (genexp.getParent() instanceof GetIteratorNode) {
                 desugarGeneratorExpression(genexp, (GetIteratorNode) genexp.getParent(), false);
-            } else if (genexp.getParent() instanceof PythonCallNode) {
-                BoxedCallNode callNode = (BoxedCallNode) genexp.getParent();
+            } else if (genexp.getParent() instanceof ArgumentsNode) {
+                ArgumentsNode arguments = (ArgumentsNode) genexp.getParent();
+                BoxedCallNode callNode = (BoxedCallNode) arguments.getParent();
                 assert callNode.isInlined();
                 FunctionRootNode calleeRoot = (FunctionRootNode) callNode.getInlinedCalleeRoot();
-                PeeledGeneratorLoopBoxedNode manualInlinedCallNode = new PeeledGeneratorLoopBoxedNode(calleeRoot, calleeRoot.getFrameDescriptor(), callNode.getPrimaryNode(),
-                                callNode.getArgumentNodes(), ((LinkedDispatchBoxedNode) callNode.getDispatchNode()).getCheckNode(), callNode);
-                callNode.replace(manualInlinedCallNode);
-                GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(manualInlinedCallNode.getGeneratorRoot(), GetIteratorNode.class);
+                PeeledGeneratorLoopBoxedNode manuallyInlinedCallNode = new PeeledGeneratorLoopBoxedNode(calleeRoot, calleeRoot.getFrameDescriptor(), callNode.getPrimaryNode(),
+                                callNode.passPrimaryAsArgument(), callNode.getArgumentsNode(), ((LinkedDispatchBoxedNode) callNode.getDispatchNode()).getCheckNode(), callNode);
+                callNode.replace(manuallyInlinedCallNode);
+                GetIteratorNode getIter = NodeUtil.findFirstNodeInstance(manuallyInlinedCallNode.getGeneratorRoot(), GetIteratorNode.class);
                 desugarGeneratorExpression(genexp, getIter, true);
             }
 
@@ -138,13 +140,13 @@ public class GeneratorExpressionOptimizer {
         }
 
         PGeneratorFunction genfun = (PGeneratorFunction) desugaredGenDefNode.execute(null);
-        CallDispatchNoneNode dispatch = new DispatchGeneratorNoneNode(genfun, new UninitializedDispatchNoneNode(genexp.getName(), false));
-        PNode generatorCallNode = new NoneCallNode(context, genexp.getName(), EmptyNode.create(), genDefLoad, argReads, new PNode[]{}, dispatch);
+        CallDispatchNoneNode dispatch = new GeneratorDispatchNoneNode(genfun, new UninitializedDispatchNoneNode(genexp.getName(), false));
+        PNode generatorCallNode = new NoneCallNode(context, genexp.getName(), EmptyNode.create(), genDefLoad, new ArgumentsNode(argReads), new ArgumentsNode(new PNode[]{}), dispatch);
         PNode loadGenerator = getIterator.getOperand();
         loadGenerator.replace(generatorCallNode);
 
         try {
-            PNode matched = NodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
+            PNode matched = PNodeUtil.findMatchingNodeIn(loadGenerator, functionRoot.getUninitializedBody());
             matched.replace(NodeUtil.cloneNode(generatorCallNode));
         } catch (IllegalStateException e) {
         }

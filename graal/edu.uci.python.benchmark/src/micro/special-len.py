@@ -23,6 +23,9 @@ def docompute(num):
 
 
 def measure(num):
+	for run in range(3):
+		docompute(20000) #10000
+
 	print("Start timing...")
 	start = time.time()
 

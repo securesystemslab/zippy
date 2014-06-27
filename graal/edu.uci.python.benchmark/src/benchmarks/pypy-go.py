@@ -23,7 +23,7 @@ class Square:
         self.pos = pos
         self.timestamp = TIMESTAMP
         self.removestamp = TIMESTAMP
-        self.zobrist_strings = [random.randrange(9223372036854775807)
+        self.zobrist_strings = [random.randrange(854775807) #9223372036854775807
                                 for i in range(3)]
 
     def set_neighbours(self): 
@@ -416,7 +416,7 @@ def computer_move(board):
         nboard.reset()
         nboard.replay(board.history)
         node.play(nboard)
-#    print 'moves', MOVES
+    # print('moves', MOVES)
     return tree.best_visited().pos
 
 def versus_cpu():
@@ -425,22 +425,18 @@ def versus_cpu():
     pos = computer_move(board)
 
 def main(n):
-    times = []
-    for i in range(5):
-        versus_cpu() # warmup
     for i in range(n):
-        t1 = time.time()
         versus_cpu()
-        t2 = time.time()
-        times.append(t2 - t1)
-    return times
 
 def measure(n):
     print("Start timing...")
     start = time.time()
     main(n)
     duration = "%.3f\n" % (time.time() - start)
-    print("go: " + duration)
+    print("pypy-go: " + duration)
+
+for i in range(2):
+    main(1)
 
 
 measure(int(sys.argv[1]))

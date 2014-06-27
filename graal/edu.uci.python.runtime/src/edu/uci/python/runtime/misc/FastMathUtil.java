@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -23,6 +23,10 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 package edu.uci.python.runtime.misc;
+
+import java.math.*;
+
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 public class FastMathUtil {
 
@@ -58,9 +62,7 @@ public class FastMathUtil {
 
                 // remove scaling
                 return scalb(scaledH, middleExp);
-
             }
-
         }
     }
 
@@ -147,7 +149,6 @@ public class FastMathUtil {
                 return (sign == 0L) ? Double.POSITIVE_INFINITY : Double.NEGATIVE_INFINITY;
             }
         }
-
     }
 
     public static int getExponent(final double d) {
@@ -158,4 +159,10 @@ public class FastMathUtil {
     public static double abs(double x) {
         return Double.longBitsToDouble(MASK_NON_SIGN_LONG & Double.doubleToRawLongBits(x));
     }
+
+    @SlowPath
+    public static BigInteger slowPathDivide(BigInteger left, BigInteger right) {
+        return left.divide(right);
+    }
+
 }

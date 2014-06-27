@@ -39,7 +39,7 @@ public class PDoubleSequenceIterator implements PIterator, PDoubleIterator {
     @Override
     public double __nextDouble__() {
         if (index < sequence.length()) {
-            return sequence.getDoubleItemInBound(index++);
+            return sequence.getDoubleItemNormalized(index++);
         }
 
         throw StopIterationException.INSTANCE;

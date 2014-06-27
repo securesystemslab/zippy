@@ -221,8 +221,9 @@ public class BuiltinFunctionTests {
 
     @Test
     public void zipTest() {
-        String source = "for s in zip('ABC', '123'):\n" + "\tprint(s)\n";
-        assertPrints("(A, 1)\n(B, 2)\n(C, 3)\n", source);
+        String source = "for s in zip('ABC', '123'):\n" + //
+                        "    print(s)\n";
+        assertPrints("('A', '1')\n('B', '2')\n('C', '3')\n", source);
     }
 
     /**
@@ -305,6 +306,20 @@ public class BuiltinFunctionTests {
     public void printTest() {
         String source = "a = 1;print('a=',a)";
         assertPrintContains("a= 1", source);
+    }
+
+    @Test
+    public void isinstance() {
+        String source = "print(isinstance([], bytes))\n";
+        assertPrints("False\n", source);
+    }
+
+    @Test
+    public void id() {
+        String source = "id1 = id([])\n" + //
+                        "id2 = id([])\n" + //
+                        "print(id1 == id2)";
+        assertPrints("False\n", source);
     }
 
 }

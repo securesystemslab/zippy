@@ -324,6 +324,8 @@ def main(n):
 
 def measure():
     input = int(sys.argv[1]) #700
+    for i in range(3):
+        main(input)
 
     print("Start timing...")
     start = time.time()
