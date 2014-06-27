@@ -868,7 +868,12 @@ jlong GraalRuntime::parse_primitive_option_value(char spec, const char* name, in
   }
   ResourceMark rm(THREAD);
   char buf[200];
-  jio_snprintf(buf, sizeof(buf), "Invalid %s value for Graal option %.*s: %s", (spec == 'i' ? "numeric" : "float/double"), name, name_len, value);
+  bool missing = strlen(value) == 0;
+  if (missing) {
+    jio_snprintf(buf, sizeof(buf), "Missing %s value for Graal option %.*s", (spec == 'i' ? "numeric" : "float/double"), name_len, name);
+  } else {
+    jio_snprintf(buf, sizeof(buf), "Invalid %s value for Graal option %.*s: %s", (spec == 'i' ? "numeric" : "float/double"), name_len, name, value);
+  }
   THROW_MSG_(vmSymbols::java_lang_InternalError(), buf, 0L);
 }
 
