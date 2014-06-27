@@ -103,7 +103,7 @@ class Distribution:
                 isOverwrite = False
                 if existingSource and existingSource != source:
                     if arcname[-1] != os.path.sep:
-                        log('warning: ' + self.path + ': avoid overwrite of ' + arcname + '\n  new: ' + source + '\n  old: ' + existingSource)
+                        logv('warning: ' + self.path + ': avoid overwrite of ' + arcname + '\n  new: ' + source + '\n  old: ' + existingSource)
                     isOverwrite = True
                 zf._provenance[arcname] = source
                 return isOverwrite
