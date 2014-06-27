@@ -35,7 +35,7 @@ public final class HotSpotCompressedNullConstant extends Constant implements Hot
     public static final Constant COMPRESSED_NULL = new HotSpotCompressedNullConstant();
 
     private HotSpotCompressedNullConstant() {
-        super(NarrowOopStamp.NarrowOop);
+        super(LIRKind.reference(NarrowOopStamp.NarrowOop));
     }
 
     @Override

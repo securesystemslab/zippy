@@ -34,7 +34,7 @@ import org.python.modules.posix.*;
 import org.python.modules.thread.*;
 import org.python.util.*;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.source.*;
 
 import edu.uci.python.runtime.*;
 

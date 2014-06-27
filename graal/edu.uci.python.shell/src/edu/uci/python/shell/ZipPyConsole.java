@@ -24,10 +24,11 @@
  */
 package edu.uci.python.shell;
 
+import java.io.*;
+
 import org.python.core.*;
 import org.python.util.*;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.source.*;
 
 import edu.uci.python.builtins.*;
@@ -44,8 +45,10 @@ public class ZipPyConsole extends InteractiveConsole {
         PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser);
 
         try {
-            Source source = SourceFactory.fromFile(name);
+            Source source = Source.fromFileName(name);
             execfile(context, source);
+        } catch (IOException e) {
+            throw new IllegalStateException();
         } finally {
             context.shutdown();
         }

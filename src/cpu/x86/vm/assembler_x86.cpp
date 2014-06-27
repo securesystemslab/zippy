@@ -1824,7 +1824,7 @@ void Assembler::movsbl(Register dst, Address src) { // movsxb
 
 void Assembler::movsbl(Register dst, Register src) { // movsxb
   NOT_LP64(assert(src->has_byte_register(), "must have byte register"));
-  int encode = prefix_and_encode(dst->encoding(), src->encoding(), true);
+  int encode = prefix_and_encode(dst->encoding(), false, src->encoding(), true);
   emit_int8(0x0F);
   emit_int8((unsigned char)0xBE);
   emit_int8((unsigned char)(0xC0 | encode));
@@ -1917,7 +1917,7 @@ void Assembler::movzbl(Register dst, Address src) { // movzxb
 
 void Assembler::movzbl(Register dst, Register src) { // movzxb
   NOT_LP64(assert(src->has_byte_register(), "must have byte register"));
-  int encode = prefix_and_encode(dst->encoding(), src->encoding(), true);
+  int encode = prefix_and_encode(dst->encoding(), false, src->encoding(), true);
   emit_int8(0x0F);
   emit_int8((unsigned char)0xB6);
   emit_int8(0xC0 | encode);
@@ -4562,12 +4562,12 @@ int Assembler::prefixq_and_encode(int reg_enc) {
   return reg_enc;
 }
 
-int Assembler::prefix_and_encode(int dst_enc, int src_enc, bool byteinst) {
+int Assembler::prefix_and_encode(int dst_enc, bool dst_is_byte, int src_enc, bool src_is_byte) {
   if (dst_enc < 8) {
     if (src_enc >= 8) {
       prefix(REX_B);
       src_enc -= 8;
-    } else if (byteinst && src_enc >= 4) {
+    } else if ((src_is_byte && src_enc >= 4) || (dst_is_byte && dst_enc >= 4)) {
       prefix(REX);
     }
   } else {

@@ -138,6 +138,7 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, CompileTa
       return;
   }
 
+  HandleMark hm;
   ResourceMark rm;
   JavaValue result(T_VOID);
   JavaCallArguments args;

@@ -28,18 +28,19 @@ import java.util.*;
 import com.oracle.graal.api.code.CodeUtil.RefMapFormatter;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.hotspot.nodes.type.*;
+import com.oracle.graal.compiler.common.*;
 
 public class HotSpotReferenceMap implements ReferenceMap, Serializable {
 
     private static final long serialVersionUID = -1052183095979496819L;
 
     /**
-     * Contains 2 bits per register.
+     * Contains 3 bits per 64 bit register, and n*3 bits per n*64 bit vector register.
      * <ul>
      * <li>bit0 = 0: contains no references</li>
-     * <li>bit0 = 1, bit1 = 0: contains a wide oop</li>
-     * <li>bit0 = 1, bit1 = 1: contains a narrow oop</li>
+     * <li>bit0 = 1, bit1+2 = 0: contains a wide oop</li>
+     * <li>bit0 = 1, bit1 = 1: contains a narrow oop in the lower 32 bit</li>
+     * <li>bit0 = 1, bit2 = 1: contains a narrow oop in the upper 32 bit</li>
      * </ul>
      */
     private final BitSet registerRefMap;
@@ -55,52 +56,90 @@ public class HotSpotReferenceMap implements ReferenceMap, Serializable {
      */
     private final BitSet frameRefMap;
 
-    private final int frameSlotSize;
+    private final TargetDescription target;
 
-    public HotSpotReferenceMap(int registerCount, int frameSlotCount, int frameSlotSize) {
+    public HotSpotReferenceMap(int registerCount, int frameSlotCount, TargetDescription target) {
         if (registerCount > 0) {
-            this.registerRefMap = new BitSet(registerCount * 2);
+            this.registerRefMap = new BitSet(registerCount * 3);
         } else {
             this.registerRefMap = null;
         }
         this.frameRefMap = new BitSet(frameSlotCount * 3);
-        this.frameSlotSize = frameSlotSize;
+        this.target = target;
     }
 
-    public void setRegister(int idx, PlatformKind kind) {
-        if (kind == Kind.Object) {
-            registerRefMap.set(2 * idx);
-        } else if (kind == NarrowOopStamp.NarrowOop) {
-            registerRefMap.set(2 * idx);
-            registerRefMap.set(2 * idx + 1);
+    private static void setOop(BitSet map, int startIdx, LIRKind kind) {
+        int length = kind.getPlatformKind().getVectorLength();
+        map.clear(3 * startIdx, 3 * (startIdx + length) - 1);
+        for (int i = 0, idx = 3 * startIdx; i < length; i++, idx += 3) {
+            if (kind.isReference(i)) {
+                map.set(idx);
+            }
+        }
+    }
+
+    private static void setNarrowOop(BitSet map, int idx, LIRKind kind) {
+        int length = kind.getPlatformKind().getVectorLength();
+        int nextIdx = idx + (length + 1) / 2;
+        map.clear(3 * idx, 3 * nextIdx - 1);
+        for (int i = 0, regIdx = 3 * idx; i < length; i += 2, regIdx += 3) {
+            if (kind.isReference(i)) {
+                map.set(regIdx);
+                map.set(regIdx + 1);
+            }
+            if ((i + 1) < length && kind.isReference(i + 1)) {
+                map.set(regIdx);
+                map.set(regIdx + 2);
+            }
+        }
+    }
+
+    public void setRegister(int idx, LIRKind kind) {
+        if (kind.isDerivedReference()) {
+            throw GraalInternalError.shouldNotReachHere("derived reference cannot be inserted in ReferenceMap");
+        }
+
+        PlatformKind platformKind = kind.getPlatformKind();
+        int bytesPerElement = target.getSizeInBytes(platformKind) / platformKind.getVectorLength();
+
+        if (bytesPerElement == target.wordSize) {
+            setOop(registerRefMap, idx, kind);
+        } else if (bytesPerElement == target.wordSize / 2) {
+            setNarrowOop(registerRefMap, idx, kind);
+        } else {
+            assert kind.isValue() : "unsupported reference kind " + kind;
         }
     }
 
-    public PlatformKind getRegister(int idx) {
-        int refMapIndex = idx * 2;
-        if (registerRefMap.get(refMapIndex)) {
-            if (registerRefMap.get(refMapIndex + 1)) {
-                return NarrowOopStamp.NarrowOop;
-            } else {
-                return Kind.Object;
-            }
+    public void setStackSlot(int offset, LIRKind kind) {
+        if (kind.isDerivedReference()) {
+            throw GraalInternalError.shouldNotReachHere("derived reference cannot be inserted in ReferenceMap");
         }
-        return null;
-    }
 
-    public void setStackSlot(int offset, PlatformKind kind) {
-        int idx = offset / frameSlotSize;
-        if (kind == Kind.Object) {
-            assert offset % frameSlotSize == 0;
-            frameRefMap.set(3 * idx);
-        } else if (kind == NarrowOopStamp.NarrowOop) {
-            frameRefMap.set(3 * idx);
-            if (offset % frameSlotSize == 0) {
-                frameRefMap.set(3 * idx + 1);
+        PlatformKind platformKind = kind.getPlatformKind();
+        int bytesPerElement = target.getSizeInBytes(platformKind) / platformKind.getVectorLength();
+        assert offset % bytesPerElement == 0 : "unaligned value in ReferenceMap";
+
+        if (bytesPerElement == target.wordSize) {
+            setOop(frameRefMap, offset / target.wordSize, kind);
+        } else if (bytesPerElement == target.wordSize / 2) {
+            if (platformKind.getVectorLength() > 1) {
+                setNarrowOop(frameRefMap, offset / target.wordSize, kind);
             } else {
-                assert offset % frameSlotSize == frameSlotSize / 2;
-                frameRefMap.set(3 * idx + 2);
+                // in this case, offset / target.wordSize may not divide evenly
+                // so setNarrowOop won't work correctly
+                int idx = offset / target.wordSize;
+                if (kind.isReference(0)) {
+                    frameRefMap.set(3 * idx);
+                    if (offset % target.wordSize == 0) {
+                        frameRefMap.set(3 * idx + 1);
+                    } else {
+                        frameRefMap.set(3 * idx + 2);
+                    }
+                }
             }
+        } else {
+            assert kind.isValue() : "unknown reference kind " + kind;
         }
     }
 

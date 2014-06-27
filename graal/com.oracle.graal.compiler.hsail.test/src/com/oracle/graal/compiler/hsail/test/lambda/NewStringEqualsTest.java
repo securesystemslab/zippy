@@ -63,8 +63,6 @@ public class NewStringEqualsTest extends GraalKernelTester {
         return (canHandleObjectAllocation());
     }
 
-    // NYI emitForeignCall charAlignedDisjointArraycopy
-    @Ignore
     @Test
     public void test() {
         try (DebugConfigScope s = disableIntercept()) {
@@ -72,7 +70,6 @@ public class NewStringEqualsTest extends GraalKernelTester {
         }
     }
 
-    @Ignore
     @Test
     public void testUsingLambdaMethod() {
         try (DebugConfigScope s = disableIntercept()) {

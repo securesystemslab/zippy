@@ -29,7 +29,6 @@ import java.io.*;
 import org.python.antlr.base.*;
 import org.python.core.*;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.source.*;
 
@@ -75,7 +74,7 @@ public class PythonParserImpl implements PythonParser {
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
 
-        Source source = SourceFactory.fromText(expression, "(test)");
+        Source source = Source.fromText(expression, "(test)");
         PythonTreeTranslator ptt = new PythonTreeTranslator(context, environment, module, source);
         return ptt.translate(node);
     }

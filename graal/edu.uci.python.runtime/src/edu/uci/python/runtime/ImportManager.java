@@ -256,7 +256,14 @@ public class ImportManager {
 
         if (file.exists()) {
             PythonModule importedModule = new PythonModule(context, moduleName, path);
-            Source source = SourceFactory.fromFile(path);
+            Source source;
+
+            try {
+                source = Source.fromFileName(path);
+            } catch (IOException e) {
+                throw new IllegalStateException();
+            }
+
             importedModules.put(path, importedModule);
             PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source);
             if (parsedModule != null) {

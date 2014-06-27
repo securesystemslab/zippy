@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -90,7 +90,7 @@ public abstract class AMD64NodeLIRBuilder extends NodeLIRBuilder {
     }
 
     protected Kind getMemoryKind(Access access) {
-        return (Kind) gen.getPlatformKind(access.asNode().stamp());
+        return (Kind) gen.getLIRKind(access.asNode().stamp()).getPlatformKind();
     }
 
     protected AMD64AddressValue makeAddress(Access access) {
@@ -133,33 +133,27 @@ public abstract class AMD64NodeLIRBuilder extends NodeLIRBuilder {
             }
         }
 
-        PlatformKind cmpKind = gen.getPlatformKind(compare.x().stamp());
-        if (cmpKind instanceof Kind) {
-            // emitCompareBranchMemory expects the memory on the right, so mirror the condition if
-            // that's not true. It might be mirrored again the actual compare is emitted but that's
-            // ok.
-            Condition finalCondition = uncast(compare.x()) == access ? cond.mirror() : cond;
-            return new ComplexMatchResult() {
-                public Value evaluate(NodeLIRBuilder builder) {
-                    LabelRef trueLabel = getLIRBlock(ifNode.trueSuccessor());
-                    LabelRef falseLabel = getLIRBlock(ifNode.falseSuccessor());
-                    boolean unorderedIsTrue = compare.unorderedIsTrue();
-                    double trueLabelProbability = ifNode.probability(ifNode.trueSuccessor());
-                    Value other;
-                    if (value.isConstant()) {
-                        other = value.asConstant();
-                    } else {
-                        other = operand(value);
-                    }
-
-                    getLIRGeneratorTool().emitCompareBranchMemory((Kind) cmpKind, other, makeAddress(access), getState(access), finalCondition, unorderedIsTrue, trueLabel, falseLabel,
-                                    trueLabelProbability);
-                    return null;
+        // emitCompareBranchMemory expects the memory on the right, so mirror the condition if
+        // that's not true. It might be mirrored again the actual compare is emitted but that's
+        // ok.
+        Condition finalCondition = uncast(compare.x()) == access ? cond.mirror() : cond;
+        return new ComplexMatchResult() {
+            public Value evaluate(NodeLIRBuilder builder) {
+                LabelRef trueLabel = getLIRBlock(ifNode.trueSuccessor());
+                LabelRef falseLabel = getLIRBlock(ifNode.falseSuccessor());
+                boolean unorderedIsTrue = compare.unorderedIsTrue();
+                double trueLabelProbability = ifNode.probability(ifNode.trueSuccessor());
+                Value other;
+                if (value.isConstant()) {
+                    other = value.asConstant();
+                } else {
+                    other = operand(value);
                 }
-            };
-        }
-        return null;
 
+                getLIRGeneratorTool().emitCompareBranchMemory(kind, other, makeAddress(access), getState(access), finalCondition, unorderedIsTrue, trueLabel, falseLabel, trueLabelProbability);
+                return null;
+            }
+        };
     }
 
     private ComplexMatchResult emitIntegerTestBranchMemory(IfNode x, ValueNode value, Access access) {
@@ -273,7 +267,7 @@ public abstract class AMD64NodeLIRBuilder extends NodeLIRBuilder {
         return null;
     }
 
-    private Value emitReinterpretMemory(PlatformKind to, Access access) {
+    private Value emitReinterpretMemory(LIRKind to, Access access) {
         AMD64AddressValue address = makeAddress(access);
         LIRFrameState state = getState(access);
         return getLIRGeneratorTool().emitLoad(to, address, state);
@@ -421,7 +415,7 @@ public abstract class AMD64NodeLIRBuilder extends NodeLIRBuilder {
     @MatchRule("(Write Narrow=narrow location value)")
     public ComplexMatchResult writeNarrow(WriteNode root, NarrowNode narrow) {
         return builder -> {
-            PlatformKind writeKind = getLIRGeneratorTool().getPlatformKind(root.value().stamp());
+            LIRKind writeKind = getLIRGeneratorTool().getLIRKind(root.value().stamp());
             Value address = root.location().generateAddress(builder, getLIRGeneratorTool(), operand(root.object()));
             Value v = operand(narrow.getInput());
             getLIRGeneratorTool().emitStore(writeKind, address, v, state(root));
@@ -461,7 +455,7 @@ public abstract class AMD64NodeLIRBuilder extends NodeLIRBuilder {
     @MatchRule("(Reinterpret FloatingRead=access)")
     public ComplexMatchResult reinterpret(ReinterpretNode root, Access access) {
         return builder -> {
-            PlatformKind kind = getLIRGeneratorTool().getPlatformKind(root.stamp());
+            LIRKind kind = getLIRGeneratorTool().getLIRKind(root.stamp());
             return emitReinterpretMemory(kind, access);
         };
 

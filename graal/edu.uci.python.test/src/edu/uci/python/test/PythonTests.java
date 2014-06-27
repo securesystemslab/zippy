@@ -44,7 +44,7 @@ public class PythonTests {
         final PrintStream printStream = new PrintStream(byteArray);
 
         PythonContext context = getContext(printStream, System.err);
-        Source source = SourceFactory.fromText(code, "(test)");
+        Source source = Source.fromText(code, "(test)");
         RunScript.runScript(new String[0], source, context);
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertTrue(result.contains(expected));
@@ -55,7 +55,7 @@ public class PythonTests {
         final PrintStream printStream = new PrintStream(byteArray);
 
         PythonContext context = getContext(printStream, System.err);
-        Source source = SourceFactory.fromText(code, "(test)");
+        Source source = Source.fromText(code, "(test)");
         PythonParseResult parseResult = RunScript.runScript(new String[0], source, context);
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertEquals(expected, result);
@@ -67,7 +67,7 @@ public class PythonTests {
         final PrintStream printStream = new PrintStream(byteArray);
 
         PythonContext context = getContext(printStream, System.err);
-        Source source = SourceFactory.fromText(code, "(test)");
+        Source source = Source.fromText(code, "(test)");
         new ZipPyConsole().parseFile(context, source);
         return byteArray.toString().replaceAll("\r\n", "\n");
     }
@@ -77,7 +77,7 @@ public class PythonTests {
         final PrintStream printStream = new PrintStream(byteArray);
 
         PythonContext context = getContext(printStream, System.err);
-        Source source = SourceFactory.fromText(code, "(test)");
+        Source source = Source.fromText(code, "(test)");
         return new ZipPyConsole().parseFile(context, source);
     }
 
@@ -88,7 +88,7 @@ public class PythonTests {
 
         try {
             PythonContext context = getContext(System.out, printStream);
-            Source source = SourceFactory.fromText(code, "(test)");
+            Source source = Source.fromText(code, "(test)");
             RunScript.runThrowableScript(new String[0], source, context);
         } catch (Throwable err) {
             error = err.toString();
@@ -111,7 +111,13 @@ public class PythonTests {
         }
 
         PythonContext context = getContext(printStream, System.err);
-        Source source = SourceFactory.fromFile(path + File.separatorChar + scriptName.toString());
+        Source source;
+        try {
+            source = Source.fromFileName(path + File.separatorChar + scriptName.toString());
+        } catch (IOException e) {
+            throw new IllegalStateException();
+        }
+
         RunScript.runScript(new String[0], source, context);
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertEquals(expected, result);
@@ -131,7 +137,13 @@ public class PythonTests {
         }
 
         PythonContext context = getContext(printStream, System.err);
-        Source source = SourceFactory.fromFile(path + File.separatorChar + scriptName.toString());
+        Source source;
+        try {
+            source = Source.fromFileName(path + File.separatorChar + scriptName.toString());
+        } catch (IOException e) {
+            throw new IllegalStateException();
+        }
+
         PythonParseResult ast = RunScript.runScript(new String[0], source, context);
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertTrue(result.contains(expected));

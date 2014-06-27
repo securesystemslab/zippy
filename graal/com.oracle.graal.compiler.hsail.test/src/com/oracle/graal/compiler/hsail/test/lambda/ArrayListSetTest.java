@@ -20,18 +20,37 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.common.spi;
+package com.oracle.graal.compiler.hsail.test.lambda;
 
-import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.hsail.test.infra.*;
+
+import org.junit.*;
+import java.util.*;
 
 /**
- * This interface can be used to access platform and VM specific kinds.
+ * Tests calling ArrayList.set().
  */
-public interface PlatformKindTool {
+public class ArrayListSetTest extends GraalKernelTester {
 
-    PlatformKind getIntegerKind(int bits);
+    final static int NUM = 50;
+    ArrayList<Integer> aryList = new ArrayList<>();
 
-    PlatformKind getFloatingKind(int bits);
+    @Override
+    public void runTest() {
+        for (int i = 0; i < NUM; i++) {
+            aryList.add(-1);
+        }
+        dispatchLambdaKernel(NUM, (gid) -> {
+            aryList.set(gid, gid);
+        });
 
-    PlatformKind getObjectKind();
+        // for (int i = 0; i < NUM; i++) {
+        // System.out.println(aryList.get(i));
+        // }
+    }
+
+    @Test
+    public void testUsingLambdaMethod() {
+        testGeneratedHsailUsingLambdaMethod();
+    }
 }

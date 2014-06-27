@@ -52,16 +52,6 @@ def benchmark():
         p.normalize()
     maximize(points)
 
-
-# def test_float(count):
-#     times = []
-#     for _ in range(count):
-#         t0 = time.time()
-#         benchmark()
-#         t1 = time.time()
-#         times.append(t1 - t0)
-#     return times
-
 def measure():
     print("Start timing...")
     start = time.time()

@@ -50,6 +50,7 @@ import com.oracle.graal.runtime.*;
 import com.oracle.graal.truffle.nodes.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.source.*;
 
 /**
  * Implementation of the Truffle compiler using Graal.
@@ -110,8 +111,11 @@ public class TruffleCompilerImpl {
     public void compileMethodImpl(final OptimizedCallTarget compilable) {
         final StructuredGraph graph;
 
-        if (TraceTruffleCompilation.getValue()) {
+        if (TraceTruffleCompilation.getValue() || TraceTruffleCompilationAST.getValue()) {
             OptimizedCallTargetLog.logOptimizingStart(compilable);
+            if (TraceTruffleCompilationAST.getValue()) {
+                NodeUtil.printCompactTree(OptimizedCallTarget.OUT, compilable.getRootNode());
+            }
         }
 
         long timeCompilationStarted = System.nanoTime();

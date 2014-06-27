@@ -38,6 +38,7 @@ import org.python.google.common.collect.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.source.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;

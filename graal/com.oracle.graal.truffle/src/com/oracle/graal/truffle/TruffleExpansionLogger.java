@@ -45,10 +45,12 @@ public class TruffleExpansionLogger {
     }
 
     public void preExpand(MethodCallTargetNode callTarget, StructuredGraph inliningGraph) {
+        ResolvedJavaMethod sourceMethod = callTarget.invoke().stateAfter().method();
+
         int sourceMethodBci = callTarget.invoke().bci();
         ResolvedJavaMethod targetMethod = callTarget.targetMethod();
         ResolvedJavaType targetReceiverType = null;
-        if (!targetMethod.isStatic() && callTarget.receiver().isConstant()) {
+        if (!sourceMethod.isStatic() && callTarget.receiver() != null && callTarget.receiver().isConstant()) {
             targetReceiverType = providers.getMetaAccess().lookupJavaType(callTarget.arguments().first().asConstant());
         }
 

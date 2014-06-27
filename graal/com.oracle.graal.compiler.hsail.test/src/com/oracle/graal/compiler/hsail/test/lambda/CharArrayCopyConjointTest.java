@@ -4,9 +4,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -22,11 +20,36 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api;
+package com.oracle.graal.compiler.hsail.test.lambda;
+
+import com.oracle.graal.compiler.hsail.test.infra.*;
+
+import org.junit.*;
 
 /**
- * Marker for a special flavor of {@link SourceSection} that has no content and can be ignored.
+ * Tests copying a char array where src and dest overlap.
  */
-public interface NullSourceSection extends SourceSection {
+public class CharArrayCopyConjointTest extends GraalKernelTester {
 
+    final static int MAXOUTSIZ = 100;
+    final static int NUM = 20;
+
+    @Result char[][] outArray = new char[NUM][MAXOUTSIZ];
+
+    @Override
+    public void runTest() {
+        for (int i = 0; i < NUM; i++) {
+            for (int j = 0; j < outArray[i].length; j++) {
+                outArray[i][j] = (char) (i + j);
+            }
+        }
+        dispatchLambdaKernel(NUM, (gid) -> {
+            System.arraycopy(outArray[gid], 0, outArray[gid], gid % NUM, NUM);
+        });
+    }
+
+    @Test
+    public void testUsingLambdaMethod() {
+        testGeneratedHsailUsingLambdaMethod();
+    }
 }
