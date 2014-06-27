@@ -109,25 +109,29 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     /**
      * Unboxed array reads.
      */
-    @Specialization(order = 12)
+    @Specialization(order = 20, guards = "isIndexPositive")
     public int doPIntArray(PIntArray primary, int idx) {
-        final int index = SequenceUtil.normalizeIndex(idx, primary.len());
-        return primary.getIntItemNormalized(index);
+        return primary.getIntItemNormalized(idx);
     }
 
-    @Specialization(order = 13)
+    @Specialization(order = 21, guards = "isIndexNegative")
+    public int doPIntArrayNegative(PIntArray primary, int idx) {
+        return primary.getIntItemNormalized(idx + primary.len());
+    }
+
+    @Specialization(order = 22)
     public double doPDoubleArray(PDoubleArray primary, int idx) {
         final int index = SequenceUtil.normalizeIndex(idx, primary.len());
         return primary.getDoubleItemNormalized(index);
     }
 
-    @Specialization(order = 14)
+    @Specialization(order = 24)
     public char doPCharArray(PCharArray primary, int idx) {
         final int index = SequenceUtil.normalizeIndex(idx, primary.len());
         return primary.getCharItemNormalized(index);
     }
 
-    @Specialization(order = 15)
+    @Specialization(order = 26)
     public Object doPArray(PArray primary, int idx) {
         final int index = SequenceUtil.normalizeIndex(idx, primary.len());
         return primary.getItem(index);
@@ -138,7 +142,7 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
      * This avoid unwated data strcture duplication and actually updates a PyList imported from
      * Jython. As soon as we never have to actually read an imported PyList, this should be gone.
      */
-    @Specialization(order = 19)
+    @Specialization(order = 30)
     public Object doPyList(PyObject primary, int index) {
         CompilerAsserts.neverPartOfCompilation();
 
@@ -152,12 +156,12 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         return value;
     }
 
-    @Specialization(order = 20)
+    @Specialization(order = 31)
     public Object doSpecialInt(VirtualFrame frame, PythonObject primary, int index) {
         return doSpecialMethodCall(frame, "__getitem__", primary, index);
     }
 
-    @Specialization(order = 21)
+    @Specialization(order = 32)
     public Object doSpecialObject(VirtualFrame frame, PythonObject primary, Object index) {
         return doSpecialMethodCall(frame, "__getitem__", primary, index);
     }
