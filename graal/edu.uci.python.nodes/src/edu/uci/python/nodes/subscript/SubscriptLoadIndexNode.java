@@ -110,22 +110,26 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
      * Unboxed array reads.
      */
     @Specialization(order = 12)
-    public int doPIntArray(PIntArray primary, int index) {
+    public int doPIntArray(PIntArray primary, int idx) {
+        final int index = SequenceUtil.normalizeIndex(idx, primary.len());
         return primary.getIntItemNormalized(index);
     }
 
     @Specialization(order = 13)
-    public double doPDoubleArray(PDoubleArray primary, int index) {
+    public double doPDoubleArray(PDoubleArray primary, int idx) {
+        final int index = SequenceUtil.normalizeIndex(idx, primary.len());
         return primary.getDoubleItemNormalized(index);
     }
 
     @Specialization(order = 14)
-    public char doPCharArray(PCharArray primary, int index) {
+    public char doPCharArray(PCharArray primary, int idx) {
+        final int index = SequenceUtil.normalizeIndex(idx, primary.len());
         return primary.getCharItemNormalized(index);
     }
 
     @Specialization(order = 15)
-    public Object doPArray(PArray primary, int index) {
+    public Object doPArray(PArray primary, int idx) {
+        final int index = SequenceUtil.normalizeIndex(idx, primary.len());
         return primary.getItem(index);
     }
 
