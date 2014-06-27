@@ -778,9 +778,8 @@ void GraalRuntime::parse_argument(KlassHandle hotSpotOptionsClass, char* arg, TR
   if (!recognized) {
     bool throw_err = hotSpotOptionsClass.is_null();
     if (!hotSpotOptionsClass.is_null()) {
-      instanceKlassHandle ikh(hotSpotOptionsClass());
-      if (!ikh->is_reentrant_initialization(THREAD)) {
-        set_option_helper(hotSpotOptionsClass, name, name_len, Handle(), ' ', Handle(), 0L);
+      set_option_helper(hotSpotOptionsClass, name, name_len, Handle(), ' ', Handle(), 0L);
+      if (!HAS_PENDING_EXCEPTION) {
         throw_err = true;
       }
     }
