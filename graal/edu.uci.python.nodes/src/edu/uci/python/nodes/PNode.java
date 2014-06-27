@@ -321,4 +321,14 @@ public abstract class PNode extends Node {
         return !(second instanceof PythonObject);
     }
 
+    @SuppressWarnings("unused")
+    protected static boolean isIndexPositive(Object primary, int idx) {
+        return idx >= 0;
+    }
+
+    @SuppressWarnings("unused")
+    protected static boolean isIndexNegative(Object primary, int idx) {
+        return idx < 0;
+    }
+
 }

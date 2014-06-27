@@ -39,15 +39,21 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
         return SubscriptLoadIndexNodeFactory.create(getPrimary(), getSlice());
     }
 
-    @Specialization(order = 1, guards = "isIntStorage")
+    @Specialization(order = 1, guards = {"isIntStorage", "isIndexPositive"})
     public Object doPListInt(PList primary, int idx, int value) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
-        final int index = SequenceUtil.normalizeIndex(idx, store.length());
-        store.setIntItemNormalized(index, value);
+        store.setIntItemNormalized(idx, value);
         return PNone.NONE;
     }
 
-    @Specialization(order = 2, guards = "isDoubleStorage")
+    @Specialization(order = 2, guards = {"isIntStorage", "isIndexNegative"})
+    public Object doPListIntNegative(PList primary, int idx, int value) {
+        final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
+        store.setIntItemNormalized(idx + store.length(), value);
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 3, guards = "isDoubleStorage")
     public Object doPListDouble(PList primary, int idx, double value) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
         final int index = SequenceUtil.normalizeIndex(idx, store.length());
@@ -55,16 +61,24 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 3)
-    public Object doPListObject(PList list, int index, Object value) {
-        list.setItem(index, value);
+    @Specialization(order = 5, guards = "isObjectStorage")
+    public Object doPListObject(PList primary, int idx, Object value) {
+        final ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
+        final int index = SequenceUtil.normalizeIndex(idx, store.length());
+        store.setItemNormalized(index, value);
+        return PNone.NONE;
+    }
+
+    @Specialization(order = 7)
+    public Object doPList(PList list, int idx, Object value) {
+        list.setItem(idx, value);
         return PNone.NONE;
     }
 
     /**
      * PDict key & value store.
      */
-    @Specialization(order = 6)
+    @Specialization(order = 8)
     public Object doPDict(PDict primary, Object key, Object value) {
         primary.setItem(key, value);
         return PNone.NONE;
