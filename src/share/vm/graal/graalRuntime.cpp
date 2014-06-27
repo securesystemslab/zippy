@@ -701,6 +701,31 @@ JVM_ENTRY(void, JVM_PrintAndResetGraalCompRate(JNIEnv *env, jclass c))
 JVM_END
 #endif
 
+jint GraalRuntime::check_arguments(TRAPS) {
+  KlassHandle nullHandle;
+  parse_arguments(nullHandle, THREAD);
+  if (HAS_PENDING_EXCEPTION) {
+    // Errors in parsing Graal arguments cause exceptions.
+    // We now load and initialize HotSpotOptions which in turn
+    // causes argument parsing to be redone with better error messages.
+    CLEAR_PENDING_EXCEPTION;
+    TempNewSymbol name = SymbolTable::new_symbol("Lcom/oracle/graal/hotspot/HotSpotOptions;", THREAD);
+    instanceKlassHandle hotSpotOptionsClass = SystemDictionary::resolve_or_fail(name, true, THREAD);
+    GUARANTEE_NO_PENDING_EXCEPTION("Error in check_arguments");
+
+    parse_arguments(hotSpotOptionsClass, THREAD);
+    assert(HAS_PENDING_EXCEPTION, "must be");
+
+    ResourceMark rm;
+    oop message = java_lang_Throwable::message(PENDING_EXCEPTION);
+    assert(message != NULL, "Graal argument parsing exception is expected to hava message");
+    tty->print_cr("Error parsing Graal options: %s", java_lang_String::as_utf8_string(message));
+    CLEAR_PENDING_EXCEPTION;
+    return JNI_ERR;
+  }
+  return JNI_OK;
+}
+
 bool GraalRuntime::parse_arguments(KlassHandle hotSpotOptionsClass, TRAPS) {
   ResourceMark rm(THREAD);
 
@@ -716,42 +741,51 @@ bool GraalRuntime::parse_arguments(KlassHandle hotSpotOptionsClass, TRAPS) {
   return CITime || CITimeEach;
 }
 
+void GraalRuntime::check_required_value(const char* name, int name_len, const char* value, TRAPS) {
+  if (value == NULL) {
+    char buf[200];
+    jio_snprintf(buf, sizeof(buf), "Value for option %.*s must use '-G:%.*s=<value>' format", name_len, name, name_len, name);
+    THROW_MSG(vmSymbols::java_lang_InternalError(), buf);
+  }
+}
+
 void GraalRuntime::parse_argument(KlassHandle hotSpotOptionsClass, char* arg, TRAPS) {
   char first = arg[0];
   char* name;
   size_t name_len;
-  Handle name_handle;
-  bool valid = true;
+  bool recognized = true;
   if (first == '+' || first == '-') {
     name = arg + 1;
     name_len = strlen(name);
-    name_handle = java_lang_String::create_from_str(name, CHECK);
-    valid = set_option(hotSpotOptionsClass, name, (int)name_len, name_handle, arg, CHECK);
+    recognized = set_option(hotSpotOptionsClass, name, (int)name_len, arg, CHECK);
   } else {
     char* sep = strchr(arg, '=');
+    name = arg;
+    char* value = NULL;
     if (sep != NULL) {
-      name = arg;
       name_len = sep - name;
-      // Temporarily replace '=' with NULL to create the Java string for the option name
-      *sep = '\0';
-      name_handle = java_lang_String::create_from_str(arg, THREAD);
-      *sep = '=';
-      if (HAS_PENDING_EXCEPTION) {
-        return;
-      }
-      valid = set_option(hotSpotOptionsClass, name, (int)name_len, name_handle, sep + 1, CHECK);
+      value = sep + 1;
     } else {
-      char buf[200];
-      jio_snprintf(buf, sizeof(buf), "Value for option %s must use '-G:%s=<value>' format", arg, arg);
-      THROW_MSG(vmSymbols::java_lang_InternalError(), buf);
+      name_len = strlen(name);
     }
+    recognized = set_option(hotSpotOptionsClass, name, (int)name_len, value, CHECK);
   }
 
-  if (!valid) {
-    set_option_helper(hotSpotOptionsClass, name_handle, Handle(), ' ', Handle(), 0L);
-    char buf[200];
-    jio_snprintf(buf, sizeof(buf), "Invalid Graal option %s", arg);
-    THROW_MSG(vmSymbols::java_lang_InternalError(), buf);
+  if (!recognized) {
+    bool throw_err = hotSpotOptionsClass.is_null();
+    if (!hotSpotOptionsClass.is_null()) {
+      instanceKlassHandle ikh(hotSpotOptionsClass());
+      if (!ikh->is_reentrant_initialization(THREAD)) {
+        set_option_helper(hotSpotOptionsClass, name, name_len, Handle(), ' ', Handle(), 0L);
+        throw_err = true;
+      }
+    }
+
+    if (throw_err) {
+      char buf[200];
+      jio_snprintf(buf, sizeof(buf), "Unrecognized Graal option %.*s", name_len, name);
+      THROW_MSG(vmSymbols::java_lang_InternalError(), buf);
+    }
   }
 }
 
@@ -802,7 +836,8 @@ void GraalRuntime::parse_graal_options_file(KlassHandle hotSpotOptionsClass, TRA
   }
 }
 
-jlong GraalRuntime::parse_primitive_option_value(char spec, Handle name, const char* value, TRAPS) {
+jlong GraalRuntime::parse_primitive_option_value(char spec, const char* name, int name_len, const char* value, TRAPS) {
+  check_required_value(name, name_len, value, CHECK_(0L));
   union {
     jint i;
     jlong l;
@@ -829,23 +864,39 @@ jlong GraalRuntime::parse_primitive_option_value(char spec, Handle name, const c
   }
   ResourceMark rm(THREAD);
   char buf[200];
-  jio_snprintf(buf, sizeof(buf), "Invalid %s value for Graal option %s: %s", (spec == 'i' ? "numeric" : "float/double"), java_lang_String::as_utf8_string(name()), value);
+  jio_snprintf(buf, sizeof(buf), "Invalid %s value for Graal option %.*s: %s", (spec == 'i' ? "numeric" : "float/double"), name, name_len, value);
   THROW_MSG_(vmSymbols::java_lang_InternalError(), buf, 0L);
 }
 
-void GraalRuntime::set_option_helper(KlassHandle hotSpotOptionsClass, Handle name, Handle option, jchar spec, Handle stringValue, jlong primitiveValue) {
+void GraalRuntime::set_option_helper(KlassHandle hotSpotOptionsClass, char* name, int name_len, Handle option, jchar spec, Handle stringValue, jlong primitiveValue) {
   Thread* THREAD = Thread::current();
+  Handle name_handle;
+  if (name != NULL) {
+    if ((int) strlen(name) > name_len) {
+      // Temporarily replace '=' with NULL to create the Java string for the option name
+      char save = name[name_len];
+      name[name_len] = '\0';
+      name_handle = java_lang_String::create_from_str(name, THREAD);
+      name[name_len] = '=';
+      if (HAS_PENDING_EXCEPTION) {
+        return;
+      }
+    } else {
+      assert((int) strlen(name) == name_len, "must be");
+      name_handle = java_lang_String::create_from_str(name, CHECK);
+    }
+  }
+
   TempNewSymbol setOption = SymbolTable::new_symbol("setOption", THREAD);
   TempNewSymbol sig = SymbolTable::new_symbol("(Ljava/lang/String;Lcom/oracle/graal/options/OptionValue;CLjava/lang/String;J)V", THREAD);
   JavaValue result(T_VOID);
   JavaCallArguments args;
-  args.push_oop(name());
+  args.push_oop(name_handle());
   args.push_oop(option());
   args.push_int(spec);
   args.push_oop(stringValue());
   args.push_long(primitiveValue);
-  JavaCalls::call_static(&result, hotSpotOptionsClass, setOption, sig, &args, THREAD);
-  GUARANTEE_NO_PENDING_EXCEPTION("Error while calling set_option_helper");
+  JavaCalls::call_static(&result, hotSpotOptionsClass, setOption, sig, &args, CHECK);
 }
 
 Handle GraalRuntime::get_OptionValue(const char* declaringClass, const char* fieldName, const char* fieldSig, TRAPS) {
@@ -906,6 +957,7 @@ void GraalRuntime::abort_on_pending_exception(Handle exception, const char* mess
 
   assert(exception->is_a(SystemDictionary::Throwable_klass()), "Throwable instance expected");
   JavaValue result(T_VOID);
+  tty->print_cr(message);
   JavaCalls::call_virtual(&result,
                           exception,
                           KlassHandle(THREAD,
