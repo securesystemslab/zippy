@@ -134,6 +134,11 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
    */
   static void abort_on_pending_exception(Handle exception, const char* message, bool dump_core = false);
 
+  /**
+   * Calls Throwable.printStackTrace() on a given exception.
+   */
+  static void call_printStackTrace(Handle exception, Thread* thread);
+
 #define GUARANTEE_NO_PENDING_EXCEPTION(error_message) do { \
     if (HAS_PENDING_EXCEPTION) { \
       GraalRuntime::abort_on_pending_exception(PENDING_EXCEPTION, error_message); \

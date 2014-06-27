@@ -717,10 +717,14 @@ jint GraalRuntime::check_arguments(TRAPS) {
     assert(HAS_PENDING_EXCEPTION, "must be");
 
     ResourceMark rm;
-    oop message = java_lang_Throwable::message(PENDING_EXCEPTION);
-    assert(message != NULL, "Graal argument parsing exception is expected to hava message");
-    tty->print_cr("Error parsing Graal options: %s", java_lang_String::as_utf8_string(message));
+    Handle exception = PENDING_EXCEPTION;
     CLEAR_PENDING_EXCEPTION;
+    oop message = java_lang_Throwable::message(exception);
+    if (message != NULL) {
+      tty->print_cr("Error parsing Graal options: %s", java_lang_String::as_utf8_string(message));
+    } else {
+      call_printStackTrace(exception, THREAD);
+    }
     return JNI_ERR;
   }
   return JNI_OK;
@@ -744,7 +748,7 @@ bool GraalRuntime::parse_arguments(KlassHandle hotSpotOptionsClass, TRAPS) {
 void GraalRuntime::check_required_value(const char* name, int name_len, const char* value, TRAPS) {
   if (value == NULL) {
     char buf[200];
-    jio_snprintf(buf, sizeof(buf), "Value for option %.*s must use '-G:%.*s=<value>' format", name_len, name, name_len, name);
+    jio_snprintf(buf, sizeof(buf), "Must use '-G:%.*s=<value>' format for %.*s option", name_len, name, name_len, name);
     THROW_MSG(vmSymbols::java_lang_InternalError(), buf);
   }
 }
@@ -951,21 +955,23 @@ void GraalRuntime::shutdown() {
   }
 }
 
-void GraalRuntime::abort_on_pending_exception(Handle exception, const char* message, bool dump_core) {
-  Thread* THREAD = Thread::current();
-  CLEAR_PENDING_EXCEPTION;
-
+void GraalRuntime::call_printStackTrace(Handle exception, Thread* thread) {
   assert(exception->is_a(SystemDictionary::Throwable_klass()), "Throwable instance expected");
   JavaValue result(T_VOID);
-  tty->print_cr(message);
   JavaCalls::call_virtual(&result,
                           exception,
-                          KlassHandle(THREAD,
+                          KlassHandle(thread,
                           SystemDictionary::Throwable_klass()),
                           vmSymbols::printStackTrace_name(),
                           vmSymbols::void_method_signature(),
-                          THREAD);
+                          thread);
+}
 
+void GraalRuntime::abort_on_pending_exception(Handle exception, const char* message, bool dump_core) {
+  Thread* THREAD = Thread::current();
+  CLEAR_PENDING_EXCEPTION;
+  tty->print_cr(message);
+  call_printStackTrace(exception, THREAD);
   vm_abort(dump_core);
 }
 
