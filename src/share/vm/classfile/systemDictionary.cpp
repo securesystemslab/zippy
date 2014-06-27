@@ -2286,7 +2286,7 @@ methodHandle SystemDictionary::find_method_handle_intrinsic(vmIntrinsics::ID iid
     spe = NULL;
     // Must create lots of stuff here, but outside of the SystemDictionary lock.
     m = Method::make_method_handle_intrinsic(iid, signature, CHECK_(empty));
-    nmethod* nm = CompileBroker::compile_method(m, InvocationEntryBci, CompLevel_highest_tier,
+    CompileBroker::compile_method(m, InvocationEntryBci, CompLevel_highest_tier,
                                   methodHandle(), CompileThreshold, "MH", CHECK_(empty));
 
     // Now grab the lock.  We might have to throw away the new method,
@@ -2300,11 +2300,11 @@ methodHandle SystemDictionary::find_method_handle_intrinsic(vmIntrinsics::ID iid
         spe->set_method(m());
     }
   } else if (spe->method()->code() == NULL) {
-    nmethod* nm = CompileBroker::compile_method(spe->method(), InvocationEntryBci, CompLevel_highest_tier,
+    CompileBroker::compile_method(spe->method(), InvocationEntryBci, CompLevel_highest_tier,
                                       methodHandle(), CompileThreshold, "MH", CHECK_(empty));
   }
 
-  guarantee(spe != NULL && spe->method() != NULL && spe->method()->code() != NULL, "Could not compile a method handle intrinsic");
+  guarantee(spe != NULL && spe->method() != NULL && (!UseCompiler || spe->method()->code() != NULL), "Could not compile a method handle intrinsic");
   return spe->method();
 }
 
