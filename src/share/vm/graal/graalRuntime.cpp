@@ -23,9 +23,10 @@
 
 #include "precompiled.hpp"
 #include "asm/codeBuffer.hpp"
+#include "compiler/compileBroker.hpp"
 #include "graal/graalRuntime.hpp"
-#include "graal/graalVMToCompiler.hpp"
 #include "graal/graalCompilerToVM.hpp"
+#include "graal/graalCompiler.hpp"
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalEnv.hpp"
 #include "memory/oopFactory.hpp"
@@ -37,6 +38,7 @@
 #include "utilities/debug.hpp"
 
 address GraalRuntime::_external_deopt_i2c_entry = NULL;
+jobject GraalRuntime::_HotSpotGraalRuntime_instance = NULL;
 
 void GraalRuntime::initialize_natives(JNIEnv *env, jclass c2vmClass) {
   uintptr_t heap_end = (uintptr_t) Universe::heap()->reserved_region().end();
@@ -60,7 +62,7 @@ void GraalRuntime::initialize_natives(JNIEnv *env, jclass c2vmClass) {
 
     env->RegisterNatives(c2vmClass, CompilerToVM_methods, CompilerToVM_methods_count());
   }
-  check_pending_exception("Could not register natives");
+  GUARANTEE_NO_PENDING_EXCEPTION("Could not register natives");
 }
 
 BufferBlob* GraalRuntime::initialize_buffer_blob() {
@@ -638,7 +640,7 @@ JRT_END
 
 // private static GraalRuntime Graal.initializeRuntime()
 JVM_ENTRY(jobject, JVM_GetGraalRuntime(JNIEnv *env, jclass c))
-  return VMToCompiler::get_HotSpotGraalRuntime_jobject();
+  return GraalRuntime::get_HotSpotGraalRuntime_jobject();
 JVM_END
 
 // private static String[] Graal.getServiceImpls(Class service)
@@ -650,11 +652,34 @@ JVM_END
 
 // private static TruffleRuntime Truffle.createRuntime()
 JVM_ENTRY(jobject, JVM_CreateTruffleRuntime(JNIEnv *env, jclass c))
-  return JNIHandles::make_local(VMToCompiler::create_HotSpotTruffleRuntime()());
+  TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/truffle/hotspot/HotSpotTruffleRuntime", THREAD);
+  KlassHandle klass = GraalRuntime::load_required_class(name);
+
+  TempNewSymbol makeInstance = SymbolTable::new_symbol("makeInstance", THREAD);
+  TempNewSymbol sig = SymbolTable::new_symbol("()Lcom/oracle/graal/truffle/hotspot/HotSpotTruffleRuntime;", THREAD);
+  JavaValue result(T_OBJECT);
+  JavaCalls::call_static(&result, klass, makeInstance, sig, THREAD);
+  GUARANTEE_NO_PENDING_EXCEPTION("Couldn't initialize HotSpotTruffleRuntime");
+  return JNIHandles::make_local((oop) result.get_jobject());
 JVM_END
 
-// private static void HotSpotGraalRuntime.init(Class compilerToVMClass)
-JVM_ENTRY(void, JVM_InitializeGraalNatives(JNIEnv *env, jclass c, jclass c2vmClass))
+Handle GraalRuntime::get_HotSpotGraalRuntime() {
+  if (JNIHandles::resolve(_HotSpotGraalRuntime_instance) == NULL) {
+    Thread* THREAD = Thread::current();
+    TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/HotSpotGraalRuntime", THREAD);
+    KlassHandle klass = load_required_class(name);
+    TempNewSymbol runtime = SymbolTable::new_symbol("runtime", THREAD);
+    TempNewSymbol sig = SymbolTable::new_symbol("()Lcom/oracle/graal/hotspot/HotSpotGraalRuntime;", THREAD);
+    JavaValue result(T_OBJECT);
+    JavaCalls::call_static(&result, klass, runtime, sig, THREAD);
+    GUARANTEE_NO_PENDING_EXCEPTION("Couldn't initialize HotSpotGraalRuntime");
+    _HotSpotGraalRuntime_instance = JNIHandles::make_global((oop) result.get_jobject());
+  }
+  return Handle(JNIHandles::resolve_non_null(_HotSpotGraalRuntime_instance));
+}
+
+// private static void CompilerToVMImpl.init()
+JVM_ENTRY(void, JVM_InitializeGraalNatives(JNIEnv *env, jclass c2vmClass))
   GraalRuntime::initialize_natives(env, c2vmClass);
 JVM_END
 
@@ -664,6 +689,17 @@ JVM_ENTRY(jboolean, JVM_ParseGraalOptions(JNIEnv *env, jclass c))
   KlassHandle hotSpotOptionsClass(THREAD, java_lang_Class::as_Klass(JNIHandles::resolve_non_null(c)));
   return GraalRuntime::parse_arguments(hotSpotOptionsClass, CHECK_false);
 JVM_END
+
+#ifdef COMPILERGRAAL
+// private static boolean CompilationQueue.printAndResetCompRate()
+JVM_ENTRY(void, JVM_PrintAndResetGraalCompRate(JNIEnv *env, jclass c))
+  GraalCompiler* comp = GraalCompiler::instance();
+  CompileBroker::print_times(comp);
+  CompilerStatistics* stats = comp->stats();
+  stats->_standard.reset();
+  stats->_osr.reset();
+JVM_END
+#endif
 
 bool GraalRuntime::parse_arguments(KlassHandle hotSpotOptionsClass, TRAPS) {
   ResourceMark rm(THREAD);
@@ -712,7 +748,7 @@ void GraalRuntime::parse_argument(KlassHandle hotSpotOptionsClass, char* arg, TR
   }
 
   if (!valid) {
-    VMToCompiler::setOption(hotSpotOptionsClass, name_handle, Handle(), ' ', Handle(), 0L);
+    set_option_helper(hotSpotOptionsClass, name_handle, Handle(), ' ', Handle(), 0L);
     char buf[200];
     jio_snprintf(buf, sizeof(buf), "Invalid Graal option %s", arg);
     THROW_MSG(vmSymbols::java_lang_InternalError(), buf);
@@ -797,6 +833,21 @@ jlong GraalRuntime::parse_primitive_option_value(char spec, Handle name, const c
   THROW_MSG_(vmSymbols::java_lang_InternalError(), buf, 0L);
 }
 
+void GraalRuntime::set_option_helper(KlassHandle hotSpotOptionsClass, Handle name, Handle option, jchar spec, Handle stringValue, jlong primitiveValue) {
+  Thread* THREAD = Thread::current();
+  TempNewSymbol setOption = SymbolTable::new_symbol("setOption", THREAD);
+  TempNewSymbol sig = SymbolTable::new_symbol("(Ljava/lang/String;Lcom/oracle/graal/options/OptionValue;CLjava/lang/String;J)V", THREAD);
+  JavaValue result(T_VOID);
+  JavaCallArguments args;
+  args.push_oop(name());
+  args.push_oop(option());
+  args.push_int(spec);
+  args.push_oop(stringValue());
+  args.push_long(primitiveValue);
+  JavaCalls::call_static(&result, hotSpotOptionsClass, setOption, sig, &args, THREAD);
+  GUARANTEE_NO_PENDING_EXCEPTION("Error while calling set_option_helper");
+}
+
 Handle GraalRuntime::get_OptionValue(const char* declaringClass, const char* fieldName, const char* fieldSig, TRAPS) {
   TempNewSymbol name = SymbolTable::new_symbol(declaringClass, THREAD);
   Klass* klass = SystemDictionary::resolve_or_fail(name, true, CHECK_NH);
@@ -830,6 +881,49 @@ Handle GraalRuntime::create_Service(const char* name, TRAPS) {
   instanceHandle service = klass->allocate_instance_handle(CHECK_NH);
   JavaCalls::call_special(&result, service, klass, vmSymbols::object_initializer_name(), vmSymbols::void_method_signature(), THREAD);
   return service;
+}
+
+void GraalRuntime::shutdown() {
+  if (_HotSpotGraalRuntime_instance != NULL) {
+    JavaThread* THREAD = JavaThread::current();
+    HandleMark hm(THREAD);
+    TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/HotSpotGraalRuntime", THREAD);
+    KlassHandle klass = load_required_class(name);
+    JavaValue result(T_VOID);
+    JavaCallArguments args;
+    args.push_oop(get_HotSpotGraalRuntime());
+    JavaCalls::call_special(&result, klass, vmSymbols::shutdown_method_name(), vmSymbols::void_method_signature(), &args, THREAD);
+    GUARANTEE_NO_PENDING_EXCEPTION("Error while calling shutdown");
+
+    JNIHandles::destroy_global(_HotSpotGraalRuntime_instance);
+    _HotSpotGraalRuntime_instance = NULL;
+  }
+}
+
+void GraalRuntime::abort_on_pending_exception(Handle exception, const char* message, bool dump_core) {
+  Thread* THREAD = Thread::current();
+  CLEAR_PENDING_EXCEPTION;
+
+  assert(exception->is_a(SystemDictionary::Throwable_klass()), "Throwable instance expected");
+  JavaValue result(T_VOID);
+  JavaCalls::call_virtual(&result,
+                          exception,
+                          KlassHandle(THREAD,
+                          SystemDictionary::Throwable_klass()),
+                          vmSymbols::printStackTrace_name(),
+                          vmSymbols::void_method_signature(),
+                          THREAD);
+
+  vm_abort(dump_core);
+}
+
+Klass* GraalRuntime::load_required_class(Symbol* name) {
+  Klass* klass = SystemDictionary::resolve_or_null(name, SystemDictionary::java_system_loader(), Handle(), Thread::current());
+  if (klass == NULL) {
+    tty->print_cr("Could not load class %s", name->as_C_string());
+    vm_abort(false);
+  }
+  return klass;
 }
 
 #include "graalRuntime.inline.hpp"

@@ -89,15 +89,12 @@ public class LogParser extends DefaultHandler implements ErrorHandler, Constants
                 if (result != 0) {
                     return result;
                 }
-            }
-            double difference = (a.getStart() - b.getStart());
-            if (difference < 0) {
+            } else if (c1 == null && c2 != null) {
                 return -1;
-            }
-            if (difference > 0) {
+            } else if (c2 == null && c1 != null) {
                 return 1;
             }
-            return 0;
+            return Double.compare(a.getStart(), b.getStart());
         }
 
         public boolean equals(Object other) {
@@ -138,6 +135,7 @@ public class LogParser extends DefaultHandler implements ErrorHandler, Constants
     private HashMap<String, String> types = new HashMap<String, String>();
     private HashMap<String, Method> methods = new HashMap<String, Method>();
     private LinkedHashMap<String, NMethod> nmethods = new LinkedHashMap<String, NMethod>();
+    private ArrayList<MakeNotEntrantEvent> notEntrantEvents = new ArrayList<MakeNotEntrantEvent>();
     private HashMap<String, Compilation> compiles = new HashMap<String, Compilation>();
     private String failureReason;
     private int bci;
@@ -147,6 +145,8 @@ public class LogParser extends DefaultHandler implements ErrorHandler, Constants
     private Stack<Phase> phaseStack = new Stack<Phase>();
     private UncommonTrapEvent currentTrap;
     private Stack<CallSite> late_inline_scope;
+    private JVMState eliminated_lock;
+    private boolean in_eliminate_lock;
 
     long parseLong(String l) {
         try {
@@ -191,13 +191,32 @@ public class LogParser extends DefaultHandler implements ErrorHandler, Constants
         p.parse(new InputSource(reader), log);
 
         // Associate compilations with their NMethods
-        for (NMethod nm : log.nmethods.values()) {
-            Compilation c = log.compiles.get(nm.getId());
-            nm.setCompilation(c);
-            // Native wrappers for methods don't have a compilation
-            if (c != null) {
-                c.setNMethod(nm);
+        for (LogEvent le : log.events) {
+            if (le instanceof BasicLogEvent) {
+                BasicLogEvent ble = (BasicLogEvent) le;
+                Compilation c = log.compiles.get(ble.getId());
+                ble.setCompilation(c);
+                if (ble instanceof NMethod) {
+                    NMethod nm = (NMethod) ble;
+                    // Native wrappers for methods don't have a compilation and Graal methods don't either.
+                    if (c != null) {
+                        c.setNMethod(nm);
+                    }
+                } else {
+                    if (c == null) {
+                        throw new InternalError("can't find compilation " + ble.getId() + " for " + ble);
+                    }
+                }
             }
+        }
+
+
+        for (MakeNotEntrantEvent ne : log.notEntrantEvents) {
+            Compilation c = log.compiles.get(ne.getId());
+            if (c == null) {
+                throw new InternalError("can't find compilation " + ne.getId());
+            }
+            ne.setCompilation(c);
         }
 
         // Initially we want the LogEvent log sorted by timestamp
@@ -353,8 +372,9 @@ public class LogParser extends DefaultHandler implements ErrorHandler, Constants
             String id = makeId(atts);
             NMethod nm = nmethods.get(id);
             if (nm == null) throw new InternalError();
-            LogEvent e = new MakeNotEntrantEvent(Double.parseDouble(search(atts, "stamp")), id,
-                                                 atts.getValue("zombie") != null, nm);
+            MakeNotEntrantEvent e = new MakeNotEntrantEvent(Double.parseDouble(search(atts, "stamp")), id,
+                                                            atts.getValue("zombie") != null, nm);
+            notEntrantEvents.add(e);
             events.add(e);
         } else if (qname.equals("uncommon_trap")) {
             String id = atts.getValue("compile_id");
@@ -374,6 +394,8 @@ public class LogParser extends DefaultHandler implements ErrorHandler, Constants
             late_inline_scope = new Stack<CallSite>();
             site = new CallSite(-999, method(search(atts, "method")));
             late_inline_scope.push(site);
+        } else if (qname.equals("eliminate_lock")) {
+            in_eliminate_lock = true;
         } else if (qname.equals("jvms")) {
             // <jvms bci='4' method='java/io/DataInputStream readChar ()C' bytes='40' count='5815' iicount='20815'/>
             if (currentTrap != null) {
@@ -382,6 +404,13 @@ public class LogParser extends DefaultHandler implements ErrorHandler, Constants
                 bci = Integer.parseInt(search(atts, "bci"));
                 site = new CallSite(bci, method(search(atts, "method")));
                 late_inline_scope.push(site);
+            } else if (in_eliminate_lock) {
+                JVMState jvms = new JVMState(method(atts.getValue("method")), Integer.parseInt(atts.getValue("bci")));
+                if (eliminated_lock == null) {
+                    eliminated_lock = jvms;
+                } else {
+                    eliminated_lock.push(jvms);
+                }
             } else {
                 // Ignore <eliminate_allocation type='667'>,
                 //        <eliminate_lock lock='1'>,
@@ -390,9 +419,10 @@ public class LogParser extends DefaultHandler implements ErrorHandler, Constants
         } else if (qname.equals("nmethod")) {
             String id = makeId(atts);
             NMethod nm = new NMethod(Double.parseDouble(search(atts, "stamp")),
-                    id,
-                    parseLong(atts.getValue("address")),
-                    parseLong(atts.getValue("size")));
+                                     id,
+                                     atts.getValue("compile_kind"),
+                                     parseLong(atts.getValue("address")),
+                                     parseLong(atts.getValue("size")));
             nmethods.put(id, nm);
             events.add(nm);
         } else if (qname.equals("parse")) {
@@ -429,6 +459,13 @@ public class LogParser extends DefaultHandler implements ErrorHandler, Constants
             scopes.pop();
         } else if (qname.equals("uncommon_trap")) {
             currentTrap = null;
+        } else if (qname.equals("eliminate_lock")) {
+            if (eliminated_lock != null) {
+                // There's no JVM state on the unlock, so ignore it
+                compile.addEliminatedLock(eliminated_lock);
+            }
+            eliminated_lock = null;
+            in_eliminate_lock = false;
         } else if (qname.equals("late_inline")) {
             // Populate late inlining info.
 

@@ -114,25 +114,20 @@ public class StampTool {
 
     public static Stamp rem(IntegerStamp stamp1, IntegerStamp stamp2) {
         assert stamp1.getBits() == stamp2.getBits();
-        long magnitude; // the maximum absolute value of the result
+        // zero is always possible
+        long lowerBound = Math.min(stamp1.lowerBound(), 0);
+        long upperBound = Math.max(stamp1.upperBound(), 0);
+
+        long magnitude; // the maximum absolute value of the result, derived from stamp2
         if (stamp2.lowerBound() == IntegerStamp.defaultMinValue(stamp2.getBits())) {
             // Math.abs(...) - 1 does not work in this case
             magnitude = IntegerStamp.defaultMaxValue(stamp2.getBits());
         } else {
             magnitude = Math.max(Math.abs(stamp2.lowerBound()), Math.abs(stamp2.upperBound())) - 1;
         }
-        long lowerBound = Math.max(stamp1.lowerBound(), -magnitude);
-        if (stamp1.upperBound() > magnitude) {
-            // if the result can wrap around at the upper bound, it can reach any value between 0
-            // and magnitude
-            lowerBound = Math.min(lowerBound, 0);
-        }
-        long upperBound = Math.min(stamp1.upperBound(), magnitude);
-        if (stamp1.lowerBound() < -magnitude) {
-            // if the result can wrap around at the lower bound, it can reach any value between
-            // -magnitude and 0
-            upperBound = Math.max(upperBound, 0);
-        }
+        lowerBound = Math.max(lowerBound, -magnitude);
+        upperBound = Math.min(upperBound, magnitude);
+
         return StampFactory.forInteger(stamp1.getBits(), lowerBound, upperBound);
     }
 
@@ -504,8 +499,8 @@ public class StampTool {
      *         always null
      */
     public static boolean isObjectAlwaysNull(Stamp stamp) {
-        if (stamp instanceof ObjectStamp && stamp.isLegal()) {
-            return ((ObjectStamp) stamp).alwaysNull();
+        if (stamp instanceof AbstractObjectStamp && stamp.isLegal()) {
+            return ((AbstractObjectStamp) stamp).alwaysNull();
         }
         return false;
     }
@@ -530,8 +525,8 @@ public class StampTool {
      *         always null
      */
     public static boolean isObjectNonNull(Stamp stamp) {
-        if (stamp instanceof ObjectStamp && stamp.isLegal()) {
-            return ((ObjectStamp) stamp).nonNull();
+        if (stamp instanceof AbstractObjectStamp && stamp.isLegal()) {
+            return ((AbstractObjectStamp) stamp).nonNull();
         }
         return false;
     }
@@ -555,8 +550,8 @@ public class StampTool {
      * @return the Java type this stamp has if it is a legal Object stamp, null otherwise
      */
     public static ResolvedJavaType typeOrNull(Stamp stamp) {
-        if (stamp instanceof ObjectStamp && stamp.isLegal()) {
-            return ((ObjectStamp) stamp).type();
+        if (stamp instanceof AbstractObjectStamp && stamp.isLegal()) {
+            return ((AbstractObjectStamp) stamp).type();
         }
         return null;
     }
@@ -584,8 +579,8 @@ public class StampTool {
      * @return true if this node represents a legal object stamp whose Java type is known exactly
      */
     public static boolean isExactType(Stamp stamp) {
-        if (stamp instanceof ObjectStamp && stamp.isLegal()) {
-            return ((ObjectStamp) stamp).isExactType();
+        if (stamp instanceof AbstractObjectStamp && stamp.isLegal()) {
+            return ((AbstractObjectStamp) stamp).isExactType();
         }
         return false;
     }

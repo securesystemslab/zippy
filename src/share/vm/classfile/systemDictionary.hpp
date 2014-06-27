@@ -209,6 +209,7 @@ class Ticks;
   do_klass(HotSpotObjectConstant_klass,           com_oracle_graal_hotspot_meta_HotSpotObjectConstant,          Opt) \
   do_klass(HotSpotMetaspaceConstant_klass,        com_oracle_graal_hotspot_meta_HotSpotMetaspaceConstant,       Opt) \
   do_klass(HotSpotStackFrameReference_klass,      com_oracle_graal_hotspot_HotSpotStackFrameReference,          Opt) \
+  do_klass(CompilationTask_klass,                 com_oracle_graal_hotspot_CompilationTask,                     Opt) \
   /* graal.api.code */                                                                                               \
   do_klass(Assumptions_klass,                     com_oracle_graal_api_code_Assumptions,                        Opt) \
   do_klass(Assumptions_ConcreteMethod_klass,      com_oracle_graal_api_code_Assumptions_ConcreteMethod,         Opt) \

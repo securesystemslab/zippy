@@ -30,11 +30,17 @@ public class NMethod extends BasicLogEvent {
 
     private long address;
     private long size;
+    private String compileKind;
 
-    NMethod(double s, String i, long a, long sz) {
+    NMethod(double s, String i, String k, long a, long sz) {
         super(s, i);
         address = a;
         size = sz;
+        if (k == null) {
+            compileKind = "normal";
+        } else {
+            compileKind = k;
+        }
     }
 
     public void print(PrintStream out) {
@@ -48,6 +54,10 @@ public class NMethod extends BasicLogEvent {
 
     public void setAddress(long address) {
         this.address = address;
+    }
+
+    public String getKind() {
+        return compileKind;
     }
 
     public long getSize() {

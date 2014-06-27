@@ -737,26 +737,35 @@ def build(args, vm=None):
                 return
         else:
             cpus = multiprocessing.cpu_count()
-            runCmd = [mx.gmake_cmd()]
-            runCmd.append(build + buildSuffix)
+            makeDir = join(_graal_home, 'make')
+            runCmd = [mx.gmake_cmd(), '-C', makeDir]
+
             env = os.environ.copy()
+
+            # These must be passed as environment variables
+            env.setdefault('LANG', 'C')
+            env['JAVA_HOME'] = jdk
+
+            def setMakeVar(name, default, env=None):
+                """Sets a make variable on the command line to the value
+                   of the variable in 'env' with the same name if defined
+                   and 'env' is not None otherwise to 'default'
+                """
+                runCmd.append(name + '=' + (env.get(name, default) if env else default))
 
             if opts2.D:
                 for nv in opts2.D:
                     name, value = nv.split('=', 1)
-                    env[name.strip()] = value
+                    setMakeVar(name.strip(), value)
 
-            env.setdefault('ARCH_DATA_MODEL', '64')
-            env.setdefault('LANG', 'C')
-            env.setdefault('HOTSPOT_BUILD_JOBS', str(cpus))
-            env.setdefault('ALT_BOOTDIR', mx.java().jdk)
+            setMakeVar('ARCH_DATA_MODEL', '64', env=env)
+            setMakeVar('HOTSPOT_BUILD_JOBS', str(cpus), env=env)
+            setMakeVar('ALT_BOOTDIR', mx.java().jdk, env=env)
 
-            if not mx._opts.verbose:
-                runCmd.append('MAKE_VERBOSE=')
-            env['JAVA_HOME'] = jdk
+            setMakeVar('MAKE_VERBOSE', 'y' if mx._opts.verbose else '')
             if vm.endswith('nograal'):
-                env['INCLUDE_GRAAL'] = 'false'
-                env.setdefault('ALT_OUTPUTDIR', join(_graal_home, 'build-nograal', mx.get_os()))
+                setMakeVar('INCLUDE_GRAAL', 'false')
+                setMakeVar('ALT_OUTPUTDIR', join(_graal_home, 'build-nograal', mx.get_os()), env=env)
             else:
                 # extract latest release tag for graal
                 try:
@@ -768,34 +777,45 @@ def build(args, vm=None):
                 if tags:
                     # extract the most recent tag
                     tag = sorted(tags, key=lambda e: [int(x) for x in e[len("graal-"):].split('.')], reverse=True)[0]
-                    env.setdefault('USER_RELEASE_SUFFIX', tag)
-                    env.setdefault('GRAAL_VERSION', tag[len("graal-"):])
+                    setMakeVar('USER_RELEASE_SUFFIX', tag)
+                    setMakeVar('GRAAL_VERSION', tag[len("graal-"):])
                 else:
                     version = 'unknown-{}-{}'.format(platform.node(), time.strftime('%Y-%m-%d_%H-%M-%S_%Z'))
-                    env.setdefault('USER_RELEASE_SUFFIX', 'graal-' + version)
-                    env.setdefault('GRAAL_VERSION', version)
-                env['INCLUDE_GRAAL'] = 'true'
-            env.setdefault('INSTALL', 'y')
+                    setMakeVar('USER_RELEASE_SUFFIX', 'graal-' + version)
+                    setMakeVar('GRAAL_VERSION', version)
+                setMakeVar('INCLUDE_GRAAL', 'true')
+            setMakeVar('INSTALL', 'y', env=env)
             if mx.get_os() == 'solaris':
                 # If using sparcWorks, setup flags to avoid make complaining about CC version
                 cCompilerVersion = subprocess.Popen('CC -V', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).stderr.readlines()[0]
                 if cCompilerVersion.startswith('CC: Sun C++'):
                     compilerRev = cCompilerVersion.split(' ')[3]
-                    env.setdefault('ENFORCE_COMPILER_REV', compilerRev)
-                    env.setdefault('ENFORCE_CC_COMPILER_REV', compilerRev)
+                    setMakeVar('ENFORCE_COMPILER_REV', compilerRev, env=env)
+                    setMakeVar('ENFORCE_CC_COMPILER_REV', compilerRev, env=env)
                     if build == 'jvmg':
-                        # I want ALL the symbols when I'm debugging on Solaris
-                        # Some Makefile variable are overloaded by environment variable so we need to explicitely
-                        # pass them down in the command line. This one is an example of that.
-                        runCmd.append('STRIP_POLICY=no_strip')
+                        # We want ALL the symbols when debugging on Solaris
+                        setMakeVar('STRIP_POLICY', 'no_strip')
             # This removes the need to unzip the *.diz files before debugging in gdb
-            env.setdefault('ZIP_DEBUGINFO_FILES', '0')
+            setMakeVar('ZIP_DEBUGINFO_FILES', '0', env=env)
 
             # Clear these 2 variables as having them set can cause very confusing build problems
             env.pop('LD_LIBRARY_PATH', None)
             env.pop('CLASSPATH', None)
 
-            mx.run(runCmd, cwd=join(_graal_home, 'make'), err=filterXusage, env=env)
+            # Issue an env prefix that can be used to run the make on the command line
+            if not mx._opts.verbose:
+                mx.log('--------------- make command line ----------------------')
+
+            envPrefix = ' '.join([key + '=' + env[key] for key in env.iterkeys() if not os.environ.has_key(key) or env[key] != os.environ[key]])
+            if len(envPrefix):
+                mx.log('env ' + envPrefix + ' \\')
+
+            runCmd.append(build + buildSuffix)
+
+            if not mx._opts.verbose:
+                mx.log(' '.join(runCmd))
+                mx.log('--------------------------------------------------------')
+            mx.run(runCmd, err=filterXusage, env=env)
 
         jvmCfg = _vmCfgInJdk(jdk)
         if not exists(jvmCfg):
@@ -1002,6 +1022,8 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
             prefixArgs = ['-esa', '-ea']
         else:
             prefixArgs = ['-XX:-BootstrapGraal', '-esa', '-ea']
+        if gc_after_test:
+            prefixArgs.append('-XX:-DisableExplicitGC')
         with open(testfile) as fp:
             testclasses = [l.rstrip() for l in fp.readlines()]
         if len(testclasses) == 1:

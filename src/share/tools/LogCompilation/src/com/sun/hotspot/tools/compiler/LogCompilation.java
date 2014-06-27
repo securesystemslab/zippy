@@ -44,6 +44,7 @@ public class LogCompilation extends DefaultHandler implements ErrorHandler, Cons
         System.out.println("  -s:   sort events by start time");
         System.out.println("  -e:   sort events by elapsed time");
         System.out.println("  -n:   sort events by name and start");
+        System.out.println("  -L:   print eliminated locks");
         System.exit(exitcode);
     }
 
@@ -52,6 +53,7 @@ public class LogCompilation extends DefaultHandler implements ErrorHandler, Cons
         boolean statistics = false;
         boolean printInlining = false;
         boolean cleanup = false;
+        boolean printEliminatedLocks = false;
         int index = 0;
 
         while (args.length > index) {
@@ -75,6 +77,9 @@ public class LogCompilation extends DefaultHandler implements ErrorHandler, Cons
             } else if (args[index].equals("-i")) {
                 printInlining = true;
                 index++;
+            } else if (args[index].equals("-L")) {
+                printEliminatedLocks = true;
+                index++;
             } else {
                 break;
             }
@@ -87,11 +92,34 @@ public class LogCompilation extends DefaultHandler implements ErrorHandler, Cons
         while (index < args.length) {
             ArrayList<LogEvent> events = LogParser.parse(args[index], cleanup);
 
-            if (statistics) {
+            if (printEliminatedLocks) {
+                Collections.sort(events, defaultSort);
+                for (LogEvent e : events) {
+                    if (e instanceof Compilation) {
+                        Compilation c = (Compilation) e;
+                        List<JVMState> eliminated = c.getEliminatedLocks();
+                        if (!eliminated.isEmpty()) {
+                            c.print(System.out);
+                            System.out.println("  Eliminated locks");
+                            for (JVMState jvms : eliminated) {
+                                System.err.print("   ");
+                                while (jvms != null) {
+                                    System.out.printf(" %s.%s@%d", jvms.method.getHolder().replace('/', '.'), jvms.method.getName(), jvms.bci);
+                                    jvms = jvms.outer;
+                                }
+                                System.out.println();
+                            }
+                        }
+                    }
+                }
+            } else if (statistics) {
                 printStatistics(events, System.out);
             } else {
                 Collections.sort(events, defaultSort);
                 for (LogEvent c : events) {
+                    if (c instanceof NMethod) continue;
+
+                    System.out.printf("%f ", c.getStart());
                     if (printInlining && c instanceof Compilation) {
                         Compilation comp = (Compilation)c;
                         comp.print(System.out, true);
@@ -141,7 +169,7 @@ public class LogCompilation extends DefaultHandler implements ErrorHandler, Cons
                        nodes created in the phase, live nodes at the start of the phase,
                        live nodes added in the phase.
                     */
-                    out.printf("\t%s %6.4f %d %d %d %d\n", phase.getName(), phase.getElapsedTime(), phase.getStartNodes(), phase.getNodes(), phase.getStartLiveNodes(), phase.getLiveNodes());
+                    // out.printf("\t%s %6.4f %d %d %d %d\n", phase.getName(), phase.getElapsedTime(), phase.getStartNodes(), phase.getNodes(), phase.getStartLiveNodes(), phase.getLiveNodes());
                 }
             } else if (e instanceof MakeNotEntrantEvent) {
                 MakeNotEntrantEvent mne = (MakeNotEntrantEvent) e;
