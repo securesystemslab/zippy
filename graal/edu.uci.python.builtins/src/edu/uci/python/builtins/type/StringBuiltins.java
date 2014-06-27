@@ -26,7 +26,9 @@ package edu.uci.python.builtins.type;
 
 import java.util.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.function.*;
@@ -78,6 +80,7 @@ public final class StringBuiltins extends PythonBuiltins {
     @Builtin(name = "join", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
     public abstract static class JoinNode extends PythonBuiltinNode {
 
+        @ExplodeLoop
         @Specialization(order = 0)
         public String join(String string, String arg) {
             StringBuilder sb = new StringBuilder();
@@ -92,6 +95,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
+        @ExplodeLoop
         @Specialization(order = 2, guards = "is2ndObjectStorage")
         public String join(String string, PList list) {
             StringBuilder sb = new StringBuilder();
@@ -106,6 +110,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
+        @ExplodeLoop
         @Specialization(order = 5)
         public String join(String string, PSequence seq) {
             StringBuilder sb = new StringBuilder();
@@ -119,6 +124,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
+        @ExplodeLoop
         @Specialization(order = 6)
         public String join(String string, PCharArray array) {
             StringBuilder sb = new StringBuilder();
@@ -133,6 +139,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
+        @ExplodeLoop
         @Specialization(order = 7)
         public String join(String string, PSet arg) {
             if (arg.len() == 0) {
@@ -150,7 +157,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @Specialization(order = 8)
+        @Generic
         public String join(Object self, Object arg) {
             throw new RuntimeException("invalid arguments type for join(): self " + self + ", arg " + arg);
         }
