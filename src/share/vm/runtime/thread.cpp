@@ -31,6 +31,7 @@
 #include "compiler/compileBroker.hpp"
 #ifdef GRAAL
 #include "graal/graalCompiler.hpp"
+#include "graal/graalRuntime.hpp"
 #endif
 #include "interpreter/interpreter.hpp"
 #include "interpreter/linkResolver.hpp"
@@ -3730,6 +3731,14 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   if (CleanChunkPoolAsync) {
     Chunk::start_chunk_pool_cleaner_task();
   }
+
+#ifdef GRAAL
+  status = GraalRuntime::check_arguments(main_thread);
+  if (status != JNI_OK) {
+    *canTryAgain = false; // don't let caller call JNI_CreateJavaVM again
+    return status;
+  }
+#endif
 
   // initialize compiler(s)
 #if defined(COMPILER1) || defined(COMPILER2) || defined(SHARK) || defined(COMPILERGRAAL)

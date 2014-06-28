@@ -103,7 +103,7 @@ class Distribution:
                 isOverwrite = False
                 if existingSource and existingSource != source:
                     if arcname[-1] != os.path.sep:
-                        log('warning: ' + self.path + ': avoid overwrite of ' + arcname + '\n  new: ' + source + '\n  old: ' + existingSource)
+                        logv('warning: ' + self.path + ': avoid overwrite of ' + arcname + '\n  new: ' + source + '\n  old: ' + existingSource)
                     isOverwrite = True
                 zf._provenance[arcname] = source
                 return isOverwrite
@@ -4162,9 +4162,8 @@ def fsckprojects(args):
         projectDirs = [p.dir for p in suite.projects]
         for dirpath, dirnames, files in os.walk(suite.dir):
             if dirpath == suite.dir:
-                # no point in traversing .hg
-                if '.hg' in dirnames:
-                    dirnames.remove('.hg')
+                # no point in traversing .hg or lib/
+                dirnames[:] = [d for d in dirnames if d not in ['.hg', 'lib']]
             elif dirpath in projectDirs:
                 # don't traverse subdirs of an existing project in this suite
                 dirnames[:] = []
