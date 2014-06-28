@@ -62,7 +62,9 @@ public final class PGenerator implements PIterator {
         return frameDescriptor;
     }
 
-    static int index = 0;
+    public Object[] getArguments() {
+        return arguments;
+    }
 
     @Override
     public Object __next__() throws StopIterationException {
