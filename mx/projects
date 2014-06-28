@@ -102,18 +102,12 @@ distribution@TRUFFLE-DSL-PROCESSOR@dependencies=\
 com.oracle.truffle.dsl.processor
 distribution@TRUFFLE-DSL-PROCESSOR@distDependencies=TRUFFLE
 
-#distribution@ZIPPY@path=zippy.jar
-#distribution@ZIPPY@subDir=graal
-#distribution@ZIPPY@sourcesPath=zippy-sources.jar
-#distribution@ZIPPY@dependencies=\
-#edu.uci.python.benchmark,\
-#edu.uci.python.builtins,\
-#edu.uci.python.nodes,\
-#edu.uci.python.parser,\
-#edu.uci.python.runtime,\
-#edu.uci.python.shell,\
-#edu.uci.python.test
-#distribution@ZIPPY@distDependencies=TRUFFLE
+distribution@ZIPPY@path=zippy.jar
+distribution@ZIPPY@subDir=graal
+distribution@ZIPPY@sourcesPath=zippy-sources.jar
+distribution@ZIPPY@mainClass=edu.uci.python.shell.Shell
+distribution@ZIPPY@dependencies=\
+edu.uci.python.shell
 
 # graal.api.collections
 project@com.oracle.graal.api.collections@subDir=graal
