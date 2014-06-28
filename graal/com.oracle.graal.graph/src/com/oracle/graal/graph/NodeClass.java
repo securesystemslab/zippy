@@ -116,7 +116,12 @@ public final class NodeClass extends FieldIntrospection {
     public NodeClass(Class<?> clazz, CalcOffset calcOffset, int[] presetIterableIds, int presetIterableId) {
         super(clazz);
         assert NODE_CLASS.isAssignableFrom(clazz);
+
         this.isCanonicalizable = Canonicalizable.class.isAssignableFrom(clazz);
+        if (Canonicalizable.Unary.class.isAssignableFrom(clazz) || Canonicalizable.Binary.class.isAssignableFrom(clazz)) {
+            assert Canonicalizable.Unary.class.isAssignableFrom(clazz) ^ Canonicalizable.Binary.class.isAssignableFrom(clazz) : clazz + " should implement either Unary or Binary, not both";
+        }
+
         this.isSimplifiable = Simplifiable.class.isAssignableFrom(clazz);
 
         FieldScanner scanner = new FieldScanner(calcOffset);
@@ -375,6 +380,10 @@ public final class NodeClass extends FieldIntrospection {
 
         public void set(Node node, Node value) {
             node.getNodeClass().set(node, this, value);
+        }
+
+        void initialize(Node node, Node value) {
+            node.getNodeClass().initializePosition(node, this, value);
         }
 
         public boolean isValidFor(Node node, Node from) {
@@ -1063,6 +1072,20 @@ public final class NodeClass extends FieldIntrospection {
                 }
                 list.add(x);
             }
+        }
+    }
+
+    public void initializePosition(Node node, Position pos, Node x) {
+        long offset = pos.isInput() ? inputOffsets[pos.getIndex()] : successorOffsets[pos.getIndex()];
+        if (pos.getSubIndex() == NOT_ITERABLE) {
+            assert x == null || fieldTypes.get((pos.isInput() ? inputOffsets : successorOffsets)[pos.getIndex()]).isAssignableFrom(x.getClass()) : this + ".set(node, pos, " + x + ")";
+            putNode(node, offset, x);
+        } else {
+            NodeList<Node> list = getNodeList(node, offset);
+            while (list.size() <= pos.getSubIndex()) {
+                list.add(null);
+            }
+            list.initialize(pos.getSubIndex(), x);
         }
     }
 

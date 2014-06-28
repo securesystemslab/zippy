@@ -881,6 +881,14 @@ C2V_VMENTRY(void, resolveInvokeDynamic, (JNIEnv*, jobject, jlong metaspace_const
   cp_cache_entry->set_dynamic_call(cp, callInfo);
 C2V_END
 
+C2V_VMENTRY(jboolean, shouldDebugNonSafepoints, (JNIEnv*, jobject))
+  //see compute_recording_non_safepoints in debugInfroRec.cpp
+  if (JvmtiExport::should_post_compiled_method_load() && FLAG_IS_DEFAULT(DebugNonSafepoints)) {
+    return true;
+  }
+  return DebugNonSafepoints;
+C2V_END
+
 // public native void materializeVirtualObjects(HotSpotStackFrameReference stackFrame, boolean invalidate);
 C2V_VMENTRY(void, materializeVirtualObjects, (JNIEnv*, jobject, jobject hs_frame, bool invalidate))
   ResourceMark rm;
@@ -1052,6 +1060,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getTimeStamp",                                 CC"()J",                                                                  FN_PTR(getTimeStamp)},
   {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF "[JI)"HS_STACK_FRAME_REF,                         FN_PTR(getNextStackFrame)},
   {CC"materializeVirtualObjects",                    CC"("HS_STACK_FRAME_REF"Z)V",                                             FN_PTR(materializeVirtualObjects)},
+  {CC"shouldDebugNonSafepoints",                     CC"()Z",                                                                  FN_PTR(shouldDebugNonSafepoints)},
 };
 
 int CompilerToVM_methods_count() {

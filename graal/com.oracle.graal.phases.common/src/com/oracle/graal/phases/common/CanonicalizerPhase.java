@@ -27,8 +27,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.graph.Graph.Mark;
-import com.oracle.graal.graph.Graph.NodeChangedListener;
+import com.oracle.graal.graph.Graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
@@ -150,22 +149,26 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
         }
 
         private void processWorkSet(StructuredGraph graph) {
-            NodeChangedListener nodeChangedListener = new NodeChangedListener() {
+            NodeEventListener listener = new NodeEventListener() {
 
-                @Override
-                public void nodeChanged(Node node) {
+                public void nodeAdded(Node node) {
                     workList.add(node);
                 }
+
+                public void inputChanged(Node node) {
+                    workList.add(node);
+                }
+
+                public void usagesDroppedToZero(Node node) {
+                    workList.add(node);
+                }
+
             };
-            graph.trackInputChange(nodeChangedListener);
-            graph.trackUsagesDroppedZero(nodeChangedListener);
-
-            for (Node n : workList) {
-                processNode(n);
+            try (NodeEventScope nes = graph.trackNodeEvents(listener)) {
+                for (Node n : workList) {
+                    processNode(n);
+                }
             }
-
-            graph.stopTrackingInputChange();
-            graph.stopTrackingUsagesDroppedZero();
         }
 
         private void processNode(Node node) {
@@ -177,7 +180,6 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
                     return;
                 }
                 StructuredGraph graph = (StructuredGraph) node.graph();
-                Mark mark = graph.getMark();
                 if (!GraphUtil.tryKillUnused(node)) {
                     if (!tryCanonicalize(node, nodeClass)) {
                         if (node instanceof ValueNode) {
@@ -194,12 +196,6 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
                                 }
                             }
                         }
-                    }
-                }
-
-                if (!mark.isCurrent()) {
-                    for (Node newNode : graph.getNewNodes(mark)) {
-                        workList.add(newNode);
                     }
                 }
             }
@@ -229,11 +225,32 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
             return result;
         }
 
+        private static AutoCloseable getCanonicalizeableContractAssertion(Node node) {
+            boolean needsAssertion = false;
+            assert (needsAssertion = true) == true;
+            if (needsAssertion) {
+                Mark mark = node.graph().getMark();
+                return () -> {
+                    assert mark.equals(node.graph().getMark()) : "new node created while canonicalizing " + node.getClass().getSimpleName() + " " + node + ": " +
+                                    node.graph().getNewNodes(mark).snapshot();
+                };
+            } else {
+                return new AutoCloseable() {
+                    public void close() throws Exception {
+                        // nothing to do
+                    }
+                };
+            }
+        }
+
         public boolean baseTryCanonicalize(final Node node, NodeClass nodeClass) {
             if (nodeClass.isCanonicalizable()) {
                 METRIC_CANONICALIZATION_CONSIDERED_NODES.increment();
                 try (Scope s = Debug.scope("CanonicalizeNode", node)) {
-                    Node canonical = node.canonical(tool);
+                    Node canonical;
+                    try (AutoCloseable verify = getCanonicalizeableContractAssertion(node)) {
+                        canonical = ((Canonicalizable) node).canonical(tool);
+                    }
                     if (performReplacement(node, canonical)) {
                         return true;
                     }
@@ -271,17 +288,23 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
 //                                         --------------------------------------------
 //       X: must not happen (checked with assertions)
 // @formatter:on
-        private boolean performReplacement(final Node node, Node canonical) {
-            if (canonical == node) {
+        private boolean performReplacement(final Node node, Node newCanonical) {
+            if (newCanonical == node) {
                 Debug.log("Canonicalizer: work on %1s", node);
                 return false;
             } else {
+                Node canonical = newCanonical;
                 Debug.log("Canonicalizer: replacing %1s with %1s", node, canonical);
                 METRIC_CANONICALIZED_NODES.increment();
                 StructuredGraph graph = (StructuredGraph) node.graph();
+                if (canonical != null && !canonical.isAlive()) {
+                    assert !canonical.isDeleted();
+                    canonical = graph.addOrUniqueWithInputs(canonical);
+                }
                 if (node instanceof FloatingNode) {
                     if (canonical == null) {
                         // case 1
+                        node.replaceAtUsages(null);
                         graph.removeFloating((FloatingNode) node);
                     } else {
                         // case 2
@@ -306,6 +329,7 @@ public class CanonicalizerPhase extends BasePhase<PhaseContext> {
                         tool.addToWorkList(fixedWithNext.next());
                         if (canonical == null) {
                             // case 3
+                            node.replaceAtUsages(null);
                             graph.removeFixed(fixedWithNext);
                         } else if (canonical instanceof FloatingNode) {
                             // case 4

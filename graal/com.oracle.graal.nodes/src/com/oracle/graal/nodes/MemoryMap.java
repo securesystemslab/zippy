@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,36 +20,26 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.nodes.calc;
+package com.oracle.graal.nodes;
+
+import java.util.*;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.extended.*;
 
 /**
- * The {@code ShiftOp} class represents shift operations.
+ * Maps a {@linkplain LocationIdentity location} to the last node that (potentially) wrote to the
+ * location.
  */
-public abstract class ShiftNode extends BinaryNode implements ArithmeticLIRLowerable {
+public interface MemoryMap {
 
     /**
-     * Creates a new shift operation.
-     *
-     * @param x the first input value
-     * @param s the second input value
+     * Gets the last node that that (potentially) wrote to {@code locationIdentity}.
      */
-    public ShiftNode(ValueNode x, ValueNode s) {
-        super(x.stamp().unrestricted(), x, s);
-        assert s.getKind() == Kind.Int;
-    }
+    MemoryNode getLastLocationAccess(LocationIdentity locationIdentity);
 
-    public int getShiftAmountMask() {
-        int mask;
-        if (getKind() == Kind.Int) {
-            mask = 0x1f;
-        } else {
-            assert getKind() == Kind.Long;
-            mask = 0x3f;
-        }
-        return mask;
-    }
+    /**
+     * Gets the location identities in the domain of this map.
+     */
+    Collection<LocationIdentity> getLocations();
 }

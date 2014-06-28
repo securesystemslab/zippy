@@ -223,7 +223,7 @@ public abstract class DefaultJavaLoweringProvider implements LoweringProvider {
         if (graph.getGuardsStage().ordinal() < StructuredGraph.GuardsStage.FIXED_DEOPTS.ordinal()) {
             return;
         }
-        ValueNode hub = createReadHub(graph, loadHub.object(), loadHub.getGuard());
+        ValueNode hub = createReadHub(graph, loadHub.getValue(), loadHub.getGuard());
         graph.replaceFloating(loadHub, hub);
     }
 
@@ -589,16 +589,16 @@ public abstract class DefaultJavaLoweringProvider implements LoweringProvider {
         }
         if (offset instanceof IntegerAddNode) {
             IntegerAddNode integerAddNode = (IntegerAddNode) offset;
-            if (integerAddNode.y() instanceof ConstantNode) {
-                displacement = integerAddNode.y().asConstant().asLong();
-                offset = integerAddNode.x();
+            if (integerAddNode.getY() instanceof ConstantNode) {
+                displacement = integerAddNode.getY().asConstant().asLong();
+                offset = integerAddNode.getX();
             }
         }
 
         if (offset instanceof LeftShiftNode) {
             LeftShiftNode leftShiftNode = (LeftShiftNode) offset;
-            if (leftShiftNode.y() instanceof ConstantNode) {
-                long shift = leftShiftNode.y().asConstant().asLong();
+            if (leftShiftNode.getY() instanceof ConstantNode) {
+                long shift = leftShiftNode.getY().asConstant().asLong();
                 if (shift >= 1 && shift <= 3) {
                     if (shift == 1) {
                         indexScaling = 2;
@@ -607,7 +607,7 @@ public abstract class DefaultJavaLoweringProvider implements LoweringProvider {
                     } else {
                         indexScaling = 8;
                     }
-                    offset = leftShiftNode.x();
+                    offset = leftShiftNode.getX();
                 }
             }
         }
@@ -626,13 +626,15 @@ public abstract class DefaultJavaLoweringProvider implements LoweringProvider {
     protected GuardingNode createBoundsCheck(AccessIndexedNode n, LoweringTool tool) {
         StructuredGraph graph = n.graph();
         ValueNode array = n.array();
-        ValueNode arrayLength = readArrayLength(n.graph(), array, tool.getConstantReflection());
+        ValueNode arrayLength = readArrayLength(array, tool.getConstantReflection());
         if (arrayLength == null) {
             Stamp stamp = StampFactory.positiveInt();
             ReadNode readArrayLength = graph.add(new ReadNode(array, ConstantLocationNode.create(ARRAY_LENGTH_LOCATION, Kind.Int, arrayLengthOffset(), graph), stamp, BarrierType.NONE));
             graph.addBeforeFixed(n, readArrayLength);
             readArrayLength.setGuard(createNullCheck(array, readArrayLength, tool));
             arrayLength = readArrayLength;
+        } else {
+            arrayLength = arrayLength.isAlive() ? arrayLength : graph.addOrUniqueWithInputs(arrayLength);
         }
 
         if (arrayLength.isConstant() && n.index().isConstant()) {

@@ -66,7 +66,7 @@
 JNINativeMethod Hsail::HSAIL_methods[] = {
   {CC"initialize",       CC"()Z",                               FN_PTR(Hsail::initialize)},
   {CC"generateKernel",   CC"([B" STRING ")J",                   FN_PTR(Hsail::generate_kernel)},
-  {CC"executeKernel0",   CC"("HS_INSTALLED_CODE"I["OBJECT"["OBJECT"["JLTHREAD"I[I)Z",  FN_PTR(Hsail::execute_kernel_void_1d)},
+  {CC"executeKernel0",   CC"("HS_INSTALLED_CODE"I["OBJECT"["JLTHREAD"I[I)Z",  FN_PTR(Hsail::execute_kernel_void_1d)},
 };
 
 void* Hsail::_device_context = NULL;
@@ -108,7 +108,7 @@ void Hsail::register_heap() {
   _okra_register_heap(Universe::heap()->base(), Universe::heap()->capacity());
 }
 
-GPU_VMENTRY(jboolean, Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobject kernel_handle, jint dimX, jobject args, jobject oops_save,
+GPU_VMENTRY(jboolean, Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobject kernel_handle, jint dimX, jobject args,
                                                       jobject donor_threads, jint allocBytesPerWorkitem, jobject oop_map_array))
 
   ResourceMark rm;
@@ -125,7 +125,7 @@ GPU_VMENTRY(jboolean, Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobje
     SharedRuntime::throw_and_post_jvmti_exception(JavaThread::current(), vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException(), NULL);
   }
 
-return execute_kernel_void_1d_internal((address) kernel, dimX, args, mh, nm, oops_save, donor_threads, allocBytesPerWorkitem, oop_map_array, CHECK_0);
+return execute_kernel_void_1d_internal((address) kernel, dimX, args, mh, nm, donor_threads, allocBytesPerWorkitem, oop_map_array, CHECK_0);
 GPU_END
 
 static void showRanges(jboolean* a, int len) {
@@ -145,143 +145,11 @@ static void showRanges(jboolean* a, int len) {
   }
 }
 
-class OopSaver : public StackObj {
-private:
-  objArrayOop _oopsSaveArray;
-  typeArrayOop _oopMapArray;
-  jobject  _oops_save;
-  jobject _oop_map_array;
-  int _last_pcoffset;
-  int _last_idx;
-  int _saveAreaCounts;
-
-  enum {
-    SAVEAREACOUNTS_OFST=0,
-    SPAN_OFST=1,
-    HEADERSIZE=2
-  }; 
-  int mapPcOffsetToIndex(int pcOffset) {
-    if (pcOffset == _last_pcoffset) {
-      return _last_idx;
-    }
-    int span = _oopMapArray->int_at(SPAN_OFST);
-    for (int idx = HEADERSIZE; idx < _oopMapArray->length(); idx += span) {
-      int ofst = _oopMapArray->int_at(idx);
-      if (ofst == pcOffset) {
-        _last_pcoffset = pcOffset;
-        _last_idx = idx + 1;
-        return _last_idx;
-      }
-    }
-    ShouldNotReachHere();
-    return -1;
-  }
-
-public:
-  OopSaver(jobject oops_save, jobject oop_map_array) {
-    _oops_save = oops_save;
-    _oop_map_array = oop_map_array;
-    _last_pcoffset = -1;
-    _saveAreaCounts = getSaveAreaCounts(oop_map_array);
-    resolveArrays();
-  }
- 
-  void resolveArrays() {
-    _oopsSaveArray = (objArrayOop) JNIHandles::resolve(_oops_save);
-    _oopMapArray = (typeArrayOop) JNIHandles::resolve(_oop_map_array);
-  }
-
-  void* getOopForBit(HSAILFrame* hsailFrame, int bit) {
-    assert(isOop(hsailFrame, bit), "");
-    void* oop;
-    if (bit < hsailFrame->num_d_regs()) {
-      // d register
-      oop = (void*) hsailFrame->get_d_reg(bit);
-    } else {
-      // stack slot
-      int stackOffset = (bit - hsailFrame->num_d_regs()) * 8;  // 8 bytes per stack slot
-      oop = (void*) hsailFrame->get_stackslot64(stackOffset);
-    }
-    return oop;
-  }
-
-  void putOopForBit(HSAILFrame* hsailFrame, int bit, void* oop) {
-    assert(isOop(hsailFrame, bit), "");
-    if (bit < hsailFrame->num_d_regs()) {
-      // d register
-      hsailFrame->put_d_reg(bit, (jlong) oop);
-    } else {
-      // stack slot
-      int stackOffset = (bit - hsailFrame->num_d_regs()) * 8;  // 8 bytes per stack slot
-      hsailFrame->put_stackslot64(stackOffset, (jlong) oop);
-    }
-  }
-
-  void saveOopsFromFrame(HSAILFrame* hsailFrame, int deoptSlot){
-    // as used, no need to resolve arrays on each call
-    int oopsPerDeopt = hsailFrame->num_d_regs() + hsailFrame->num_stack_slots();
-
-    // handle the dregister and stackSlot based oops
-    for (int bit = 0; bit < oopsPerDeopt; bit++) {
-      if (isOop(hsailFrame, bit)) {
-        void* saved_oop = getOopForBit(hsailFrame, bit);
-        int saveArrayIndex = deoptSlot * oopsPerDeopt + bit;
-        _oopsSaveArray->obj_at_put(saveArrayIndex, (oop) saved_oop);
-      }
-    }
-  }
-
-  void restoreOopsToFrame(HSAILFrame* hsailFrame, int deoptSlot, int workitem){
-    // need to re-resolve on each restore
-    resolveArrays();
-    int oopsPerDeopt = hsailFrame->num_d_regs() + hsailFrame->num_stack_slots();
-
-    // handle the dregister and stackSlot based oops
-    for (int bit = 0; bit < oopsPerDeopt; bit++) {
-      if (isOop(hsailFrame, bit)) {
-        // the dregister or stack slot at this bit is an oop, retrieve it from array and put back in frame
-        int saveArrayIndex = deoptSlot * oopsPerDeopt + bit;
-        void* newValue = (void*) _oopsSaveArray->obj_at(saveArrayIndex);
-        void* oldValue = getOopForBit(hsailFrame, bit);
-        assert((oldValue != 0 ? newValue != 0 : newValue == 0), "bad dregValue retrieved");
-        if (newValue != oldValue) {
-          if (TraceGPUInteraction) {
-            int numDRegs = hsailFrame->num_d_regs();
-            const char* name = (bit < numDRegs ? "$d" : "stk");
-            int num = (bit < numDRegs ? bit : bit - numDRegs);
-            tty->print_cr("oop moved for %s%d, workitem %d, slot %d, old=%p, new=%p",
-                          name, num, workitem, deoptSlot, oldValue, newValue);
-          }
-          putOopForBit(hsailFrame, bit, newValue);
-        }
-      }
-    }
-  }
-
-  bool isOop(HSAILFrame* hsailFrame, int bit){
-    // re-resolve on each access
-    resolveArrays();
-    if (bit > hsailFrame->num_d_regs() + hsailFrame->num_stack_slots()) {
-      return false;
-    }
-    int pcOffset = hsailFrame->pc_offset();
-    int bits_int_idx = mapPcOffsetToIndex(pcOffset) + (bit / 32);
-    int bitpos = bit % 32;
-    int bits = _oopMapArray->int_at(bits_int_idx);
-    return ((bits & (1 << bitpos)) != 0);
-  }
-
-  static int getSaveAreaCounts(jobject oopMapArrayObject) {
-    typeArrayOop oopMapArray = (typeArrayOop) JNIHandles::resolve(oopMapArrayObject);
-    return oopMapArray->int_at(SAVEAREACOUNTS_OFST);
-  }
-
-};
-
-jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod* nm, jobject oops_save,
+jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod* nm,
                                                 jobject donor_threads, int allocBytesPerWorkitem, jobject oop_map_array, TRAPS) {
   ResourceMark rm(THREAD);
   objArrayOop argsArray = (objArrayOop) JNIHandles::resolve(args);
+  assert(THREAD->is_Java_thread(), "must be a JavaThread");
 
   // We avoid HSAILAllocationInfo logic if kernel does not allocate
   // in which case the donor_thread array passed in will be null
@@ -290,20 +158,23 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
   // Reset the kernel arguments
   _okra_clearargs(kernel);
 
+  JavaThread* thread = (JavaThread*)THREAD;
   HSAILDeoptimizationInfo* e;
   if (UseHSAILDeoptimization) {
     // get how many bytes per deopt save area are required
-    int saveAreaCounts = OopSaver::getSaveAreaCounts(oop_map_array);
+    int saveAreaCounts = HSAILOopMapHelper::get_save_area_counts(oop_map_array);
     int numSRegs = saveAreaCounts & 0xff;
     int numDRegs = (saveAreaCounts >> 8) & 0xff;
     int numStackSlots = (saveAreaCounts >> 16);
     int bytesPerSaveArea = numSRegs * 4 + (numDRegs + numStackSlots) * 8;
 
-    e = new (MAX_DEOPT_SLOTS, bytesPerSaveArea) HSAILDeoptimizationInfo(MAX_DEOPT_SLOTS, bytesPerSaveArea, dimX, allocInfo);
+    e = new (MAX_DEOPT_SLOTS, bytesPerSaveArea) HSAILDeoptimizationInfo(MAX_DEOPT_SLOTS, bytesPerSaveArea, dimX, allocInfo, oop_map_array);
     // copy cur_tlab_infos
     if (allocInfo != NULL) {
-      e->setCurTlabInfos(allocInfo->getCurTlabInfos());
+      e->set_cur_tlabInfos(allocInfo->getCurTlabInfos());
     }
+    // set deopt info in thread so gc oops_do processing can find it
+    thread->set_gpu_hsail_deopt_info(e);
   }
 
   // This object sets up the kernel arguments
@@ -317,7 +188,6 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
   if (hka.getFirstNullParameterIndex() >= 0) {
     char buf[64];
     sprintf(buf, "Null Kernel Parameter seen, Parameter Index: %d", hka.getFirstNullParameterIndex());
-    JavaThread* thread = (JavaThread*)THREAD;
     thread->set_gpu_exception_bci(0);
     thread->set_gpu_exception_method(mh());
     THROW_MSG_0(vmSymbols::java_lang_NullPointerException(), buf);
@@ -362,22 +232,6 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
           tty->print_cr("first deopter was workitem %d", pdeopt->workitem());
         }
 
-        // Before handling any deopting workitems, save the pointers from
-        // the hsail frames in oops_save so they get adjusted by any
-        // GC. Need to do this before leaving thread_in_vm mode.
-        OopSaver oopSaver(oops_save, oop_map_array);
-        // resolve handle only needed once here (not exiting vm mode)
-        oopSaver.resolveArrays();
-
-        // since slots are allocated from the beginning, we know how far to look
-        assert(e->num_deopts() < e->num_slots(), "deopt save state overflow");
-        for (int k = 0; k < e->num_deopts(); k++) {
-          HSAILKernelDeoptimization* pdeopt = e->get_deopt_save_state(k);
-          assert (pdeopt->workitem() >= 0, "bad workitem in deopt");
-          // this is a workitem that deopted
-          oopSaver.saveOopsFromFrame(pdeopt->first_frame(), k);
-        }
-
         // Handle any deopting workitems.
         int count_deoptimized = 0;
         for (int k = 0; k < e->num_deopts(); k++) {
@@ -387,10 +241,6 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
           if (workitem != -1) {
             int deoptId = pdeopt->pc_offset();
             HSAILFrame* hsailFrame = pdeopt->first_frame();
-
-            // Update the hsailFrame from the oopsSaveArray
-            // will re-resolve the handles each time.
-            oopSaver.restoreOopsToFrame(hsailFrame, k, workitem);
 
             JavaValue result(T_VOID);
             JavaCallArguments javaArgs;
@@ -407,21 +257,24 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
               tty->print_cr("[HSAIL] Deoptimizing to host for workitem=%d (slot=%d) with deoptId=%d, frame=" INTPTR_FORMAT ", actionAndReason=%d", workitem, k, deoptId, hsailFrame, myActionReason);
               // show the $d registers or stack slots containing references
               int maxOopBits = hsailFrame->num_d_regs() + hsailFrame->num_stack_slots();
+              HSAILOopMapHelper oopMapHelper(oop_map_array);
+              int pc_offset = hsailFrame->pc_offset();
               for (int bit = 0; bit < maxOopBits; bit++) {
-                if (oopSaver.isOop(hsailFrame, bit)) {
+                if (oopMapHelper.is_oop(pc_offset, bit)) {
                   if (bit < hsailFrame->num_d_regs()) {
                     // show $d reg oop
-                    tty->print_cr("  oop $d%d = %p", bit, oopSaver.getOopForBit(hsailFrame, bit));
+                    tty->print_cr("  oop $d%d = %p", bit, hsailFrame->get_oop_for_bit(bit));
                   } else {
                     // show stack slot oop
                     int stackOffset = (bit - hsailFrame->num_d_regs()) * 8;  // 8 bytes per stack slot
-                    tty->print_cr("  oop stk:%d = %p", stackOffset, oopSaver.getOopForBit(hsailFrame, bit));
+                    tty->print_cr("  oop stk:%d = %p", stackOffset, hsailFrame->get_oop_for_bit(bit));
                   }
                 }
               }
             }
             JavaCalls::call(&result, mh, &javaArgs, THREAD);
             count_deoptimized++;
+            e->set_deopt_work_index(k + 1);
           }
         }
         if (TraceGPUInteraction) {
@@ -429,6 +282,9 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
         }
       }
     }
+    // when we are done with the deopts, we don't need to oops_do anything
+    // in the saved state anymore
+    thread->set_gpu_hsail_deopt_info(NULL);  
 
     // Handle any never_ran workitems if there were any
     {
@@ -594,4 +450,28 @@ bool Hsail::register_natives(JNIEnv* env) {
     return false;
   }
   return true;
+}
+
+
+void Hsail::HSAILDeoptimizationInfo::oops_do(OopClosure* f) {
+  int unprocessed_deopts = num_deopts() - deopt_work_index();
+  if (TraceGPUInteraction) {
+    tty->print_cr("HSAILDeoptimizationInfo::oops_do deopt_occurred=%d, total_deopts=%d, unprocessed_deopts=%d, oop_map_array=%p", _deopt_occurred, num_deopts(), unprocessed_deopts, _oop_map_array);
+  }
+  if (num_deopts() == 0 || unprocessed_deopts <= 0) {
+    return; // nothing to do
+  }
+  HSAILOopMapHelper oopMapHelper(_oop_map_array);
+  oopMapHelper.resolve_arrays();  // resolve once before processing
+
+  // go thru the unprocessed deopt frames, finding each oop and applying the closre
+  for (int k = deopt_work_index(); k < num_deopts(); k++) {
+    HSAILKernelDeoptimization* pdeopt = get_deopt_save_state(k);
+    assert (pdeopt->workitem() >= 0, "bad workitem in deopt");
+    if (TraceGPUInteraction) {
+      tty->print_cr("  deopt %d, workitem %d, pc %d", k, pdeopt->workitem(), pdeopt->pc_offset());
+    }
+    HSAILFrame* hsailFrame = pdeopt->first_frame();
+    hsailFrame->oops_do(f, &oopMapHelper);
+  }
 }
