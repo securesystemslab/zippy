@@ -67,7 +67,7 @@ public final class FunctionRootNode extends RootNode {
     private final boolean isGenerator;
     private boolean hasGeneratorExpression;
     private int peelingTrialCounter = 0;
-    private Set<GeneratorDispatch> optimizedGeneratorDispatches = new HashSet<>();
+    private final Set<GeneratorDispatch> optimizedGeneratorDispatches = new HashSet<>();
 
     @Child protected PNode body;
     private PNode uninitializedBody;
@@ -123,12 +123,6 @@ public final class FunctionRootNode extends RootNode {
         }
 
         return body.execute(frame);
-    }
-
-    @Override
-    public boolean applyGuestTransformation() {
-        peelingTrialCounter = 0;
-        return optimizeHelper();
     }
 
     private boolean optimizeHelper() {
@@ -314,8 +308,12 @@ public final class FunctionRootNode extends RootNode {
         }
 
         optimizedGeneratorDispatches.add(dispatch);
-        PrintStream ps = System.out;
-        ps.println("[ZipPy] peeled generator " + genfun.getCallTarget() + " in " + getRootNode());
+
+        if (PythonOptions.TraceGeneratorInlining) {
+            PrintStream ps = System.out;
+            ps.println("[ZipPy] peeled generator " + genfun.getCallTarget() + " in " + getRootNode());
+        }
+
         return true;
     }
 
