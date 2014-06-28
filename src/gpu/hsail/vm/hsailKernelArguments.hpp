@@ -91,16 +91,17 @@ private:
     // For kernel arguments we don't pass the final int parameter
     // since we use the HSAIL workitemid instruction in place of that int value
     virtual void handleFinalIntParameter() {
-      if (TraceGPUInteraction) {
-        tty->print_cr("[HSAIL] HSAILKernelArguments, not pushing trailing int");
-      }
+      ShouldNotReachHere();
     }
 
-    // for kernel arguments, final obj parameter should be an object
+    // For kernel arguments, final obj parameter should be an object
     // stream source array (already checked in the base class) so here we just pass it
     virtual void handleFinalObjParameter(void* arg) {
-      pushObject(arg);
+      ShouldNotReachHere();
     }
+
+    virtual void collectArgs();
+
 };
 
 #endif  // GPU_HSAIL_VM_HSAIL_KERNEL_ARGUMENTS_HPP

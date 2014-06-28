@@ -35,6 +35,7 @@ GraalCompiler* GraalCompiler::_instance = NULL;
 GraalCompiler::GraalCompiler() : AbstractCompiler(graal) {
 #ifdef COMPILERGRAAL
   _bootstrapping = false;
+  _compiled = 0;
 #endif
   assert(_instance == NULL, "only one instance allowed");
   _instance = this;
@@ -62,9 +63,10 @@ void GraalCompiler::initialize() {
   {
     HandleMark hm;
 
-    _bootstrapping = UseGraalCompilationQueue && (FLAG_IS_DEFAULT(BootstrapGraal) ? !TieredCompilation : BootstrapGraal);
+    bool bootstrap_now = UseGraalCompilationQueue && (FLAG_IS_DEFAULT(BootstrapGraal) ? !TieredCompilation : BootstrapGraal);
 
     if (UseGraalCompilationQueue) {
+      _bootstrapping = bootstrap_now;
       start_compilation_queue();
     }
 
@@ -72,7 +74,7 @@ void GraalCompiler::initialize() {
     // stop the VM deferring compilation now.
     CompilationPolicy::completed_vm_startup();
 
-    if (_bootstrapping) {
+    if (bootstrap_now) {
       // Avoid -Xcomp and -Xbatch problems by turning on interpreter and background compilation for bootstrapping.
       FlagSetting a(UseInterpreter, true);
       FlagSetting b(BackgroundCompilation, true);
@@ -119,13 +121,56 @@ void GraalCompiler::shutdown_compilation_queue() {
 
 void GraalCompiler::bootstrap() {
   JavaThread* THREAD = JavaThread::current();
-  TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/CompilationQueue", THREAD);
-  KlassHandle klass = GraalRuntime::load_required_class(name);
-  JavaValue result(T_VOID);
-  TempNewSymbol bootstrap = SymbolTable::new_symbol("bootstrap", THREAD);
-  NoGraalCompilationScheduling ngcs(THREAD);
-  JavaCalls::call_static(&result, klass, bootstrap, vmSymbols::void_method_signature(), THREAD);
-  GUARANTEE_NO_PENDING_EXCEPTION("Error while calling bootstrap");
+  _bootstrapping = true;
+  if (!UseGraalCompilationQueue) {
+    ResourceMark rm;
+    HandleMark hm;
+    if (PrintBootstrap) {
+      tty->print("Bootstrapping Graal");
+    }
+    jlong start = os::javaTimeMillis();
+
+    Array<Method*>* objectMethods = InstanceKlass::cast(SystemDictionary::Object_klass())->methods();
+    // Initialize compile queue with a selected set of methods.
+    int len = objectMethods->length();
+    for (int i = 0; i < len; i++) {
+      methodHandle mh = objectMethods->at(i);
+      if (!mh->is_native() && !mh->is_static() && !mh->is_initializer()) {
+        ResourceMark rm;
+        int hot_count = 10; // TODO: what's the appropriate value?
+        CompileBroker::compile_method(mh, InvocationEntryBci, CompLevel_full_optimization, mh, hot_count, "bootstrap", THREAD);
+      }
+    }
+
+    int qsize;
+    jlong sleep_time = 1000;
+    int z = 0;
+    do {
+      os::sleep(THREAD, sleep_time, true);
+      sleep_time = 100;
+      qsize = CompileBroker::queue_size(CompLevel_full_optimization);
+      if (PrintBootstrap) {
+        while (z < (_compiled / 100)) {
+          ++z;
+          tty->print_raw(".");
+        }
+      }
+    } while (qsize != 0);
+
+    if (PrintBootstrap) {
+      tty->print_cr(" in %d ms (compiled %d methods)", os::javaTimeMillis() - start, _compiled);
+    }
+  } else {
+
+    TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/CompilationQueue", THREAD);
+    KlassHandle klass = GraalRuntime::load_required_class(name);
+    JavaValue result(T_VOID);
+    TempNewSymbol bootstrap = SymbolTable::new_symbol("bootstrap", THREAD);
+    NoGraalCompilationScheduling ngcs(THREAD);
+    JavaCalls::call_static(&result, klass, bootstrap, vmSymbols::void_method_signature(), THREAD);
+    GUARANTEE_NO_PENDING_EXCEPTION("Error while calling bootstrap");
+  }
+  _bootstrapping = false;
 }
 
 void GraalCompiler::compile_method(methodHandle method, int entry_bci, CompileTask* task, jboolean blocking) {
@@ -148,6 +193,8 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, CompileTa
   args.push_int(blocking);
   JavaCalls::call_static(&result, SystemDictionary::CompilationTask_klass(), vmSymbols::compileMetaspaceMethod_name(), vmSymbols::compileMetaspaceMethod_signature(), &args, THREAD);
   GUARANTEE_NO_PENDING_EXCEPTION("Error while calling compile_method");
+
+  _compiled++;
 }
 
 

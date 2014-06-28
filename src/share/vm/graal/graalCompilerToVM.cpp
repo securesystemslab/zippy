@@ -194,9 +194,9 @@ C2V_VMENTRY(jlong, getMetaspaceMethod, (JNIEnv *, jobject, jclass holder_handle,
   return (jlong) (address) method();
 }
 
-C2V_VMENTRY(jlong, findUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_method))
+C2V_VMENTRY(jlong, findUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_klass, jlong metaspace_method))
   methodHandle method = asMethod(metaspace_method);
-  KlassHandle holder = method->method_holder();
+  KlassHandle holder = asKlass(metaspace_klass);
   assert(!holder->is_interface(), "should be handled in Java code");
   ResourceMark rm;
   MutexLocker locker(Compile_lock);
@@ -1003,7 +1003,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"exceptionTableStart",                          CC"("METASPACE_METHOD")J",                                                FN_PTR(exceptionTableStart)},
   {CC"exceptionTableLength",                         CC"("METASPACE_METHOD")I",                                                FN_PTR(exceptionTableLength)},
   {CC"hasBalancedMonitors",                          CC"("METASPACE_METHOD")Z",                                                FN_PTR(hasBalancedMonitors)},
-  {CC"findUniqueConcreteMethod",                     CC"("METASPACE_METHOD")"METASPACE_METHOD,                                 FN_PTR(findUniqueConcreteMethod)},
+  {CC"findUniqueConcreteMethod",                     CC"("METASPACE_KLASS METASPACE_METHOD")"METASPACE_METHOD,                 FN_PTR(findUniqueConcreteMethod)},
   {CC"getKlassImplementor",                          CC"("METASPACE_KLASS")"METASPACE_KLASS,                                   FN_PTR(getKlassImplementor)},
   {CC"getStackTraceElement",                         CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                             FN_PTR(getStackTraceElement)},
   {CC"methodIsIgnoredBySecurityStackWalk",           CC"("METASPACE_METHOD")Z",                                                FN_PTR(methodIsIgnoredBySecurityStackWalk)},

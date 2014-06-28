@@ -618,6 +618,7 @@ public class SnippetTemplate {
                     Mark mark = snippetCopy.getMark();
                     LoopTransformations.fullUnroll(loop, phaseContext, new CanonicalizerPhase(true));
                     new CanonicalizerPhase(true).applyIncremental(snippetCopy, phaseContext, mark);
+                    loop.deleteUnusedNodes();
                 }
                 GraphUtil.removeFixedWithUnusedInputs(explodeLoop);
                 exploded = true;
@@ -704,7 +705,7 @@ public class SnippetTemplate {
             this.memoryMap = memMaps.get(0);
         } else {
             MergeNode merge = snippet.add(new MergeNode());
-            ValueNode returnValue = InliningUtil.mergeReturns(merge, returnNodes);
+            ValueNode returnValue = InliningUtil.mergeReturns(merge, returnNodes, null);
             this.returnNode = snippet.add(new ReturnNode(returnValue));
             this.memoryMap = FloatingReadPhase.mergeMemoryMaps(merge, memMaps);
             merge.setNext(this.returnNode);

@@ -410,7 +410,7 @@ public class Parser implements GraphParser {
                 throw new SAXException(e);
             }
 
-            InputEdge conn = new InputEdge((char) fromIndex, (char) toIndex, from, to, label);
+            InputEdge conn = new InputEdge((char) fromIndex, (char) toIndex, from, to, label, "");
             return start(conn);
         }
 

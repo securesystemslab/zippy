@@ -67,10 +67,6 @@ private:
     virtual void handleFinalObjParameter(void* obj) = 0;
     virtual void pushTrailingArgs() = 0;
 
-    void recordNullObjectParameter() {
-        if (_first_null_parameter_index == -1) _first_null_parameter_index = _parameter_index;
-    }
-
  public:
   HSAILArgumentsBase(Symbol* signature, objArrayOop args, bool is_static) : SignatureIterator(signature) {
     this->_return_type = T_ILLEGAL;
@@ -86,32 +82,29 @@ private:
 
   }
 
+  void recordNullObjectParameter() {
+    if (_first_null_parameter_index == -1) {
+      _first_null_parameter_index = _parameter_index;
+    }
+  }
+
+  bool is_static() {
+    return _is_static;
+  }
+
+  int length() {
+    return _length;
+  }
+
+  objArrayOop args() {
+    return _args;
+  }
+
   int getFirstNullParameterIndex() {
     return _first_null_parameter_index;
   }
 
-  void collectArgs() {
-    if (TraceGPUInteraction) {
-      tty->print_cr("[HSAIL] %s::collectArgs, sig:%s  args length=%d", argsBuilderName(), _signature->as_C_string(), _length);
-    }    
-    if (!_is_static) {      
-      // First object in args should be 'this'
-      oop arg = _args->obj_at(_index++);
-      assert(arg->is_instance() && (! arg->is_array()), "First arg should be 'this'");
-      if (TraceGPUInteraction) {
-        tty->print_cr("[HSAIL] %s, instance method, this " PTR_FORMAT ", is a %s", argsBuilderName(), (address) arg, arg->klass()->external_name());
-      }
-      pushObject(arg);
-    } else {
-      if (TraceGPUInteraction) {
-          tty->print_cr("[HSAIL] %s, static method", argsBuilderName());
-      }
-    }
-    // Iterate over the entire signature
-    iterate();
-    
-    pushTrailingArgs();
-  }
+  virtual void collectArgs();
 
   void do_bool();
   void do_byte();

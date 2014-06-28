@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2012, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -215,12 +215,20 @@ public class BinaryParser implements GraphParser {
         }
     }
     
+    private static class TypedPort extends Port {
+        public final EnumValue type;
+        private TypedPort(boolean isList, String name, EnumValue type) {
+            super(isList, name);
+            this.type = type;
+        }
+    }
+    
     private static class NodeClass {
         public final String className;
         public final String nameTemplate;
-        public final List<Port> inputs;
+        public final List<TypedPort> inputs;
         public final List<Port> sux;
-        private NodeClass(String className, String nameTemplate, List<Port> inputs, List<Port> sux) {
+        private NodeClass(String className, String nameTemplate, List<TypedPort> inputs, List<Port> sux) {
             this.className = className;
             this.nameTemplate = nameTemplate;
             this.inputs = inputs;
@@ -464,11 +472,12 @@ public class BinaryParser implements GraphParser {
                 String className = readString();
                 String nameTemplate = readString();
                 int inputCount = readShort();
-                List<Port> inputs = new ArrayList<>(inputCount);
+                List<TypedPort> inputs = new ArrayList<>(inputCount);
                 for (int i = 0; i < inputCount; i++) {
                     boolean isList = readByte() != 0;
                     String name = readPoolObject(String.class);
-                    inputs.add(new Port(isList, name));
+                    EnumValue inputType = readPoolObject(EnumValue.class);
+                    inputs.add(new TypedPort(isList, name, inputType));
                 }
                 int suxCount = readShort();
                 List<Port> sux = new ArrayList<>(suxCount);
@@ -726,20 +735,20 @@ public class BinaryParser implements GraphParser {
             }
             int edgesStart = edges.size();
             int portNum = 0;
-            for (Port p : nodeClass.inputs) {
+            for (TypedPort p : nodeClass.inputs) {
                 if (p.isList) {
                     int size = readShort();
                     for (int j = 0; j < size; j++) {
                         int in = readInt();
                         if (in >= 0) {
-                            edges.add(new Edge(in, id, (char) (preds + portNum), p.name + "[" + j + "]", true));
+                            edges.add(new Edge(in, id, (char) (preds + portNum), p.name + "[" + j + "]", p.type.toString(Length.S), true));
                             portNum++;
                         }
                     }
                 } else {
                     int in = readInt();
                     if (in >= 0) {
-                        edges.add(new Edge(in, id, (char) (preds + portNum), p.name, true));
+                        edges.add(new Edge(in, id, (char) (preds + portNum), p.name, p.type.toString(Length.S), true));
                         portNum++;
                     }
                 }
@@ -752,14 +761,14 @@ public class BinaryParser implements GraphParser {
                     for (int j = 0; j < size; j++) {
                         int sux = readInt();
                         if (sux >= 0) {
-                            edges.add(new Edge(id, sux, (char) portNum, p.name + "[" + j + "]", false));
+                            edges.add(new Edge(id, sux, (char) portNum, p.name + "[" + j + "]", "Successor", false));
                             portNum++;
                         }
                     }
                 } else {
                     int sux = readInt();
                     if (sux >= 0) {
-                        edges.add(new Edge(id, sux, (char) portNum, p.name, false));
+                        edges.add(new Edge(id, sux, (char) portNum, p.name, "Successor", false));
                         portNum++;
                     }
                 }
@@ -780,7 +789,7 @@ public class BinaryParser implements GraphParser {
         for (Edge e : edges) {
             char fromIndex = e.input ? 1 : e.num;
             char toIndex = e.input ? e.num : 0;
-            graph.addEdge(InputEdge.createImmutable(fromIndex, toIndex, e.from, e.to, e.label));
+            graph.addEdge(InputEdge.createImmutable(fromIndex, toIndex, e.from, e.to, e.label, e.type));
         }
     }
     
@@ -845,14 +854,16 @@ public class BinaryParser implements GraphParser {
         final int to;
         final char num;
         final String label;
+        final String type;
         final boolean input;
         public Edge(int from, int to) {
-            this(from, to, (char) 0, null, false);
+            this(from, to, (char) 0, null, null, false);
         }
-        public Edge(int from, int to, char num, String label, boolean input) {
+        public Edge(int from, int to, char num, String label, String type, boolean input) {
             this.from = from;
             this.to = to;
             this.label = label != null ? label.intern() : label;
+            this.type = type != null ? type.intern() : type;
             this.num = num;
             this.input = input;
         }

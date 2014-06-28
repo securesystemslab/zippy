@@ -505,14 +505,23 @@ def _installGraalJarInJdks(graalDist):
             jreLibDir = join(jdks, e, 'jre', 'lib')
             if exists(jreLibDir):
                 def install(srcJar, dstDir):
-                    # do a copy and then a move to get atomic updating (on Unix)
                     name = os.path.basename(srcJar)
-                    fd, tmp = tempfile.mkstemp(suffix='', prefix=name, dir=dstDir)
-                    shutil.copyfile(srcJar, tmp)
-                    os.close(fd)
                     dstJar = join(dstDir, name)
-                    shutil.move(tmp, dstJar)
-                    os.chmod(dstJar, JDK_UNIX_PERMISSIONS)
+                    if mx.get_env('SYMLINK_GRAAL_JAR', None) == 'true':
+                        # Using symlinks is much faster than copying but may
+                        # cause issues if graal.jar is being updated while
+                        # the VM is running.
+                        if not os.path.islink(dstJar) or not os.path.realpath(dstJar) == srcJar:
+                            if exists(dstJar):
+                                os.remove(dstJar)
+                            os.symlink(srcJar, dstJar)
+                    else:
+                        # do a copy and then a move to get atomic updating (on Unix)
+                        fd, tmp = tempfile.mkstemp(suffix='', prefix=name, dir=dstDir)
+                        shutil.copyfile(srcJar, tmp)
+                        os.close(fd)
+                        shutil.move(tmp, dstJar)
+                        os.chmod(dstJar, JDK_UNIX_PERMISSIONS)
 
                 install(graalJar, jreLibDir)
                 if graalDist.sourcesPath:
@@ -1924,6 +1933,20 @@ def python(args):
 
     vm(vmArgs + ['-cp', pythonShellCp(), pythonShellClass()] + pythonArgs)
 
+def jol(args):
+    """Java Object Layout"""
+    jolurl = "http://lafo.ssw.uni-linz.ac.at/truffle/jol/jol-internals.jar"
+    joljar = "lib/jol-internals.jar"
+    if not exists(joljar):
+        mx.download(joljar, [jolurl])
+
+    candidates = mx.findclass(args, logToConsole=False, matcher=lambda s, classname: s == classname or classname.endswith('.' + s) or classname.endswith('$' + s))
+    if len(candidates) > 10:
+        print "Found %d candidates. Please be more precise." % (len(candidates))
+        return
+
+    vm(['-javaagent:' + joljar, '-cp', os.pathsep.join([mx.classpath(), joljar]), "org.openjdk.jol.MainObjectInternals"] + candidates)
+
 def site(args):
     """create a website containing javadoc and the project dependency graph"""
 
@@ -2151,7 +2174,8 @@ def mx_init(suite):
         'vmfg': [vmfg, '[-options] class [args...]'],
         'deoptalot' : [deoptalot, '[n]'],
         'longtests' : [longtests, ''],
-        'sl' : [sl, '[SL args|@VM options]']
+        'sl' : [sl, '[SL args|@VM options]'],
+        'jol' : [jol, ''],
     }
 
     mx.add_argument('--jacoco', help='instruments com.oracle.* classes using JaCoCo', default='off', choices=['off', 'on', 'append'])

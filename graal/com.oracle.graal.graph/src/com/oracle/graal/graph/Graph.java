@@ -461,6 +461,14 @@ public class Graph {
         int getValue() {
             return value;
         }
+
+        /**
+         * Determines if this mark still represents the {@linkplain Graph#getNodeCount() live node
+         * count} of the graph.
+         */
+        public boolean isCurrent() {
+            return value == graph.nodeIdCount();
+        }
     }
 
     /**
