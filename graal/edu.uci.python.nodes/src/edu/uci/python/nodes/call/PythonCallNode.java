@@ -106,6 +106,11 @@ public abstract class PythonCallNode extends PNode {
         return passPrimaryAsTheFirstArgument;
     }
 
+    @Override
+    public boolean hasSideEffectAsAnExpression() {
+        return true;
+    }
+
     public abstract boolean isInlined();
 
     protected Object rewriteAndExecuteCall(VirtualFrame frame, Object primary, Object callee) {

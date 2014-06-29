@@ -25,6 +25,7 @@
 package edu.uci.python.parser;
 
 import java.util.*;
+import java.util.concurrent.atomic.*;
 
 import org.python.google.common.primitives.*;
 
@@ -223,14 +224,51 @@ public class GeneratorTranslator {
                         node instanceof ContinueTargetNode || node instanceof TryFinallyNode) {
             // do nothing for now
         } else {
-            // yield expression
-            if (depth == 0) {
-                // Wraps yield and the inserted YieldSendValueNode with a GenBlockNode.
-                int slotOfBlockIndex = nextGeneratorBlockIndexSlot();
-                YieldNode yieldWithBlockIndex = new YieldNode(yield, slotOfBlockIndex);
-                YieldSendValueNode yieldSend = new YieldSendValueNode();
-                yield.replace(new GeneratorBlockNode(new PNode[]{yieldWithBlockIndex, yieldSend}, slotOfBlockIndex));
+            replaceYieldExpression(node, yield, depth);
+        }
+    }
+
+    /**
+     * Yield expression.
+     * <p>
+     * The parent nodes of yield are expressions. If all the other sub-expressions evaluated before
+     * yield are side affect free, we simply re-evaluate those sub-expressions when resuming.
+     * Otherwise we give up.
+     */
+    private void replaceYieldExpression(PNode node, YieldNode yield, int depth) {
+        if (depth == 0) {
+            // Wraps yield and the inserted YieldSendValueNode with a GenBlockNode.
+            int slotOfBlockIndex = nextGeneratorBlockIndexSlot();
+            YieldNode yieldWithBlockIndex = new YieldNode(yield, slotOfBlockIndex);
+            YieldSendValueNode yieldSend = new YieldSendValueNode();
+            yield.replace(new GeneratorBlockNode(new PNode[]{yieldWithBlockIndex, yieldSend}, slotOfBlockIndex));
+        }
+
+        AtomicInteger numOfNonSideAffectFreeChildren = new AtomicInteger(0);
+        for (Node child : node.getChildren()) {
+            if (!(child instanceof PNode)) {
+                continue;
             }
+
+            if (NodeUtil.findFirstNodeInstance(child, YieldNode.class) != null) {
+                continue;
+            }
+
+            child.accept(new NodeVisitor() {
+                public boolean visit(Node childNode) {
+                    if (childNode instanceof PNode) {
+                        PNode childPNode = (PNode) childNode;
+                        if (childPNode.hasSideEffectAsAnExpression()) {
+                            numOfNonSideAffectFreeChildren.incrementAndGet();
+                        }
+                    }
+                    return true;
+                }
+            });
+        }
+
+        if (numOfNonSideAffectFreeChildren.intValue() > 0) {
+            TranslationUtil.notCovered("Yield expression used in a complicated expressin");
         }
     }
 
