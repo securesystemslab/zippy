@@ -27,11 +27,16 @@ package edu.uci.python.runtime.datatype;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.standardtype.*;
 
-public final class PGenerator implements PIterator {
+public final class PGenerator extends PythonBuiltinObject implements PIterator {
+
+    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PGenerator.class);
 
     protected final String name;
     protected final CallTarget callTarget;
@@ -58,6 +63,11 @@ public final class PGenerator implements PIterator {
         this.arguments = arguments;
     }
 
+    @Override
+    public PythonBuiltinClass __class__() {
+        return __class__;
+    }
+
     public FrameDescriptor getFrameDescriptor() {
         return frameDescriptor;
     }
@@ -71,8 +81,8 @@ public final class PGenerator implements PIterator {
         return callTarget.call(arguments);
     }
 
-    @SuppressWarnings("unused")
     public Object send(Object value) throws StopIterationException {
+        PArguments.setArgument(arguments, 0, value);
         return callTarget.call(arguments);
     }
 

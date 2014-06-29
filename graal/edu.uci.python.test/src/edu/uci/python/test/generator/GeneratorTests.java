@@ -58,6 +58,21 @@ public class GeneratorTests {
     }
 
     @Test
+    public void desugared() {
+        String source = "def gen(n):\n" + //
+                        "    for i in range(n):\n" + //
+                        "        yield i\n" + //
+                        "g = gen(5)\n" + //
+                        "try:\n" + //
+                        "    while True:\n" + //
+                        "       print(g.__next__())\n" + //
+                        "except StopIteration:\n" + //
+                        "    pass\n";
+
+        assertPrints("0\n1\n2\n3\n4\n", source);
+    }
+
+    @Test
     public void conditionAndLoop() {
         Path script = Paths.get("generator-if-and-loop-test.py");
         assertPrints("10\n0\n1\n2\n3\n4\n", script);
