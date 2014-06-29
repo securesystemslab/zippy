@@ -82,7 +82,7 @@ public final class PGenerator extends PythonBuiltinObject implements PIterator {
     }
 
     public Object send(Object value) throws StopIterationException {
-        PArguments.setArgument(arguments, 0, value);
+        PArguments.setSpecialArgument(arguments, value);
         return callTarget.call(arguments);
     }
 

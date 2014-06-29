@@ -108,4 +108,10 @@ public class GeneratorTests {
         assertPrints("1\n2\n10\n11\n", script);
     }
 
+    @Test
+    public void yieldExpression() {
+        Path script = Paths.get("generator-yield-expression-test.py");
+        assertPrints("0\n1\n2\n3\n4\n", script);
+    }
+
 }

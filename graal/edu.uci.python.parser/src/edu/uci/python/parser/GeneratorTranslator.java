@@ -223,7 +223,14 @@ public class GeneratorTranslator {
                         node instanceof ContinueTargetNode || node instanceof TryFinallyNode) {
             // do nothing for now
         } else {
-            TranslationUtil.notCovered();
+            // yield expression
+            if (depth == 0) {
+                // Wraps yield and the inserted YieldSendValueNode with a GenBlockNode.
+                int slotOfBlockIndex = nextGeneratorBlockIndexSlot();
+                YieldNode yieldWithBlockIndex = new YieldNode(yield, slotOfBlockIndex);
+                YieldSendValueNode yieldSend = new YieldSendValueNode();
+                yield.replace(new GeneratorBlockNode(new PNode[]{yieldWithBlockIndex, yieldSend}, slotOfBlockIndex));
+            }
         }
     }
 

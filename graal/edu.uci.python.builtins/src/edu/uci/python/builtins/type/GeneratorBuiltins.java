@@ -40,11 +40,20 @@ public class GeneratorBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "__next__", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
-    public abstract static class EqNode extends PythonBuiltinNode {
+    public abstract static class NextNode extends PythonBuiltinNode {
 
         @Specialization
         public Object __next__(PGenerator self) {
             return self.__next__();
+        }
+    }
+
+    @Builtin(name = "send", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    public abstract static class SendNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object __next__(PGenerator self, Object value) {
+            return self.send(value);
         }
     }
 
