@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.control;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -119,6 +120,7 @@ public abstract class GetIteratorNode extends UnaryOpNode {
 
     @Specialization(order = 17)
     public PGenerator doPGenerator(PGenerator value) {
+        replace(new GetGeneratorIteratorNode(getOperand()));
         return value;
     }
 
@@ -150,6 +152,10 @@ public abstract class GetIteratorNode extends UnaryOpNode {
             this.operandNode = prev.getOperand();
         }
 
+        public final PGenerator getGenerator() {
+            return cachedGenerator;
+        }
+
         @Override
         public PNode getOperand() {
             return operandNode;
@@ -165,8 +171,10 @@ public abstract class GetIteratorNode extends UnaryOpNode {
                 throw new IllegalStateException();
             }
 
-            if (cachedGenerator == null) {
-                cachedGenerator = generator;
+            if (CompilerDirectives.inInterpreter()) {
+                if (cachedGenerator == null) {
+                    cachedGenerator = generator;
+                }
             }
 
             return generator;
