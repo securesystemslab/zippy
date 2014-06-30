@@ -26,8 +26,11 @@ package edu.uci.python.nodes.control;
 
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
@@ -115,6 +118,11 @@ public abstract class GetIteratorNode extends UnaryOpNode {
     }
 
     @Specialization(order = 17)
+    public PGenerator doPGenerator(PGenerator value) {
+        return value;
+    }
+
+    @Specialization(order = 18)
     public PIterator doPIterator(PIterator value) {
         return value;
     }
@@ -127,6 +135,47 @@ public abstract class GetIteratorNode extends UnaryOpNode {
     @Generic
     public PIterator doGeneric(Object value) {
         throw new RuntimeException("tuple does not support iterable object " + value);
+    }
+
+    public static class GetGeneratorIteratorNode extends GetIteratorNode {
+
+        @Child PNode operandNode;
+        private PGenerator cachedGenerator;
+
+        public GetGeneratorIteratorNode(PNode operandNode) {
+            this.operandNode = operandNode;
+        }
+
+        protected GetGeneratorIteratorNode(GetGeneratorIteratorNode prev) {
+            this.operandNode = prev.getOperand();
+        }
+
+        @Override
+        public PNode getOperand() {
+            return operandNode;
+        }
+
+        @Override
+        public Object executeWith(VirtualFrame frame, Object value) {
+            PGenerator generator;
+
+            try {
+                generator = PythonTypesGen.PYTHONTYPES.expectPGenerator(value);
+            } catch (UnexpectedResultException e) {
+                throw new IllegalStateException();
+            }
+
+            if (cachedGenerator == null) {
+                cachedGenerator = generator;
+            }
+
+            return generator;
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return executeWith(frame, operandNode.execute(frame));
+        }
     }
 
 }

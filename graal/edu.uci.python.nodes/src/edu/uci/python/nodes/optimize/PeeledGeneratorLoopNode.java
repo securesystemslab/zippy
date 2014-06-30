@@ -195,4 +195,39 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
         }
     }
 
+    public static final class PeeledGeneratorLoopNotAlignedNode extends PeeledGeneratorLoopNode {
+
+        @Child protected PNode calleeNode;
+        private final RootCallTarget cachedCallTarget;
+
+        public PeeledGeneratorLoopNotAlignedNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode calleeNode, PGenerator callee, PNode originalLoop) {
+            super(generatorRoot, frameDescriptor, null, originalLoop);
+            this.calleeNode = calleeNode;
+            cachedCallTarget = callee.getCallTarget();
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            PGenerator callee;
+
+            try {
+                callee = calleeNode.executePGenerator(frame);
+            } catch (UnexpectedResultException e) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                return deoptAndExecute(frame);
+            }
+
+            if (cachedCallTarget == callee.getCallTarget()) {
+                final Object[] arguments = callee.getArguments();
+                PArguments.setVirtualFrameCargoArguments(arguments, frame);
+                VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
+                return inlinedRootNode.execute(generatorFrame);
+            }
+
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            return deoptAndExecute(frame);
+        }
+
+    }
+
 }
