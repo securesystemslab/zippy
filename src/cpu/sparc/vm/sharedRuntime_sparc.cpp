@@ -43,6 +43,9 @@
 #include "compiler/compileBroker.hpp"
 #include "shark/sharkCompiler.hpp"
 #endif
+#ifdef GRAAL
+#include "graal/graalJavaAccess.hpp"
+#endif
 
 #define __ masm->
 
@@ -990,6 +993,19 @@ void AdapterGenerator::gen_i2c_adapter(
 
   // Jump to the compiled code just as if compiled code was doing it.
   __ ld_ptr(G5_method, in_bytes(Method::from_compiled_offset()), G3);
+#ifdef GRAAL
+  // check if this call should be routed towards a specific entry point
+  __ ld(Address(G2_thread, in_bytes(JavaThread::graal_alternate_call_target_offset())), G1);
+  __ cmp(G0, G1);
+  Label no_alternative_target;
+  __ br(Assembler::equal, false, Assembler::pn, no_alternative_target);
+  __ delayed()->nop();
+
+  __ ld_ptr(G2_thread, in_bytes(JavaThread::graal_alternate_call_target_offset()), G3);
+  __ st(G0, Address(G2_thread, in_bytes(JavaThread::graal_alternate_call_target_offset())));
+
+  __ bind(no_alternative_target);
+#endif
 
   // 6243940 We might end up in handle_wrong_method if
   // the callee is deoptimized as we race thru here. If that
@@ -3483,6 +3499,46 @@ void SharedRuntime::generate_deopt_blob() {
   __ ba(cont);
   __ delayed()->mov(Deoptimization::Unpack_deopt, L0deopt_mode);
 
+
+#ifdef GRAAL
+  masm->block_comment("BEGIN GRAAL");
+  int implicit_exception_uncommon_trap_offset = __ offset() - start;
+  //__ pushptr(Address(G2_thread, in_bytes(JavaThread::graal_implicit_exception_pc_offset())));
+  __ ld_ptr(G2_thread, in_bytes(JavaThread::graal_implicit_exception_pc_offset()), O7);
+  //__ add(G0, 0x321, O7);
+  __ add(O7, -8, O7);
+  //__ st_ptr(I7, SP, I7->sp_offset_in_saved_window()*wordSize + STACK_BIAS);
+  // Save everything in sight.
+  masm->block_comment("save_live_regs");
+  (void) RegisterSaver::save_live_registers(masm, 0, &frame_size_words);
+  masm->block_comment("/save_live_regs");
+  //__ ld_ptr(G2_thread, in_bytes(JavaThread::graal_implicit_exception_pc_offset()), O7);
+  // fetch_unroll_info needs to call last_java_frame()
+  masm->block_comment("set_last_java_frame");
+  __ set_last_Java_frame(SP, NULL);
+  masm->block_comment("/set_last_java_frame");
+
+  //__ movl(c_rarg1, Address(r15_thread, in_bytes(ThreadShadow::pending_deoptimization_offset())));
+  __ ld(G2_thread, in_bytes(ThreadShadow::pending_deoptimization_offset()), O1);
+  //__ movl(Address(r15_thread, in_bytes(ThreadShadow::pending_deoptimization_offset())), -1);
+  __ sub(G0, 1, L1);
+  __ st_ptr(L1, G2_thread, in_bytes(ThreadShadow::pending_deoptimization_offset()));
+
+  __ mov((int32_t)Deoptimization::Unpack_reexecute, L0deopt_mode);
+  __ mov(G2_thread, O0);
+  __ call(CAST_FROM_FN_PTR(address, Deoptimization::uncommon_trap));
+  __ delayed()->nop();
+  oop_maps->add_gc_map( __ offset()-start, map->deep_copy());
+  __ get_thread();
+  __ add(O7, 8, O7);
+  __ reset_last_Java_frame();
+
+  Label after_fetch_unroll_info_call;
+  __ ba(after_fetch_unroll_info_call);
+  __ delayed()->nop(); // Delay slot
+  masm->block_comment("END GRAAL");
+#endif // GRAAL
+
   int exception_offset = __ offset() - start;
 
   // restore G2, the trampoline destroyed it
@@ -3560,6 +3616,9 @@ void SharedRuntime::generate_deopt_blob() {
 
   __ reset_last_Java_frame();
 
+#ifdef GRAAL
+  __ bind(after_fetch_unroll_info_call);
+#endif
   // NOTE: we know that only O0/O1 will be reloaded by restore_result_registers
   // so this move will survive
 
@@ -3568,7 +3627,6 @@ void SharedRuntime::generate_deopt_blob() {
   __ mov(O0, O2UnrollBlock->after_save());
 
   RegisterSaver::restore_result_registers(masm);
-
   Label noException;
   __ cmp_and_br_short(G4deopt_mode, Deoptimization::Unpack_exception, Assembler::notEqual, Assembler::pt, noException);
 
@@ -3625,6 +3683,9 @@ void SharedRuntime::generate_deopt_blob() {
   masm->flush();
   _deopt_blob = DeoptimizationBlob::create(&buffer, oop_maps, 0, exception_offset, reexecute_offset, frame_size_words);
   _deopt_blob->set_unpack_with_exception_in_tls_offset(exception_in_tls_offset);
+#ifdef GRAAL
+  _deopt_blob->set_implicit_exception_uncommon_trap_offset(implicit_exception_uncommon_trap_offset);
+#endif
 }
 
 #ifdef COMPILER2

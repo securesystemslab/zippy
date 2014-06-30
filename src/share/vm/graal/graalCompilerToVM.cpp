@@ -587,7 +587,23 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv*, jobject, jobject ar
   } else if (jap.get_ret_type() == T_OBJECT || jap.get_ret_type() == T_ARRAY) {
     return JNIHandles::make_local((oop) result.get_jobject());
   } else {
-    oop o = java_lang_boxing_object::create(jap.get_ret_type(), (jvalue *) result.get_value_addr(), CHECK_NULL);
+    jvalue *value = (jvalue *) result.get_value_addr();
+    // Narrow the value down if required (Important on big endian machines)
+    switch (jap.get_ret_type()) {
+      case T_BOOLEAN:
+       value->z = (jboolean) value->i;
+       break;
+      case T_BYTE:
+       value->b = (jbyte) value->i;
+       break;
+      case T_CHAR:
+       value->c = (jchar) value->i;
+       break;
+      case T_SHORT:
+       value->s = (jshort) value->i;
+       break;
+     }
+    oop o = java_lang_boxing_object::create(jap.get_ret_type(), value, CHECK_NULL);
     return JNIHandles::make_local(o);
   }
 C2V_END
