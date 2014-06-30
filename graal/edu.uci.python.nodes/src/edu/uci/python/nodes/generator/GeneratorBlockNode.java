@@ -54,28 +54,9 @@ public final class GeneratorBlockNode extends BlockNode implements GeneratorCont
         PArguments.getControlData(frame).setBlockIndexAt(blockIndexSlot, value);
     }
 
+    @Override
     public GeneratorBlockNode insertNodesBefore(PNode insertBefore, List<PNode> insertees) {
-        int insertAt = -1;
-        for (int i = 0; i < statements.length; i++) {
-            PNode stmt = statements[i];
-
-            if (stmt.equals(insertBefore)) {
-                insertAt = i;
-            }
-        }
-
-        assert insertAt != -1;
-        PNode[] extendedStatements = new PNode[statements.length + insertees.size()];
-        System.arraycopy(statements, 0, extendedStatements, 0, insertAt);
-
-        for (int i = 0; i < insertees.size(); i++) {
-            extendedStatements[i + insertAt] = insertees.get(i);
-        }
-
-        for (int i = insertAt; i < statements.length; i++) {
-            extendedStatements[i + insertees.size()] = statements[i];
-        }
-
+        PNode[] extendedStatements = super.insertNodesBefore(insertBefore, insertees).getStatements();
         return new GeneratorBlockNode(extendedStatements, getIndexSlot());
     }
 

@@ -184,25 +184,10 @@ public class GeneratorTranslator {
         // Find the dominating StatementNode.
         PNode targetingStatement = (PNode) PNodeUtil.getParentFor(yield, WriteNode.class);
 
-        // Linearize all sub-expressions in a list.
-        List<PNode> expressions = new ArrayList<>();
-        targetingStatement.accept(new NodeVisitor() {
-            public boolean visit(Node node) {
-                if (node instanceof PNode) {
-                    PNode pnode = (PNode) node;
-                    for (Node child : pnode.getChildren()) {
-                        if (child != null) {
-                            expressions.add((PNode) child);
-                        }
-                    }
-                }
-                return true;
-            }
-        });
-
+        List<PNode> subExpressions = PNodeUtil.getListOfSubExpressionsInOrder(targetingStatement);
         List<PNode> extractedExpressions = new ArrayList<>();
         List<PNode> extractedWrites = new ArrayList<>();
-        for (PNode expr : expressions) {
+        for (PNode expr : subExpressions) {
             if (expr.equals(yield)) {
                 break;
             }
@@ -269,7 +254,7 @@ public class GeneratorTranslator {
 
     private void replaceControl(PNode node, YieldNode yield, int depth) {
         /**
-         * Has it been replace already?
+         * Has it been replaced already?
          */
         if (node instanceof GeneratorControlNode) {
             return;
@@ -303,8 +288,7 @@ public class GeneratorTranslator {
             }
 
             node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
-        } else if (node instanceof ElseNode || node instanceof BreakTargetNode || node instanceof TryExceptNode || node instanceof ExceptNode || node instanceof StopIterationTargetNode ||
-                        node instanceof ContinueTargetNode || node instanceof TryFinallyNode) {
+        } else if (node instanceof StatementNode) {
             // do nothing for now
         } else {
             replaceYieldExpression(node, yield, depth);
@@ -320,16 +304,14 @@ public class GeneratorTranslator {
      */
     private void replaceYieldExpression(PNode node, YieldNode yield, int depth) {
 
+        // Wraps yield and the inserted YieldSendValueNode with a GenBlockNode.
         if (depth == 0) {
-            // Wraps yield and the inserted YieldSendValueNode with a GenBlockNode.
-            int slotOfBlockIndex = nextGeneratorBlockIndexSlot();
-            YieldSendValueNode yieldSend = new YieldSendValueNode();
-            yield.replace(new GeneratorBlockNode(new PNode[]{yield, yieldSend}, slotOfBlockIndex));
+            yield.replace(new GeneratorBlockNode(new PNode[]{yield, new YieldSendValueNode()}, nextGeneratorBlockIndexSlot()));
         }
 
         /**
          * Search for child expressions for ones that are not side-affect free (does not change any
-         * local or global state).
+         * local or non-local state).
          */
         for (Node child : node.getChildren()) {
             if (!(child instanceof PNode)) {
@@ -342,6 +324,8 @@ public class GeneratorTranslator {
 
             child.accept(new NodeVisitor() {
                 public boolean visit(Node childNode) {
+                    assert !(child instanceof StatementNode);
+
                     if (childNode instanceof PNode) {
                         PNode childPNode = (PNode) childNode;
                         if (childPNode.hasSideEffectAsAnExpression()) {

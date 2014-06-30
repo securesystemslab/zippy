@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes;
 
+import java.util.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.NodeUtil.*;
@@ -46,6 +48,26 @@ public class PNodeUtil {
         }
 
         throw new IllegalStateException();
+    }
+
+    public static List<PNode> getListOfSubExpressionsInOrder(PNode root) {
+        List<PNode> expressions = new ArrayList<>();
+
+        root.accept(new NodeVisitor() {
+            public boolean visit(Node node) {
+                if (node instanceof PNode) {
+                    PNode pnode = (PNode) node;
+                    for (Node child : pnode.getChildren()) {
+                        if (child != null) {
+                            expressions.add((PNode) child);
+                        }
+                    }
+                }
+                return true;
+            }
+        });
+
+        return expressions;
     }
 
     /**
