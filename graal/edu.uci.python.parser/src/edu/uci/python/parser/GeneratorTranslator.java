@@ -74,14 +74,6 @@ public class GeneratorTranslator {
             read.replace(ReadGeneratorFrameVariableNode.create(read.getSlot()));
         }
 
-        /**
-         * For some weird reason, some reads are not replaced. Have to go through all reads and make
-         * sure they are replaced.
-         */
-        for (ReadLocalVariableNode read : NodeUtil.findAllNodeInstances(root, ReadLocalVariableNode.class)) {
-            read.replace(ReadGeneratorFrameVariableNode.create(read.getSlot()));
-        }
-
         assert NodeUtil.findFirstNodeInstance(root, ReadLocalVariableNode.class) == null;
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(root, YieldNode.class)) {
@@ -97,63 +89,71 @@ public class GeneratorTranslator {
             PNodeUtil.findMatchingNodeIn(genexp, root.getUninitializedBody()).setEnclosingFrameGenerator(true);
         }
 
-        for (BreakNode bnode : NodeUtil.findAllNodeInstances(root, BreakNode.class)) {
-            // look for it's breaking loop node
-            Node current = bnode.getParent();
-            List<Integer> indexSlots = new ArrayList<>();
-            List<Integer> flagSlots = new ArrayList<>();
-
-            while (current instanceof GeneratorBlockNode || current instanceof ContinueTargetNode || current instanceof IfNode) {
-                if (current instanceof GeneratorBlockNode) {
-                    int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
-                    indexSlots.add(indexSlot);
-                } else if (current instanceof GeneratorIfWithoutElseNode) {
-                    GeneratorIfWithoutElseNode ifNode = (GeneratorIfWithoutElseNode) current;
-                    flagSlots.add(ifNode.getThenFlagSlot());
-                } else if (current instanceof GeneratorIfNode) {
-                    GeneratorIfNode ifNode = (GeneratorIfNode) current;
-                    flagSlots.add(ifNode.getThenFlagSlot());
-                    flagSlots.add(ifNode.getElseFlagSlot());
-                }
-
-                current = current.getParent();
-            }
-
-            if (current instanceof GeneratorForNode) {
-                int iteratorSlot = ((GeneratorForNode) current).getIteratorSlot();
-                int[] indexSlotsArray = Ints.toArray(indexSlots);
-                int[] flagSlotsArray = Ints.toArray(flagSlots);
-                bnode.replace(new GeneratorBreakNode(iteratorSlot, indexSlotsArray, flagSlotsArray));
-            }
+        for (BreakNode breakNode : NodeUtil.findAllNodeInstances(root, BreakNode.class)) {
+            replaceBreak(breakNode);
         }
 
-        for (ContinueNode cnode : NodeUtil.findAllNodeInstances(root, ContinueNode.class)) {
-            Node current = cnode.getParent();
-            List<Integer> indexSlots = new ArrayList<>();
-            List<Integer> flagSlots = new ArrayList<>();
-
-            while (!(current instanceof LoopNode)) {
-                if (current instanceof GeneratorBlockNode) {
-                    int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
-                    indexSlots.add(indexSlot);
-                } else if (current instanceof GeneratorIfWithoutElseNode) {
-                    GeneratorIfWithoutElseNode ifNode = (GeneratorIfWithoutElseNode) current;
-                    flagSlots.add(ifNode.getThenFlagSlot());
-                } else if (current instanceof GeneratorIfNode) {
-                    GeneratorIfNode ifNode = (GeneratorIfNode) current;
-                    flagSlots.add(ifNode.getThenFlagSlot());
-                    flagSlots.add(ifNode.getElseFlagSlot());
-                }
-
-                current = current.getParent();
-            }
-
-            int[] indexSlotsArray = Ints.toArray(indexSlots);
-            int[] flagSlotsArray = Ints.toArray(flagSlots);
-            cnode.replace(new GeneratorContinueNode(indexSlotsArray, flagSlotsArray));
+        for (ContinueNode continueNode : NodeUtil.findAllNodeInstances(root, ContinueNode.class)) {
+            replaceContinue(continueNode);
         }
 
         return callTarget;
+    }
+
+    private static void replaceBreak(BreakNode breakNode) {
+        // look for it's breaking loop node
+        Node current = breakNode.getParent();
+        List<Integer> indexSlots = new ArrayList<>();
+        List<Integer> flagSlots = new ArrayList<>();
+
+        while (current instanceof GeneratorBlockNode || current instanceof ContinueTargetNode || current instanceof IfNode) {
+            if (current instanceof GeneratorBlockNode) {
+                int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
+                indexSlots.add(indexSlot);
+            } else if (current instanceof GeneratorIfWithoutElseNode) {
+                GeneratorIfWithoutElseNode ifNode = (GeneratorIfWithoutElseNode) current;
+                flagSlots.add(ifNode.getThenFlagSlot());
+            } else if (current instanceof GeneratorIfNode) {
+                GeneratorIfNode ifNode = (GeneratorIfNode) current;
+                flagSlots.add(ifNode.getThenFlagSlot());
+                flagSlots.add(ifNode.getElseFlagSlot());
+            }
+
+            current = current.getParent();
+        }
+
+        if (current instanceof GeneratorForNode) {
+            int iteratorSlot = ((GeneratorForNode) current).getIteratorSlot();
+            int[] indexSlotsArray = Ints.toArray(indexSlots);
+            int[] flagSlotsArray = Ints.toArray(flagSlots);
+            breakNode.replace(new GeneratorBreakNode(iteratorSlot, indexSlotsArray, flagSlotsArray));
+        }
+    }
+
+    private static void replaceContinue(ContinueNode continueNode) {
+        Node current = continueNode.getParent();
+        List<Integer> indexSlots = new ArrayList<>();
+        List<Integer> flagSlots = new ArrayList<>();
+
+        while (!(current instanceof LoopNode)) {
+            if (current instanceof GeneratorBlockNode) {
+                int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
+                indexSlots.add(indexSlot);
+            } else if (current instanceof GeneratorIfWithoutElseNode) {
+                GeneratorIfWithoutElseNode ifNode = (GeneratorIfWithoutElseNode) current;
+                flagSlots.add(ifNode.getThenFlagSlot());
+            } else if (current instanceof GeneratorIfNode) {
+                GeneratorIfNode ifNode = (GeneratorIfNode) current;
+                flagSlots.add(ifNode.getThenFlagSlot());
+                flagSlots.add(ifNode.getElseFlagSlot());
+            }
+
+            current = current.getParent();
+        }
+
+        int[] indexSlotsArray = Ints.toArray(indexSlots);
+        int[] flagSlotsArray = Ints.toArray(flagSlots);
+        continueNode.replace(new GeneratorContinueNode(indexSlotsArray, flagSlotsArray));
     }
 
     private void replaceYield(YieldNode yield) {
@@ -224,7 +224,7 @@ public class GeneratorTranslator {
                         node instanceof ContinueTargetNode || node instanceof TryFinallyNode) {
             // do nothing for now
         } else {
-            replaceYieldExpression(node, yield, depth);
+            replaceYieldExpressions(node, yield, depth);
         }
     }
 
@@ -235,7 +235,7 @@ public class GeneratorTranslator {
      * yield are side affect free, we simply re-evaluate those sub-expressions when resuming.
      * Otherwise we give up.
      */
-    private void replaceYieldExpression(PNode node, YieldNode yield, int depth) {
+    private void replaceYieldExpressions(PNode node, YieldNode yield, int depth) {
         if (depth == 0) {
             // Wraps yield and the inserted YieldSendValueNode with a GenBlockNode.
             int slotOfBlockIndex = nextGeneratorBlockIndexSlot();
