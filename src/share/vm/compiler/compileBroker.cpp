@@ -383,7 +383,7 @@ void CompileTask::print_compilation_impl(outputStream* st, Method* method, int c
     st->print("%7d ", (int) st->time_stamp().milliseconds());  // print timestamp
   }
   // print compiler name if requested
-  if (CIPrintCompilerName) tty->print("%s:", CompileBroker::compiler_name(comp_level));
+  if (CIPrintCompilerName) st->print("%s:", CompileBroker::compiler_name(comp_level));
   st->print("%4d ", compile_id);    // print compilation number
 
   // For unloaded methods the transition to zombie occurs after the
@@ -805,7 +805,19 @@ void CompileBroker::compilation_init() {
 
 #if defined(COMPILERGRAAL)
   _compilers[1] = graal;
-  c2_count = UseGraalCompilationQueue ? 0 : c2_count;
+  if (UseGraalCompilationQueue) {
+    c2_count = 0;
+  } else {
+    if (FLAG_IS_DEFAULT(GraalThreads)) {
+      if (!TieredCompilation && FLAG_IS_DEFAULT(BootstrapGraal) || BootstrapGraal) {
+        // Graal will bootstrap so give it the same number of threads
+        // as we would give the Java based compilation queue.
+        c2_count = os::active_processor_count();
+      }
+    } else {
+      c2_count = GraalThreads;
+    }
+  }
 #endif // COMPILERGRAAL
 
 #ifdef COMPILER2
@@ -1031,7 +1043,7 @@ void CompileBroker::init_compiler_threads(int c1_compiler_count, int c2_compiler
   char name_buffer[256];
   for (int i = 0; i < c2_compiler_count; i++) {
     // Create a name for our thread.
-    sprintf(name_buffer, "C2 CompilerThread%d", i);
+    sprintf(name_buffer, "%s CompilerThread%d", _compilers[1]->name(), i);
     CompilerCounters* counters = new CompilerCounters("compilerThread", i, CHECK);
     // Shark and C2
     CompilerThread* new_thread = make_compiler_thread(name_buffer, _c2_method_queue, counters, _compilers[1], CHECK);
@@ -1198,6 +1210,13 @@ void CompileBroker::compile_method_base(methodHandle method,
 
     // Should this thread wait for completion of the compile?
     blocking = is_compile_blocking(method, osr_bci);
+
+#ifdef COMPILERGRAAL
+    // Don't allow blocking compiles for requests triggered by Graal.
+    if (blocking && thread->is_Compiler_thread()) {
+      blocking = false;
+    }
+#endif
 
     // We will enter the compilation in the queue.
     // 14012000: Note that this sets the queued_for_compile bits in

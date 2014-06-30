@@ -32,10 +32,10 @@ private:
 
 #ifdef COMPILERGRAAL
   bool _bootstrapping;
+  volatile int  _compiled; // no synchronization so may not be 100% accurate
 
   void start_compilation_queue();
   void shutdown_compilation_queue();
-  void bootstrap();
 #endif
 
   static GraalCompiler* _instance;
@@ -61,6 +61,9 @@ public:
   virtual void initialize();
 
 #ifdef COMPILERGRAAL
+
+  void bootstrap();
+  
   // Compilation entry point for methods
   virtual void compile_method(ciEnv* env, ciMethod* target, int entry_bci);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,6 +31,7 @@ import com.sun.hotspot.igv.graph.Diagram;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.graph.InputSlot;
 import java.awt.Color;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -41,9 +42,8 @@ import java.util.regex.Pattern;
  */
 public class GraalEdgeColorFilter extends AbstractFilter {
 
-    private Color successorColor = Color.BLUE;
-    private Color usageColor = Color.RED;
-    private Color memoryColor = Color.GREEN;
+    private HashMap<String,Color> usageColor = new HashMap<>();
+    private Color otherUsageColor = Color.BLACK;
 
     public GraalEdgeColorFilter() {
     }
@@ -56,66 +56,43 @@ public class GraalEdgeColorFilter extends AbstractFilter {
     @Override
     public void apply(Diagram d) {
         List<Figure> figures = d.getFigures();
-        Pattern ndf = Pattern.compile(".*#NDF(\\[[0-9]*\\])?");
         for (Figure f : figures) {
-            Properties p = f.getProperties();
-            int predCount;
-            String predCountString = p.get("predecessorCount");
-            if (predCountString != null) {
-                predCount = Integer.parseInt(predCountString);
-            } else if (Boolean.parseBoolean(p.get("hasPredecessor"))) {
-                predCount = 1;
-            } else {
-                predCount = 0;
-            }
             for (InputSlot is : f.getInputSlots()) {
-                Color color;
-                ConnectionStyle style = ConnectionStyle.NORMAL;
-                if (is.getPosition() < predCount) {
-                    color = successorColor;
-                    style = ConnectionStyle.BOLD;
-                } else {
-                    color = usageColor;
-                }
-
-                is.setColor(color);
                 for (Connection c : is.getConnections()) {
-                    if (c.getLabel() == null || !ndf.matcher(c.getLabel()).matches()) {
-                        c.setColor(color);
-                        if (c.getStyle() != ConnectionStyle.DASHED) {
-                            c.setStyle(style);
+                    String type = c.getType();
+                    if (type == "Association" && "EndNode".equals(c.getOutputSlot().getFigure().getProperties().get("class"))) {
+                        type = "Successor";
+                    }
+                    
+                    if (type != null) {
+                        Color typeColor = usageColor.get(type);
+                        if (typeColor == null) {
+                            c.setColor(otherUsageColor);
+                        } else {
+                            c.setColor(typeColor);
                         }
-                    } else if ("EndNode".equals(c.getOutputSlot().getFigure().getProperties().get("class"))
-                            || "EndNode".equals(c.getOutputSlot().getProperties().get("class"))) {
-                        c.setColor(successorColor);
-                        c.setStyle(ConnectionStyle.BOLD);
+                        if (c.getStyle() != ConnectionStyle.DASHED && type == "Successor") {
+                            c.setStyle(ConnectionStyle.BOLD);
+                        }
                     }
                 }
             }
         }
     }
 
-    public Color getUsageColor() {
-        return usageColor;
+    public Color getUsageColor(String type) {
+        return usageColor.get(type);
     }
 
-    public void setUsageColor(Color usageColor) {
-        this.usageColor = usageColor;
+    public void setUsageColor(String type, Color usageColor) {
+        this.usageColor.put(type, usageColor);
     }
-
-    public void setMemoryColor(Color memoryColor) {
-        this.memoryColor = memoryColor;
+    
+    public Color getOtherUsageColor() {
+        return otherUsageColor;
     }
-
-    public Color getMemoryColor() {
-        return memoryColor;
-    }
-
-    public Color getSuccessorColor() {
-        return successorColor;
-    }
-
-    public void setSuccessorColor(Color successorColor) {
-        this.successorColor = successorColor;
+    
+    public void setOtherUsageColor(Color otherUsageColor) {
+        this.otherUsageColor = otherUsageColor;
     }
 }

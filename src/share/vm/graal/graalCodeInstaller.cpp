@@ -88,6 +88,26 @@ static int bitset_size(oop bitset) {
   return arr->length() * MapWordBits;
 }
 
+static void set_vmreg_oops(OopMap* map, VMReg reg, oop bitset, int idx) {
+  bool is_oop = is_bit_set(bitset, 3 * idx);
+  if (is_oop) {
+    bool narrow1 = is_bit_set(bitset, 3 * idx + 1);
+    bool narrow2 = is_bit_set(bitset, 3 * idx + 2);
+    if (narrow1 || narrow2) {
+      if (narrow1) {
+        map->set_narrowoop(reg);
+      }
+      if (narrow2) {
+        map->set_narrowoop(reg->next());
+      }
+    } else {
+      map->set_oop(reg);
+    }
+  } else {
+    map->set_value(reg);
+  }
+}
+
 // creates a HotSpot oop map out of the byte arrays provided by DebugInfo
 static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop debug_info) {
   OopMap* map = new OopMap(total_frame_size, parameter_count);
@@ -98,41 +118,23 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
 
   if (register_map != NULL) {
     for (jint i = 0; i < RegisterImpl::number_of_registers; i++) {
-      bool is_oop = is_bit_set(register_map, 2 * i);
-      VMReg hotspot_reg = get_hotspot_reg(i);
-      if (is_oop) {
-        if (is_bit_set(register_map, 2 * i + 1)) {
-          map->set_narrowoop(hotspot_reg);
-        } else {
-          map->set_oop(hotspot_reg);
-        }
-      } else {
-        map->set_value(hotspot_reg);
+      set_vmreg_oops(map, as_Register(i)->as_VMReg(), register_map, i);
+    }
+#ifdef TARGET_ARCH_x86
+    for (jint i = 0; i < XMMRegisterImpl::number_of_registers; i++) {
+      VMReg reg = as_XMMRegister(i)->as_VMReg();
+      int idx = RegisterImpl::number_of_registers + 4 * i;
+      for (jint j = 0; j < 4; j++) {
+        set_vmreg_oops(map, reg->next(2 * j), register_map, idx + j);
       }
     }
+#endif
   }
 
   for (jint i = 0; i < bitset_size(frame_map) / 3; i++) {
-    bool is_oop = is_bit_set(frame_map, i * 3);
     // HotSpot stack slots are 4 bytes
     VMReg reg = VMRegImpl::stack2reg(i * VMRegImpl::slots_per_word);
-    if (is_oop) {
-      bool narrow1 = is_bit_set(frame_map, i * 3 + 1);
-      bool narrow2 = is_bit_set(frame_map, i * 3 + 2);
-      if(narrow1 || narrow2) {
-        if(narrow1) {
-          map->set_narrowoop(reg);
-        }
-        if(narrow2) {
-          VMReg reg2 = VMRegImpl::stack2reg(i * VMRegImpl::slots_per_word + 1);
-          map->set_narrowoop(reg2);
-        }
-      } else {
-        map->set_oop(reg);
-      }
-    } else {
-      map->set_value(reg);
-    }
+    set_vmreg_oops(map, reg, frame_map, i);
   }
 
   if (callee_save_info != NULL) {

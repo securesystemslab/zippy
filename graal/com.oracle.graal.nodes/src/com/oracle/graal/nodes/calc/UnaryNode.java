@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,18 +20,32 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.common.spi;
+package com.oracle.graal.nodes.calc;
 
-import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
+import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodes.*;
 
 /**
- * This interface can be used to access platform and VM specific kinds.
+ * The {@code UnaryNode} class is the base of arithmetic and bit logic operations with exactly one
+ * input.
  */
-public interface PlatformKindTool {
+public abstract class UnaryNode extends FloatingNode implements Canonicalizable.Unary<ValueNode> {
 
-    PlatformKind getIntegerKind(int bits);
+    @Input private ValueNode value;
 
-    PlatformKind getFloatingKind(int bits);
+    public ValueNode getValue() {
+        return value;
+    }
 
-    PlatformKind getObjectKind();
+    /**
+     * Creates a new UnaryNode instance.
+     *
+     * @param stamp the result type of this instruction
+     * @param value the input instruction
+     */
+    public UnaryNode(Stamp stamp, ValueNode value) {
+        super(stamp);
+        this.value = value;
+    }
 }

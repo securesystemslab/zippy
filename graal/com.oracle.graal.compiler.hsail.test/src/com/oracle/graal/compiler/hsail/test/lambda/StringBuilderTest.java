@@ -4,9 +4,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -22,11 +20,38 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api;
+package com.oracle.graal.compiler.hsail.test.lambda;
+
+import com.oracle.graal.compiler.hsail.test.infra.*;
+
+import org.junit.*;
 
 /**
- * Marker for a special flavor of {@link SourceSection} that has no content and can be ignored.
+ * Tests creating a new String using StringBuilder (relies on {@link System#arraycopy}).
  */
-public interface NullSourceSection extends SourceSection {
+public class StringBuilderTest extends GraalKernelTester {
 
+    final static int NUM = 20;
+    StringBuilder[] builders = new StringBuilder[NUM];
+    @Result String[] resultString = new String[NUM];
+
+    @Override
+    public void runTest() {
+        for (int i = 0; i < NUM; i++) {
+            builders[i] = new StringBuilder().append(i).append("abc");
+        }
+        dispatchLambdaKernel(NUM, (gid) -> {
+            resultString[gid] = builders[gid].append(gid * 1234).toString();
+        });
+    }
+
+    @Override
+    protected boolean supportsRequiredCapabilities() {
+        return (canHandleObjectAllocation());
+    }
+
+    @Test
+    public void testUsingLambdaMethod() {
+        testGeneratedHsailUsingLambdaMethod();
+    }
 }

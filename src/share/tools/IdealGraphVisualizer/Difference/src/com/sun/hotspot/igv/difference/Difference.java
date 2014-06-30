@@ -211,7 +211,7 @@ public class Difference {
             if (nodeFrom == null || nodeTo == null) {
                 System.out.println("Unexpected edge : " + from + " -> " + to);
             } else {
-                InputEdge newEdge = new InputEdge(fromIndex, toIndex, nodeFrom.getId(), nodeTo.getId());
+                InputEdge newEdge = new InputEdge(fromIndex, toIndex, nodeFrom.getId(), nodeTo.getId(), e.getLabel(), e.getType());
                 if (!newEdges.contains(newEdge)) {
                     markAsDeleted(newEdge);
                     newEdges.add(newEdge);
@@ -231,7 +231,7 @@ public class Difference {
             if (nodeFrom == null || nodeTo == null) {
                 System.out.println("Unexpected edge : " + from + " -> " + to);
             } else {
-                InputEdge newEdge = new InputEdge(fromIndex, toIndex, nodeFrom.getId(), nodeTo.getId());
+                InputEdge newEdge = new InputEdge(fromIndex, toIndex, nodeFrom.getId(), nodeTo.getId(), e.getLabel(), e.getType());
                 if (!newEdges.contains(newEdge)) {
                     markAsNew(newEdge);
                     newEdges.add(newEdge);

@@ -194,9 +194,9 @@ C2V_VMENTRY(jlong, getMetaspaceMethod, (JNIEnv *, jobject, jclass holder_handle,
   return (jlong) (address) method();
 }
 
-C2V_VMENTRY(jlong, findUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_method))
+C2V_VMENTRY(jlong, findUniqueConcreteMethod, (JNIEnv *, jobject, jlong metaspace_klass, jlong metaspace_method))
   methodHandle method = asMethod(metaspace_method);
-  KlassHandle holder = method->method_holder();
+  KlassHandle holder = asKlass(metaspace_klass);
   assert(!holder->is_interface(), "should be handled in Java code");
   ResourceMark rm;
   MutexLocker locker(Compile_lock);
@@ -367,7 +367,7 @@ C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jlong metaspace_klass_rece
       methodHandle resolved_method;
       LinkResolver::linktime_resolve_interface_method(resolved_method, holder_klass, method_name, method_signature, caller_klass, true, CHECK_AND_CLEAR_0);
       if (resolved_method->is_private()) {
-        return (jlong) NULL;
+        return (jlong) (address) NULL;
       }
       assert(recv_klass->is_subtype_of(holder_klass), "");
       // do actual lookup
@@ -413,7 +413,7 @@ C2V_VMENTRY(jlong, resolveMethod, (JNIEnv *, jobject, jlong metaspace_klass_rece
       return (jlong) (address) selected_method;
     }
   }
-  return (jlong) NULL;
+  return (jlong) (address) NULL;
 C2V_END
 
 C2V_VMENTRY(jboolean, hasFinalizableSubclass,(JNIEnv *, jobject, jlong metaspace_klass))
@@ -897,6 +897,14 @@ C2V_VMENTRY(void, resolveInvokeDynamic, (JNIEnv*, jobject, jlong metaspace_const
   cp_cache_entry->set_dynamic_call(cp, callInfo);
 C2V_END
 
+C2V_VMENTRY(jboolean, shouldDebugNonSafepoints, (JNIEnv*, jobject))
+  //see compute_recording_non_safepoints in debugInfroRec.cpp
+  if (JvmtiExport::should_post_compiled_method_load() && FLAG_IS_DEFAULT(DebugNonSafepoints)) {
+    return true;
+  }
+  return DebugNonSafepoints;
+C2V_END
+
 // public native void materializeVirtualObjects(HotSpotStackFrameReference stackFrame, boolean invalidate);
 C2V_VMENTRY(void, materializeVirtualObjects, (JNIEnv*, jobject, jobject hs_frame, bool invalidate))
   ResourceMark rm;
@@ -1019,7 +1027,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"exceptionTableStart",                          CC"("METASPACE_METHOD")J",                                                FN_PTR(exceptionTableStart)},
   {CC"exceptionTableLength",                         CC"("METASPACE_METHOD")I",                                                FN_PTR(exceptionTableLength)},
   {CC"hasBalancedMonitors",                          CC"("METASPACE_METHOD")Z",                                                FN_PTR(hasBalancedMonitors)},
-  {CC"findUniqueConcreteMethod",                     CC"("METASPACE_METHOD")"METASPACE_METHOD,                                 FN_PTR(findUniqueConcreteMethod)},
+  {CC"findUniqueConcreteMethod",                     CC"("METASPACE_KLASS METASPACE_METHOD")"METASPACE_METHOD,                 FN_PTR(findUniqueConcreteMethod)},
   {CC"getKlassImplementor",                          CC"("METASPACE_KLASS")"METASPACE_KLASS,                                   FN_PTR(getKlassImplementor)},
   {CC"getStackTraceElement",                         CC"("METASPACE_METHOD"I)"STACK_TRACE_ELEMENT,                             FN_PTR(getStackTraceElement)},
   {CC"methodIsIgnoredBySecurityStackWalk",           CC"("METASPACE_METHOD")Z",                                                FN_PTR(methodIsIgnoredBySecurityStackWalk)},
@@ -1068,6 +1076,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getTimeStamp",                                 CC"()J",                                                                  FN_PTR(getTimeStamp)},
   {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF "[JI)"HS_STACK_FRAME_REF,                         FN_PTR(getNextStackFrame)},
   {CC"materializeVirtualObjects",                    CC"("HS_STACK_FRAME_REF"Z)V",                                             FN_PTR(materializeVirtualObjects)},
+  {CC"shouldDebugNonSafepoints",                     CC"()Z",                                                                  FN_PTR(shouldDebugNonSafepoints)},
 };
 
 int CompilerToVM_methods_count() {

@@ -102,7 +102,8 @@ class Distribution:
                 existingSource = zf._provenance.get(arcname, None)
                 isOverwrite = False
                 if existingSource and existingSource != source:
-                    log('warning: ' + self.path + ': avoid overwrite of ' + arcname + '\n  new: ' + source + '\n  old: ' + existingSource)
+                    if arcname[-1] != os.path.sep:
+                        logv('warning: ' + self.path + ': avoid overwrite of ' + arcname + '\n  new: ' + source + '\n  old: ' + existingSource)
                     isOverwrite = True
                 zf._provenance[arcname] = source
                 return isOverwrite
@@ -1978,8 +1979,9 @@ class JavaCompileTask:
             if not self.jdtJar:
                 mainJava = java()
                 if not args.error_prone:
-                    self.logCompilation('javac')
-                    javacCmd = [mainJava.javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
+                    javac = args.alt_javac if args.alt_javac else mainJava.javac
+                    self.logCompilation('javac' if not args.alt_javac else args.alt_javac)
+                    javacCmd = [javac, '-g', '-J-Xmx1g', '-source', compliance, '-target', compliance, '-classpath', cp, '-d', outputDir, '-bootclasspath', jdk.bootclasspath(), '-endorseddirs', jdk.endorseddirs(), '-extdirs', jdk.extdirs()]
                     if jdk.debug_port is not None:
                         javacCmd += ['-J-Xdebug', '-J-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=' + str(jdk.debug_port)]
                     javacCmd += processorArgs
@@ -2063,10 +2065,11 @@ def build(args, parser=None):
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not build native projects')
     parser.add_argument('--jdt-warning-as-error', action='store_true', help='convert all Eclipse batch compiler warnings to errors')
     parser.add_argument('--jdt-show-task-tags', action='store_true', help='show task tags as Eclipse batch compiler warnings')
+    parser.add_argument('--alt-javac', dest='alt_javac', help='path to alternative javac executable', metavar='<path>')
     compilerSelect = parser.add_mutually_exclusive_group()
     compilerSelect.add_argument('--error-prone', dest='error_prone', help='path to error-prone.jar', metavar='<path>')
     compilerSelect.add_argument('--jdt', help='path to ecj.jar, the Eclipse batch compiler', default=_defaultEcjPath(), metavar='<path>')
-    compilerSelect.add_argument('--force-javac', action='store_true', dest='javac', help='use javac despite ecj.jar is found or not')
+    compilerSelect.add_argument('--force-javac', action='store_true', dest='javac', help='use javac whether ecj.jar is found or not')
 
     if suppliedParser:
         parser.add_argument('remainder', nargs=REMAINDER, metavar='...')
@@ -2846,6 +2849,7 @@ def clean(args, parser=None):
     parser = parser if suppliedParser else ArgumentParser(prog='mx clean')
     parser.add_argument('--no-native', action='store_false', dest='native', help='do not clean native projects')
     parser.add_argument('--no-java', action='store_false', dest='java', help='do not clean Java projects')
+    parser.add_argument('--no-dist', action='store_false', dest='dist', help='do not delete distributions')
 
     args = parser.parse_args(args)
 
@@ -2854,6 +2858,10 @@ def clean(args, parser=None):
         if get_os() == 'windows':
             path = unicode("\\\\?\\" + dirPath)
         shutil.rmtree(path)
+
+    def _rmIfExists(name):
+        if os.path.isfile(name):
+            os.unlink(name)
 
     for p in projects_opt_limit_to_suites():
         if p.native:
@@ -2877,6 +2885,12 @@ def clean(args, parser=None):
                 config = TimeStampFile(join(p.suite.mxDir, configName))
                 if config.exists():
                     os.unlink(config.path)
+
+    if args.dist:
+        for d in _dists.keys():
+            log('Removing distribution {0}...'.format(d))
+            _rmIfExists(distribution(d).path)
+            _rmIfExists(distribution(d).sourcesPath)
 
     if suppliedParser:
         return args
@@ -4149,9 +4163,8 @@ def fsckprojects(args):
         projectDirs = [p.dir for p in suite.projects]
         for dirpath, dirnames, files in os.walk(suite.dir):
             if dirpath == suite.dir:
-                # no point in traversing .hg
-                if '.hg' in dirnames:
-                    dirnames.remove('.hg')
+                # no point in traversing .hg or lib/
+                dirnames[:] = [d for d in dirnames if d not in ['.hg', 'lib']]
             elif dirpath in projectDirs:
                 # don't traverse subdirs of an existing project in this suite
                 dirnames[:] = []
@@ -4474,7 +4487,7 @@ def _kwArg(kwargs):
         return kwargs.pop(0)
     return None
 
-def findclass(args, logToConsole=True):
+def findclass(args, logToConsole=True, matcher=lambda string, classname: string in classname):
     """find all classes matching a given substring"""
     matches = []
     for entry, filename in classpath_walk(includeBootClasspath=True):
@@ -4485,7 +4498,7 @@ def findclass(args, logToConsole=True):
                 classname = filename.replace(os.sep, '.')
             classname = classname[:-len('.class')]
             for a in args:
-                if a in classname:
+                if matcher(a, classname):
                     matches.append(classname)
                     if logToConsole:
                         log(classname)

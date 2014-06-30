@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,31 +20,36 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.phases.common.util;
+package com.oracle.graal.compiler.hsail.test.lambda;
 
-import java.util.*;
+import com.oracle.graal.compiler.hsail.test.infra.*;
 
-import com.oracle.graal.graph.Graph.NodeChangedListener;
-import com.oracle.graal.graph.*;
+import org.junit.*;
 
 /**
- * A simple {@link NodeChangedListener} implementation that accumulates the changed nodes in a
- * {@link HashSet}.
+ * Tests copying a char array where src and dest overlap.
  */
-public class HashSetNodeChangeListener implements NodeChangedListener {
+public class CharArrayCopyConjointTest extends GraalKernelTester {
 
-    private final Set<Node> changedNodes;
+    final static int MAXOUTSIZ = 100;
+    final static int NUM = 20;
 
-    public HashSetNodeChangeListener() {
-        this.changedNodes = new HashSet<>();
-    }
+    @Result char[][] outArray = new char[NUM][MAXOUTSIZ];
 
     @Override
-    public void nodeChanged(Node node) {
-        changedNodes.add(node);
+    public void runTest() {
+        for (int i = 0; i < NUM; i++) {
+            for (int j = 0; j < outArray[i].length; j++) {
+                outArray[i][j] = (char) (i + j);
+            }
+        }
+        dispatchLambdaKernel(NUM, (gid) -> {
+            System.arraycopy(outArray[gid], 0, outArray[gid], gid % NUM, NUM);
+        });
     }
 
-    public Set<Node> getChangedNodes() {
-        return changedNodes;
+    @Test
+    public void testUsingLambdaMethod() {
+        testGeneratedHsailUsingLambdaMethod();
     }
 }

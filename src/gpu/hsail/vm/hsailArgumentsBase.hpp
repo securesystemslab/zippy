@@ -22,19 +22,16 @@
  *
  */
 
-#ifndef BASE_ARGUMENTS_HSAIL_HPP
-#define BASE_ARGUMENTS_HSAIL_HPP
+#ifndef GPU_HSAIL_VM_HSAIL_ARGUMENTS_BASE_HPP
+#define GPU_HSAIL_VM_HSAIL_ARGUMENTS_BASE_HPP
 
 #include "runtime/signature.hpp"
 
 
-/***
- * Base class which iterates thru a signature and pulls from a
- * objArrayOop of boxed values.  Used as base for HSAILKernelArguments
- * and HSAILJavaCallArguments The derived classes specify how to push
- * args onto their data structure
- ***/
-
+// Base class which iterates thru a signature and pulls from a
+// objArrayOop of boxed values.  Used as base for HSAILKernelArguments
+// and HSAILJavaCallArguments The derived classes specify how to push
+// args onto their data structure
 class HSAILArgumentsBase : public SignatureIterator {
 
 public:
@@ -49,7 +46,7 @@ private:
   // number of parameters in the signature
   int _parameter_count;
 
-  Symbol * _signature;
+  Symbol* _signature;
   bool _is_static;
 
   // records first null parameter seen
@@ -58,8 +55,8 @@ private:
   // Get next java argument
   oop next_arg(BasicType expectedType);
 
-    virtual char *argsBuilderName() = 0;
-    virtual void pushObject(void * obj) = 0;
+    virtual char* argsBuilderName() = 0;
+    virtual void pushObject(void* obj) = 0;
     virtual void pushBool(jboolean z) = 0;
     virtual void pushByte(jbyte b) = 0;
     virtual void pushDouble(jdouble d) = 0;
@@ -67,12 +64,8 @@ private:
     virtual void pushInt(jint i) = 0;
     virtual void pushLong(jlong j) = 0;
     virtual void handleFinalIntParameter() = 0;
-    virtual void handleFinalObjParameter(void *obj) = 0;
+    virtual void handleFinalObjParameter(void* obj) = 0;
     virtual void pushTrailingArgs() = 0;
-
-    void recordNullObjectParameter() {
-        if (_first_null_parameter_index == -1) _first_null_parameter_index = _parameter_index;
-    }
 
  public:
   HSAILArgumentsBase(Symbol* signature, objArrayOop args, bool is_static) : SignatureIterator(signature) {
@@ -89,32 +82,29 @@ private:
 
   }
 
+  void recordNullObjectParameter() {
+    if (_first_null_parameter_index == -1) {
+      _first_null_parameter_index = _parameter_index;
+    }
+  }
+
+  bool is_static() {
+    return _is_static;
+  }
+
+  int length() {
+    return _length;
+  }
+
+  objArrayOop args() {
+    return _args;
+  }
+
   int getFirstNullParameterIndex() {
     return _first_null_parameter_index;
   }
 
-  void collectArgs() {
-    if (TraceGPUInteraction) {
-      tty->print_cr("[HSAIL] %s::collectArgs, sig:%s  args length=%d", argsBuilderName(), _signature->as_C_string(), _length);
-    }    
-    if (!_is_static) {      
-      // First object in args should be 'this'
-      oop arg = _args->obj_at(_index++);
-      assert(arg->is_instance() && (! arg->is_array()), "First arg should be 'this'");
-      if (TraceGPUInteraction) {
-        tty->print_cr("[HSAIL] %s, instance method, this " PTR_FORMAT ", is a %s", argsBuilderName(), (address) arg, arg->klass()->external_name());
-      }
-      pushObject(arg);
-    } else {
-      if (TraceGPUInteraction) {
-          tty->print_cr("[HSAIL] %s, static method", argsBuilderName());
-      }
-    }
-    // Iterate over the entire signature
-    iterate();
-    
-    pushTrailingArgs();
-  }
+  virtual void collectArgs();
 
   void do_bool();
   void do_byte();
@@ -143,4 +133,4 @@ private:
 
 };
 
-#endif  // BASE_ARGUMENTS_HSAIL_HPP
+#endif  // GPU_HSAIL_VM_HSAIL_ARGUMENTS_BASE_HPP

@@ -1532,6 +1532,7 @@ void java_lang_Throwable::fill_in_stack_trace(Handle throwable, methodHandle met
     return;
   }
   
+#ifdef GRAAL
   // Check for gpu exception to add as top frame
   Method* gpu_method = thread->get_gpu_exception_method();
   if (gpu_method != NULL) {
@@ -1541,6 +1542,7 @@ void java_lang_Throwable::fill_in_stack_trace(Handle throwable, methodHandle met
     thread->set_gpu_exception_bci(0);
     thread->set_gpu_exception_method(NULL);  
   }
+#endif
 
   // Instead of using vframe directly, this version of fill_in_stack_trace
   // basically handles everything by hand. This significantly improved the

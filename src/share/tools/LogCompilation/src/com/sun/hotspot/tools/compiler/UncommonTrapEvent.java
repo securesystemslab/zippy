@@ -40,7 +40,6 @@ class UncommonTrapEvent extends BasicLogEvent {
         count = c;
     }
 
-
     public void addJVMS(String method, int bci) {
         setJvms(getJvms() + "  @" + bci + " " + method + "\n");
     }
@@ -50,7 +49,7 @@ class UncommonTrapEvent extends BasicLogEvent {
     }
 
     public void print(PrintStream stream) {
-        stream.printf("%s uncommon trap %s %s\n", getId(), getReason(), getAction());
+        stream.printf("%s uncommon trap %s %s\n", compilation.shortName(), getReason(), getAction());
         stream.print(getJvms());
     }
 
@@ -76,9 +75,5 @@ class UncommonTrapEvent extends BasicLogEvent {
 
     public void setJvms(String jvms) {
         this.jvms = jvms;
-    }
-
-    public void setCompilation(Compilation compilation) {
-        this.compilation = compilation;
     }
 }
