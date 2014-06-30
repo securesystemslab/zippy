@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,45 +22,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.generator;
+package edu.uci.python.builtins.type;
 
-import com.oracle.truffle.api.frame.*;
+import java.util.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.exception.*;
-import static edu.uci.python.nodes.generator.GeneratorBlockNode.*;
+import com.oracle.truffle.api.dsl.*;
 
-public class YieldNode extends StatementNode {
+import edu.uci.python.builtins.*;
+import edu.uci.python.nodes.function.*;
+import edu.uci.python.runtime.datatype.*;
 
-    @Child protected PNode right;
-    private final int parentBlockIndexSlot;
-
-    public YieldNode(PNode right) {
-        this.right = right;
-        parentBlockIndexSlot = -1; // initial value to be replaced with a valid index.
-    }
-
-    public YieldNode(YieldNode prev, int parentBlockIndexSlot) {
-        this.right = prev.right;
-        this.parentBlockIndexSlot = parentBlockIndexSlot;
-    }
-
-    public final int getParentBlockIndexSlot() {
-        return parentBlockIndexSlot;
-    }
-
-    public PNode getRhs() {
-        return right;
-    }
+public class GeneratorBuiltins extends PythonBuiltins {
 
     @Override
-    public Object execute(VirtualFrame frame) {
-        right.execute(frame);
-        assert parentBlockIndexSlot != -1;
-        final int index = getIndex(frame, parentBlockIndexSlot);
-        setIndex(frame, parentBlockIndexSlot, index + 1);
-        throw YieldException.INSTANCE;
+    protected List<? extends NodeFactory<? extends PythonBuiltinNode>> getNodeFactories() {
+        return GeneratorBuiltinsFactory.getFactories();
+    }
+
+    @Builtin(name = "__next__", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    public abstract static class NextNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object __next__(PGenerator self) {
+            return self.__next__();
+        }
+    }
+
+    @Builtin(name = "send", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    public abstract static class SendNode extends PythonBuiltinNode {
+
+        @Specialization
+        public Object __next__(PGenerator self, Object value) {
+            return self.send(value);
+        }
     }
 
 }

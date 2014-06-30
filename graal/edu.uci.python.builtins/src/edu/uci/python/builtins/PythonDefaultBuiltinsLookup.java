@@ -71,6 +71,8 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         addType(PDict.class, createType("dict", context, builtinsModule, new DictBuiltins()));
         addType(PSet.class, createType("set", context, builtinsModule, new SetBuiltins()));
 
+        addType(PGenerator.class, createType("generator", context, new GeneratorBuiltins()));
+
         return builtinsModule;
     }
 
@@ -94,6 +96,12 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
 
     private static PythonBuiltinClass createType(String name, PythonContext context, PythonModule builtinsModule, PythonBuiltins builtins) {
         PythonBuiltinClass clazz = (PythonBuiltinClass) builtinsModule.getAttribute(name);
+        addBuiltinsToClass(clazz, builtins, context);
+        return clazz;
+    }
+
+    private static PythonBuiltinClass createType(String name, PythonContext context, PythonBuiltins builtins) {
+        PythonBuiltinClass clazz = new PythonBuiltinClass(context, name, context.getTypeClass());
         addBuiltinsToClass(clazz, builtins, context);
         return clazz;
     }

@@ -24,11 +24,51 @@
  */
 package edu.uci.python.nodes;
 
+import java.util.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.NodeUtil.*;
 
 public class PNodeUtil {
+
+    @SuppressWarnings("unchecked")
+    public static <T> T getParentFor(PNode child, Class<T> parentClass) {
+        if (parentClass.isInstance(child)) {
+            throw new IllegalArgumentException();
+        }
+
+        Node current = child.getParent();
+        while (!(current instanceof RootNode)) {
+            if (parentClass.isInstance(current)) {
+                return (T) current;
+            }
+
+            current = current.getParent();
+        }
+
+        throw new IllegalStateException();
+    }
+
+    public static List<PNode> getListOfSubExpressionsInOrder(PNode root) {
+        List<PNode> expressions = new ArrayList<>();
+
+        root.accept(new NodeVisitor() {
+            public boolean visit(Node node) {
+                if (node instanceof PNode) {
+                    PNode pnode = (PNode) node;
+                    for (Node child : pnode.getChildren()) {
+                        if (child != null) {
+                            expressions.add((PNode) child);
+                        }
+                    }
+                }
+                return true;
+            }
+        });
+
+        return expressions;
+    }
 
     /**
      * Added by zwei to makes it easier to find a matching node between a tree and its cloned tree.

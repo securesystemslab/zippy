@@ -29,6 +29,7 @@ import java.util.*;
 import org.python.google.common.primitives.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -47,6 +48,7 @@ public class GeneratorTranslator {
     private int numOfActiveFlags;
     private int numOfGeneratorBlockNode;
     private int numOfGeneratorForNode;
+    private boolean needToHandleComplicatedYieldExpression;
 
     public GeneratorTranslator(PythonContext context, FunctionRootNode root) {
         this.context = context;
@@ -55,6 +57,7 @@ public class GeneratorTranslator {
 
     public RootCallTarget translate() {
         RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(root);
+
         /**
          * Replace {@link ReturnTargetNode}.
          */
@@ -69,14 +72,6 @@ public class GeneratorTranslator {
             write.replace(WriteGeneratorFrameVariableNodeFactory.create(write.getSlot(), write.getRhs()));
         }
 
-        for (ReadLocalVariableNode read : NodeUtil.findAllNodeInstances(root, ReadLocalVariableNode.class)) {
-            read.replace(ReadGeneratorFrameVariableNode.create(read.getSlot()));
-        }
-
-        /**
-         * For some weird reason, some reads are not replaced. Have to go through all reads and make
-         * sure they are replaced.
-         */
         for (ReadLocalVariableNode read : NodeUtil.findAllNodeInstances(root, ReadLocalVariableNode.class)) {
             read.replace(ReadGeneratorFrameVariableNode.create(read.getSlot()));
         }
@@ -96,63 +91,71 @@ public class GeneratorTranslator {
             PNodeUtil.findMatchingNodeIn(genexp, root.getUninitializedBody()).setEnclosingFrameGenerator(true);
         }
 
-        for (BreakNode bnode : NodeUtil.findAllNodeInstances(root, BreakNode.class)) {
-            // look for it's breaking loop node
-            Node current = bnode.getParent();
-            List<Integer> indexSlots = new ArrayList<>();
-            List<Integer> flagSlots = new ArrayList<>();
-
-            while (current instanceof GeneratorBlockNode || current instanceof ContinueTargetNode || current instanceof IfNode) {
-                if (current instanceof GeneratorBlockNode) {
-                    int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
-                    indexSlots.add(indexSlot);
-                } else if (current instanceof GeneratorIfWithoutElseNode) {
-                    GeneratorIfWithoutElseNode ifNode = (GeneratorIfWithoutElseNode) current;
-                    flagSlots.add(ifNode.getThenFlagSlot());
-                } else if (current instanceof GeneratorIfNode) {
-                    GeneratorIfNode ifNode = (GeneratorIfNode) current;
-                    flagSlots.add(ifNode.getThenFlagSlot());
-                    flagSlots.add(ifNode.getElseFlagSlot());
-                }
-
-                current = current.getParent();
-            }
-
-            if (current instanceof GeneratorForNode) {
-                int iteratorSlot = ((GeneratorForNode) current).getIteratorSlot();
-                int[] indexSlotsArray = Ints.toArray(indexSlots);
-                int[] flagSlotsArray = Ints.toArray(flagSlots);
-                bnode.replace(new GeneratorBreakNode(iteratorSlot, indexSlotsArray, flagSlotsArray));
-            }
+        for (BreakNode breakNode : NodeUtil.findAllNodeInstances(root, BreakNode.class)) {
+            replaceBreak(breakNode);
         }
 
-        for (ContinueNode cnode : NodeUtil.findAllNodeInstances(root, ContinueNode.class)) {
-            Node current = cnode.getParent();
-            List<Integer> indexSlots = new ArrayList<>();
-            List<Integer> flagSlots = new ArrayList<>();
-
-            while (!(current instanceof LoopNode)) {
-                if (current instanceof GeneratorBlockNode) {
-                    int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
-                    indexSlots.add(indexSlot);
-                } else if (current instanceof GeneratorIfWithoutElseNode) {
-                    GeneratorIfWithoutElseNode ifNode = (GeneratorIfWithoutElseNode) current;
-                    flagSlots.add(ifNode.getThenFlagSlot());
-                } else if (current instanceof GeneratorIfNode) {
-                    GeneratorIfNode ifNode = (GeneratorIfNode) current;
-                    flagSlots.add(ifNode.getThenFlagSlot());
-                    flagSlots.add(ifNode.getElseFlagSlot());
-                }
-
-                current = current.getParent();
-            }
-
-            int[] indexSlotsArray = Ints.toArray(indexSlots);
-            int[] flagSlotsArray = Ints.toArray(flagSlots);
-            cnode.replace(new GeneratorContinueNode(indexSlotsArray, flagSlotsArray));
+        for (ContinueNode continueNode : NodeUtil.findAllNodeInstances(root, ContinueNode.class)) {
+            replaceContinue(continueNode);
         }
 
         return callTarget;
+    }
+
+    private static void replaceBreak(BreakNode breakNode) {
+        // look for it's breaking loop node
+        Node current = breakNode.getParent();
+        List<Integer> indexSlots = new ArrayList<>();
+        List<Integer> flagSlots = new ArrayList<>();
+
+        while (current instanceof GeneratorBlockNode || current instanceof ContinueTargetNode || current instanceof IfNode) {
+            if (current instanceof GeneratorBlockNode) {
+                int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
+                indexSlots.add(indexSlot);
+            } else if (current instanceof GeneratorIfWithoutElseNode) {
+                GeneratorIfWithoutElseNode ifNode = (GeneratorIfWithoutElseNode) current;
+                flagSlots.add(ifNode.getThenFlagSlot());
+            } else if (current instanceof GeneratorIfNode) {
+                GeneratorIfNode ifNode = (GeneratorIfNode) current;
+                flagSlots.add(ifNode.getThenFlagSlot());
+                flagSlots.add(ifNode.getElseFlagSlot());
+            }
+
+            current = current.getParent();
+        }
+
+        if (current instanceof GeneratorForNode) {
+            int iteratorSlot = ((GeneratorForNode) current).getIteratorSlot();
+            int[] indexSlotsArray = Ints.toArray(indexSlots);
+            int[] flagSlotsArray = Ints.toArray(flagSlots);
+            breakNode.replace(new GeneratorBreakNode(iteratorSlot, indexSlotsArray, flagSlotsArray));
+        }
+    }
+
+    private static void replaceContinue(ContinueNode continueNode) {
+        Node current = continueNode.getParent();
+        List<Integer> indexSlots = new ArrayList<>();
+        List<Integer> flagSlots = new ArrayList<>();
+
+        while (!(current instanceof LoopNode)) {
+            if (current instanceof GeneratorBlockNode) {
+                int indexSlot = ((GeneratorBlockNode) current).getIndexSlot();
+                indexSlots.add(indexSlot);
+            } else if (current instanceof GeneratorIfWithoutElseNode) {
+                GeneratorIfWithoutElseNode ifNode = (GeneratorIfWithoutElseNode) current;
+                flagSlots.add(ifNode.getThenFlagSlot());
+            } else if (current instanceof GeneratorIfNode) {
+                GeneratorIfNode ifNode = (GeneratorIfNode) current;
+                flagSlots.add(ifNode.getThenFlagSlot());
+                flagSlots.add(ifNode.getElseFlagSlot());
+            }
+
+            current = current.getParent();
+        }
+
+        int[] indexSlotsArray = Ints.toArray(indexSlots);
+        int[] flagSlotsArray = Ints.toArray(flagSlots);
+        continueNode.replace(new GeneratorContinueNode(indexSlotsArray, flagSlotsArray));
     }
 
     private void replaceYield(YieldNode yield) {
@@ -161,13 +164,79 @@ public class GeneratorTranslator {
 
         while (current.getParent() != root) {
             current = (PNode) current.getParent();
-            replaceControls(current, yield, depth++);
+            replaceControl(current, yield, depth++);
         }
 
+        if (needToHandleComplicatedYieldExpression) {
+            needToHandleComplicatedYieldExpression = false;
+            // TranslationUtil.notCovered("Yield expression used in a complicated expressin");
+            handleComplicatedYieldExpression(yield);
+        }
+
+        // Last pass to fix yield nodes which its parent block index has not been updated yet.
         if (yield.getParentBlockIndexSlot() == -1 && yield.getParent() instanceof GeneratorBlockNode) {
             GeneratorBlockNode block = (GeneratorBlockNode) yield.getParent();
             yield.replace(new YieldNode(yield, block.getIndexSlot()));
         }
+    }
+
+    public void handleComplicatedYieldExpression(YieldNode yield) {
+        // Find the dominating StatementNode.
+        PNode targetingStatement = (PNode) PNodeUtil.getParentFor(yield, WriteNode.class);
+
+        List<PNode> subExpressions = PNodeUtil.getListOfSubExpressionsInOrder(targetingStatement);
+        List<PNode> extractedExpressions = new ArrayList<>();
+        List<PNode> extractedWrites = new ArrayList<>();
+        for (PNode expr : subExpressions) {
+            if (expr.equals(yield)) {
+                break;
+            }
+
+            if (!expr.hasSideEffectAsAnExpression()) {
+                continue;
+            }
+
+            if (isExtracted(extractedExpressions, expr)) {
+                continue;
+            }
+
+            FrameSlot slot = TranslationEnvironment.makeTempLocalVariable(root.getFrameDescriptor());
+            ReadNode read = ReadGeneratorFrameVariableNode.create(slot);
+            expr.replace((Node) read);
+            extractedWrites.add(read.makeWriteNode(expr));
+            extractedExpressions.add(expr);
+        }
+
+        GeneratorBlockNode targetingBlock = (GeneratorBlockNode) targetingStatement.getParent();
+        GeneratorBlockNode extendedBlock = targetingBlock.insertNodesBefore(targetingStatement, extractedWrites);
+        targetingBlock.replace(extendedBlock);
+    }
+
+    private static boolean isExtracted(List<PNode> extractedExpressins, PNode expr) {
+        for (PNode item : extractedExpressins) {
+            if (expressionDominates(expr, item)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean expressionDominates(PNode expr, PNode potentialDominator) {
+        if (expr.equals(potentialDominator)) {
+            return false;
+        }
+
+        Node current = expr.getParent();
+        while (!(current instanceof GeneratorBlockNode)) {
+            if (current.equals(potentialDominator)) {
+                return true;
+            }
+
+            current.getParent();
+        }
+
+        return false;
     }
 
     private void splitArgumentLoads(ReturnTargetNode returnTarget) {
@@ -183,9 +252,9 @@ public class GeneratorTranslator {
         }
     }
 
-    private void replaceControls(PNode node, YieldNode yield, int depth) {
+    private void replaceControl(PNode node, YieldNode yield, int depth) {
         /**
-         * Has it been replace already?
+         * Has it been replaced already?
          */
         if (node instanceof GeneratorControlNode) {
             return;
@@ -219,11 +288,53 @@ public class GeneratorTranslator {
             }
 
             node.replace(new GeneratorBlockNode(block.getStatements(), slotOfBlockIndex));
-        } else if (node instanceof ElseNode || node instanceof BreakTargetNode || node instanceof TryExceptNode || node instanceof ExceptNode || node instanceof StopIterationTargetNode ||
-                        node instanceof ContinueTargetNode || node instanceof TryFinallyNode) {
+        } else if (node instanceof StatementNode) {
             // do nothing for now
         } else {
-            TranslationUtil.notCovered();
+            replaceYieldExpression(node, yield, depth);
+        }
+    }
+
+    /**
+     * Yield expression.
+     * <p>
+     * The parent nodes of yield are expressions. If all the other sub-expressions evaluated before
+     * yield are side affect free, we simply re-evaluate those sub-expressions when resuming.
+     * Otherwise we give up.
+     */
+    private void replaceYieldExpression(PNode node, YieldNode yield, int depth) {
+
+        // Wraps yield and the inserted YieldSendValueNode with a GenBlockNode.
+        if (depth == 0) {
+            yield.replace(new GeneratorBlockNode(new PNode[]{yield, new YieldSendValueNode()}, nextGeneratorBlockIndexSlot()));
+        }
+
+        /**
+         * Search for child expressions for ones that are not side-affect free (does not change any
+         * local or non-local state).
+         */
+        for (Node child : node.getChildren()) {
+            if (!(child instanceof PNode)) {
+                continue;
+            }
+
+            if (NodeUtil.findFirstNodeInstance(child, YieldNode.class) != null) {
+                continue;
+            }
+
+            child.accept(new NodeVisitor() {
+                public boolean visit(Node childNode) {
+                    assert !(child instanceof StatementNode);
+
+                    if (childNode instanceof PNode) {
+                        PNode childPNode = (PNode) childNode;
+                        if (childPNode.hasSideEffectAsAnExpression()) {
+                            needToHandleComplicatedYieldExpression = true;
+                        }
+                    }
+                    return true;
+                }
+            });
         }
     }
 

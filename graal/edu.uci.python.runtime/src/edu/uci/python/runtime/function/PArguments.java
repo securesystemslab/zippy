@@ -41,6 +41,8 @@ import com.oracle.truffle.api.nodes.*;
  *                            +-------------------+
  * INDEX_GENERATOR_FRAME   -> | MaterializedFrame |
  *                            +-------------------+
+ * SPECIAL_ARGUMENT        -> | Object            |
+ *                            +-------------------+
  * USER_ARGUMENTS          -> | arg_0             |
  *                            | arg_1             |
  *                            | ...               |
@@ -67,16 +69,17 @@ public class PArguments {
     public static final int INDEX_DECLARATION_FRAME = 0;
     public static final int INDEX_KEYWORD_ARGUMENTS = 1;
     public static final int INDEX_GENERATOR_FRAME = 2;
-    public static final int USER_ARGUMENTS_OFFSET = 3;
+    public static final int SPECIAL_ARGUMENT = 3;
+    public static final int USER_ARGUMENTS_OFFSET = 4;
 
-    private static final Object[] EMPTY_ARGUMENTS = new Object[]{null, PKeyword.EMPTY_KEYWORDS, null};
+    private static final Object[] EMPTY_ARGUMENTS = new Object[]{null, PKeyword.EMPTY_KEYWORDS, null, null};
 
     public static Object[] empty() {
         return EMPTY_ARGUMENTS;
     }
 
     public static Object[] create() {
-        return new Object[]{null, PKeyword.EMPTY_KEYWORDS, null};
+        return new Object[]{null, PKeyword.EMPTY_KEYWORDS, null, null};
     }
 
     public static Object[] create(int userArgumentLength) {
@@ -110,6 +113,14 @@ public class PArguments {
 
     public static PKeyword[] getKeywordArguments(Frame frame) {
         return (PKeyword[]) frame.getArguments()[INDEX_KEYWORD_ARGUMENTS];
+    }
+
+    public static void setSpecialArgument(Object[] arguments, Object value) {
+        arguments[SPECIAL_ARGUMENT] = value;
+    }
+
+    public static Object getSpecialArgument(Frame frame) {
+        return frame.getArguments()[SPECIAL_ARGUMENT];
     }
 
     public static void setArgument(Object[] arguments, int index, Object value) {

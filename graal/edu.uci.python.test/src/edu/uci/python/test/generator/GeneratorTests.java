@@ -58,6 +58,21 @@ public class GeneratorTests {
     }
 
     @Test
+    public void desugared() {
+        String source = "def gen(n):\n" + //
+                        "    for i in range(n):\n" + //
+                        "        yield i\n" + //
+                        "g = gen(5)\n" + //
+                        "try:\n" + //
+                        "    while True:\n" + //
+                        "       print(g.__next__())\n" + //
+                        "except StopIteration:\n" + //
+                        "    pass\n";
+
+        assertPrints("0\n1\n2\n3\n4\n", source);
+    }
+
+    @Test
     public void conditionAndLoop() {
         Path script = Paths.get("generator-if-and-loop-test.py");
         assertPrints("10\n0\n1\n2\n3\n4\n", script);
@@ -91,6 +106,24 @@ public class GeneratorTests {
     public void objectsInList() {
         Path script = Paths.get("generator-objects-test.py");
         assertPrints("1\n2\n10\n11\n", script);
+    }
+
+    @Test
+    public void yieldExpression() {
+        Path script = Paths.get("generator-yield-expression-test.py");
+        assertPrints("0\n1\n2\n3\n4\n", script);
+    }
+
+    @Test
+    public void yieldExpression2() {
+        Path script = Paths.get("generator-yield-expression2-test.py");
+        assertPrints("1\n2\n3\n4\n5\n", script);
+    }
+
+    @Test
+    public void yieldExpression3() {
+        Path script = Paths.get("generator-yield-expression3-test.py");
+        assertPrints("0\n1\n2\n3\n4\n", script);
     }
 
 }

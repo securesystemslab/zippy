@@ -27,18 +27,23 @@ package edu.uci.python.runtime.datatype;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.standardtype.*;
 
-public final class PGenerator implements PIterator {
+public final class PGenerator extends PythonBuiltinObject implements PIterator {
+
+    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PGenerator.class);
 
     protected final String name;
-    protected final CallTarget callTarget;
+    protected final RootCallTarget callTarget;
     protected final FrameDescriptor frameDescriptor;
     protected final Object[] arguments;
 
-    public static PGenerator create(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments, int numOfActiveFlags,
+    public static PGenerator create(String name, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments, int numOfActiveFlags,
                     int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
         /**
          * Setting up the persistent frame in {@link #arguments}.
@@ -51,15 +56,24 @@ public final class PGenerator implements PIterator {
         return new PGenerator(name, callTarget, frameDescriptor, arguments);
     }
 
-    public PGenerator(String name, CallTarget callTarget, FrameDescriptor frameDescriptor, Object[] arguments) {
+    public PGenerator(String name, RootCallTarget callTarget, FrameDescriptor frameDescriptor, Object[] arguments) {
         this.name = name;
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
         this.arguments = arguments;
     }
 
+    @Override
+    public PythonBuiltinClass __class__() {
+        return __class__;
+    }
+
     public FrameDescriptor getFrameDescriptor() {
         return frameDescriptor;
+    }
+
+    public RootCallTarget getCallTarget() {
+        return callTarget;
     }
 
     public Object[] getArguments() {
@@ -71,8 +85,8 @@ public final class PGenerator implements PIterator {
         return callTarget.call(arguments);
     }
 
-    @SuppressWarnings("unused")
     public Object send(Object value) throws StopIterationException {
+        PArguments.setSpecialArgument(arguments, value);
         return callTarget.call(arguments);
     }
 

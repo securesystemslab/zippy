@@ -331,4 +331,8 @@ public abstract class PNode extends Node {
         return idx < 0;
     }
 
+    public boolean hasSideEffectAsAnExpression() {
+        return false;
+    }
+
 }
