@@ -43,11 +43,13 @@ import edu.uci.python.nodes.call.CallDispatchSpecialNode.GeneratorDispatchSpecia
 import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
 import edu.uci.python.nodes.call.PythonCallNode.NoneCallNode;
 import edu.uci.python.nodes.control.*;
+import edu.uci.python.nodes.control.GetIteratorNode.GetGeneratorIteratorNode;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.PeeledGeneratorLoopBoxedNode;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import static edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.*;
 
@@ -145,29 +147,40 @@ public final class FunctionRootNode extends RootNode {
         boolean succeed = false;
         for (GeneratorDispatchBoxedNode dispatch : NodeUtil.findAllNodeInstances(body, GeneratorDispatchBoxedNode.class)) {
             PGeneratorFunction genfun = dispatch.getGeneratorFunction();
-            boolean inlinable = isInlinable(dispatch, genfun);
+            boolean inlinable = isInlinable(dispatch, genfun.getCallTarget());
             succeed = peelGeneratorLoop(inlinable, dispatch, genfun);
         }
 
         for (GeneratorDispatchNoneNode dispatch : NodeUtil.findAllNodeInstances(body, GeneratorDispatchNoneNode.class)) {
             PGeneratorFunction genfun = dispatch.getGeneratorFunction();
-            boolean inlinable = isInlinable(dispatch, genfun);
+            boolean inlinable = isInlinable(dispatch, genfun.getCallTarget());
             succeed = peelGeneratorLoop(inlinable, dispatch, genfun);
         }
 
         for (GeneratorDispatchSpecialNode dispatch : NodeUtil.findAllNodeInstances(body, GeneratorDispatchSpecialNode.class)) {
             PGeneratorFunction genfun = dispatch.getGeneratorFunction();
-            boolean inlinable = isInlinable(dispatch, genfun);
+            boolean inlinable = isInlinable(dispatch, genfun.getCallTarget());
             succeed = peelGeneratorLoop(inlinable, dispatch, genfun);
+        }
+
+        for (GetGeneratorIteratorNode getIter : NodeUtil.findAllNodeInstances(body, GetGeneratorIteratorNode.class)) {
+            PGenerator gen = getIter.getGenerator();
+
+            if (gen == null) {
+                continue;
+            }
+
+            boolean inlinable = isInlinable(getIter, gen.getCallTarget());
+            succeed = peelGeneratorLoopNotAligned(inlinable, getIter, gen);
         }
 
         return succeed;
     }
 
-    private boolean isInlinable(CallDispatchNode dispatch, PGeneratorFunction genfun) {
+    private boolean isInlinable(Node dispatch, RootCallTarget generatorCallTarget) {
         if (PythonOptions.TraceGeneratorInlining) {
             PrintStream ps = System.out;
-            ps.println("[ZipPy] try to optimize " + genfun.getCallTarget() + " in " + getRootNode());
+            ps.println("[ZipPy] try to optimize " + generatorCallTarget + " in " + getRootNode());
         }
 
         boolean inlinable = dispatch.getCost() == NodeCost.MONOMORPHIC;
@@ -184,12 +197,13 @@ public final class FunctionRootNode extends RootNode {
             callerName = ((FunctionRootNode) current).getFunctionName();
         }
 
-        if (callerName.equals(genfun.getName())) {
+        String calleeName = ((FunctionRootNode) generatorCallTarget.getRootNode()).getFunctionName();
+        if (callerName.equals(calleeName)) {
             inlinable = false;
         }
 
         int callerNodeCount = getDeepNodeCount(this);
-        int generatorNodeCount = getDeepNodeCount(genfun.getFunctionRootNode());
+        int generatorNodeCount = getDeepNodeCount(generatorCallTarget.getRootNode());
         inlinable &= generatorNodeCount < 330;
         inlinable &= callerNodeCount < 21000;
 
@@ -201,9 +215,9 @@ public final class FunctionRootNode extends RootNode {
             PrintStream ps = System.out;
 
             if (inlinable) {
-                ps.println("[ZipPy] decide to inline " + genfun.getCallTarget() + " in " + getRootNode() + " gen: " + generatorNodeCount + " caller: " + callerNodeCount);
+                ps.println("[ZipPy] decide to inline " + generatorCallTarget + " in " + getRootNode() + " gen: " + generatorNodeCount + " caller: " + callerNodeCount);
             } else {
-                ps.println("[ZipPy] failed to inline " + genfun.getCallTarget() + " in " + getRootNode() + " gen: " + generatorNodeCount + " caller: " + callerNodeCount);
+                ps.println("[ZipPy] failed to inline " + generatorCallTarget + " in " + getRootNode() + " gen: " + generatorNodeCount + " caller: " + callerNodeCount);
             }
         }
 
@@ -316,6 +330,65 @@ public final class FunctionRootNode extends RootNode {
         optimizedGeneratorDispatches.add(dispatch);
         PrintStream ps = System.out;
         ps.println("[ZipPy] peeled generator " + genfun.getCallTarget() + " in " + getRootNode());
+        return true;
+    }
+
+    protected boolean peelGeneratorLoopNotAligned(boolean inlinable, GetGeneratorIteratorNode getIter, PGenerator generator) {
+        CompilerAsserts.neverPartOfCompilation();
+
+        if (!inlinable) {
+            return false;
+        }
+
+        PNode forNode = (PNode) getIter.getParent();
+
+        if (!(forNode instanceof ForNode)) {
+            return false; // Loop nodes
+        }
+
+        if (forNode.getParent() instanceof PeeledGeneratorLoopNode) {
+            return false; // Optimized
+        }
+
+        ForNode loop = (ForNode) forNode;
+        PeeledGeneratorLoopNode peeled = new PeeledGeneratorLoopNotAlignedNode((FunctionRootNode) generator.getCallTarget().getRootNode(), generator.getFrameDescriptor(), getIter.getOperand(),
+                        generator, forNode);
+
+        loop.replace(peeled);
+
+        peeled.adoptOriginalLoop();
+        PNode loopBody = loop.getBody();
+        FrameSlot yieldToSlotInCallerFrame;
+        PNode target = loop.getTarget();
+
+        /**
+         * PythonWrapperNode check is added for profiling.
+         */
+        if (target instanceof PythonWrapperNode) {
+            PythonWrapperNode wrapper = (PythonWrapperNode) target;
+            target = wrapper.getChild();
+        }
+
+        yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
+
+        for (YieldNode yield : NodeUtil.findAllNodeInstances(peeled.getGeneratorRoot(), YieldNode.class)) {
+            PNode frameTransfer = FrameTransferNodeFactory.create(yieldToSlotInCallerFrame, yield.getRhs());
+            PNode frameSwapper = new FrameSwappingNode(NodeUtil.cloneNode(loopBody));
+            PNode block = BlockNode.create(frameTransfer, frameSwapper);
+            yield.replace(block);
+        }
+
+        /**
+         * Reset generator expressions in the ungeneratorized function as declared not in generator
+         * frame.
+         */
+        RootNode enclosingRoot = getRootNode();
+        for (GeneratorExpressionNode genexp : NodeUtil.findAllNodeInstances(enclosingRoot, GeneratorExpressionNode.class)) {
+            genexp.setEnclosingFrameGenerator(false);
+        }
+
+        PrintStream ps = System.out;
+        ps.println("[ZipPy] peeled generator not aligned " + generator.getCallTarget() + " in " + getRootNode());
         return true;
     }
 

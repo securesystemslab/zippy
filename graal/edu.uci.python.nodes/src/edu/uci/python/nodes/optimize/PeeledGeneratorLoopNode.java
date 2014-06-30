@@ -227,7 +227,6 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
             CompilerDirectives.transferToInterpreterAndInvalidate();
             return deoptAndExecute(frame);
         }
-
     }
 
 }
