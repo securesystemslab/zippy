@@ -25,11 +25,11 @@
 package edu.uci.python.parser;
 
 import java.util.*;
-import java.util.concurrent.atomic.*;
 
 import org.python.google.common.primitives.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -48,6 +48,7 @@ public class GeneratorTranslator {
     private int numOfActiveFlags;
     private int numOfGeneratorBlockNode;
     private int numOfGeneratorForNode;
+    private boolean needToHandleComplicatedYieldExpression;
 
     public GeneratorTranslator(PythonContext context, FunctionRootNode root) {
         this.context = context;
@@ -56,6 +57,7 @@ public class GeneratorTranslator {
 
     public RootCallTarget translate() {
         RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(root);
+
         /**
          * Replace {@link ReturnTargetNode}.
          */
@@ -162,13 +164,94 @@ public class GeneratorTranslator {
 
         while (current.getParent() != root) {
             current = (PNode) current.getParent();
-            replaceControls(current, yield, depth++);
+            replaceControl(current, yield, depth++);
         }
 
+        if (needToHandleComplicatedYieldExpression) {
+            needToHandleComplicatedYieldExpression = false;
+            // TranslationUtil.notCovered("Yield expression used in a complicated expressin");
+            handleComplicatedYieldExpression(yield);
+        }
+
+        // Last pass to fix yield nodes which its parent block index has not been updated yet.
         if (yield.getParentBlockIndexSlot() == -1 && yield.getParent() instanceof GeneratorBlockNode) {
             GeneratorBlockNode block = (GeneratorBlockNode) yield.getParent();
             yield.replace(new YieldNode(yield, block.getIndexSlot()));
         }
+    }
+
+    public void handleComplicatedYieldExpression(YieldNode yield) {
+        // Find the dominating StatementNode.
+        PNode targetingStatement = (PNode) PNodeUtil.getParentFor(yield, WriteNode.class);
+
+        // Linearize all sub-expressions in a list.
+        List<PNode> expressions = new ArrayList<>();
+        targetingStatement.accept(new NodeVisitor() {
+            public boolean visit(Node node) {
+                if (node instanceof PNode) {
+                    PNode pnode = (PNode) node;
+                    for (Node child : pnode.getChildren()) {
+                        if (child != null) {
+                            expressions.add((PNode) child);
+                        }
+                    }
+                }
+                return true;
+            }
+        });
+
+        List<PNode> extractedExpressions = new ArrayList<>();
+        List<PNode> extractedWrites = new ArrayList<>();
+        for (PNode expr : expressions) {
+            if (expr.equals(yield)) {
+                break;
+            }
+
+            if (!expr.hasSideEffectAsAnExpression()) {
+                continue;
+            }
+
+            if (isExtracted(extractedExpressions, expr)) {
+                continue;
+            }
+
+            FrameSlot slot = TranslationEnvironment.makeTempLocalVariable(root.getFrameDescriptor());
+            ReadNode read = ReadGeneratorFrameVariableNode.create(slot);
+            expr.replace((Node) read);
+            extractedWrites.add(read.makeWriteNode(expr));
+            extractedExpressions.add(expr);
+        }
+
+        GeneratorBlockNode targetingBlock = (GeneratorBlockNode) targetingStatement.getParent();
+        GeneratorBlockNode extendedBlock = targetingBlock.insertNodesBefore(targetingStatement, extractedWrites);
+        targetingBlock.replace(extendedBlock);
+    }
+
+    private static boolean isExtracted(List<PNode> extractedExpressins, PNode expr) {
+        for (PNode item : extractedExpressins) {
+            if (expressionDominates(expr, item)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean expressionDominates(PNode expr, PNode potentialDominator) {
+        if (expr.equals(potentialDominator)) {
+            return false;
+        }
+
+        Node current = expr.getParent();
+        while (!(current instanceof GeneratorBlockNode)) {
+            if (current.equals(potentialDominator)) {
+                return true;
+            }
+
+            current.getParent();
+        }
+
+        return false;
     }
 
     private void splitArgumentLoads(ReturnTargetNode returnTarget) {
@@ -184,7 +267,7 @@ public class GeneratorTranslator {
         }
     }
 
-    private void replaceControls(PNode node, YieldNode yield, int depth) {
+    private void replaceControl(PNode node, YieldNode yield, int depth) {
         /**
          * Has it been replace already?
          */
@@ -224,7 +307,7 @@ public class GeneratorTranslator {
                         node instanceof ContinueTargetNode || node instanceof TryFinallyNode) {
             // do nothing for now
         } else {
-            replaceYieldExpressions(node, yield, depth);
+            replaceYieldExpression(node, yield, depth);
         }
     }
 
@@ -235,16 +318,19 @@ public class GeneratorTranslator {
      * yield are side affect free, we simply re-evaluate those sub-expressions when resuming.
      * Otherwise we give up.
      */
-    private void replaceYieldExpressions(PNode node, YieldNode yield, int depth) {
+    private void replaceYieldExpression(PNode node, YieldNode yield, int depth) {
+
         if (depth == 0) {
             // Wraps yield and the inserted YieldSendValueNode with a GenBlockNode.
             int slotOfBlockIndex = nextGeneratorBlockIndexSlot();
-            YieldNode yieldWithBlockIndex = new YieldNode(yield, slotOfBlockIndex);
             YieldSendValueNode yieldSend = new YieldSendValueNode();
-            yield.replace(new GeneratorBlockNode(new PNode[]{yieldWithBlockIndex, yieldSend}, slotOfBlockIndex));
+            yield.replace(new GeneratorBlockNode(new PNode[]{yield, yieldSend}, slotOfBlockIndex));
         }
 
-        AtomicInteger numOfNonSideAffectFreeChildren = new AtomicInteger(0);
+        /**
+         * Search for child expressions for ones that are not side-affect free (does not change any
+         * local or global state).
+         */
         for (Node child : node.getChildren()) {
             if (!(child instanceof PNode)) {
                 continue;
@@ -259,16 +345,12 @@ public class GeneratorTranslator {
                     if (childNode instanceof PNode) {
                         PNode childPNode = (PNode) childNode;
                         if (childPNode.hasSideEffectAsAnExpression()) {
-                            numOfNonSideAffectFreeChildren.incrementAndGet();
+                            needToHandleComplicatedYieldExpression = true;
                         }
                     }
                     return true;
                 }
             });
-        }
-
-        if (numOfNonSideAffectFreeChildren.intValue() > 0) {
-            TranslationUtil.notCovered("Yield expression used in a complicated expressin");
         }
     }
 

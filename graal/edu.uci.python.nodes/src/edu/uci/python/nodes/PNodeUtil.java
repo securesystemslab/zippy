@@ -30,6 +30,24 @@ import com.oracle.truffle.api.nodes.NodeUtil.*;
 
 public class PNodeUtil {
 
+    @SuppressWarnings("unchecked")
+    public static <T> T getParentFor(PNode child, Class<T> parentClass) {
+        if (parentClass.isInstance(child)) {
+            throw new IllegalArgumentException();
+        }
+
+        Node current = child.getParent();
+        while (!(current instanceof RootNode)) {
+            if (parentClass.isInstance(current)) {
+                return (T) current;
+            }
+
+            current = current.getParent();
+        }
+
+        throw new IllegalStateException();
+    }
+
     /**
      * Added by zwei to makes it easier to find a matching node between a tree and its cloned tree.
      */

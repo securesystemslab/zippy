@@ -201,6 +201,11 @@ public class TranslationEnvironment {
         return (ReadNode) factory.createReadLocal(tempSlot);
     }
 
+    public static FrameSlot makeTempLocalVariable(FrameDescriptor frameDescriptor) {
+        String tempName = TEMP_LOCAL_PREFIX + frameDescriptor.getSize();
+        return frameDescriptor.findOrAddFrameSlot(tempName);
+    }
+
     public List<PNode> makeTempLocalVariables(List<PNode> rights) {
         List<PNode> tempWrites = new ArrayList<>();
 

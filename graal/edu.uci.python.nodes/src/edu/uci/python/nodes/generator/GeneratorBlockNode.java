@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.generator;
 
+import java.util.*;
+
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -50,6 +52,31 @@ public final class GeneratorBlockNode extends BlockNode implements GeneratorCont
 
     public static void setIndex(VirtualFrame frame, int blockIndexSlot, int value) {
         PArguments.getControlData(frame).setBlockIndexAt(blockIndexSlot, value);
+    }
+
+    public GeneratorBlockNode insertNodesBefore(PNode insertBefore, List<PNode> insertees) {
+        int insertAt = -1;
+        for (int i = 0; i < statements.length; i++) {
+            PNode stmt = statements[i];
+
+            if (stmt.equals(insertBefore)) {
+                insertAt = i;
+            }
+        }
+
+        assert insertAt != -1;
+        PNode[] extendedStatements = new PNode[statements.length + insertees.size()];
+        System.arraycopy(statements, 0, extendedStatements, 0, insertAt);
+
+        for (int i = 0; i < insertees.size(); i++) {
+            extendedStatements[i + insertAt] = insertees.get(i);
+        }
+
+        for (int i = insertAt; i < statements.length; i++) {
+            extendedStatements[i + insertees.size()] = statements[i];
+        }
+
+        return new GeneratorBlockNode(extendedStatements, getIndexSlot());
     }
 
     @ExplodeLoop
