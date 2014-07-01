@@ -1253,6 +1253,12 @@ def _basic_gate_body(args, tasks):
                 t.abort(test.name + ' Failed')
             tasks.append(t.stop())
 
+    # ensure -Xbatch still works
+    with VM('graal', 'product'):
+        t = Task('DaCapo_pmd:BatchMode:product')
+        dacapo(['-Xbatch', 'pmd'])
+        tasks.append(t.stop())
+
     if args.jacocout is not None:
         jacocoreport([args.jacocout])
 
