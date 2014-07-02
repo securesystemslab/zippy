@@ -39,12 +39,11 @@ import edu.uci.python.runtime.*;
 public class PythonNodeProber implements ASTNodeProber {
 
     private final PythonContext context;
-
-    private static Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments = new HashMap<>();
-    private static Map<PythonWrapperNode, ProfilerInstrument> callWrapperToInstruments = new HashMap<>();
-    private static Map<PythonWrapperNode, ProfilerInstrument> conditionWrapperToInstruments = new HashMap<>();
-    private static Map<PythonWrapperNode, ProfilerInstrument> thenWrapperToInstruments = new HashMap<>();
-    private static Map<PythonWrapperNode, ProfilerInstrument> elseWrapperToInstruments = new HashMap<>();
+    private static Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments = new LinkedHashMap<>();
+    private static Map<PythonWrapperNode, ProfilerInstrument> callWrapperToInstruments = new LinkedHashMap<>();
+    private static Map<PythonWrapperNode, ProfilerInstrument> conditionWrapperToInstruments = new LinkedHashMap<>();
+    private static Map<PythonWrapperNode, ProfilerInstrument> thenWrapperToInstruments = new LinkedHashMap<>();
+    private static Map<PythonWrapperNode, ProfilerInstrument> elseWrapperToInstruments = new LinkedHashMap<>();
 
     public PythonNodeProber(PythonContext context) {
         this.context = context;
@@ -168,5 +167,9 @@ public class PythonNodeProber implements ASTNodeProber {
 
     public static Map<PythonWrapperNode, ProfilerInstrument> getElseWrapperToInstruments() {
         return elseWrapperToInstruments;
+    }
+
+    public PythonContext getContext() {
+        return context;
     }
 }

@@ -75,13 +75,15 @@ public class ProfilerResultPrinter {
             Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
             PythonWrapperNode wrapper = entry.getKey();
             ProfilerInstrument instrument = entry.getValue();
-            Node child = wrapper.getChild();
-            out.format("%-50s", child.getClass().getSimpleName());
-            out.format("%15s", instrument.getCounter());
-            out.format("%9s", child.getSourceSection().getStartLine());
-            out.format("%11s", child.getSourceSection().getStartColumn());
-            out.format("%11s", child.getSourceSection().getCharLength());
-            out.println();
+            if (instrument.getCounter() > 0) {
+                Node child = wrapper.getChild();
+                out.format("%-50s", child.getClass().getSimpleName());
+                out.format("%15s", instrument.getCounter());
+                out.format("%9s", child.getSourceSection().getStartLine());
+                out.format("%11s", child.getSourceSection().getStartColumn());
+                out.format("%11s", child.getSourceSection().getCharLength());
+                out.println();
+            }
         }
     }
 

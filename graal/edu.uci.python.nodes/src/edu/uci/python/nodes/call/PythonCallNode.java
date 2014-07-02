@@ -77,6 +77,7 @@ public abstract class PythonCallNode extends PNode {
         if (calleeNode instanceof HasPrimaryNode) {
             HasPrimaryNode hasPrimary = (HasPrimaryNode) calleeNode;
             primaryNode = NodeUtil.cloneNode(hasPrimary.extractPrimary());
+            PNodeUtil.clearSourceSections(primaryNode);
             calleeName = ((HasPrimaryNode) calleeNode).getAttributeId();
         } else {
             primaryNode = EmptyNode.create();
@@ -498,7 +499,6 @@ public abstract class PythonCallNode extends PNode {
         @Override
         public Object execute(VirtualFrame frame) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
-
             Object primary = primaryNode.execute(frame);
             return rewriteAndExecuteCall(frame, primary, calleeNode.execute(frame));
         }

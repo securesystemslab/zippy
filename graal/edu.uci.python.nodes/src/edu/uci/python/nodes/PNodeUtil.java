@@ -130,4 +130,14 @@ public class PNodeUtil {
         return left == right;
     }
 
+    public static void clearSourceSections(Node node) {
+        node.clearSourceSection();
+        for (Node child : node.getChildren()) {
+            if (child != null) {
+                child.clearSourceSection();
+                clearSourceSections(child);
+            }
+        }
+    }
+
 }

@@ -60,10 +60,12 @@ public class AssignmentTranslator {
 
             if (isDecomposable(rhs)) {
                 PNode multiAssignmentNode = makeMultiAssignment(targets, decompose(rhs));
-                return translator.assignSourceFromNode(node, multiAssignmentNode);
+                return multiAssignmentNode;
+                // return translator.assignSourceFromNode(node, multiAssignmentNode);
             } else {
                 PNode unpackingAssignmentNode = makeUnpackingAssignment(targets, rhs);
-                return translator.assignSourceFromNode(node, unpackingAssignmentNode);
+                return unpackingAssignmentNode;
+                // return translator.assignSourceFromNode(node, unpackingAssignmentNode);
             }
         }
 
@@ -76,7 +78,9 @@ public class AssignmentTranslator {
         if (targets.size() == 1) {
             return translator.assignSourceFromNode(node, makeSingleAssignment(targets.get(0), right));
         } else {
-            return translator.assignSourceFromNode(node, makeChainedAssignment(lhs, targets, right));
+            return makeChainedAssignment(lhs, targets, right);
+            // return translator.assignSourceFromNode(node, makeChainedAssignment(lhs, targets,
+// right));
         }
     }
 
@@ -94,7 +98,7 @@ public class AssignmentTranslator {
             expr targetExpression = targetExpressions.get(i);
             PNode target = targets.get(i);
             PNode writeNode = makeSingleAssignment(target, (PNode) tempvar);
-            translator.assignSourceFromNode(targetExpression, writeNode);
+            // translator.assignSourceFromNode(targetExpression, writeNode);
             assignments.add(writeNode);
         }
 
@@ -127,7 +131,7 @@ public class AssignmentTranslator {
     /**
      * Unpacking-assignment: <br>
      * Transform a, b = c. <br>
-     * To: temp_c = c; a = temp_c[0]; b = temp_d[1]
+     * To: temp_c = c; a = temp_c[0]; b = temp_c[1]
      */
     private PNode makeUnpackingAssignment(List<expr> lhs, expr right) throws Exception {
         List<PNode> writes = new ArrayList<>();
@@ -144,13 +148,13 @@ public class AssignmentTranslator {
         if (isDecomposable(target)) {
             PNode tempVar = (PNode) environment.makeTempLocalVariable();
             PNode writeNode = makeSingleAssignment(tempVar, rightHandSide);
-            translator.assignSourceFromNode(target, writeNode);
+            // translator.assignSourceFromNode(target, writeNode);
             writes.add(writeNode);
             List<PNode> intermediateTargets = walkTargetList(decompose(target), factory.duplicate(tempVar, PNode.class));
             writes.addAll(intermediateTargets);
         } else {
             PNode writeNode = makeSingleAssignment((PNode) translator.visit(target), rightHandSide);
-            translator.assignSourceFromNode(target, writeNode);
+            // translator.assignSourceFromNode(target, writeNode);
             writes.add(writeNode);
         }
 
@@ -168,17 +172,17 @@ public class AssignmentTranslator {
         for (int i = 0; i < lhs.size(); i++) {
             expr target = lhs.get(i);
             PNode splitRhs = factory.createSubscriptLoadIndex(factory.duplicate(rightHandSide, PNode.class), factory.createIntegerLiteral(i));
-            translator.assignSourceFromNode(target, splitRhs);
+            // translator.assignSourceFromNode(target, splitRhs);
 
             if (isDecomposable(target)) {
                 PNode tempVar = (PNode) environment.makeTempLocalVariable();
                 PNode writeNode = makeSingleAssignment(tempVar, splitRhs);
-                translator.assignSourceFromNode(target, writeNode);
+                // translator.assignSourceFromNode(target, writeNode);
                 writes.add(writeNode);
                 additionalWrites.addAll(walkTargetList(decompose(target), factory.duplicate(tempVar, PNode.class)));
             } else {
                 PNode writeNode = makeSingleAssignment((PNode) translator.visit(target), splitRhs);
-                translator.assignSourceFromNode(target, writeNode);
+                // translator.assignSourceFromNode(target, writeNode);
                 writes.add(writeNode);
             }
         }
