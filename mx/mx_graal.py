@@ -974,15 +974,31 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
         projectscp = mx.classpath([pcp.name for pcp in mx.projects_opt_limit_to_suites() if pcp.javaCompliance <= mx.java().javaCompliance])
     else:
         projs = set()
-        for t in tests:
-            found = False
+        if len(tests) == 1 and '#' in tests[0]:
+            words = tests[0].split('#')
+            if len(words) != 2:
+                mx.abort("Method specification is class#method: " + tests[0])
+            t, method = words
             for c, p in candidates.iteritems():
                 if t in c:
                     found = True
-                    classes.append(c)
+                    # this code assumes a single test will be handled by GraalJUnitCore
+                    classes.append(c + '#' + method)
                     projs.add(p.name)
             if not found:
                 mx.log('warning: no tests matched by substring "' + t)
+        else:
+            for t in tests:
+                if '#' in t:
+                    mx.abort('Method specifications can only be used in a single test: ' + t)
+                found = False
+                for c, p in candidates.iteritems():
+                    if t in c:
+                        found = True
+                        classes.append(c)
+                        projs.add(p.name)
+                if not found:
+                    mx.log('warning: no tests matched by substring "' + t)
         projectscp = mx.classpath(projs)
 
     if whitelist:
