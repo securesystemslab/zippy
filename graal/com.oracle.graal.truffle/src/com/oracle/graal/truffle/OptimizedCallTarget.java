@@ -267,11 +267,6 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
         TruffleInliningDecision result = handler.decideInlining(this, 0);
         performInlining(result);
         logInliningDecision(result);
-
-        // zwei
-        if (rootNode.applyGuestTransformation()) {
-            inliningPerformed = false;
-        }
     }
 
     private static void performInlining(TruffleInliningDecision result) {
