@@ -1487,8 +1487,8 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
         oop installedCode = nm->graal_installed_code();
         if (installedCode != NULL) {
           oop installedCodeName = NULL;
-          if (installedCode->is_a(HotSpotNmethod::klass())) {
-            installedCodeName = HotSpotNmethod::name(installedCode);
+          if (installedCode->is_a(InstalledCode::klass())) {
+            installedCodeName = InstalledCode::name(installedCode);
           }
           if (installedCodeName != NULL) {
             tty->print(" (Graal: installedCodeName=%s) ", java_lang_String::as_utf8_string(installedCodeName));
