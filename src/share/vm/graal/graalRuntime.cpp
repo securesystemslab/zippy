@@ -690,17 +690,6 @@ JVM_ENTRY(jboolean, JVM_ParseGraalOptions(JNIEnv *env, jclass c))
   return GraalRuntime::parse_arguments(hotSpotOptionsClass, CHECK_false);
 JVM_END
 
-#ifdef COMPILERGRAAL
-// private static boolean CompilationQueue.printAndResetCompRate()
-JVM_ENTRY(void, JVM_PrintAndResetGraalCompRate(JNIEnv *env, jclass c))
-  GraalCompiler* comp = GraalCompiler::instance();
-  CompileBroker::print_times(comp);
-  CompilerStatistics* stats = comp->stats();
-  stats->_standard.reset();
-  stats->_osr.reset();
-JVM_END
-#endif
-
 jint GraalRuntime::check_arguments(TRAPS) {
   KlassHandle nullHandle;
   parse_arguments(nullHandle, THREAD);

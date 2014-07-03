@@ -61,12 +61,6 @@
   COMPILERGRAAL_PRESENT(product(intx, GraalThreads, 1,                      \
           "Force number of Graal compiler threads to use"))                 \
                                                                             \
-  COMPILERGRAAL_PRESENT(product(bool, UseGraalCompilationQueue, false,      \
-          "Use non-native compilation queue for Graal"))                    \
-                                                                            \
-  product(bool, ForceGraalInitialization, false,                            \
-          "Force VM to initialize the compiler even if not used")           \
-                                                                            \
   product(intx, TraceGraal, 0,                                              \
           "Trace level for Graal")                                          \
                                                                             \

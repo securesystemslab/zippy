@@ -1490,7 +1490,6 @@ void JavaThread::initialize() {
 #ifdef GRAAL
   _graal_alternate_call_target = NULL;
   _graal_implicit_exception_pc = NULL;
-  _graal_can_schedule_compilation = true;
   if (GraalCounterSize > 0) {
     _graal_counters = NEW_C_HEAP_ARRAY(jlong, GraalCounterSize, mtInternal);
     memset(_graal_counters, 0, sizeof(jlong) * GraalCounterSize);

@@ -149,9 +149,6 @@ static JNINativeMethod lookup_special_native_methods[] = {
   { CC"Java_com_oracle_truffle_api_Truffle_createRuntime",                    NULL, FN_PTR(JVM_CreateTruffleRuntime)      },
   { CC"Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_init",           NULL, FN_PTR(JVM_InitializeGraalNatives)    },
   { CC"Java_com_oracle_graal_hotspot_HotSpotOptions_parseVMOptions",          NULL, FN_PTR(JVM_ParseGraalOptions)         },
-#ifdef COMPILERGRAAL
-  { CC"Java_com_oracle_graal_hotspot_CompilationQueue_printAndResetCompRate", NULL, FN_PTR(JVM_PrintAndResetGraalCompRate)},
-#endif
 #endif
 };
 

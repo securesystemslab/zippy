@@ -32,10 +32,13 @@ private:
 
 #ifdef COMPILERGRAAL
   bool _bootstrapping;
-  volatile int  _compiled; // no synchronization so may not be 100% accurate
 
-  void start_compilation_queue();
-  void shutdown_compilation_queue();
+  /**
+   * Number of methods compiled by Graal. This is not synchronized
+   * so may not be 100% accurate.
+   */
+  volatile int  _methodsCompiled;
+
 #endif
 
   static GraalCompiler* _instance;
@@ -67,51 +70,18 @@ public:
   // Compilation entry point for methods
   virtual void compile_method(ciEnv* env, ciMethod* target, int entry_bci);
 
-  void compile_method(methodHandle target, int entry_bci, CompileTask* task, jboolean blocking);
+  void compile_method(methodHandle target, int entry_bci, CompileTask* task);
 
   // Print compilation timers and statistics
   virtual void print_timers();
 
   // Print compilation statistics
   void reset_compilation_stats();
-
-  void shutdown();
 #endif // COMPILERGRAAL
 
 #ifndef PRODUCT
   void compile_the_world();
 #endif
 };
-
-#ifdef COMPILERGRAAL
-/**
- * Creates a scope in which scheduling a Graal compilation is disabled.
- * Scheduling a compilation can happen anywhere a counter can overflow and
- * calling back into the Java code for scheduling a compilation (i.e.,
- * CompilationTask.compileMetaspaceMethod()) from such arbitrary locations
- * can cause objects to be in an unexpected state.
- *
- * In addition, it can be useful to disable compilation scheduling in
- * other circumstances such as when initializing the Graal compilation
- * queue or when running the Graal bootstrap process.
- */
-class NoGraalCompilationScheduling: public StackObj {
- private:
-  JavaThread* _thread;
- public:
-
-  NoGraalCompilationScheduling(JavaThread *thread) {
-    assert(thread == JavaThread::current(), "not the current thread");
-    assert(thread->can_schedule_graal_compilation(), "recursive Graal compilation scheduling");
-    _thread = thread;
-    thread->set_can_schedule_graal_compilation(false);
-  }
-
-  ~NoGraalCompilationScheduling() {
-    assert(!_thread->can_schedule_graal_compilation(), "unexpected Graal compilation scheduling state");
-    _thread->set_can_schedule_graal_compilation(true);
-  }
-};
-#endif // COMPILERGRAAL
 
 #endif // SHARE_VM_GRAAL_GRAAL_COMPILER_HPP
