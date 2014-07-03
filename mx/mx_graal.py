@@ -1050,12 +1050,20 @@ def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, ena
             prefixArgs.append('-XX:-DisableExplicitGC')
         with open(testfile) as fp:
             testclasses = [l.rstrip() for l in fp.readlines()]
+            
+        # Remove entries from class path that are in graal.jar
+        cp = prefixCp + coreCp + os.pathsep + projectsCp
+        if isGraalEnabled(_get_vm()):
+            graalDist = mx.distribution('GRAAL')
+            graalJarCp = set([d.output_dir() for d in graalDist.sorted_deps()])
+            cp = os.pathsep.join([e for e in cp.split(os.pathsep) if e not in graalJarCp])
+        
         if len(testclasses) == 1:
             # Execute Junit directly when one test is being run. This simplifies
             # replaying the VM execution in a native debugger (e.g., gdb).
-            vm(prefixArgs + vmArgs + ['-cp', prefixCp + coreCp + ':' + projectsCp, 'com.oracle.graal.test.GraalJUnitCore'] + coreArgs + testclasses)
+            vm(prefixArgs + vmArgs + ['-cp', cp, 'com.oracle.graal.test.GraalJUnitCore'] + coreArgs + testclasses)
         else:
-            vm(prefixArgs + vmArgs + ['-cp', prefixCp + coreCp + ':' + projectsCp + os.pathsep + mxdir, name] + [testfile] + coreArgs)
+            vm(prefixArgs + vmArgs + ['-cp', cp + os.pathsep + mxdir, name] + [testfile] + coreArgs)
 
     try:
         _run_tests(args, harness, annotations, testfile, whitelist, regex)
