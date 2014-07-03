@@ -195,12 +195,12 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
         }
     }
 
-    public static final class PeeledGeneratorLoopNotAlignedNode extends PeeledGeneratorLoopNode {
+    public static final class PeeledGeneratorLoopNoCallNode extends PeeledGeneratorLoopNode {
 
         @Child protected PNode calleeNode;
         private final RootCallTarget cachedCallTarget;
 
-        public PeeledGeneratorLoopNotAlignedNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode calleeNode, PGenerator callee, PNode originalLoop) {
+        public PeeledGeneratorLoopNoCallNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode calleeNode, PGenerator callee, PNode originalLoop) {
             super(generatorRoot, frameDescriptor, null, originalLoop);
             this.calleeNode = calleeNode;
             cachedCallTarget = callee.getCallTarget();
