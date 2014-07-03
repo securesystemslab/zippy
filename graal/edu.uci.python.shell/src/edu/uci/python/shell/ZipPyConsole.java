@@ -98,6 +98,11 @@ public class ZipPyConsole extends InteractiveConsole {
             ProfilerResultPrinter.printNodesEmptySourceSections();
         }
 
+        if (PythonOptions.TraceNodesUsingExistingProbe) {
+            printBanner("Nodes That Reuses an Existing Probe");
+            ProfilerResultPrinter.printNodesUsingExistingProbes();
+        }
+
         Py.flushLine();
         return result;
     }

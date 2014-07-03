@@ -75,6 +75,8 @@ public class PythonOptions {
 
     public static boolean TraceNodesWithoutSourceSection = false;
 
+    public static boolean TraceNodesUsingExistingProbe = false;
+
     public static final boolean CatchZippyExceptionForUnitTesting = false;
 
     private PrintStream standardOut = System.out;

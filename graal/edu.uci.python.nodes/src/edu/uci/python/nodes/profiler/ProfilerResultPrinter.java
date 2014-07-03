@@ -41,12 +41,18 @@ import edu.uci.python.runtime.*;
 
 public class ProfilerResultPrinter {
 
-    static List<PNode> nodesEmptySourceSections = new ArrayList<>();
-
     private static PrintStream out = System.out;
+
+    private static List<PNode> nodesEmptySourceSections = new ArrayList<>();
+
+    private static List<PNode> nodesUsingExistingProbes = new ArrayList<>();
 
     public static void addNodeEmptySourceSection(PNode node) {
         nodesEmptySourceSections.add(node);
+    }
+
+    public static void addNodeUsingExistingProbe(PNode node) {
+        nodesUsingExistingProbes.add(node);
     }
 
     public static void printNodeProfilerResults() {
@@ -125,11 +131,11 @@ public class ProfilerResultPrinter {
     }
 
     public static void printIfProfilerResults() {
-        Map<PythonWrapperNode, ProfilerInstrument> conditions;
+        Map<PythonWrapperNode, ProfilerInstrument> ifNodes;
         if (PythonOptions.SortProfilerResults) {
-            conditions = sortByValue(PythonNodeProber.getConditionWrapperToInstruments());
+            ifNodes = sortByValue(PythonNodeProber.getIfWrapperToInstruments());
         } else {
-            conditions = PythonNodeProber.getConditionWrapperToInstruments();
+            ifNodes = PythonNodeProber.getIfWrapperToInstruments();
         }
 
         Map<PythonWrapperNode, ProfilerInstrument> thens = PythonNodeProber.getThenWrapperToInstruments();
@@ -144,18 +150,18 @@ public class ProfilerResultPrinter {
         out.println();
         out.println("===========            ============        ============     ====     ======     ======");
 
-        Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = conditions.entrySet().iterator();
+        Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = ifNodes.entrySet().iterator();
         while (it.hasNext()) {
             Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
-            PythonWrapperNode conditionWrapper = entry.getKey();
-            ProfilerInstrument conditionInstrument = entry.getValue();
-            IfNode ifNode = (IfNode) conditionWrapper.getParent().getParent();
+            PythonWrapperNode ifWrapper = entry.getKey();
+            IfNode ifNode = (IfNode) ifWrapper.getChild();
+            ProfilerInstrument ifInstrument = entry.getValue();
             PNode thenNode = ifNode.getThen();
             PNode elseNode = ifNode.getElse();
             ProfilerInstrument thenInstrument = thens.get(thenNode);
 
-            if (conditionInstrument.getCounter() > 0) {
-                out.format("%11s", conditionInstrument.getCounter());
+            if (ifInstrument.getCounter() > 0) {
+                out.format("%11s", ifInstrument.getCounter());
                 out.format("%24s", thenInstrument.getCounter());
 
                 if (!(ifNode.getElse() instanceof EmptyNode)) {
@@ -192,6 +198,12 @@ public class ProfilerResultPrinter {
 
     public static void printNodesEmptySourceSections() {
         for (PNode node : nodesEmptySourceSections) {
+            out.println(node);
+        }
+    }
+
+    public static void printNodesUsingExistingProbes() {
+        for (PNode node : nodesUsingExistingProbes) {
             out.println(node);
         }
     }

@@ -41,7 +41,7 @@ public class PythonNodeProber implements ASTNodeProber {
     private final PythonContext context;
     private static Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments = new LinkedHashMap<>();
     private static Map<PythonWrapperNode, ProfilerInstrument> callWrapperToInstruments = new LinkedHashMap<>();
-    private static Map<PythonWrapperNode, ProfilerInstrument> conditionWrapperToInstruments = new LinkedHashMap<>();
+    private static Map<PythonWrapperNode, ProfilerInstrument> ifWrapperToInstruments = new LinkedHashMap<>();
     private static Map<PythonWrapperNode, ProfilerInstrument> thenWrapperToInstruments = new LinkedHashMap<>();
     private static Map<PythonWrapperNode, ProfilerInstrument> elseWrapperToInstruments = new LinkedHashMap<>();
 
@@ -55,8 +55,12 @@ public class PythonNodeProber implements ASTNodeProber {
 
     public PythonWrapperNode probeAsStatement(PNode node) {
         PythonWrapperNode wrapper;
-        if (node instanceof PythonWrapperNode) {
-            wrapper = (PythonWrapperNode) node;
+        /**
+         * If this node is already wrapped, then do not create another wrapper node, use the
+         * existing wrapper node.
+         */
+        if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
+            wrapper = (PythonWrapperNode) node.getParent();
         } else {
             wrapper = new PythonWrapperNode(context, node);
             wrapper.getProbe().tagAs(StandardTag.STATEMENT);
@@ -71,7 +75,7 @@ public class PythonNodeProber implements ASTNodeProber {
 
     public PythonWriteNodeWrapperNode probeAsWriteNode(PNode node) {
         PythonWriteNodeWrapperNode wrapper;
-        if (node instanceof PythonWriteNodeWrapperNode) {
+        if (node.getParent() != null && node.getParent() instanceof PythonWriteNodeWrapperNode) {
             wrapper = (PythonWriteNodeWrapperNode) node;
         } else {
             wrapper = new PythonWriteNodeWrapperNode(context, node);
@@ -87,7 +91,7 @@ public class PythonNodeProber implements ASTNodeProber {
 
     public PythonWrapperNode probeAsCall(PNode node) {
         PythonWrapperNode wrapper;
-        if (node instanceof PythonWrapperNode) {
+        if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
             wrapper = (PythonWrapperNode) node;
         } else {
             wrapper = new PythonWrapperNode(context, node);
@@ -101,10 +105,14 @@ public class PythonNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
-    public PythonWrapperNode probeAsCondition(PNode node) {
+    public PythonWrapperNode probeAsIfStatement(PNode node) {
         PythonWrapperNode wrapper;
-        if (node instanceof PythonWrapperNode) {
-            wrapper = (PythonWrapperNode) node;
+        /**
+         * If this node is already wrapped, then do not create another wrapper node, use the
+         * existing wrapper node.
+         */
+        if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
+            wrapper = (PythonWrapperNode) node.getParent();
         } else {
             wrapper = new PythonWrapperNode(context, node);
             wrapper.getProbe().tagAs(StandardTag.STATEMENT);
@@ -113,13 +121,13 @@ public class PythonNodeProber implements ASTNodeProber {
 
         ProfilerInstrument profilerInstrument = new ProfilerInstrument();
         wrapper.getProbe().addInstrument(profilerInstrument);
-        conditionWrapperToInstruments.put(wrapper, profilerInstrument);
+        ifWrapperToInstruments.put(wrapper, profilerInstrument);
         return wrapper;
     }
 
     public PythonWrapperNode probeAsThen(PNode node) {
         PythonWrapperNode wrapper;
-        if (node instanceof PythonWrapperNode) {
+        if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
             wrapper = (PythonWrapperNode) node;
         } else {
             wrapper = new PythonWrapperNode(context, node);
@@ -135,7 +143,7 @@ public class PythonNodeProber implements ASTNodeProber {
 
     public PythonWrapperNode probeAsElse(PNode node) {
         PythonWrapperNode wrapper;
-        if (node instanceof PythonWrapperNode) {
+        if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
             wrapper = (PythonWrapperNode) node;
         } else {
             wrapper = new PythonWrapperNode(context, node);
@@ -157,8 +165,8 @@ public class PythonNodeProber implements ASTNodeProber {
         return callWrapperToInstruments;
     }
 
-    public static Map<PythonWrapperNode, ProfilerInstrument> getConditionWrapperToInstruments() {
-        return conditionWrapperToInstruments;
+    public static Map<PythonWrapperNode, ProfilerInstrument> getIfWrapperToInstruments() {
+        return ifWrapperToInstruments;
     }
 
     public static Map<PythonWrapperNode, ProfilerInstrument> getThenWrapperToInstruments() {
