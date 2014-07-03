@@ -77,8 +77,8 @@ public class ProfilerTranslator implements NodeVisitor {
                     PNode conditionNode = castToBooleanNode.getOperand();
                     createConditionNodeWrapper(conditionNode);
                     PNode thenNode = ifNode.getThen();
-                    PNode elseNode = ifNode.getElse();
                     createThenNodeWrapper(thenNode);
+                    PNode elseNode = ifNode.getElse();
                     /**
                      * Only create a wrapper node if an else part exists.
                      */

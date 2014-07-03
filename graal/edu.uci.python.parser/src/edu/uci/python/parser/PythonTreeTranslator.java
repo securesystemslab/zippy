@@ -104,18 +104,20 @@ public class PythonTreeTranslator extends Visitor {
         return truffleNode;
     }
 
-    public PNode assignSourceFromChildren(PNode truffleNode, PNode leftNode, PNode rightNode) {
-        String identifier = "identifier";
+    public PNode assignSourceFromChildren(PythonTree jythonNode, PNode truffleNode, PNode leftChild, PNode rightChild) {
+        String identifier = jythonNode.getText();
 
         try {
-            if (leftNode.getSourceSection() == null) {
-                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s left node " + leftNode.getClass().getSimpleName() + "does not have a source section");
-            } else if (rightNode.getSourceSection() == null) {
-                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s right node " + rightNode.getClass().getSimpleName() + "does not have a source section");
+            if (leftChild.getSourceSection() == null) {
+                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s left node " + leftChild.getClass().getSimpleName() + "does not have a source section");
             }
 
-            int charStartIndex = leftNode.getSourceSection().getCharIndex();
-            int charStopIndex = rightNode.getSourceSection().getCharEndIndex();
+            if (rightChild.getSourceSection() == null) {
+                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s right node " + rightChild.getClass().getSimpleName() + "does not have a source section");
+            }
+
+            int charStartIndex = leftChild.getSourceSection().getCharIndex();
+            int charStopIndex = rightChild.getSourceSection().getCharEndIndex();
             int charLength = charStopIndex - charStartIndex;
             SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
             truffleNode.assignSourceSection(sourceSection);
@@ -145,43 +147,18 @@ public class PythonTreeTranslator extends Visitor {
         return rootNode;
     }
 
-    public PNode assignSourceToBlockNode(PNode node, List<PNode> children) {
-        String identifier = "identifier";
-        PNode firstChild = children.get(0);
-        PNode lastChild = children.get(children.size() - 1);
-
-        /**
-         * If a block has only one statement, then the source section of the block is assigned from
-         * its only statement.
-         */
-
-        if (children.size() == 1) {
-            try {
-                if (firstChild.getSourceSection() == null) {
-                    throw new RuntimeException("Node " + node.getClass().getSimpleName() + "'s left node " + firstChild.getClass().getSimpleName() + " does not have a source section");
-                }
-                node.assignSourceSection(firstChild.getSourceSection());
-            } catch (RuntimeException e) {
-                return node;
-            }
-            return node;
-        } else {
-            try {
-                if (firstChild.getSourceSection() == null) {
-                    throw new RuntimeException("Node " + node.getClass().getSimpleName() + "'s left node " + firstChild.getClass().getSimpleName() + " does not have a source section");
-                } else if (lastChild.getSourceSection() == null) {
-                    throw new RuntimeException("Node " + node.getClass().getSimpleName() + "'s right node " + lastChild.getClass().getSimpleName() + " does not have a source section");
-                }
-                int charStartIndex = firstChild.getSourceSection().getCharIndex();
-                int charStopIndex = lastChild.getSourceSection().getCharEndIndex();
-                int charLength = charStopIndex - charStartIndex;
-                SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
-                node.assignSourceSection(sourceSection);
-                return node;
-            } catch (RuntimeException e) {
-                return node;
-            }
+    public PNode assignSourceToBlockNode(PNode node, List<stmt> statements) {
+        if (node.getSourceSection() == null) {
+            stmt firstChild = statements.get(0);
+            stmt lastChild = statements.get(statements.size() - 1);
+            int charStartIndex = firstChild.getCharStartIndex();
+            int charStopIndex = lastChild.getCharStopIndex();
+            int charLength = charStopIndex - charStartIndex;
+            SourceSection sourceSection = source.createSection("block", charStartIndex, charLength);
+            node.assignSourceSection(sourceSection);
         }
+
+        return node;
     }
 
     @Override
@@ -706,8 +683,6 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitAugAssign(AugAssign node) throws Exception {
         PNode target = (PNode) visit(node.getInternalTarget());
         PNode value = (PNode) visit(node.getInternalValue());
-        // PNode binaryOp = assignSourceFromNode(node,
-// factory.createBinaryOperation(node.getInternalOp(), target, value));
         PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), target, value);
         PNode read = factory.duplicate(target, PNode.class);
         PNodeUtil.clearSourceSections(read);
@@ -729,7 +704,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode right = (PNode) visit(node.getInternalRight());
         operatorType op = node.getInternalOp();
         PNode binaryNode = factory.createBinaryOperation(op, left, right);
-        return assignSourceFromChildren(binaryNode, left, right);
+        return assignSourceFromChildren(node, binaryNode, left, right);
     }
 
     @Override
@@ -741,18 +716,18 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Source is assigned in createBooleanOperations
          */
-        return createBooleanOperations(left, op, rights);
+        return createBooleanOperations(node, left, op, rights);
     }
 
-    private PNode createBooleanOperations(PNode left, boolopType operator, List<PNode> rights) {
+    private PNode createBooleanOperations(BoolOp node, PNode left, boolopType operator, List<PNode> rights) {
         PNode current = factory.createBooleanOperation(operator, left, rights.get(0));
-        assignSourceFromChildren(current, left, rights.get(0));
+        assignSourceFromChildren(node, current, left, rights.get(0));
 
         for (int i = 1; i < rights.size(); i++) {
             PNode right = rights.get(i);
-            PNode previousNode = current;
+            // PNode previousNode = current;
             current = factory.createBooleanOperation(operator, current, right);
-            assignSourceFromChildren(current, previousNode, right);
+            // assignSourceFromChildren(current, previousNode, right);
         }
 
         return current;
@@ -769,10 +744,10 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Source is assigned in createComparisonOperations
          */
-        return createComparisonOperations(left, ops, rights);
+        return createComparisonOperations(node, left, ops, rights);
     }
 
-    private PNode createComparisonOperations(PNode left, List<cmpopType> ops, List<PNode> rights) {
+    private PNode createComparisonOperations(Compare node, PNode left, List<cmpopType> ops, List<PNode> rights) {
         PNode leftOp = left;
         PNode rightOp = rights.get(0);
 
@@ -783,7 +758,7 @@ public class PythonTreeTranslator extends Visitor {
          */
         if (ops.size() == 1 && rights.size() == 1) {
             PNode comparisonNode = factory.createComparisonOperation(ops.get(0), leftOp, rightOp);
-            assignSourceFromChildren(comparisonNode, leftOp, rightOp);
+            assignSourceFromChildren(node, comparisonNode, leftOp, rightOp);
             return comparisonNode;
         }
 
@@ -869,10 +844,10 @@ public class PythonTreeTranslator extends Visitor {
 
         if (!(node.getInternalSlice() instanceof Slice)) {
             PNode subscriptLoadIndexNode = factory.createSubscriptLoadIndex(primaryNode, sliceNode);
-            return assignSourceFromChildren(subscriptLoadIndexNode, primaryNode, sliceNode);
+            return assignSourceFromChildren(node, subscriptLoadIndexNode, primaryNode, sliceNode);
         } else {
             PNode subscriptLoadSliceNode = factory.createSubscriptLoadSlice(primaryNode, sliceNode);
-            return assignSourceFromChildren(subscriptLoadSliceNode, primaryNode, sliceNode);
+            return assignSourceFromChildren(node, subscriptLoadSliceNode, primaryNode, sliceNode);
         }
     }
 
@@ -976,28 +951,29 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitIf(If node) throws Exception {
         List<stmt> thenStmt = node.getInternalBody();
+        List<stmt> orElseStmt = node.getInternalOrelse();
         List<PNode> then = visitStatements(thenStmt);
-        List<PNode> orelse = visitStatements(node.getInternalOrelse());
+        List<PNode> orelse = visitStatements(orElseStmt);
         PNode test = (PNode) visit(node.getInternalTest());
         PNode thenPart = factory.createBlock(then);
 
         if (thenPart instanceof EmptyNode) {
             thenPart = assignSourceFromNode(thenStmt.get(0), thenPart);
         } else {
-            thenPart = assignSourceToBlockNode(thenPart, then);
+            thenPart = assignSourceToBlockNode(thenPart, thenStmt);
         }
 
         PNode elsePart = factory.createBlock(orelse);
         if (!(elsePart instanceof EmptyNode)) {
-            assignSourceToBlockNode(elsePart, orelse);
+            assignSourceToBlockNode(elsePart, orElseStmt);
         }
 
         CastToBooleanNode castToBooleanNode = factory.toBooleanCastNode(test);
         PNode ifNode = factory.createIf(castToBooleanNode, thenPart, elsePart);
         if (!(elsePart instanceof EmptyNode)) {
-            assignSourceFromChildren(ifNode, test, elsePart);
+            assignSourceFromChildren(node, ifNode, test, elsePart);
         } else {
-            assignSourceFromChildren(ifNode, test, thenPart);
+            assignSourceFromChildren(node, ifNode, test, thenPart);
         }
 
         return ifNode;
