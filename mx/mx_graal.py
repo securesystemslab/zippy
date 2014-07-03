@@ -971,7 +971,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
     classes = []
     if len(tests) == 0:
         classes = candidates.keys()
-        projectscp = mx.classpath([pcp.name for pcp in mx.projects_opt_limit_to_suites() if pcp.javaCompliance <= mx.java().javaCompliance])
+        projectsCp = mx.classpath([pcp.name for pcp in mx.projects_opt_limit_to_suites() if pcp.javaCompliance <= mx.java().javaCompliance])
     else:
         projs = set()
         if len(tests) == 1 and '#' in tests[0]:
@@ -999,7 +999,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
                         projs.add(p.name)
                 if not found:
                     mx.log('warning: no tests matched by substring "' + t)
-        projectscp = mx.classpath(projs)
+        projectsCp = mx.classpath(projs)
 
     if whitelist:
         classes = [c for c in classes if any((glob.match(c) for glob in whitelist))]
@@ -1012,9 +1012,9 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
         for c in classes:
             f_testfile.write(c + '\n')
         f_testfile.close()
-        harness(projectscp, vmArgs)
+        harness(projectsCp, vmArgs)
 
-def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, enable_timing=False, regex=None, color=False, eager_stacktrace=False, gc_after_test=False):
+def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, enable_timing=False, regex=None, color=False, eager_stacktrace=False, gc_after_test=False):
     mxdir = dirname(__file__)
     name = 'JUnitWrapper'
     javaSource = join(mxdir, name + '.java')
@@ -1023,10 +1023,10 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
     if testfile is None:
         (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
         os.close(_)
-    corecp = mx.classpath(['com.oracle.graal.test'])
+    coreCp = mx.classpath(['com.oracle.graal.test'])
 
     if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
-        subprocess.check_call([mx.java().javac, '-cp', corecp, '-d', mxdir, javaSource])
+        subprocess.check_call([mx.java().javac, '-cp', coreCp, '-d', mxdir, javaSource])
 
     coreArgs = []
     if verbose:
@@ -1041,7 +1041,7 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
         coreArgs.append('-JUnitGCAfterTest')
 
 
-    def harness(projectscp, vmArgs):
+    def harness(projectsCp, vmArgs):
         if _get_vm() != 'graal':
             prefixArgs = ['-esa', '-ea']
         else:
@@ -1053,9 +1053,9 @@ def _unittest(args, annotations, prefixcp="", whitelist=None, verbose=False, ena
         if len(testclasses) == 1:
             # Execute Junit directly when one test is being run. This simplifies
             # replaying the VM execution in a native debugger (e.g., gdb).
-            vm(prefixArgs + vmArgs + ['-cp', prefixcp + corecp + ':' + projectscp, 'com.oracle.graal.test.GraalJUnitCore'] + coreArgs + testclasses)
+            vm(prefixArgs + vmArgs + ['-cp', prefixCp + coreCp + ':' + projectsCp, 'com.oracle.graal.test.GraalJUnitCore'] + coreArgs + testclasses)
         else:
-            vm(prefixArgs + vmArgs + ['-cp', prefixcp + corecp + ':' + projectscp + os.pathsep + mxdir, name] + [testfile] + coreArgs)
+            vm(prefixArgs + vmArgs + ['-cp', prefixCp + coreCp + ':' + projectsCp + os.pathsep + mxdir, name] + [testfile] + coreArgs)
 
     try:
         _run_tests(args, harness, annotations, testfile, whitelist, regex)
