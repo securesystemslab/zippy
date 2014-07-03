@@ -127,6 +127,12 @@ public final class FunctionRootNode extends RootNode {
         return body.execute(frame);
     }
 
+    @Override
+    public boolean applyGuestTransformation() {
+        peelingTrialCounter = 0;
+        return optimizeHelper();
+    }
+
     private boolean optimizeHelper() {
         CompilerAsserts.neverPartOfCompilation();
 
@@ -322,12 +328,8 @@ public final class FunctionRootNode extends RootNode {
         }
 
         optimizedGeneratorDispatches.add(dispatch);
-
-        if (PythonOptions.TraceGeneratorInlining) {
-            PrintStream ps = System.out;
-            ps.println("[ZipPy] peeled generator " + genfun.getCallTarget() + " in " + getRootNode());
-        }
-
+        PrintStream ps = System.out;
+        ps.println("[ZipPy] peeled generator " + genfun.getCallTarget() + " in " + getRootNode());
         return true;
     }
 
@@ -349,8 +351,8 @@ public final class FunctionRootNode extends RootNode {
         }
 
         ForNode loop = (ForNode) forNode;
-        PeeledGeneratorLoopNode peeled = new PeeledGeneratorLoopNoCallNode((FunctionRootNode) generator.getCallTarget().getRootNode(), generator.getFrameDescriptor(), getIter.getOperand(),
-                        generator, forNode);
+        PeeledGeneratorLoopNode peeled = new PeeledGeneratorLoopNoCallNode((FunctionRootNode) generator.getCallTarget().getRootNode(), generator.getFrameDescriptor(), getIter.getOperand(), generator,
+                        forNode);
 
         loop.replace(peeled);
 
