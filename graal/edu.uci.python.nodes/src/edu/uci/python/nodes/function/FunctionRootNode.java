@@ -349,7 +349,7 @@ public final class FunctionRootNode extends RootNode {
         }
 
         ForNode loop = (ForNode) forNode;
-        PeeledGeneratorLoopNode peeled = new PeeledGeneratorLoopNotAlignedNode((FunctionRootNode) generator.getCallTarget().getRootNode(), generator.getFrameDescriptor(), getIter.getOperand(),
+        PeeledGeneratorLoopNode peeled = new PeeledGeneratorLoopNoCallNode((FunctionRootNode) generator.getCallTarget().getRootNode(), generator.getFrameDescriptor(), getIter.getOperand(),
                         generator, forNode);
 
         loop.replace(peeled);
