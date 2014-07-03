@@ -73,9 +73,7 @@ public class ProfilerTranslator implements NodeVisitor {
                  * nodes are not profiled.
                  */
                 if (hasSourceSection(ifNode)) {
-                    CastToBooleanNode castToBooleanNode = ifNode.getCondition();
-                    PNode conditionNode = castToBooleanNode.getOperand();
-                    createConditionNodeWrapper(conditionNode);
+                    createIfWrapper(ifNode);
                     PNode thenNode = ifNode.getThen();
                     createThenNodeWrapper(thenNode);
                     PNode elseNode = ifNode.getElse();
@@ -84,7 +82,9 @@ public class ProfilerTranslator implements NodeVisitor {
                      */
                     if (!(elseNode instanceof EmptyNode)) {
                         createElseNodeWrapper(elseNode);
+
                     }
+
                 }
             }
         } else if (PythonOptions.ProfileNodes) {
@@ -138,8 +138,17 @@ public class ProfilerTranslator implements NodeVisitor {
     private PythonWrapperNode createWrapper(PNode node) {
         if (checkSourceSection(node)) {
             PythonWrapperNode wrapperNode = astProber.probeAsStatement(node);
-            node.replace(wrapperNode);
-            wrapperNode.adoptChildren();
+            replaceNodeWithWrapper(node, wrapperNode);
+            return wrapperNode;
+        }
+
+        return null;
+    }
+
+    private PythonWrapperNode createIfWrapper(PNode node) {
+        if (checkSourceSection(node)) {
+            PythonWrapperNode wrapperNode = astProber.probeAsIfStatement(node);
+            replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
 
@@ -160,19 +169,7 @@ public class ProfilerTranslator implements NodeVisitor {
     private PythonWrapperNode createCallNodeWrapper(PNode node) {
         if (checkSourceSection(node)) {
             PythonWrapperNode wrapperNode = astProber.probeAsCall(node);
-            node.replace(wrapperNode);
-            wrapperNode.adoptChildren();
-            return wrapperNode;
-        }
-
-        return null;
-    }
-
-    private PythonWrapperNode createConditionNodeWrapper(PNode node) {
-        if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = astProber.probeAsCondition(node);
-            node.replace(wrapperNode);
-            wrapperNode.adoptChildren();
+            replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
 
@@ -182,8 +179,7 @@ public class ProfilerTranslator implements NodeVisitor {
     private PythonWrapperNode createThenNodeWrapper(PNode node) {
         if (checkSourceSection(node)) {
             PythonWrapperNode wrapperNode = astProber.probeAsThen(node);
-            node.replace(wrapperNode);
-            wrapperNode.adoptChildren();
+            replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
 
@@ -193,19 +189,29 @@ public class ProfilerTranslator implements NodeVisitor {
     private PythonWrapperNode createElseNodeWrapper(PNode node) {
         if (checkSourceSection(node)) {
             PythonWrapperNode wrapperNode = astProber.probeAsElse(node);
-            node.replace(wrapperNode);
-            wrapperNode.adoptChildren();
+            replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
 
         return null;
     }
 
+    private static void replaceNodeWithWrapper(PNode node, PythonWrapperNode wrapperNode) {
+        /**
+         * If a node is already wrapped, then another wrapper node is not created, and existing
+         * wrapper node is used. If a wrapper node is not created, do not replace the node,
+         * otherwise replace the node with the new created wrapper node
+         */
+        if (!wrapperNode.equals(node.getParent())) {
+            node.replace(wrapperNode);
+            wrapperNode.adoptChildren();
+        }
+    }
+
     private boolean checkSourceSection(PNode node) {
         if (hasSourceSection(node)) {
             if (astProber.getContext().hasProbe(node.getSourceSection())) {
-                throw new RuntimeException("Can't create a probe for " + node.getClass().getSimpleName() + " " + node + ": probe exists with this source section\n" +
-                                node.getSourceSection().getStartLine() + " " + node.getSourceSection().getStartColumn() + " " + node.getSourceSection().getCharLength() + " parent " + node.getParent());
+                ProfilerResultPrinter.addNodeUsingExistingProbe(node);
             }
 
             return true;
