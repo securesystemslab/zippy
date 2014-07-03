@@ -72,6 +72,7 @@ javadoc/
 ^cscope.out
 ^tags
 graal.src.zip*
+graal-loader.src.zip*
 syntax: glob
 *.bgv
 core.*

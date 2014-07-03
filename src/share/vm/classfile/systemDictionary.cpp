@@ -57,6 +57,9 @@
 #include "services/threadService.hpp"
 #include "utilities/macros.hpp"
 #include "utilities/ticks.hpp"
+#ifdef GRAAL
+#include "graal/graalRuntime.hpp"
+#endif
 
 #if INCLUDE_TRACE
  #include "trace/tracing.hpp"
@@ -86,6 +89,14 @@ oop         SystemDictionary::_java_system_loader         =  NULL;
 
 bool        SystemDictionary::_has_loadClassInternal      =  false;
 bool        SystemDictionary::_has_checkPackageAccess     =  false;
+
+#ifdef GRAAL
+oop         SystemDictionary::_graal_loader               = NULL;
+
+oop SystemDictionary::graal_loader() {
+  return _graal_loader;
+}
+#endif
 
 // lazily initialized klass variables
 Klass* volatile SystemDictionary::_abstract_ownable_synchronizer_klass = NULL;
@@ -1666,6 +1677,9 @@ void SystemDictionary::add_to_hierarchy(instanceKlassHandle k, TRAPS) {
 void SystemDictionary::always_strong_oops_do(OopClosure* blk) {
   blk->do_oop(&_java_system_loader);
   blk->do_oop(&_system_loader_lock_obj);
+#ifdef GRAAL
+  blk->do_oop(&_graal_loader);
+#endif
 
   dictionary()->always_strong_oops_do(blk);
 
@@ -1740,6 +1754,9 @@ bool SystemDictionary::do_unloading(BoolObjectClosure* is_alive) {
 void SystemDictionary::oops_do(OopClosure* f) {
   f->do_oop(&_java_system_loader);
   f->do_oop(&_system_loader_lock_obj);
+#ifdef GRAAL
+  f->do_oop(&_graal_loader);
+#endif
 
   // Adjust dictionary
   dictionary()->oops_do(f);
@@ -1859,6 +1876,14 @@ bool SystemDictionary::initialize_wk_klass(WKID id, int init_opt, TRAPS) {
   Klass**    klassp = &_well_known_klasses[id];
   bool must_load = (init_opt < SystemDictionary::Opt);
   if ((*klassp) == NULL) {
+#ifdef GRAAL
+    bool is_graal = init_opt == SystemDictionary::Graal;
+    assert(is_graal == (id >= (int)FIRST_GRAAL_WKID && id <= (int)LAST_GRAAL_WKID),
+        "Graal WKIDs must be contiguous and separate from non-Graal WKIDs");
+    if (is_graal) {
+      (*klassp) = resolve_or_fail(symbol, _graal_loader, Handle(), true, CHECK_0); // load required Graal class
+    } else
+#endif
     if (must_load) {
       (*klassp) = resolve_or_fail(symbol, true, CHECK_0); // load required class
     } else {
@@ -1935,7 +1960,7 @@ void SystemDictionary::initialize_preloaded_classes(TRAPS) {
     scan = WKID(jsr292_group_end + 1);
   }
 
-  initialize_wk_klasses_until(WKID_LIMIT, scan, CHECK);
+  initialize_wk_klasses_until(NOT_GRAAL(WKID_LIMIT) GRAAL_ONLY(FIRST_GRAAL_WKID), scan, CHECK);
 
   _box_klasses[T_BOOLEAN] = WK_KLASS(Boolean_klass);
   _box_klasses[T_CHAR]    = WK_KLASS(Character_klass);
@@ -1957,6 +1982,18 @@ void SystemDictionary::initialize_preloaded_classes(TRAPS) {
     _has_checkPackageAccess = (method != NULL);
   }
 }
+
+#ifdef GRAAL
+void SystemDictionary::initialize_preloaded_graal_classes(TRAPS) {
+  assert(WK_KLASS(CompilerThread_klass) == NULL, "preloaded Graal classes should only be initialized once");
+  if (UseGraalClassLoader) {
+    _graal_loader = GraalRuntime::compute_graal_class_loader(CHECK);
+  }
+
+  WKID scan = FIRST_GRAAL_WKID;
+  initialize_wk_klasses_through(LAST_GRAAL_WKID, scan, CHECK);
+}
+#endif
 
 // Tells if a given klass is a box (wrapper class, such as java.lang.Integer).
 // If so, returns the basic type it holds.  If not, returns T_OBJECT.

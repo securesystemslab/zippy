@@ -1268,7 +1268,7 @@ bool os::set_boot_path(char fileSep, char pathSep) {
         "%/lib/JObjC.jar:"
 #endif
 #ifdef GRAAL
-        "%/lib/graal.jar:"
+        "%/lib/graal-loader.jar:"
 #endif
         "%/classes";
     char* sysclasspath = format_boot_path(classpath_format, home, home_len, fileSep, pathSep);

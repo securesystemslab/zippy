@@ -145,7 +145,25 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
     } \
   } while (0);
 
+  /**
+   * Same as SystemDictionary::resolve_or_null but uses the Graal loader.
+   */
+  static Klass* resolve_or_null(Symbol* name, TRAPS);
+
+  /**
+   * Same as SystemDictionary::resolve_or_fail but uses the Graal loader.
+   */
+  static Klass* resolve_or_fail(Symbol* name, TRAPS);
+
+  /**
+   * Loads a given Graal class and aborts the VM if it fails.
+   */
   static Klass* load_required_class(Symbol* name);
+
+  /**
+   * Creates a separate class loader for classes in graal.jar.
+   */
+  static oop compute_graal_class_loader(TRAPS);
 
   static BufferBlob* initialize_buffer_blob();
 

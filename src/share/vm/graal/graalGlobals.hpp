@@ -49,6 +49,9 @@
   product(bool, DebugGraal, true,                                           \
           "Enable JVMTI for the compiler thread")                           \
                                                                             \
+  product(bool, UseGraalClassLoader, false,                                 \
+          "Load Graal classes with separate class loader")                  \
+                                                                            \
   COMPILERGRAAL_PRESENT(product(bool, BootstrapGraal, true,                 \
           "Bootstrap Graal before running Java main method"))               \
                                                                             \

@@ -184,67 +184,63 @@ class Ticks;
   do_klass(Long_klass,                                  java_lang_Long,                            Pre                 ) \
                                                                                                                          \
   /* Support for Graal */                                                                                                \
-  do_klass(CompilerThread_klass,                  com_oracle_graal_compiler_CompilerThread,                     Opt) \
-  do_klass(BitSet_klass,                          java_util_BitSet,                                             Opt) \
-  /* graal.graph */                                                                                                  \
-  do_klass(Node_klass,                            com_oracle_graal_graph_Node,                                  Opt) \
-  do_klass(NodeClass_klass,                       com_oracle_graal_graph_NodeClass,                             Opt) \
-  /* graal.hotspot */                                                                                                \
-  do_klass(HotSpotCompiledCode_klass,             com_oracle_graal_hotspot_HotSpotCompiledCode,                 Opt) \
-  do_klass(HotSpotCompiledCode_Comment_klass,     com_oracle_graal_hotspot_HotSpotCompiledCode_Comment,         Opt) \
-  do_klass(HotSpotCompiledNmethod_klass,          com_oracle_graal_hotspot_HotSpotCompiledNmethod,              Opt) \
-  do_klass(HotSpotCompiledRuntimeStub_klass,      com_oracle_graal_hotspot_HotSpotCompiledRuntimeStub,          Opt) \
-  do_klass(HotSpotForeignCallLinkage_klass,       com_oracle_graal_hotspot_HotSpotForeignCallLinkage,           Opt) \
-  do_klass(HotSpotReferenceMap_klass,             com_oracle_graal_hotspot_HotSpotReferenceMap,                 Opt) \
-  do_klass(DataSection_klass,                     com_oracle_graal_hotspot_data_DataSection,                    Opt) \
-  do_klass(DataSectionReference_klass,            com_oracle_graal_hotspot_data_DataSectionReference,           Opt) \
-  do_klass(MetaspaceData_klass,                   com_oracle_graal_hotspot_data_MetaspaceData,                  Opt) \
-  do_klass(OopData_klass,                         com_oracle_graal_hotspot_data_OopData,                        Opt) \
-  do_klass(HotSpotCodeInfo_klass,                 com_oracle_graal_hotspot_meta_HotSpotCodeInfo,                Opt) \
-  do_klass(HotSpotInstalledCode_klass,            com_oracle_graal_hotspot_meta_HotSpotInstalledCode,           Opt) \
-  do_klass(HotSpotNmethod_klass,                  com_oracle_graal_hotspot_meta_HotSpotNmethod,                 Opt) \
-  do_klass(HotSpotResolvedJavaMethod_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,      Opt) \
-  do_klass(HotSpotResolvedObjectType_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,      Opt) \
-  do_klass(HotSpotMonitorValue_klass,             com_oracle_graal_hotspot_meta_HotSpotMonitorValue,            Opt) \
-  do_klass(HotSpotObjectConstant_klass,           com_oracle_graal_hotspot_meta_HotSpotObjectConstant,          Opt) \
-  do_klass(HotSpotMetaspaceConstant_klass,        com_oracle_graal_hotspot_meta_HotSpotMetaspaceConstant,       Opt) \
-  do_klass(HotSpotStackFrameReference_klass,      com_oracle_graal_hotspot_HotSpotStackFrameReference,          Opt) \
-  do_klass(CompilationTask_klass,                 com_oracle_graal_hotspot_CompilationTask,                     Opt) \
-  /* graal.api.code */                                                                                               \
-  do_klass(Assumptions_klass,                     com_oracle_graal_api_code_Assumptions,                        Opt) \
-  do_klass(Assumptions_ConcreteMethod_klass,      com_oracle_graal_api_code_Assumptions_ConcreteMethod,         Opt) \
-  do_klass(Assumptions_NoFinalizableSubclass_klass, com_oracle_graal_api_code_Assumptions_NoFinalizableSubclass, Opt) \
-  do_klass(Assumptions_ConcreteSubtype_klass,     com_oracle_graal_api_code_Assumptions_ConcreteSubtype,        Opt) \
-  do_klass(Assumptions_MethodContents_klass,      com_oracle_graal_api_code_Assumptions_MethodContents,         Opt) \
-  do_klass(Assumptions_CallSiteTargetValue_klass, com_oracle_graal_api_code_Assumptions_CallSiteTargetValue,    Opt) \
-  do_klass(BytecodePosition_klass,                com_oracle_graal_api_code_BytecodePosition,                   Opt) \
-  do_klass(DebugInfo_klass,                       com_oracle_graal_api_code_DebugInfo,                          Opt) \
-  do_klass(RegisterSaveLayout_klass,              com_oracle_graal_api_code_RegisterSaveLayout,                 Opt) \
-  do_klass(BytecodeFrame_klass,                   com_oracle_graal_api_code_BytecodeFrame,                      Opt) \
-  do_klass(CompilationResult_klass,               com_oracle_graal_api_code_CompilationResult,                  Opt) \
-  do_klass(CompilationResult_Call_klass,          com_oracle_graal_api_code_CompilationResult_Call,             Opt) \
-  do_klass(CompilationResult_DataPatch_klass,     com_oracle_graal_api_code_CompilationResult_DataPatch,        Opt) \
-  do_klass(CompilationResult_ExceptionHandler_klass, com_oracle_graal_api_code_CompilationResult_ExceptionHandler, Opt) \
-  do_klass(CompilationResult_Mark_klass,          com_oracle_graal_api_code_CompilationResult_Mark,             Opt) \
-  do_klass(CompilationResult_Infopoint_klass,     com_oracle_graal_api_code_CompilationResult_Infopoint,        Opt) \
-  do_klass(CompilationResult_Site_klass,          com_oracle_graal_api_code_CompilationResult_Site,             Opt) \
-  do_klass(ExternalCompilationResult_klass,       com_oracle_graal_gpu_ExternalCompilationResult,               Opt) \
-  do_klass(InfopointReason_klass,                 com_oracle_graal_api_code_InfopointReason,                    Opt) \
-  do_klass(InstalledCode_klass,                   com_oracle_graal_api_code_InstalledCode,                      Opt) \
-  do_klass(code_Register_klass,                   com_oracle_graal_api_code_Register,                           Opt) \
-  do_klass(RegisterValue_klass,                   com_oracle_graal_api_code_RegisterValue,                      Opt) \
-  do_klass(StackSlot_klass,                       com_oracle_graal_api_code_StackSlot,                          Opt) \
-  do_klass(VirtualObject_klass,                   com_oracle_graal_api_code_VirtualObject,                      Opt) \
-  do_klass(SpeculationLog_klass,                  com_oracle_graal_api_code_SpeculationLog,                     Opt) \
-  /* graal.api.meta */                                                                                               \
-  do_klass(Constant_klass,                        com_oracle_graal_api_meta_Constant,                           Opt) \
-  do_klass(PrimitiveConstant_klass,               com_oracle_graal_api_meta_PrimitiveConstant,                  Opt) \
-  do_klass(NullConstant_klass,                    com_oracle_graal_api_meta_NullConstant,                       Opt) \
-  do_klass(ExceptionHandler_klass,                com_oracle_graal_api_meta_ExceptionHandler,                   Opt) \
-  do_klass(Kind_klass,                            com_oracle_graal_api_meta_Kind,                               Opt) \
-  do_klass(JavaMethod_klass,                      com_oracle_graal_api_meta_JavaMethod,                         Opt) \
-  do_klass(JavaType_klass,                        com_oracle_graal_api_meta_JavaType,                           Opt) \
-  do_klass(Value_klass,                           com_oracle_graal_api_meta_Value,                              Opt) \
+  do_klass(BitSet_klass,                                java_util_BitSet,                          Opt                 ) \
+  /* Graal classes */                                                                                                    \
+  GRAAL_ONLY(do_klass(CompilerThread_klass,                  com_oracle_graal_compiler_CompilerThread,                     Graal)) \
+  GRAAL_ONLY(do_klass(Node_klass,                            com_oracle_graal_graph_Node,                                  Graal)) \
+  GRAAL_ONLY(do_klass(NodeClass_klass,                       com_oracle_graal_graph_NodeClass,                             Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotCompiledCode_klass,             com_oracle_graal_hotspot_HotSpotCompiledCode,                 Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotCompiledCode_Comment_klass,     com_oracle_graal_hotspot_HotSpotCompiledCode_Comment,         Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotCompiledNmethod_klass,          com_oracle_graal_hotspot_HotSpotCompiledNmethod,              Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotCompiledRuntimeStub_klass,      com_oracle_graal_hotspot_HotSpotCompiledRuntimeStub,          Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotForeignCallLinkage_klass,       com_oracle_graal_hotspot_HotSpotForeignCallLinkage,           Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotReferenceMap_klass,             com_oracle_graal_hotspot_HotSpotReferenceMap,                 Graal)) \
+  GRAAL_ONLY(do_klass(DataSection_klass,                     com_oracle_graal_hotspot_data_DataSection,                    Graal)) \
+  GRAAL_ONLY(do_klass(DataSectionReference_klass,            com_oracle_graal_hotspot_data_DataSectionReference,           Graal)) \
+  GRAAL_ONLY(do_klass(MetaspaceData_klass,                   com_oracle_graal_hotspot_data_MetaspaceData,                  Graal)) \
+  GRAAL_ONLY(do_klass(OopData_klass,                         com_oracle_graal_hotspot_data_OopData,                        Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotInstalledCode_klass,            com_oracle_graal_hotspot_meta_HotSpotInstalledCode,           Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotNmethod_klass,                  com_oracle_graal_hotspot_meta_HotSpotNmethod,                 Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotResolvedJavaMethod_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,      Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotResolvedObjectType_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,      Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotMonitorValue_klass,             com_oracle_graal_hotspot_meta_HotSpotMonitorValue,            Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotObjectConstant_klass,           com_oracle_graal_hotspot_meta_HotSpotObjectConstant,          Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotMetaspaceConstant_klass,        com_oracle_graal_hotspot_meta_HotSpotMetaspaceConstant,       Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotStackFrameReference_klass,      com_oracle_graal_hotspot_HotSpotStackFrameReference,          Graal)) \
+  GRAAL_ONLY(do_klass(CompilationTask_klass,                 com_oracle_graal_hotspot_CompilationTask,                     Graal)) \
+  GRAAL_ONLY(do_klass(Assumptions_klass,                     com_oracle_graal_api_code_Assumptions,                        Graal)) \
+  GRAAL_ONLY(do_klass(Assumptions_ConcreteMethod_klass,      com_oracle_graal_api_code_Assumptions_ConcreteMethod,         Graal)) \
+  GRAAL_ONLY(do_klass(Assumptions_NoFinalizableSubclass_klass, com_oracle_graal_api_code_Assumptions_NoFinalizableSubclass, Graal))\
+  GRAAL_ONLY(do_klass(Assumptions_ConcreteSubtype_klass,     com_oracle_graal_api_code_Assumptions_ConcreteSubtype,        Graal)) \
+  GRAAL_ONLY(do_klass(Assumptions_MethodContents_klass,      com_oracle_graal_api_code_Assumptions_MethodContents,         Graal)) \
+  GRAAL_ONLY(do_klass(Assumptions_CallSiteTargetValue_klass, com_oracle_graal_api_code_Assumptions_CallSiteTargetValue,    Graal)) \
+  GRAAL_ONLY(do_klass(BytecodePosition_klass,                com_oracle_graal_api_code_BytecodePosition,                   Graal)) \
+  GRAAL_ONLY(do_klass(DebugInfo_klass,                       com_oracle_graal_api_code_DebugInfo,                          Graal)) \
+  GRAAL_ONLY(do_klass(RegisterSaveLayout_klass,              com_oracle_graal_api_code_RegisterSaveLayout,                 Graal)) \
+  GRAAL_ONLY(do_klass(BytecodeFrame_klass,                   com_oracle_graal_api_code_BytecodeFrame,                      Graal)) \
+  GRAAL_ONLY(do_klass(CompilationResult_klass,               com_oracle_graal_api_code_CompilationResult,                  Graal)) \
+  GRAAL_ONLY(do_klass(CompilationResult_Call_klass,          com_oracle_graal_api_code_CompilationResult_Call,             Graal)) \
+  GRAAL_ONLY(do_klass(CompilationResult_DataPatch_klass,     com_oracle_graal_api_code_CompilationResult_DataPatch,        Graal)) \
+  GRAAL_ONLY(do_klass(CompilationResult_ExceptionHandler_klass, com_oracle_graal_api_code_CompilationResult_ExceptionHandler, Graal))\
+  GRAAL_ONLY(do_klass(CompilationResult_Mark_klass,          com_oracle_graal_api_code_CompilationResult_Mark,             Graal)) \
+  GRAAL_ONLY(do_klass(CompilationResult_Infopoint_klass,     com_oracle_graal_api_code_CompilationResult_Infopoint,        Graal)) \
+  GRAAL_ONLY(do_klass(CompilationResult_Site_klass,          com_oracle_graal_api_code_CompilationResult_Site,             Graal)) \
+  GRAAL_ONLY(do_klass(ExternalCompilationResult_klass,       com_oracle_graal_gpu_ExternalCompilationResult,               Graal)) \
+  GRAAL_ONLY(do_klass(InfopointReason_klass,                 com_oracle_graal_api_code_InfopointReason,                    Graal)) \
+  GRAAL_ONLY(do_klass(InstalledCode_klass,                   com_oracle_graal_api_code_InstalledCode,                      Graal)) \
+  GRAAL_ONLY(do_klass(code_Register_klass,                   com_oracle_graal_api_code_Register,                           Graal)) \
+  GRAAL_ONLY(do_klass(RegisterValue_klass,                   com_oracle_graal_api_code_RegisterValue,                      Graal)) \
+  GRAAL_ONLY(do_klass(StackSlot_klass,                       com_oracle_graal_api_code_StackSlot,                          Graal)) \
+  GRAAL_ONLY(do_klass(VirtualObject_klass,                   com_oracle_graal_api_code_VirtualObject,                      Graal)) \
+  GRAAL_ONLY(do_klass(SpeculationLog_klass,                  com_oracle_graal_api_code_SpeculationLog,                     Graal)) \
+  GRAAL_ONLY(do_klass(Constant_klass,                        com_oracle_graal_api_meta_Constant,                           Graal)) \
+  GRAAL_ONLY(do_klass(PrimitiveConstant_klass,               com_oracle_graal_api_meta_PrimitiveConstant,                  Graal)) \
+  GRAAL_ONLY(do_klass(NullConstant_klass,                    com_oracle_graal_api_meta_NullConstant,                       Graal)) \
+  GRAAL_ONLY(do_klass(ExceptionHandler_klass,                com_oracle_graal_api_meta_ExceptionHandler,                   Graal)) \
+  GRAAL_ONLY(do_klass(Kind_klass,                            com_oracle_graal_api_meta_Kind,                               Graal)) \
+  GRAAL_ONLY(do_klass(JavaMethod_klass,                      com_oracle_graal_api_meta_JavaMethod,                         Graal)) \
+  GRAAL_ONLY(do_klass(JavaType_klass,                        com_oracle_graal_api_meta_JavaType,                           Graal)) \
+  GRAAL_ONLY(do_klass(Value_klass,                           com_oracle_graal_api_meta_Value,                              Graal)) \
 
   /*end*/
 
@@ -263,6 +259,11 @@ class SystemDictionary : AllStatic {
 
     WKID_LIMIT,
 
+#ifdef GRAAL
+    FIRST_GRAAL_WKID = WK_KLASS_ENUM_NAME(CompilerThread_klass),
+    LAST_GRAAL_WKID  = WK_KLASS_ENUM_NAME(Value_klass),
+#endif
+
     FIRST_WKID = NO_WKID + 1
   };
 
@@ -276,6 +277,9 @@ class SystemDictionary : AllStatic {
     Opt,                        // preload tried; NULL if not present
     Opt_Only_JDK14NewRef,       // preload tried; use only with NewReflection
     Opt_Only_JDK15,             // preload tried; use only with JDK1.5+
+#ifdef GRAAL
+    Graal,                      // preload tried; error if not present, use only with GRAAL
+#endif
     OPTION_LIMIT,
     CEIL_LG_OPTION_LIMIT = 4    // OPTION_LIMIT <= (1<<CEIL_LG_OPTION_LIMIT)
   };
@@ -464,6 +468,9 @@ public:
     // despite the optional loading, if you use this it must be present:
     return check_klass(k);
   }
+#ifdef GRAAL
+  static Klass* check_klass_Graal(Klass* k)      { return k; }
+#endif
 
   static bool initialize_wk_klass(WKID id, int init_opt, TRAPS);
   static void initialize_wk_klasses_until(WKID limit_id, WKID &start_id, TRAPS);
@@ -528,6 +535,12 @@ public:
 
   // Returns default system loader
   static oop java_system_loader();
+
+#ifdef GRAAL
+  // Returns the Graal loader. This will be NULL if !UseGraalClassLoader
+  // in which case it's equivalent to the boot loader
+  static oop graal_loader();
+#endif
 
   // Compute the default system loader
   static void compute_java_system_loader(TRAPS);
@@ -695,6 +708,10 @@ private:
 public:
   static bool is_ext_class_loader(Handle class_loader);
 
+#ifdef GRAAL
+  static void initialize_preloaded_graal_classes(TRAPS);
+#endif
+
 private:
   static Klass* find_shared_class(Symbol* class_name);
 
@@ -757,6 +774,9 @@ private:
   static Klass* _box_klasses[T_VOID+1];
 
   static oop  _java_system_loader;
+#ifdef GRAAL
+  static oop  _graal_loader;
+#endif
 
   static bool _has_loadClassInternal;
   static bool _has_checkPackageAccess;

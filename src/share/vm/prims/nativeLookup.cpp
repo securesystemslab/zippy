@@ -182,7 +182,7 @@ address NativeLookup::lookup_style(methodHandle method, char* pure_name, const c
   // gets found the first time around - otherwise an infinite loop can occure. This is
   // another VM/library dependency
   Handle loader(THREAD, method->method_holder()->class_loader());
-  if (loader.is_null()) {
+  if (loader.is_null() GRAAL_ONLY(|| loader() == SystemDictionary::graal_loader())) {
     entry = lookup_special_native(jni_name);
     if (entry == NULL) {
        entry = (address) os::dll_lookup(os::native_java_library(), jni_name);

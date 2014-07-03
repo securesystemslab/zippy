@@ -459,6 +459,7 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
 
     if installGraalJar:
         _installGraalJarInJdks(mx.distribution('GRAAL'))
+        _installGraalJarInJdks(mx.distribution('GRAAL_LOADER'))
 
     if vmToCheck is not None:
         jvmCfg = _vmCfgInJdk(jdk)
@@ -497,7 +498,8 @@ def _update_graalRuntime_inline_hpp(graalJar):
 
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
-    _update_graalRuntime_inline_hpp(graalJar)
+    if graalJar.endswith('graal.jar'):
+        _update_graalRuntime_inline_hpp(graalJar)
     jdks = _jdksDir()
 
     if exists(jdks):
@@ -649,6 +651,7 @@ def build(args, vm=None):
             assert os.path.isdir(opts2.export_dir), '{} is not a directory'.format(opts2.export_dir)
 
         shutil.copy(mx.distribution('GRAAL').path, opts2.export_dir)
+        shutil.copy(mx.distribution('GRAAL_LOADER').path, opts2.export_dir)
         graalOptions = join(_graal_home, 'graal.options')
         if exists(graalOptions):
             shutil.copy(graalOptions, opts2.export_dir)
@@ -1050,14 +1053,17 @@ def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, ena
             prefixArgs.append('-XX:-DisableExplicitGC')
         with open(testfile) as fp:
             testclasses = [l.rstrip() for l in fp.readlines()]
-            
-        # Remove entries from class path that are in graal.jar
+
+        # Remove entries from class path that are in graal.jar and
+        # run the VM in a mode where application/test classes can
+        # access core Graal classes.
         cp = prefixCp + coreCp + os.pathsep + projectsCp
         if isGraalEnabled(_get_vm()):
             graalDist = mx.distribution('GRAAL')
             graalJarCp = set([d.output_dir() for d in graalDist.sorted_deps()])
             cp = os.pathsep.join([e for e in cp.split(os.pathsep) if e not in graalJarCp])
-        
+            vmArgs = vmArgs + ['-XX:-UseGraalClassLoader']
+
         if len(testclasses) == 1:
             # Execute Junit directly when one test is being run. This simplifies
             # replaying the VM execution in a native debugger (e.g., gdb).
@@ -2185,3 +2191,4 @@ def mx_post_parse_cmd_line(opts):  #
     _vm_prefix = opts.vm_prefix
 
     mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)
+    mx.distribution('GRAAL_LOADER').add_update_listener(_installGraalJarInJdks)

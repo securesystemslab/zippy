@@ -92,6 +92,9 @@ typedef void (*java_call_t)(JavaValue* value, methodHandle* method, JavaCallArgu
 
 class os: AllStatic {
   friend class VMStructs;
+#ifdef GRAAL
+  friend class Arguments; // need access to format_boot_path
+#endif
 
  public:
   enum { page_sizes_max = 9 }; // Size of _page_sizes array (8 plus a sentinel)

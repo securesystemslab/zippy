@@ -3248,6 +3248,15 @@ jint Arguments::finalize_vm_init_args(SysClassPath* scp_p, bool scp_assembly_req
   // This must be done after all -D arguments have been processed.
   scp_p->expand_endorsed();
 
+#ifdef GRAAL
+  if (!UseGraalClassLoader) {
+    // Append graal.jar to boot class path
+    const char* home = Arguments::get_java_home();
+    scp_p->add_suffix(os::format_boot_path("%/lib/graal.jar", home, (int)strlen(home), os::file_separator()[0], os::path_separator()[0]));
+    scp_assembly_required = true;
+  }
+#endif
+
   if (scp_assembly_required || scp_p->get_endorsed() != NULL) {
     // Assemble the bootclasspath elements into the final path.
     Arguments::set_sysclasspath(scp_p->combined_path());

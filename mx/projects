@@ -80,6 +80,11 @@ com.oracle.graal.hotspot.jfr,\
 com.oracle.graal.hotspot.hsail
 distribution@GRAAL@exclude=FINDBUGS
 
+distribution@GRAAL_LOADER@path=graal-loader.jar
+distribution@GRAAL_LOADER@subDir=graal
+distribution@GRAAL_LOADER@sourcesPath=graal-loader.src.zip
+distribution@GRAAL_LOADER@dependencies=com.oracle.graal.hotspot.loader
+
 distribution@TRUFFLE@path=truffle.jar
 distribution@TRUFFLE@subDir=graal
 distribution@TRUFFLE@sourcesPath=truffle-sources.jar
@@ -204,6 +209,14 @@ project@com.oracle.graal.hotspot@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot@annotationProcessors=com.oracle.graal.replacements.verifier,com.oracle.graal.service.processor
 project@com.oracle.graal.hotspot@javaCompliance=1.8
 project@com.oracle.graal.hotspot@workingSets=Graal,HotSpot
+
+# graal.hotspot
+project@com.oracle.graal.hotspot.loader@subDir=graal
+project@com.oracle.graal.hotspot.loader@sourceDirs=src
+project@com.oracle.graal.hotspot.loader@dependencies=
+project@com.oracle.graal.hotspot.loader@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.hotspot.loader@javaCompliance=1.8
+project@com.oracle.graal.hotspot.loader@workingSets=Graal,HotSpot
 
 # graal.hotspot.sourcegen
 project@com.oracle.graal.hotspot.sourcegen@subDir=graal

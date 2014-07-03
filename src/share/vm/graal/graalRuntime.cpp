@@ -653,7 +653,7 @@ JVM_END
 // private static TruffleRuntime Truffle.createRuntime()
 JVM_ENTRY(jobject, JVM_CreateTruffleRuntime(JNIEnv *env, jclass c))
   TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/truffle/hotspot/HotSpotTruffleRuntime", THREAD);
-  KlassHandle klass = GraalRuntime::load_required_class(name);
+  KlassHandle klass = GraalRuntime::resolve_or_fail(name, CHECK_NULL);
 
   TempNewSymbol makeInstance = SymbolTable::new_symbol("makeInstance", THREAD);
   TempNewSymbol sig = SymbolTable::new_symbol("()Lcom/oracle/graal/truffle/hotspot/HotSpotTruffleRuntime;", THREAD);
@@ -710,7 +710,7 @@ jint GraalRuntime::check_arguments(TRAPS) {
     // causes argument parsing to be redone with better error messages.
     CLEAR_PENDING_EXCEPTION;
     TempNewSymbol name = SymbolTable::new_symbol("Lcom/oracle/graal/hotspot/HotSpotOptions;", THREAD);
-    instanceKlassHandle hotSpotOptionsClass = SystemDictionary::resolve_or_fail(name, true, THREAD);
+    instanceKlassHandle hotSpotOptionsClass = resolve_or_fail(name, THREAD);
     GUARANTEE_NO_PENDING_EXCEPTION("Error in check_arguments");
 
     parse_arguments(hotSpotOptionsClass, THREAD);
@@ -909,7 +909,7 @@ void GraalRuntime::set_option_helper(KlassHandle hotSpotOptionsClass, char* name
 
 Handle GraalRuntime::get_OptionValue(const char* declaringClass, const char* fieldName, const char* fieldSig, TRAPS) {
   TempNewSymbol name = SymbolTable::new_symbol(declaringClass, THREAD);
-  Klass* klass = SystemDictionary::resolve_or_fail(name, true, CHECK_NH);
+  Klass* klass = resolve_or_fail(name, CHECK_NH);
 
   // The class has been loaded so the field and signature should already be in the symbol
   // table.  If they're not there, the field doesn't exist.
@@ -932,7 +932,7 @@ Handle GraalRuntime::get_OptionValue(const char* declaringClass, const char* fie
 
 Handle GraalRuntime::create_Service(const char* name, TRAPS) {
   TempNewSymbol kname = SymbolTable::new_symbol(name, THREAD);
-  Klass* k = SystemDictionary::resolve_or_fail(kname, true, CHECK_NH);
+  Klass* k = resolve_or_fail(kname, CHECK_NH);
   instanceKlassHandle klass(THREAD, k);
   klass->initialize(CHECK_NH);
   klass->check_valid_for_instantiation(true, CHECK_NH);
@@ -971,6 +971,22 @@ void GraalRuntime::call_printStackTrace(Handle exception, Thread* thread) {
                           thread);
 }
 
+oop GraalRuntime::compute_graal_class_loader(TRAPS) {
+  assert(UseGraalClassLoader, "must be");
+  TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/loader/Factory", THREAD);
+  KlassHandle klass = SystemDictionary::resolve_or_null(name, THREAD);
+  if (klass.is_null()) {
+    tty->print_cr("Could not load class %s", name->as_C_string());
+    vm_abort(false);
+  }
+
+  TempNewSymbol getClassLoader = SymbolTable::new_symbol("newClassLoader", THREAD);
+  JavaValue result(T_OBJECT);
+  JavaCalls::call_static(&result, klass, getClassLoader, vmSymbols::void_classloader_signature(), THREAD);
+  GUARANTEE_NO_PENDING_EXCEPTION("Couldn't initialize HotSpotGraalRuntime");
+  return (oop) result.get_jobject();
+}
+
 void GraalRuntime::abort_on_pending_exception(Handle exception, const char* message, bool dump_core) {
   Thread* THREAD = Thread::current();
   CLEAR_PENDING_EXCEPTION;
@@ -979,8 +995,16 @@ void GraalRuntime::abort_on_pending_exception(Handle exception, const char* mess
   vm_abort(dump_core);
 }
 
+Klass* GraalRuntime::resolve_or_null(Symbol* name, TRAPS) {
+  return SystemDictionary::resolve_or_null(name, SystemDictionary::graal_loader(), Handle(), CHECK_NULL);
+}
+
+Klass* GraalRuntime::resolve_or_fail(Symbol* name, TRAPS) {
+  return SystemDictionary::resolve_or_fail(name, SystemDictionary::graal_loader(), Handle(), true, CHECK_NULL);
+}
+
 Klass* GraalRuntime::load_required_class(Symbol* name) {
-  Klass* klass = SystemDictionary::resolve_or_null(name, SystemDictionary::java_system_loader(), Handle(), Thread::current());
+  Klass* klass = resolve_or_null(name, Thread::current());
   if (klass == NULL) {
     tty->print_cr("Could not load class %s", name->as_C_string());
     vm_abort(false);
