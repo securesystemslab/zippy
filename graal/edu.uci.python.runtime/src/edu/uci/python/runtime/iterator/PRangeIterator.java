@@ -78,6 +78,12 @@ public final class PRangeIterator implements PIterator, PIntegerIterator {
             this.step = range.getStep();
         }
 
+        public PRangeReverseIterator(int index, int stop, int step) {
+            this.index = index;
+            this.stop = stop;
+            this.step = step;
+        }
+
         @Override
         public Object __next__() throws StopIterationException {
             return __nextInt__();

@@ -26,6 +26,8 @@ package edu.uci.python.test;
 
 import static edu.uci.python.test.PythonTests.*;
 
+import java.nio.file.*;
+
 import org.junit.*;
 
 public class BuiltinFunctionTests {
@@ -300,6 +302,12 @@ public class BuiltinFunctionTests {
                         "    return 'foo is a fool'\n" + //
                         "print(str(Foo()))";
         assertPrints("foo is a fool\n", source);
+    }
+
+    @Test
+    public void sorted() {
+        Path script = Paths.get("sorted-test.py");
+        assertPrints("[1, 2, 3, 4]\n", script);
     }
 
     @Test
