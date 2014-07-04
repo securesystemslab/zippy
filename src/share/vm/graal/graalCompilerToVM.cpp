@@ -997,6 +997,14 @@ C2V_VMENTRY(void, materializeVirtualObjects, (JNIEnv*, jobject, jobject hs_frame
   }
 C2V_END
 
+C2V_VMENTRY(void, writeDebugOutput, (JNIEnv*, jobject, jbyteArray bytes, jint offset, jint length))
+  while (length > 0) {
+    jbyte* start = ((typeArrayOop) JNIHandles::resolve(bytes))->byte_at_addr(offset);
+    tty->write((char*) start, MIN2(length, O_BUFLEN));
+    length -= O_BUFLEN;
+    offset += O_BUFLEN;
+  }
+C2V_END
 
 
 #define CC (char*)  /*cast a literal from (const char*)*/
@@ -1077,6 +1085,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF "[JI)"HS_STACK_FRAME_REF,                         FN_PTR(getNextStackFrame)},
   {CC"materializeVirtualObjects",                    CC"("HS_STACK_FRAME_REF"Z)V",                                             FN_PTR(materializeVirtualObjects)},
   {CC"shouldDebugNonSafepoints",                     CC"()Z",                                                                  FN_PTR(shouldDebugNonSafepoints)},
+  {CC"writeDebugOutput",                             CC"([BII)V",                                                              FN_PTR(writeDebugOutput)},
 };
 
 int CompilerToVM_methods_count() {
