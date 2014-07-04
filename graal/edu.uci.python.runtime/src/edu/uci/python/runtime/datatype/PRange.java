@@ -96,8 +96,12 @@ public final class PRange extends PImmutableSequence {
     }
 
     @Override
-    public PRangeIterator __iter__() {
-        return new PRangeIterator(this);
+    public PIterator __iter__() {
+        if (step > 0) {
+            return new PRangeIterator(this);
+        } else {
+            return new PRangeIterator.PRangeReverseIterator(start, stop, -step);
+        }
     }
 
     @Override
