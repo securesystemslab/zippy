@@ -101,32 +101,35 @@ public class ProfilerResultPrinter {
             calls = PythonNodeProber.getCallWrapperToInstruments();
         }
 
-        /**
-         * 50 is the length of the text by default padding left padding is added, so space is added
-         * to the beginning of the string, minus sign adds padding to the right
-         */
+        if (calls.size() > 0) {
+            printBanner("Call Profiling Results");
+            /**
+             * 50 is the length of the text by default padding left padding is added, so space is
+             * added to the beginning of the string, minus sign adds padding to the right
+             */
 
-        out.format("%-50s", "Function Name");
-        out.format("%-20s", "Number of Calls");
-        out.format("%-9s", "Line");
-        out.format("%-11s", "Column");
-        out.format("%-11s", "Length");
-        out.println();
-        out.println("===============                                    ===============     ====     ======     ======");
-
-        Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = calls.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
-            PythonWrapperNode wrapper = entry.getKey();
-            ProfilerInstrument instrument = entry.getValue();
-            Node child = wrapper.getChild();
-            FunctionRootNode rootNode = (FunctionRootNode) (wrapper.getParent());
-            out.format("%-50s", rootNode.getFunctionName());
-            out.format("%15s", instrument.getCounter());
-            out.format("%9s", child.getSourceSection().getStartLine());
-            out.format("%11s", child.getSourceSection().getStartColumn());
-            out.format("%11s", child.getSourceSection().getCharLength());
+            out.format("%-50s", "Function Name");
+            out.format("%-20s", "Number of Calls");
+            out.format("%-9s", "Line");
+            out.format("%-11s", "Column");
+            out.format("%-11s", "Length");
             out.println();
+            out.println("===============                                    ===============     ====     ======     ======");
+
+            Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = calls.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
+                PythonWrapperNode wrapper = entry.getKey();
+                ProfilerInstrument instrument = entry.getValue();
+                Node child = wrapper.getChild();
+                FunctionRootNode rootNode = (FunctionRootNode) (wrapper.getParent());
+                out.format("%-50s", rootNode.getFunctionName());
+                out.format("%15s", instrument.getCounter());
+                out.format("%9s", child.getSourceSection().getStartLine());
+                out.format("%11s", child.getSourceSection().getStartColumn());
+                out.format("%11s", child.getSourceSection().getCharLength());
+                out.println();
+            }
         }
     }
 
@@ -138,43 +141,46 @@ public class ProfilerResultPrinter {
             ifNodes = PythonNodeProber.getIfWrapperToInstruments();
         }
 
-        Map<PythonWrapperNode, ProfilerInstrument> thens = PythonNodeProber.getThenWrapperToInstruments();
-        Map<PythonWrapperNode, ProfilerInstrument> elses = PythonNodeProber.getElseWrapperToInstruments();
+        if (ifNodes.size() > 0) {
+            printBanner("If Node Profiling Results");
+            Map<PythonWrapperNode, ProfilerInstrument> thens = PythonNodeProber.getThenWrapperToInstruments();
+            Map<PythonWrapperNode, ProfilerInstrument> elses = PythonNodeProber.getElseWrapperToInstruments();
 
-        out.format("%-20s", "If Counter");
-        out.format("%15s", "Then Counter");
-        out.format("%20s", "Else Counter");
-        out.format("%9s", "Line");
-        out.format("%11s", "Column");
-        out.format("%11s", "Length");
-        out.println();
-        out.println("===========            ============        ============     ====     ======     ======");
+            out.format("%-20s", "If Counter");
+            out.format("%15s", "Then Counter");
+            out.format("%20s", "Else Counter");
+            out.format("%9s", "Line");
+            out.format("%11s", "Column");
+            out.format("%11s", "Length");
+            out.println();
+            out.println("===========            ============        ============     ====     ======     ======");
 
-        Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = ifNodes.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
-            PythonWrapperNode ifWrapper = entry.getKey();
-            IfNode ifNode = (IfNode) ifWrapper.getChild();
-            ProfilerInstrument ifInstrument = entry.getValue();
-            PNode thenNode = ifNode.getThen();
-            PNode elseNode = ifNode.getElse();
-            ProfilerInstrument thenInstrument = thens.get(thenNode);
+            Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = ifNodes.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
+                PythonWrapperNode ifWrapper = entry.getKey();
+                IfNode ifNode = (IfNode) ifWrapper.getChild();
+                ProfilerInstrument ifInstrument = entry.getValue();
+                PNode thenNode = ifNode.getThen();
+                PNode elseNode = ifNode.getElse();
+                ProfilerInstrument thenInstrument = thens.get(thenNode);
 
-            if (ifInstrument.getCounter() > 0) {
-                out.format("%11s", ifInstrument.getCounter());
-                out.format("%24s", thenInstrument.getCounter());
+                if (ifInstrument.getCounter() > 0) {
+                    out.format("%11s", ifInstrument.getCounter());
+                    out.format("%24s", thenInstrument.getCounter());
 
-                if (!(ifNode.getElse() instanceof EmptyNode)) {
-                    ProfilerInstrument elseInstrument = elses.get(elseNode);
-                    out.format("%20s", elseInstrument.getCounter());
-                } else {
-                    out.format("%20s", "-");
+                    if (!(ifNode.getElse() instanceof EmptyNode)) {
+                        ProfilerInstrument elseInstrument = elses.get(elseNode);
+                        out.format("%20s", elseInstrument.getCounter());
+                    } else {
+                        out.format("%20s", "-");
+                    }
+
+                    out.format("%9s", ifNode.getSourceSection().getStartLine());
+                    out.format("%11s", ifNode.getSourceSection().getStartColumn());
+                    out.format("%11s", ifNode.getSourceSection().getCharLength());
+                    out.println();
                 }
-
-                out.format("%9s", ifNode.getSourceSection().getStartLine());
-                out.format("%11s", ifNode.getSourceSection().getStartColumn());
-                out.format("%11s", ifNode.getSourceSection().getCharLength());
-                out.println();
             }
         }
     }
@@ -197,14 +203,26 @@ public class ProfilerResultPrinter {
     }
 
     public static void printNodesEmptySourceSections() {
-        for (PNode node : nodesEmptySourceSections) {
-            out.println(node);
+        if (nodesEmptySourceSections.size() > 0) {
+            printBanner("Nodes That Have Empty Source Sections");
+            for (PNode node : nodesEmptySourceSections) {
+                out.println(node);
+            }
         }
     }
 
     public static void printNodesUsingExistingProbes() {
-        for (PNode node : nodesUsingExistingProbes) {
-            out.println(node);
+        if (nodesUsingExistingProbes.size() > 0) {
+            printBanner("Nodes That Reuses an Existing Probe");
+            for (PNode node : nodesUsingExistingProbes) {
+                out.println(node);
+            }
         }
+    }
+
+    public static void printBanner(String caption) {
+        // CheckStyle: stop system..print check
+        System.out.println("============= " + caption + " ============= ");
+        // CheckStyle: resume system..print check
     }
 }

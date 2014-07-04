@@ -617,7 +617,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode target = (PNode) visit(node.getInternalTarget());
         PNode value = (PNode) visit(node.getInternalValue());
         PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), target, value);
-        assignSourceAugAssignNode(node, binaryOp, target, value);
+        assignSourceToAugAssignNode(node, binaryOp, target, value);
         PNode read = factory.duplicate(target, PNode.class);
         PNodeUtil.clearSourceSections(read);
         PNode writeNode = ((ReadNode) read).makeWriteNode(binaryOp);
@@ -1253,16 +1253,16 @@ public class PythonTreeTranslator extends Visitor {
         return node;
     }
 
-    private PNode assignSourceAugAssignNode(AugAssign node, PNode augAssignNode, PNode beforeNode, PNode afterNode) {
+    private PNode assignSourceToAugAssignNode(AugAssign node, PNode augAssignNode, PNode beforeNode, PNode afterNode) {
         String identifier = node.getInternalOp().name();
 
         try {
             if (beforeNode.getSourceSection() == null) {
-                throw new RuntimeException("Node " + augAssignNode.getClass().getSimpleName() + "'s left node " + beforeNode.getClass().getSimpleName() + "does not have a source section");
+                throw new RuntimeException("Node " + augAssignNode.getClass().getSimpleName() + "'s target node " + beforeNode.getClass().getSimpleName() + "does not have a source section");
             }
 
             if (beforeNode.getSourceSection() == null) {
-                throw new RuntimeException("Node " + augAssignNode.getClass().getSimpleName() + "'s right node " + beforeNode.getClass().getSimpleName() + "does not have a source section");
+                throw new RuntimeException("Node " + augAssignNode.getClass().getSimpleName() + "'s value node " + beforeNode.getClass().getSimpleName() + "does not have a source section");
             }
 
             int charStartIndex = beforeNode.getSourceSection().getCharEndIndex();
