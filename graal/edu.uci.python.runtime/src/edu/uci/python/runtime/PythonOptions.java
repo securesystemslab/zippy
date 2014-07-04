@@ -67,9 +67,9 @@ public class PythonOptions {
     // Profiling
     public static boolean ProfileCalls = false;
 
-    public static boolean ProfileIfNodes = false;
-
     public static boolean ProfileNodes = false;
+
+    public static boolean ProfileIfNodes = false;
 
     public static boolean SortProfilerResults = false;
 

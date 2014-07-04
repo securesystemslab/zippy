@@ -84,13 +84,12 @@ public class ZipPyConsole extends InteractiveConsole {
             ProfilerResultPrinter.printCallProfilerResults();
         }
 
-        if (PythonOptions.ProfileIfNodes) {
-            ProfilerResultPrinter.printIfProfilerResults();
+        if (PythonOptions.ProfileNodes) {
+            ProfilerResultPrinter.printNodeProfilerResults();
         }
 
-        if (PythonOptions.ProfileNodes) {
-            printBanner("Node Profiling Results");
-            ProfilerResultPrinter.printNodeProfilerResults();
+        if (PythonOptions.ProfileIfNodes) {
+            ProfilerResultPrinter.printIfProfilerResults();
         }
 
         if (PythonOptions.TraceNodesWithoutSourceSection) {

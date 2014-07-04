@@ -55,44 +55,6 @@ public class ProfilerResultPrinter {
         nodesUsingExistingProbes.add(node);
     }
 
-    public static void printNodeProfilerResults() {
-        Map<PythonWrapperNode, ProfilerInstrument> nodes;
-        if (PythonOptions.SortProfilerResults) {
-            nodes = sortByValue(PythonNodeProber.getWrapperToInstruments());
-        } else {
-            nodes = PythonNodeProber.getWrapperToInstruments();
-        }
-
-        /**
-         * 50 is the length of the text by default padding left padding is added, so space is added
-         * to the beginning of the string, minus sign adds padding to the right
-         */
-
-        out.format("%-50s", "Node");
-        out.format("%-20s", "Counter");
-        out.format("%-9s", "Line");
-        out.format("%-11s", "Column");
-        out.format("%-11s", "Length");
-        out.println();
-        out.println("=============                                     ===============     ====     ======     ======");
-
-        Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = nodes.entrySet().iterator();
-        while (it.hasNext()) {
-            Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
-            PythonWrapperNode wrapper = entry.getKey();
-            ProfilerInstrument instrument = entry.getValue();
-            if (instrument.getCounter() > 0) {
-                Node child = wrapper.getChild();
-                out.format("%-50s", child.getClass().getSimpleName());
-                out.format("%15s", instrument.getCounter());
-                out.format("%9s", child.getSourceSection().getStartLine());
-                out.format("%11s", child.getSourceSection().getStartColumn());
-                out.format("%11s", child.getSourceSection().getCharLength());
-                out.println();
-            }
-        }
-    }
-
     public static void printCallProfilerResults() {
         Map<PythonWrapperNode, ProfilerInstrument> calls;
         if (PythonOptions.SortProfilerResults) {
@@ -102,7 +64,7 @@ public class ProfilerResultPrinter {
         }
 
         if (calls.size() > 0) {
-            printBanner("Call Profiling Results");
+            printBanner("Call Profiling Results", 72);
             /**
              * 50 is the length of the text by default padding left padding is added, so space is
              * added to the beginning of the string, minus sign adds padding to the right
@@ -133,6 +95,47 @@ public class ProfilerResultPrinter {
         }
     }
 
+    public static void printNodeProfilerResults() {
+        Map<PythonWrapperNode, ProfilerInstrument> nodes;
+        if (PythonOptions.SortProfilerResults) {
+            nodes = sortByValue(PythonNodeProber.getWrapperToInstruments());
+        } else {
+            nodes = PythonNodeProber.getWrapperToInstruments();
+        }
+
+        if (nodes.size() > 0) {
+            printBanner("Node Profiling Results", 72);
+            /**
+             * 50 is the length of the text by default padding left padding is added, so space is
+             * added to the beginning of the string, minus sign adds padding to the right
+             */
+
+            out.format("%-50s", "Node");
+            out.format("%-20s", "Counter");
+            out.format("%-9s", "Line");
+            out.format("%-11s", "Column");
+            out.format("%-11s", "Length");
+            out.println();
+            out.println("=============                                     ===============     ====     ======     ======");
+
+            Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = nodes.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
+                PythonWrapperNode wrapper = entry.getKey();
+                ProfilerInstrument instrument = entry.getValue();
+                if (instrument.getCounter() > 0) {
+                    Node child = wrapper.getChild();
+                    out.format("%-50s", child.getClass().getSimpleName());
+                    out.format("%15s", instrument.getCounter());
+                    out.format("%9s", child.getSourceSection().getStartLine());
+                    out.format("%11s", child.getSourceSection().getStartColumn());
+                    out.format("%11s", child.getSourceSection().getCharLength());
+                    out.println();
+                }
+            }
+        }
+    }
+
     public static void printIfProfilerResults() {
         Map<PythonWrapperNode, ProfilerInstrument> ifNodes;
         if (PythonOptions.SortProfilerResults) {
@@ -142,7 +145,7 @@ public class ProfilerResultPrinter {
         }
 
         if (ifNodes.size() > 0) {
-            printBanner("If Node Profiling Results");
+            printBanner("If Node Profiling Results", 60);
             Map<PythonWrapperNode, ProfilerInstrument> thens = PythonNodeProber.getThenWrapperToInstruments();
             Map<PythonWrapperNode, ProfilerInstrument> elses = PythonNodeProber.getElseWrapperToInstruments();
 
@@ -204,7 +207,7 @@ public class ProfilerResultPrinter {
 
     public static void printNodesEmptySourceSections() {
         if (nodesEmptySourceSections.size() > 0) {
-            printBanner("Nodes That Have Empty Source Sections");
+            printBanner("Nodes That Have Empty Source Sections", 10);
             for (PNode node : nodesEmptySourceSections) {
                 out.println(node);
             }
@@ -213,16 +216,26 @@ public class ProfilerResultPrinter {
 
     public static void printNodesUsingExistingProbes() {
         if (nodesUsingExistingProbes.size() > 0) {
-            printBanner("Nodes That Reuses an Existing Probe");
+            printBanner("Nodes That Reuses an Existing Probe", 10);
             for (PNode node : nodesUsingExistingProbes) {
                 out.println(node);
             }
         }
     }
 
-    public static void printBanner(String caption) {
+    public static void printBanner(String caption, int size) {
         // CheckStyle: stop system..print check
-        System.out.println("============= " + caption + " ============= ");
+        for (int i = 0; i < size / 2; i++) {
+            System.out.print("=");
+        }
+
+        System.out.print(" " + caption + " ");
+
+        for (int i = 0; i < size / 2; i++) {
+            System.out.print("=");
+        }
+
+        System.out.println();
         // CheckStyle: resume system..print check
     }
 }
