@@ -27,7 +27,7 @@
 # ----------------------------------------------------------------------------------------------------
 
 import os, stat, errno, sys, shutil, zipfile, tarfile, tempfile, re, time, datetime, platform, subprocess, multiprocessing, StringIO, socket
-from os.path import join, exists, dirname, basename, getmtime
+from os.path import join, exists, dirname, basename
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, REMAINDER
 from outputparser import OutputParser, ValuesMatcher
 import mx
@@ -985,7 +985,6 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
             for c, p in candidates.iteritems():
                 if t in c:
                     found = True
-                    # this code assumes a single test will be handled by GraalJUnitCore
                     classes.append(c + '#' + method)
                     projs.add(p.name)
             if not found:
@@ -1018,18 +1017,11 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
         harness(projectsCp, vmArgs)
 
 def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, enable_timing=False, regex=None, color=False, eager_stacktrace=False, gc_after_test=False):
-    mxdir = dirname(__file__)
-    name = 'JUnitWrapper'
-    javaSource = join(mxdir, name + '.java')
-    javaClass = join(mxdir, name + '.class')
     testfile = os.environ.get('MX_TESTFILE', None)
     if testfile is None:
         (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
         os.close(_)
     coreCp = mx.classpath(['com.oracle.graal.test'])
-
-    if not exists(javaClass) or getmtime(javaClass) < getmtime(javaSource):
-        subprocess.check_call([mx.java().javac, '-cp', coreCp, '-d', mxdir, javaSource])
 
     coreArgs = []
     if verbose:
@@ -1069,7 +1061,7 @@ def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, ena
             # replaying the VM execution in a native debugger (e.g., gdb).
             vm(prefixArgs + vmArgs + ['-cp', cp, 'com.oracle.graal.test.GraalJUnitCore'] + coreArgs + testclasses)
         else:
-            vm(prefixArgs + vmArgs + ['-cp', cp + os.pathsep + mxdir, name] + [testfile] + coreArgs)
+            vm(prefixArgs + vmArgs + ['-cp', cp, 'com.oracle.graal.test.GraalJUnitCore'] + coreArgs + ['@' + testfile])
 
     try:
         _run_tests(args, harness, annotations, testfile, whitelist, regex)
