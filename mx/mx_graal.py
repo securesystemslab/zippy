@@ -1899,7 +1899,7 @@ def jacocoreport(args):
 def sl(args):
     """run an SL program"""
     vmArgs, slArgs = _extract_VM_args(args)
-    vm(vmArgs + ['-cp', mx.classpath("com.oracle.truffle.sl"), "com.oracle.truffle.sl.SLMain"] + slArgs)
+    vm(vmArgs + ['-cp', mx.classpath(["TRUFFLE", "com.oracle.truffle.sl"]), "com.oracle.truffle.sl.SLMain"] + slArgs)
 
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
@@ -2075,7 +2075,7 @@ def findbugs(args):
     cmd = ['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15']
     if sys.stdout.isatty():
         cmd.append('-progress')
-    cmd = cmd + ['-auxclasspath', mx.classpath([p.name for p in nonTestProjects]), '-output', findbugsResults, '-exitcode'] + args + outputDirs
+    cmd = cmd + ['-auxclasspath', mx.classpath(['GRAAL'] + [p.name for p in nonTestProjects]), '-output', findbugsResults, '-exitcode'] + args + outputDirs
     exitcode = mx.run_java(cmd, nonZeroIsFatal=False)
     if exitcode != 0:
         with open(findbugsResults) as fp:

@@ -1203,18 +1203,45 @@ def _as_classpath(deps, resolve):
 
 def classpath(names=None, resolve=True, includeSelf=True, includeBootClasspath=False):
     """
-    Get the class path for a list of given dependencies, resolving each entry in the
+    Get the class path for a list of given dependencies and distributions, resolving each entry in the
     path (e.g. downloading a missing library) if 'resolve' is true.
     """
     if names is None:
-        result = _as_classpath(sorted_deps(includeLibs=True), resolve)
+        deps = sorted_deps(includeLibs=True)
+        dists = list(_dists.values())
     else:
         deps = []
+        dists = []
         if isinstance(names, types.StringTypes):
             names = [names]
         for n in names:
-            dependency(n).all_deps(deps, True, includeSelf)
-        result = _as_classpath(deps, resolve)
+            dep = dependency(n, fatalIfMissing=False)
+            if dep:
+                dep.all_deps(deps, True, includeSelf)
+            else:
+                dist = distribution(n)
+                if not dist:
+                    abort('project, library or distribution named ' + n + ' not found')
+                dists.append(dist)
+
+    if len(dists):
+        distsDeps = set()
+        for d in dists:
+            distsDeps.update(d.sorted_deps())
+
+        # remove deps covered by a dist that will be on the class path
+        deps = [d for d in deps if d not in distsDeps]
+
+    result = _as_classpath(deps, resolve)
+
+    # prepend distributions
+    if len(dists):
+        distsCp = os.pathsep.join(dist.path for dist in dists)
+        if len(result):
+            result = distsCp + os.pathsep + result
+        else:
+            result = distsCp
+
     if includeBootClasspath:
         result = os.pathsep.join([java().bootclasspath(), result])
     return result
