@@ -37,6 +37,10 @@ import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.nodes.subscript.*;
 import edu.uci.python.runtime.*;
 
+/**
+ * @author Gulfem
+ */
+
 public class ProfilerTranslator implements NodeVisitor {
 
     private final PythonNodeProber astProber;

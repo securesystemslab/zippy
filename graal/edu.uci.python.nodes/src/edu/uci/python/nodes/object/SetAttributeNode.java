@@ -84,6 +84,10 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
         return rhs;
     }
 
+    public String getAttributeId() {
+        return attributeId;
+    }
+
     protected final PythonObject executePrimary(VirtualFrame frame) {
         try {
             return primaryNode.executePythonObject(frame);

@@ -76,7 +76,7 @@ public class ProfilerResultPrinter {
             out.format("%-11s", "Column");
             out.format("%-11s", "Length");
             out.println();
-            out.println("===============                                    ===============     ====     ======     ======");
+            out.println("===============                                   ===============     ====     ======     ======");
 
             Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = calls.entrySet().iterator();
             while (it.hasNext()) {

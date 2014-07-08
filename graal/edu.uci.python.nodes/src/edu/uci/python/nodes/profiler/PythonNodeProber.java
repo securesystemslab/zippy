@@ -56,10 +56,6 @@ public class PythonNodeProber implements ASTNodeProber {
 
     public PythonWrapperNode probeAsStatement(PNode node) {
         PythonWrapperNode wrapper;
-        /**
-         * If this node is already wrapped, then do not create another wrapper node, use the
-         * existing wrapper node.
-         */
         if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
             wrapper = (PythonWrapperNode) node.getParent();
         } else {
@@ -108,10 +104,6 @@ public class PythonNodeProber implements ASTNodeProber {
 
     public PythonWrapperNode probeAsIfStatement(PNode node) {
         PythonWrapperNode wrapper;
-        /**
-         * If this node is already wrapped, then do not create another wrapper node, use the
-         * existing wrapper node.
-         */
         if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
             wrapper = (PythonWrapperNode) node.getParent();
         } else {
