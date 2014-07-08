@@ -921,16 +921,20 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> orelse = visitStatements(node.getInternalOrelse());
         PNode bodyPart = factory.createBlock(body);
         PNode orelsePart = factory.createBlock(orelse);
-        return assignSourceFromNode(node, createWhileNode(test, bodyPart, orelsePart, loops.endLoop()));
+        return createWhileNode(node, test, bodyPart, orelsePart, loops.endLoop());
     }
 
-    private StatementNode createWhileNode(PNode test, PNode body, PNode orelse, LoopInfo info) {
+    private StatementNode createWhileNode(While node, PNode test, PNode body, PNode orelse, LoopInfo info) {
+        List<stmt> bodyStmt = node.getInternalBody();
         PNode wrappedBody = body;
+
         if (info.hasContinue()) {
             wrappedBody = factory.createContinueTarget(body);
         }
 
+        assignSourceToBlockNode(wrappedBody, bodyStmt);
         StatementNode whileNode = factory.createWhile(factory.toBooleanCastNode(test), wrappedBody);
+        assignSourceFromNode(node, whileNode);
 
         if (!EmptyNode.isEmpty(orelse)) {
             whileNode = factory.createElse(whileNode, orelse);
@@ -957,16 +961,19 @@ public class PythonTreeTranslator extends Visitor {
         body.addAll(0, targets);
         PNode bodyPart = factory.createBlock(body);
         PNode orelsePart = factory.createBlock(orelse);
-        return assignSourceFromNode(node, createForNode(iteratorWrite, iter, bodyPart, orelsePart, loops.endLoop()));
+        return createForNode(node, iteratorWrite, iter, bodyPart, orelsePart, loops.endLoop());
     }
 
-    private StatementNode createForNode(PNode target, PNode iter, PNode body, PNode orelse, LoopInfo info) {
+    private StatementNode createForNode(For node, PNode target, PNode iter, PNode body, PNode orelse, LoopInfo info) {
+        List<stmt> bodyStmt = node.getInternalBody();
         PNode wrappedBody = body;
         if (info.hasContinue()) {
             wrappedBody = factory.createContinueTarget(body);
         }
 
+        assignSourceToBlockNode(wrappedBody, bodyStmt);
         StatementNode forNode = createForInScope(target, iter, wrappedBody);
+        assignSourceFromNode(node, forNode);
 
         if (!EmptyNode.isEmpty(orelse)) {
             forNode = factory.createElse(forNode, orelse);

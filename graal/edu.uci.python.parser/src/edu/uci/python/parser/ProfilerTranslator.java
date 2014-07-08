@@ -59,12 +59,16 @@ public class ProfilerTranslator implements NodeVisitor {
             profileCalls(node);
         }
 
+        if (PythonOptions.ProfileNodes) {
+            profileNodes(node);
+        }
+
         if (PythonOptions.ProfileIfNodes) {
             profileIfNodes(node);
         }
 
-        if (PythonOptions.ProfileNodes) {
-            profileNodes(node);
+        if (PythonOptions.ProfileLoops) {
+            profileLoops(node);
         }
 
         return true;
@@ -74,7 +78,15 @@ public class ProfilerTranslator implements NodeVisitor {
         if (node instanceof FunctionRootNode) {
             FunctionRootNode rootNode = (FunctionRootNode) node;
             PNode body = rootNode.getBody();
-            createCallNodeWrapper(body);
+            createCallWrapper(body);
+        }
+    }
+
+    private void profileLoops(Node node) {
+        if (node instanceof LoopNode) {
+            LoopNode loopNodeNode = (LoopNode) node;
+            PNode loopBodyNode = loopNodeNode.getBody();
+            createLoopBodyWrapper(loopBodyNode);
         }
     }
 
@@ -92,14 +104,13 @@ public class ProfilerTranslator implements NodeVisitor {
             if (hasSourceSection(ifNode)) {
                 createIfWrapper(ifNode);
                 PNode thenNode = ifNode.getThen();
-                createThenNodeWrapper(thenNode);
+                createThenWrapper(thenNode);
                 PNode elseNode = ifNode.getElse();
                 /**
                  * Only create a wrapper node if an else part exists.
                  */
                 if (!(elseNode instanceof EmptyNode)) {
-                    createElseNodeWrapper(elseNode);
-
+                    createElseWrapper(elseNode);
                 }
 
             }
@@ -135,11 +146,11 @@ public class ProfilerTranslator implements NodeVisitor {
             } else if (node instanceof SubscriptStoreSliceNode) {
                 createWrapper((PNode) node);
             } else if (node instanceof WriteLocalVariableNode) {
-                createWriteNodeWrapper((PNode) node);
+                createWrapper((PNode) node);
             } else if (node instanceof ReadLocalVariableNode) {
                 createWrapper((PNode) node);
             } else if (node instanceof SetAttributeNode) {
-                createWriteNodeWrapper((PNode) node);
+                createWrapper((PNode) node);
             } else if (node instanceof GetAttributeNode) {
                 createWrapper((PNode) node);
             } else if (node instanceof BreakNode) {
@@ -160,6 +171,26 @@ public class ProfilerTranslator implements NodeVisitor {
         return null;
     }
 
+    private PythonWrapperNode createCallWrapper(PNode node) {
+        if (checkSourceSection(node)) {
+            PythonWrapperNode wrapperNode = astProber.probeAsCall(node);
+            replaceNodeWithWrapper(node, wrapperNode);
+            return wrapperNode;
+        }
+
+        return null;
+    }
+
+    private PythonWrapperNode createLoopBodyWrapper(PNode node) {
+        if (checkSourceSection(node)) {
+            PythonWrapperNode wrapperNode = astProber.probeAsLoopBody(node);
+            replaceNodeWithWrapper(node, wrapperNode);
+            return wrapperNode;
+        }
+
+        return null;
+    }
+
     private PythonWrapperNode createIfWrapper(PNode node) {
         if (checkSourceSection(node)) {
             PythonWrapperNode wrapperNode = astProber.probeAsIfStatement(node);
@@ -170,28 +201,7 @@ public class ProfilerTranslator implements NodeVisitor {
         return null;
     }
 
-    private PythonWriteNodeWrapperNode createWriteNodeWrapper(PNode node) {
-        if (checkSourceSection(node)) {
-            PythonWriteNodeWrapperNode wrapperNode = astProber.probeAsWriteNode(node);
-            node.replace(wrapperNode);
-            wrapperNode.adoptChildren();
-            return wrapperNode;
-        }
-
-        return null;
-    }
-
-    private PythonWrapperNode createCallNodeWrapper(PNode node) {
-        if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = astProber.probeAsCall(node);
-            replaceNodeWithWrapper(node, wrapperNode);
-            return wrapperNode;
-        }
-
-        return null;
-    }
-
-    private PythonWrapperNode createThenNodeWrapper(PNode node) {
+    private PythonWrapperNode createThenWrapper(PNode node) {
         if (checkSourceSection(node)) {
             PythonWrapperNode wrapperNode = astProber.probeAsThen(node);
             replaceNodeWithWrapper(node, wrapperNode);
@@ -201,7 +211,7 @@ public class ProfilerTranslator implements NodeVisitor {
         return null;
     }
 
-    private PythonWrapperNode createElseNodeWrapper(PNode node) {
+    private PythonWrapperNode createElseWrapper(PNode node) {
         if (checkSourceSection(node)) {
             PythonWrapperNode wrapperNode = astProber.probeAsElse(node);
             replaceNodeWithWrapper(node, wrapperNode);

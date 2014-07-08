@@ -41,6 +41,7 @@ public class PythonNodeProber implements ASTNodeProber {
     private final PythonContext context;
     private static Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments = new LinkedHashMap<>();
     private static Map<PythonWrapperNode, ProfilerInstrument> callWrapperToInstruments = new LinkedHashMap<>();
+    private static Map<PythonWrapperNode, ProfilerInstrument> loopBodyWrapperToInstruments = new LinkedHashMap<>();
     private static Map<PythonWrapperNode, ProfilerInstrument> ifWrapperToInstruments = new LinkedHashMap<>();
     private static Map<PythonWrapperNode, ProfilerInstrument> thenWrapperToInstruments = new LinkedHashMap<>();
     private static Map<PythonWrapperNode, ProfilerInstrument> elseWrapperToInstruments = new LinkedHashMap<>();
@@ -73,26 +74,10 @@ public class PythonNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
-    public PythonWriteNodeWrapperNode probeAsWriteNode(PNode node) {
-        PythonWriteNodeWrapperNode wrapper;
-        if (node.getParent() != null && node.getParent() instanceof PythonWriteNodeWrapperNode) {
-            wrapper = (PythonWriteNodeWrapperNode) node;
-        } else {
-            wrapper = new PythonWriteNodeWrapperNode(context, node);
-            wrapper.getProbe().tagAs(StandardTag.STATEMENT);
-            wrapper.assignSourceSection(node.getSourceSection());
-        }
-
-        ProfilerInstrument profilerInstrument = new ProfilerInstrument();
-        wrapper.getProbe().addInstrument(profilerInstrument);
-        wrapperToInstruments.put(wrapper, profilerInstrument);
-        return wrapper;
-    }
-
     public PythonWrapperNode probeAsCall(PNode node) {
         PythonWrapperNode wrapper;
         if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
-            wrapper = (PythonWrapperNode) node;
+            wrapper = (PythonWrapperNode) node.getParent();
         } else {
             wrapper = new PythonWrapperNode(context, node);
             wrapper.getProbe().tagAs(StandardTag.CALL);
@@ -102,6 +87,22 @@ public class PythonNodeProber implements ASTNodeProber {
         ProfilerInstrument profilerInstrument = new ProfilerInstrument();
         wrapper.getProbe().addInstrument(profilerInstrument);
         callWrapperToInstruments.put(wrapper, profilerInstrument);
+        return wrapper;
+    }
+
+    public PythonWrapperNode probeAsLoopBody(PNode node) {
+        PythonWrapperNode wrapper;
+        if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
+            wrapper = (PythonWrapperNode) node.getParent();
+        } else {
+            wrapper = new PythonWrapperNode(context, node);
+            wrapper.getProbe().tagAs(StandardTag.STATEMENT);
+            wrapper.assignSourceSection(node.getSourceSection());
+        }
+
+        ProfilerInstrument profilerInstrument = new ProfilerInstrument();
+        wrapper.getProbe().addInstrument(profilerInstrument);
+        loopBodyWrapperToInstruments.put(wrapper, profilerInstrument);
         return wrapper;
     }
 
@@ -128,7 +129,7 @@ public class PythonNodeProber implements ASTNodeProber {
     public PythonWrapperNode probeAsThen(PNode node) {
         PythonWrapperNode wrapper;
         if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
-            wrapper = (PythonWrapperNode) node;
+            wrapper = (PythonWrapperNode) node.getParent();
         } else {
             wrapper = new PythonWrapperNode(context, node);
             wrapper.getProbe().tagAs(StandardTag.STATEMENT);
@@ -144,7 +145,7 @@ public class PythonNodeProber implements ASTNodeProber {
     public PythonWrapperNode probeAsElse(PNode node) {
         PythonWrapperNode wrapper;
         if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
-            wrapper = (PythonWrapperNode) node;
+            wrapper = (PythonWrapperNode) node.getParent();
         } else {
             wrapper = new PythonWrapperNode(context, node);
             wrapper.getProbe().tagAs(StandardTag.STATEMENT);
@@ -163,6 +164,10 @@ public class PythonNodeProber implements ASTNodeProber {
 
     public static Map<PythonWrapperNode, ProfilerInstrument> getCallWrapperToInstruments() {
         return callWrapperToInstruments;
+    }
+
+    public static Map<PythonWrapperNode, ProfilerInstrument> getLoopBodyWrapperToInstruments() {
+        return loopBodyWrapperToInstruments;
     }
 
     public static Map<PythonWrapperNode, ProfilerInstrument> getIfWrapperToInstruments() {

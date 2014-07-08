@@ -71,6 +71,8 @@ public class PythonOptions {
 
     public static boolean ProfileIfNodes = false;
 
+    public static boolean ProfileLoops = false;
+
     public static boolean SortProfilerResults = false;
 
     public static boolean TraceNodesWithoutSourceSection = false;

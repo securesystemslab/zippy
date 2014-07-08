@@ -83,14 +83,57 @@ public class ProfilerResultPrinter {
                 Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
                 PythonWrapperNode wrapper = entry.getKey();
                 ProfilerInstrument instrument = entry.getValue();
-                Node child = wrapper.getChild();
+                PNode child = wrapper.getChild();
                 FunctionRootNode rootNode = (FunctionRootNode) (wrapper.getParent());
-                out.format("%-50s", rootNode.getFunctionName());
-                out.format("%15s", instrument.getCounter());
-                out.format("%9s", child.getSourceSection().getStartLine());
-                out.format("%11s", child.getSourceSection().getStartColumn());
-                out.format("%11s", child.getSourceSection().getCharLength());
-                out.println();
+                if (instrument.getCounter() > 0) {
+                    out.format("%-50s", rootNode.getFunctionName());
+                    out.format("%15s", instrument.getCounter());
+                    out.format("%9s", child.getSourceSection().getStartLine());
+                    out.format("%11s", child.getSourceSection().getStartColumn());
+                    out.format("%11s", child.getSourceSection().getCharLength());
+                    out.println();
+                }
+            }
+        }
+    }
+
+    public static void printLoopProfilerResults() {
+        Map<PythonWrapperNode, ProfilerInstrument> loopBodies;
+        if (PythonOptions.SortProfilerResults) {
+            loopBodies = sortByValue(PythonNodeProber.getLoopBodyWrapperToInstruments());
+        } else {
+            loopBodies = PythonNodeProber.getLoopBodyWrapperToInstruments();
+        }
+
+        if (loopBodies.size() > 0) {
+            printBanner("Loop Profiling Results", 72);
+            /**
+             * 50 is the length of the text by default padding left padding is added, so space is
+             * added to the beginning of the string, minus sign adds padding to the right
+             */
+
+            out.format("%-50s", "Node");
+            out.format("%-20s", "Counter");
+            out.format("%-9s", "Line");
+            out.format("%-11s", "Column");
+            out.format("%-11s", "Length");
+            out.println();
+            out.println("=============                                     ===============     ====     ======     ======");
+
+            Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = loopBodies.entrySet().iterator();
+            while (it.hasNext()) {
+                Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
+                PythonWrapperNode wrapper = entry.getKey();
+                Node loopNode = wrapper.getParent();
+                ProfilerInstrument instrument = entry.getValue();
+                if (instrument.getCounter() > 0) {
+                    out.format("%-50s", loopNode.getClass().getSimpleName());
+                    out.format("%15s", instrument.getCounter());
+                    out.format("%9s", loopNode.getSourceSection().getStartLine());
+                    out.format("%11s", loopNode.getSourceSection().getStartColumn());
+                    out.format("%11s", loopNode.getSourceSection().getCharLength());
+                    out.println();
+                }
             }
         }
     }
@@ -124,7 +167,7 @@ public class ProfilerResultPrinter {
                 PythonWrapperNode wrapper = entry.getKey();
                 ProfilerInstrument instrument = entry.getValue();
                 if (instrument.getCounter() > 0) {
-                    Node child = wrapper.getChild();
+                    PNode child = wrapper.getChild();
                     out.format("%-50s", child.getClass().getSimpleName());
                     out.format("%15s", instrument.getCounter());
                     out.format("%9s", child.getSourceSection().getStartLine());
@@ -209,7 +252,7 @@ public class ProfilerResultPrinter {
         if (nodesEmptySourceSections.size() > 0) {
             printBanner("Nodes That Have Empty Source Sections", 10);
             for (PNode node : nodesEmptySourceSections) {
-                out.println(node);
+                out.println(node.getClass().getSimpleName() + " in " + node.getRootNode());
             }
         }
     }
@@ -218,7 +261,7 @@ public class ProfilerResultPrinter {
         if (nodesUsingExistingProbes.size() > 0) {
             printBanner("Nodes That Reuses an Existing Probe", 10);
             for (PNode node : nodesUsingExistingProbes) {
-                out.println(node);
+                out.println(node.getClass().getSimpleName() + " in " + node.getRootNode());
             }
         }
     }
