@@ -3679,7 +3679,9 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
   // anymore. We call vm_exit_during_initialization directly instead.
   SystemDictionary::compute_java_system_loader(THREAD);
 #ifdef GRAAL
-  SystemDictionary::initialize_preloaded_graal_classes(THREAD);
+  if (!HAS_PENDING_EXCEPTION) {
+    SystemDictionary::initialize_preloaded_graal_classes(THREAD);
+  }
 #endif
   if (HAS_PENDING_EXCEPTION) {
     vm_exit_during_initialization(Handle(THREAD, PENDING_EXCEPTION));
