@@ -133,8 +133,7 @@ void GraalCompiler::compile_method(methodHandle method, int entry_bci, CompileTa
   args.push_int(entry_bci);
   args.push_long((jlong) (address) task);
   args.push_int(task->compile_id());
-  JavaCalls::call_static(&result, SystemDictionary::CompilationTask_klass(), vmSymbols::compileMetaspaceMethod_name(), vmSymbols::compileMetaspaceMethod_signature(), &args, THREAD);
-  GUARANTEE_NO_PENDING_EXCEPTION("Error while calling compile_method");
+  JavaCalls::call_static(&result, SystemDictionary::CompilationTask_klass(), vmSymbols::compileMetaspaceMethod_name(), vmSymbols::compileMetaspaceMethod_signature(), &args, CHECK_ABORT);
 
   _methodsCompiled++;
 }
@@ -159,13 +158,12 @@ void GraalCompiler::compile_the_world() {
   CompileTheWorld = false;
 
   JavaThread* THREAD = JavaThread::current();
-  TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/HotSpotGraalRuntime", THREAD);
+  TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/HotSpotGraalRuntime", CHECK_ABORT);
   KlassHandle klass = GraalRuntime::load_required_class(name);
-  TempNewSymbol compileTheWorld = SymbolTable::new_symbol("compileTheWorld", THREAD);
+  TempNewSymbol compileTheWorld = SymbolTable::new_symbol("compileTheWorld", CHECK_ABORT);
   JavaValue result(T_VOID);
   JavaCallArguments args;
   args.push_oop(GraalRuntime::get_HotSpotGraalRuntime());
-  JavaCalls::call_special(&result, klass, compileTheWorld, vmSymbols::void_method_signature(), &args, THREAD);
-  GUARANTEE_NO_PENDING_EXCEPTION("Error while calling compile_the_world");
+  JavaCalls::call_special(&result, klass, compileTheWorld, vmSymbols::void_method_signature(), &args, CHECK_ABORT);
 }
 #endif

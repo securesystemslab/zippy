@@ -139,11 +139,23 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
    */
   static void call_printStackTrace(Handle exception, Thread* thread);
 
-#define GUARANTEE_NO_PENDING_EXCEPTION(error_message) do { \
-    if (HAS_PENDING_EXCEPTION) { \
-      GraalRuntime::abort_on_pending_exception(PENDING_EXCEPTION, error_message); \
-    } \
-  } while (0);
+#define CHECK_ABORT THREAD); \
+  if (HAS_PENDING_EXCEPTION) { \
+    char buf[256]; \
+    jio_snprintf(buf, 256, "Uncaught exception at %s:%d", __FILE__, __LINE__); \
+    GraalRuntime::abort_on_pending_exception(PENDING_EXCEPTION, buf); \
+    return; \
+  } \
+  (void)(0
+
+#define CHECK_ABORT_(result) THREAD); \
+  if (HAS_PENDING_EXCEPTION) { \
+    char buf[256]; \
+    jio_snprintf(buf, 256, "Uncaught exception at %s:%d", __FILE__, __LINE__); \
+    GraalRuntime::abort_on_pending_exception(PENDING_EXCEPTION, buf); \
+    return result; \
+  } \
+  (void)(0
 
   /**
    * Same as SystemDictionary::resolve_or_null but uses the Graal loader.
