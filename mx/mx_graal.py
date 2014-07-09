@@ -1281,6 +1281,12 @@ def _basic_gate_body(args, tasks):
         dacapo(['-Xbatch', 'pmd'])
         tasks.append(t.stop())
 
+    # ensure -Xcomp still works
+    with VM('graal', 'product'):
+        t = Task('XCompMode:product')
+        vm(['-Xcomp', '-version'])
+        tasks.append(t.stop())
+
     if args.jacocout is not None:
         jacocoreport([args.jacocout])
 
