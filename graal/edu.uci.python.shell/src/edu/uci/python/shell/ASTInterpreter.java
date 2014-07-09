@@ -36,10 +36,11 @@ public class ASTInterpreter {
     public static void interpret(PythonParseResult result) {
         ModuleNode root = (ModuleNode) result.getModuleRoot();
         RootCallTarget module = Truffle.getRuntime().createCallTarget(root);
-        // Added here because createCallTarget adopts all children, i.e. adds all parent
-        // relationships. In order to be able create wrapper nodes, and replace nodes with wrapper
-        // nodes, we need parent relationship
-
+        /**
+         * Added here because createCallTarget adopts all children, i.e. adds all parent
+         * relationships. In order to be able create wrapper nodes, and replace nodes with wrapper
+         * nodes, we need parent relationship
+         */
         if (PythonOptions.ProfileCalls || PythonOptions.ProfileLoops || PythonOptions.ProfileIfNodes || PythonOptions.ProfileNodes) {
             ProfilerTranslator pt = new ProfilerTranslator(result.getContext());
             pt.translate(result, root);

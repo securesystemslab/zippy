@@ -63,16 +63,16 @@ public class ProfilerTranslator implements NodeVisitor {
             profileCalls(node);
         }
 
-        if (PythonOptions.ProfileNodes) {
-            profileNodes(node);
+        if (PythonOptions.ProfileLoops) {
+            profileLoops(node);
         }
 
         if (PythonOptions.ProfileIfNodes) {
             profileIfNodes(node);
         }
 
-        if (PythonOptions.ProfileLoops) {
-            profileLoops(node);
+        if (PythonOptions.ProfileNodes) {
+            profileNodes(node);
         }
 
         return true;
@@ -97,14 +97,6 @@ public class ProfilerTranslator implements NodeVisitor {
     private void profileIfNodes(Node node) {
         if (node instanceof IfNode) {
             IfNode ifNode = (IfNode) node;
-            /**
-             * 1) If node has a condition node which is a castToBooleanNode. <br>
-             * CastToBooleanNode has a child which is the actual condition. So be careful while
-             * profiling if nodes. Do not profile if nodes and condition nodes together, because
-             * prober increments counter twice for the same node. <br>
-             * 2) If nodes in a comprehension does not yet have a source section, so such if nodes
-             * are not profiled.
-             */
             if (hasSourceSection(ifNode)) {
                 createIfWrapper(ifNode);
                 PNode thenNode = ifNode.getThen();
@@ -165,16 +157,6 @@ public class ProfilerTranslator implements NodeVisitor {
         }
     }
 
-    private PythonWrapperNode createWrapper(PNode node) {
-        if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = astProber.probeAsStatement(node);
-            replaceNodeWithWrapper(node, wrapperNode);
-            return wrapperNode;
-        }
-
-        return null;
-    }
-
     private PythonWrapperNode createCallWrapper(PNode node) {
         if (checkSourceSection(node)) {
             PythonWrapperNode wrapperNode = astProber.probeAsCall(node);
@@ -218,6 +200,16 @@ public class ProfilerTranslator implements NodeVisitor {
     private PythonWrapperNode createElseWrapper(PNode node) {
         if (checkSourceSection(node)) {
             PythonWrapperNode wrapperNode = astProber.probeAsElse(node);
+            replaceNodeWithWrapper(node, wrapperNode);
+            return wrapperNode;
+        }
+
+        return null;
+    }
+
+    private PythonWrapperNode createWrapper(PNode node) {
+        if (checkSourceSection(node)) {
+            PythonWrapperNode wrapperNode = astProber.probeAsStatement(node);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
