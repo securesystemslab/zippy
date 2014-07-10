@@ -3745,18 +3745,7 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
 #endif
 
   // initialize compiler(s)
-#if defined(COMPILERGRAAL)
-  if (Arguments::mode() != Arguments::_comp) {
-    // Only initialize compilation if not -Xcomp. Deadlock can
-    // occur during the class initialization below as follows:
-    // 1. This thread acquires the initialization lock for a class
-    //    and then blocks while waiting for some method to be compiled.
-    // 2. Graal compilation thread(s) try to access the locked class
-    //    and will block waiting for the initialization lock. This
-    //    prevents the requested compilation in 1 from completing.
-    CompileBroker::compilation_init();
-  }
-#elif defined(COMPILER1) || defined(COMPILER2) || defined(SHARK) || defined(COMPILERGRAAL)
+#if defined(COMPILER1) || defined(COMPILER2) || defined(SHARK) || defined(COMPILERGRAAL)
   CompileBroker::compilation_init();
 #endif
 
@@ -3769,13 +3758,6 @@ jint Threads::create_vm(JavaVMInitArgs* args, bool* canTryAgain) {
     initialize_class(vmSymbols::java_lang_invoke_MemberName(), CHECK_0);
     initialize_class(vmSymbols::java_lang_invoke_MethodHandleNatives(), CHECK_0);
   }
-
-#if defined(COMPILERGRAAL)
-  if (Arguments::mode() == Arguments::_comp) {
-    // Do deferred compilation initialization (see above) now.
-    CompileBroker::compilation_init();
-  }
-#endif
 
 #if INCLUDE_MANAGEMENT
   Management::initialize(THREAD);
