@@ -135,14 +135,6 @@ project@com.oracle.graal.api.meta.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.api.meta.test@javaCompliance=1.8
 project@com.oracle.graal.api.meta.test@workingSets=API,Graal,Test
 
-# graal.api.meta.jdk8.test
-project@com.oracle.graal.api.meta.jdk8.test@subDir=graal
-project@com.oracle.graal.api.meta.jdk8.test@sourceDirs=src
-project@com.oracle.graal.api.meta.jdk8.test@dependencies=com.oracle.graal.api.meta.test
-project@com.oracle.graal.api.meta.jdk8.test@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.api.meta.jdk8.test@javaCompliance=1.8
-project@com.oracle.graal.api.meta.jdk8.test@workingSets=API,Graal,Test
-
 # graal.api.code
 project@com.oracle.graal.api.code@subDir=graal
 project@com.oracle.graal.api.code@sourceDirs=src
