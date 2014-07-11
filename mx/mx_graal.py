@@ -2055,7 +2055,7 @@ def findbugs(args):
             tmp = tempfile.mkdtemp(prefix='findbugs-download-tmp', dir=_graal_home)
             try:
                 findbugsDist = join(tmp, 'findbugs.zip')
-                mx.download(findbugsDist, ['http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0-dev-20131204-e3cbbd5.zip'])
+                mx.download(findbugsDist, ['http://lafo.ssw.uni-linz.ac.at/graal-external-deps/findbugs-3.0.0.zip', 'http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0.zip'])
                 with zipfile.ZipFile(findbugsDist) as zf:
                     candidates = [e for e in zf.namelist() if e.endswith('/lib/findbugs.jar')]
                     assert len(candidates) == 1, candidates
