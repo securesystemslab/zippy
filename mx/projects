@@ -23,9 +23,9 @@ library@HAMCREST@sourceSha1=1dc37250fbc78e23a65a67fbbaf71d2e9cbc3c0b
 library@CHECKSTYLE@path=lib/checkstyle-5.5-all.jar
 library@CHECKSTYLE@urls=jar:http://sourceforge.net/projects/checkstyle/files/checkstyle/5.5/checkstyle-5.5-bin.zip/download!/checkstyle-5.5/checkstyle-5.5-all.jar
 
-library@FINDBUGS@path=lib/findbugs-3.0.0-rc1.jar
-library@FINDBUGS@urls=jar:http://lafo.ssw.uni-linz.ac.at/graal-external-deps/findbugs-3.0.0-rc1.zip!/findbugs-3.0.0-rc1/lib/findbugs.jar,jar:http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0-rc1.zip/download!/findbugs-3.0.0-rc1/lib/findbugs.jar
-library@FINDBUGS@sha1=3a0a592608b41b57a77721b933b7bb78fcf64015
+library@FINDBUGS@path=lib/findbugs-3.0.0.jar
+library@FINDBUGS@urls=jar:http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0.zip/download!/findbugs-3.0.0/lib/findbugs.jar
+library@FINDBUGS@sha1=e9a938f0cb34e2ab5853f9ecb1989f6f590ee385
 
 library@DACAPO@path=lib/dacapo-9.12-bach.jar
 library@DACAPO@urls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/dacapo-9.12-bach.jar,http://softlayer.dl.sourceforge.net/project/dacapobench/9.12-bach/dacapo-9.12-bach.jar
