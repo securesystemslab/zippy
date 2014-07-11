@@ -24,7 +24,7 @@ library@CHECKSTYLE@path=lib/checkstyle-5.5-all.jar
 library@CHECKSTYLE@urls=jar:http://sourceforge.net/projects/checkstyle/files/checkstyle/5.5/checkstyle-5.5-bin.zip/download!/checkstyle-5.5/checkstyle-5.5-all.jar
 
 library@FINDBUGS@path=lib/findbugs-3.0.0.jar
-library@FINDBUGS@urls=jar:http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0.zip/download!/findbugs-3.0.0/lib/findbugs.jar
+library@FINDBUGS@urls=jar:http://lafo.ssw.uni-linz.ac.at/graal-external-deps/findbugs-3.0.0.zip!/findbugs-3.0.0/lib/findbugs.jar,jar:http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0.zip/download!/findbugs-3.0.0/lib/findbugs.jar
 library@FINDBUGS@sha1=e9a938f0cb34e2ab5853f9ecb1989f6f590ee385
 
 library@DACAPO@path=lib/dacapo-9.12-bach.jar
