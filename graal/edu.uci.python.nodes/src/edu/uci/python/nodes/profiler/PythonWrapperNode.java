@@ -92,9 +92,4 @@ public class PythonWrapperNode extends PNode implements Wrapper {
         return probe.getPhylumTags();
     }
 
-    @SlowPath
-    public void tagAs(PhylumTag tag) {
-        probe.tagAs(tag);
-    }
-
 }
