@@ -267,8 +267,8 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
   } else if (value->is_a(Constant::klass())){
     record_metadata_in_constant(value, oop_recorder);
     if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE) {
-      jlong prim = PrimitiveConstant::primitive(value);
-      return new ConstantIntValue(*(jint*)&prim);
+      jint prim = (jint)PrimitiveConstant::primitive(value);
+      return new ConstantIntValue(prim);
     } else if (type == T_LONG || type == T_DOUBLE) {
       jlong prim = PrimitiveConstant::primitive(value);
       second = new ConstantIntValue(0);
