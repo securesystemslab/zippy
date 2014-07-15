@@ -246,6 +246,10 @@ public final class BciBlockMapping {
         public double probability() {
             return 1D;
         }
+
+        public BciBlock getPostdominator() {
+            return null;
+        }
     }
 
     public static class ExceptionDispatchBlock extends BciBlock {
