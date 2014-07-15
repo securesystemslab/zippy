@@ -1736,9 +1736,18 @@ class JavaConfig:
                 print e.output
                 abort(e.returncode)
 
-        output = output.split()
-        assert output[1] == 'version'
-        self.version = VersionSpec(output[2].strip('"'))
+        def _checkOutput(out):
+            return 'java version' in out
+
+        # hotspot can print a warning, e.g. if there's a .hotspot_compiler file in the cwd
+        output = output.split('\n')
+        version = None
+        for o in output:
+            if _checkOutput(o):
+                assert version is None
+                version = o
+
+        self.version = VersionSpec(version.split()[2].strip('"'))
         self.javaCompliance = JavaCompliance(self.version.versionString)
 
         if self.debug_port is not None:
@@ -1751,8 +1760,8 @@ class JavaConfig:
             os.makedirs(outDir)
         javaSource = join(myDir, 'ClasspathDump.java')
         if not exists(join(outDir, 'ClasspathDump.class')):
-            subprocess.check_call([self.javac, '-d', outDir, javaSource])
-        self._bootclasspath, self._extdirs, self._endorseddirs = [x if x != 'null' else None for x in subprocess.check_output([self.java, '-cp', outDir, 'ClasspathDump']).split('|')]
+            subprocess.check_call([self.javac, '-d', outDir, javaSource], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        self._bootclasspath, self._extdirs, self._endorseddirs = [x if x != 'null' else None for x in subprocess.check_output([self.java, '-cp', outDir, 'ClasspathDump'], stderr=subprocess.PIPE).split('|')]
         if not self._bootclasspath or not self._extdirs or not self._endorseddirs:
             warn("Could not find all classpaths: boot='" + str(self._bootclasspath) + "' extdirs='" + str(self._extdirs) + "' endorseddirs='" + str(self._endorseddirs) + "'")
         self._bootclasspath = _filter_non_existant_paths(self._bootclasspath)
