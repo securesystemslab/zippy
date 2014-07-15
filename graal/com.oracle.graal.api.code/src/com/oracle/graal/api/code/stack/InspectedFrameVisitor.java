@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,26 +20,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.sl.builtins;
-
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.frame.FrameInstance.FrameAccess;
-import com.oracle.truffle.api.nodes.*;
+package com.oracle.graal.api.code.stack;
 
 /**
- * This builtin sets the variable named "hello" in the caller frame to the string "world".
+ * Callback interface for {@link StackIntrospection#iterateFrames}. Implementations of
+ * {@link #visitFrame} return null to indicate that frame iteration should continue and the next
+ * caller frame should be visited; and return any non-null value to indicate that frame iteration
+ * should stop.
  */
-@NodeInfo(shortName = "helloEqualsWorld")
-public abstract class SLHelloEqualsWorldBuiltin extends SLBuiltinNode {
+public interface InspectedFrameVisitor<T> {
 
-    @Specialization
-    public String change() {
-        FrameInstance frameInstance = Truffle.getRuntime().getCallerFrame();
-        Frame frame = frameInstance.getFrame(FrameAccess.READ_WRITE, false);
-        FrameSlot slot = frame.getFrameDescriptor().findOrAddFrameSlot("hello");
-        frame.setObject(slot, "world");
-        return "world";
-    }
+    T visitFrame(InspectedFrame frame);
 }
