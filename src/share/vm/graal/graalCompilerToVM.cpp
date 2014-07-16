@@ -234,11 +234,13 @@ C2V_VMENTRY(jlong, lookupType, (JNIEnv*, jobject, jstring jname, jclass accessin
   Klass* resolved_klass = NULL;
   Handle class_loader;
   Handle protection_domain;
-  if (JNIHandles::resolve(accessing_class) != NULL) {
-    Klass* accessing_klass = java_lang_Class::as_Klass(JNIHandles::resolve(accessing_class));
-    class_loader = accessing_klass->class_loader();
-    protection_domain = accessing_klass->protection_domain();
+  if (JNIHandles::resolve(accessing_class) == NULL) {
+    THROW_(vmSymbols::java_lang_NullPointerException(), 0L);
   }
+  Klass* accessing_klass = java_lang_Class::as_Klass(JNIHandles::resolve(accessing_class));
+  class_loader = accessing_klass->class_loader();
+  protection_domain = accessing_klass->protection_domain();
+
 
   if (resolve) {
     resolved_klass = SystemDictionary::resolve_or_fail(class_name, class_loader, protection_domain, true, THREAD);

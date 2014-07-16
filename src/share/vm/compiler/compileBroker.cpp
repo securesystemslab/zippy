@@ -51,6 +51,9 @@
 #endif
 #ifdef GRAAL
 #include "graal/graalCompiler.hpp"
+#ifdef COMPILERGRAAL
+#include "runtime/vframe.hpp"
+#endif
 #endif
 #ifdef COMPILER2
 #include "opto/c2compiler.hpp"
@@ -1187,10 +1190,22 @@ void CompileBroker::compile_method_base(methodHandle method,
     blocking = is_compile_blocking(method, osr_bci);
 
 #ifdef COMPILERGRAAL
-    // Don't allow blocking compiles for requests triggered by Graal.
-    if (blocking && thread->is_Compiler_thread()) {
-      blocking = false;
+    if (blocking) {
+      // Don't allow blocking compiles for requests triggered by Graal.
+      if (thread->is_Compiler_thread()) {
+        blocking = false;
+      }
+
+      // Don't allow blocking compiles if inside a class initializer
+      vframeStream vfst((JavaThread*) thread);
+      for (; !vfst.at_end(); vfst.next()) {
+        if (vfst.method()->is_static_initializer()) {
+          blocking = false;
+          break;
+        }
+      }
     }
+    // Don't allow blocking compiles
 #endif
 
     // We will enter the compilation in the queue.
