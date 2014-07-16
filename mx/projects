@@ -43,19 +43,19 @@ library@DACAPO_SCALA@path=lib/dacapo-scala-0.1.0-20120216.jar
 library@DACAPO_SCALA@urls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/dacapo-scala-0.1.0-20120216.jar,http://repo.scalabench.org/snapshots/org/scalabench/benchmarks/scala-benchmark-suite/0.1.0-SNAPSHOT/scala-benchmark-suite-0.1.0-20120216.103539-3.jar
 library@DACAPO_SCALA@sha1=59b64c974662b5cf9dbd3cf9045d293853dd7a51
 
-library@OKRA@path=lib/okra-1.9.jar
-library@OKRA@urls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/okra-1.9.jar,http://cr.openjdk.java.net/~tdeneau/okra-1.9.jar
-library@OKRA@sha1=df450b04882e6b5a365299e2cbf1622038ae880e
-library@OKRA@sourcePath=lib/okra-1.9-src.jar
-library@OKRA@sourceUrls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/okra-1.9-src.jar,http://cr.openjdk.java.net/~tdeneau/okra-1.9-src.jar
-library@OKRA@sourceSha1=41dcda5197ca4d87bc94e4d7b5a90e7f22667756
+library@OKRA@path=lib/okra-1.10.jar
+library@OKRA@urls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/okra-1.10.jar,http://cr.openjdk.java.net/~tdeneau/okra-1.10.jar
+library@OKRA@sha1=96eb3c0ec808ed944ba88d1eb9311058fe0f3d1e
+library@OKRA@sourcePath=lib/okra-1.10-src.jar
+library@OKRA@sourceUrls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/okra-1.10-src.jar,http://cr.openjdk.java.net/~tdeneau/okra-1.10-src.jar
+library@OKRA@sourceSha1=75751bb148fcebaba78ff590f883a114b2b09176
 
-library@OKRA_WITH_SIM@path=lib/okra-1.9-with-sim.jar
-library@OKRA_WITH_SIM@urls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/okra-1.9-with-sim.jar,http://cr.openjdk.java.net/~tdeneau/okra-1.9-with-sim.jar
-library@OKRA_WITH_SIM@sha1=816fa24814cf51c02f9c05477447bb55a152b388
-library@OKRA_WITH_SIM@sourcePath=lib/okra-1.9-with-sim-src.jar
-library@OKRA_WITH_SIM@sourceSha1=1628919457999a8479d9f39845865de527dbd523
-library@OKRA_WITH_SIM@sourceUrls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/okra-1.9-with-sim-src.jar,http://cr.openjdk.java.net/~tdeneau/okra-1.9-with-sim-src.jar
+library@OKRA_WITH_SIM@path=lib/okra-1.10-with-sim.jar
+library@OKRA_WITH_SIM@urls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/okra-1.10-with-sim.jar,http://cr.openjdk.java.net/~tdeneau/okra-1.10-with-sim.jar
+library@OKRA_WITH_SIM@sha1=7b8db879f1dbcf571290add78d9af24e15a2a50d
+library@OKRA_WITH_SIM@sourcePath=lib/okra-1.10-with-sim-src.jar
+library@OKRA_WITH_SIM@sourceSha1=7eefd94f16a3e3fd3b8f470cf91e265c6f5e7767
+library@OKRA_WITH_SIM@sourceUrls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/okra-1.10-with-sim-src.jar,http://cr.openjdk.java.net/~tdeneau/okra-1.10-with-sim-src.jar
 
 library@JAVA_ALLOCATION_INSTRUMENTER@path=lib/java-allocation-instrumenter.jar
 library@JAVA_ALLOCATION_INSTRUMENTER@sourcePath=lib/java-allocation-instrumenter.jar
