@@ -1737,7 +1737,7 @@ class JavaConfig:
                 abort(e.returncode)
 
         def _checkOutput(out):
-            return 'java version' in out
+            return 'version' in out
 
         # hotspot can print a warning, e.g. if there's a .hotspot_compiler file in the cwd
         output = output.split('\n')
