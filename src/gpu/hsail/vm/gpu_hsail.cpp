@@ -185,7 +185,7 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
   }
 
   // Run the kernel
-  bool success = false;
+  jboolean success = false;
   {
     TraceTime t("execute kernel", TraceGPUInteraction);
     graal_okra_range_t kernel_range = {0};
