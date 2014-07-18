@@ -36,17 +36,17 @@ import edu.uci.python.runtime.*;
  * @author Gulfem
  */
 
-public class PythonNodeProber implements ASTNodeProber {
+public class PythonProfilerNodeProber implements ASTNodeProber {
 
     private final PythonContext context;
-    private static Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments = new LinkedHashMap<>();
-    private static Map<PythonWrapperNode, ProfilerInstrument> callWrapperToInstruments = new LinkedHashMap<>();
-    private static Map<PythonWrapperNode, ProfilerInstrument> loopBodyWrapperToInstruments = new LinkedHashMap<>();
-    private static Map<PythonWrapperNode, ProfilerInstrument> ifWrapperToInstruments = new LinkedHashMap<>();
-    private static Map<PythonWrapperNode, ProfilerInstrument> thenWrapperToInstruments = new LinkedHashMap<>();
-    private static Map<PythonWrapperNode, ProfilerInstrument> elseWrapperToInstruments = new LinkedHashMap<>();
+    private Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments = new LinkedHashMap<>();
+    private Map<PythonWrapperNode, ProfilerInstrument> callWrapperToInstruments = new LinkedHashMap<>();
+    private Map<PythonWrapperNode, ProfilerInstrument> loopBodyWrapperToInstruments = new LinkedHashMap<>();
+    private Map<PythonWrapperNode, ProfilerInstrument> ifWrapperToInstruments = new LinkedHashMap<>();
+    private Map<PythonWrapperNode, ProfilerInstrument> thenWrapperToInstruments = new LinkedHashMap<>();
+    private Map<PythonWrapperNode, ProfilerInstrument> elseWrapperToInstruments = new LinkedHashMap<>();
 
-    public PythonNodeProber(PythonContext context) {
+    public PythonProfilerNodeProber(PythonContext context) {
         this.context = context;
     }
 
@@ -150,27 +150,27 @@ public class PythonNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
-    public static Map<PythonWrapperNode, ProfilerInstrument> getWrapperToInstruments() {
+    public Map<PythonWrapperNode, ProfilerInstrument> getWrapperToInstruments() {
         return wrapperToInstruments;
     }
 
-    public static Map<PythonWrapperNode, ProfilerInstrument> getCallWrapperToInstruments() {
+    public Map<PythonWrapperNode, ProfilerInstrument> getCallWrapperToInstruments() {
         return callWrapperToInstruments;
     }
 
-    public static Map<PythonWrapperNode, ProfilerInstrument> getLoopBodyWrapperToInstruments() {
+    public Map<PythonWrapperNode, ProfilerInstrument> getLoopBodyWrapperToInstruments() {
         return loopBodyWrapperToInstruments;
     }
 
-    public static Map<PythonWrapperNode, ProfilerInstrument> getIfWrapperToInstruments() {
+    public Map<PythonWrapperNode, ProfilerInstrument> getIfWrapperToInstruments() {
         return ifWrapperToInstruments;
     }
 
-    public static Map<PythonWrapperNode, ProfilerInstrument> getThenWrapperToInstruments() {
+    public Map<PythonWrapperNode, ProfilerInstrument> getThenWrapperToInstruments() {
         return thenWrapperToInstruments;
     }
 
-    public static Map<PythonWrapperNode, ProfilerInstrument> getElseWrapperToInstruments() {
+    public Map<PythonWrapperNode, ProfilerInstrument> getElseWrapperToInstruments() {
         return elseWrapperToInstruments;
     }
 

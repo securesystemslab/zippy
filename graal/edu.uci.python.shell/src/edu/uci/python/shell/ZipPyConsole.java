@@ -29,12 +29,14 @@ import java.io.*;
 import org.python.core.*;
 import org.python.util.*;
 
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.source.*;
 
 import edu.uci.python.builtins.*;
-import edu.uci.python.nodes.profiler.*;
+import edu.uci.python.nodes.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class ZipPyConsole extends InteractiveConsole {
@@ -69,7 +71,30 @@ public class ZipPyConsole extends InteractiveConsole {
             result.visualizeToNetwork();
         }
 
-        ASTInterpreter.interpret(result);
+        ModuleNode root = (ModuleNode) result.getModuleRoot();
+        RootCallTarget moduleCallTarget = Truffle.getRuntime().createCallTarget(root);
+
+        /**
+         * Profiler translation, i.e. generating wrapper nodes happens after creating call target
+         * because createCallTarget adopts all children, i.e. adds all parent relationships. In
+         * order to be able create wrapper nodes, and replace nodes with wrapper nodes, we need
+         * child parent relationship
+         */
+
+        ProfilerTranslator profilerTranslator = null;
+        if (PythonOptions.ProfileCalls || PythonOptions.ProfileLoops || PythonOptions.ProfileIfNodes || PythonOptions.ProfileNodes) {
+            profilerTranslator = new ProfilerTranslator(result.getContext());
+            profilerTranslator.translate(result);
+
+            if (PythonOptions.PrintAST) {
+                // CheckStyle: stop system..print check
+                System.out.println("============= " + "After Adding Wrapper Nodes" + " ============= ");
+                result.printAST();
+                // CheckStyle: resume system..print check
+            }
+        }
+
+        moduleCallTarget.call(PArguments.empty());
 
         if (PythonOptions.PrintAST) {
             printBanner("After Specialization");
@@ -81,27 +106,27 @@ public class ZipPyConsole extends InteractiveConsole {
         }
 
         if (PythonOptions.ProfileCalls) {
-            ProfilerResultPrinter.printCallProfilerResults();
+            profilerTranslator.getProfilerResultPrinter().printCallProfilerResults();
         }
 
         if (PythonOptions.ProfileLoops) {
-            ProfilerResultPrinter.printLoopProfilerResults();
+            profilerTranslator.getProfilerResultPrinter().printLoopProfilerResults();
         }
 
         if (PythonOptions.ProfileIfNodes) {
-            ProfilerResultPrinter.printIfProfilerResults();
+            profilerTranslator.getProfilerResultPrinter().printIfProfilerResults();
         }
 
         if (PythonOptions.ProfileNodes) {
-            ProfilerResultPrinter.printNodeProfilerResults();
+            profilerTranslator.getProfilerResultPrinter().printNodeProfilerResults();
         }
 
         if (PythonOptions.TraceNodesWithoutSourceSection) {
-            ProfilerResultPrinter.printNodesEmptySourceSections();
+            profilerTranslator.getProfilerResultPrinter().printNodesEmptySourceSections();
         }
 
         if (PythonOptions.TraceNodesUsingExistingProbe) {
-            ProfilerResultPrinter.printNodesUsingExistingProbes();
+            profilerTranslator.getProfilerResultPrinter().printNodesUsingExistingProbes();
         }
 
         Py.flushLine();

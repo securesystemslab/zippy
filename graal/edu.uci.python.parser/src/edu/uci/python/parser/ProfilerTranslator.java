@@ -43,13 +43,16 @@ import edu.uci.python.runtime.*;
 
 public class ProfilerTranslator implements NodeVisitor {
 
-    private final PythonNodeProber astProber;
+    private final PythonProfilerNodeProber profilerProber;
+    private final ProfilerResultPrinter resultPrinter;
 
     public ProfilerTranslator(PythonContext context) {
-        this.astProber = new PythonNodeProber(context);
+        this.profilerProber = new PythonProfilerNodeProber(context);
+        resultPrinter = new ProfilerResultPrinter(this.profilerProber);
     }
 
-    public void translate(PythonParseResult parseResult, RootNode root) {
+    public void translate(PythonParseResult parseResult) {
+        RootNode root = parseResult.getModuleRoot();
         root.accept(this);
 
         for (RootNode functionRoot : parseResult.getFunctionRoots()) {
@@ -159,7 +162,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createCallWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = astProber.probeAsCall(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsCall(node);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -169,7 +172,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createLoopBodyWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = astProber.probeAsLoopBody(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsLoopBody(node);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -179,7 +182,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createIfWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = astProber.probeAsIfStatement(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsIfStatement(node);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -189,7 +192,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createThenWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = astProber.probeAsThen(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsThen(node);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -199,7 +202,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createElseWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = astProber.probeAsElse(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsElse(node);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -209,7 +212,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = astProber.probeAsStatement(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsStatement(node);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -231,8 +234,8 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private boolean checkSourceSection(PNode node) {
         if (hasSourceSection(node)) {
-            if (astProber.getContext().hasProbe(node.getSourceSection())) {
-                ProfilerResultPrinter.addNodeUsingExistingProbe(node);
+            if (profilerProber.getContext().hasProbe(node.getSourceSection())) {
+                resultPrinter.addNodeUsingExistingProbe(node);
             }
 
             return true;
@@ -241,12 +244,16 @@ public class ProfilerTranslator implements NodeVisitor {
         return false;
     }
 
-    private static boolean hasSourceSection(PNode node) {
+    private boolean hasSourceSection(PNode node) {
         if (node.getSourceSection() == null) {
-            ProfilerResultPrinter.addNodeEmptySourceSection(node);
+            resultPrinter.addNodeEmptySourceSection(node);
             return false;
         }
 
         return true;
+    }
+
+    public ProfilerResultPrinter getProfilerResultPrinter() {
+        return resultPrinter;
     }
 }
