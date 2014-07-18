@@ -115,6 +115,7 @@ private:
   void assumption_CallSiteTargetValue(Handle assumption);
 
   void site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site);
+  void site_Infopoint(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_Call(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_Mark(CodeBuffer& buffer, jint pc_offset, oop site);

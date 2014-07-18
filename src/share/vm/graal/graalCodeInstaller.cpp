@@ -545,7 +545,7 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
       ShouldNotReachHere();
     }
   }
-
+  jint last_pc_offset = -1;
   for (int i = 0; i < _sites->length(); i++) {
     oop site = ((objArrayOop) (_sites))->obj_at(i);
     jint pc_offset = CompilationResult_Site::pcOffset(site);
@@ -563,6 +563,7 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
         // if the infopoint is not an actual safepoint, it must have one of the other reasons
         // (safeguard against new safepoint types that require handling above)
         assert(InfopointReason::METHOD_START() == reason || InfopointReason::METHOD_END() == reason || InfopointReason::LINE_NUMBER() == reason, "");
+        site_Infopoint(buffer, pc_offset, site);
       }
     } else if (site->is_a(CompilationResult_DataPatch::klass())) {
       TRACE_graal_4("datapatch at %i", pc_offset);
@@ -573,6 +574,7 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
     } else {
       fatal("unexpected Site subclass");
     }
+    last_pc_offset = pc_offset;
   }
 
 #ifndef PRODUCT
@@ -670,83 +672,95 @@ static bool bytecode_should_reexecute(Bytecodes::Code code) {
   return true;
 }
 
-void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeValue*>* objects) {
-  assert(frame->klass() == BytecodeFrame::klass(), "BytecodeFrame expected");
-  oop caller_frame = BytecodePosition::caller(frame);
+void CodeInstaller::record_scope(jint pc_offset, oop position, GrowableArray<ScopeValue*>* objects) {
+  oop frame = NULL;
+  if (position->is_a(BytecodeFrame::klass())) {
+    frame = position;
+  }
+  oop caller_frame = BytecodePosition::caller(position);
   if (caller_frame != NULL) {
     record_scope(pc_offset, caller_frame, objects);
   }
 
-  oop hotspot_method = BytecodePosition::method(frame);
+  oop hotspot_method = BytecodePosition::method(position);
   Method* method = getMethodFromHotSpotMethod(hotspot_method);
-  jint bci = BytecodePosition::bci(frame);
+  jint bci = BytecodePosition::bci(position);
   if (bci == BytecodeFrame::BEFORE_BCI()) {
     bci = SynchronizationEntryBCI;
-  }
-  bool reexecute;
-  if (bci == SynchronizationEntryBCI){
-     reexecute = false;
-  } else {
-    Bytecodes::Code code = Bytecodes::java_code_at(method, method->bcp_from(bci));
-    reexecute = bytecode_should_reexecute(code);
-    if (frame != NULL) {
-      reexecute = (BytecodeFrame::duringCall(frame) == JNI_FALSE);
-    }
   }
 
   if (TraceGraal >= 2) {
     tty->print_cr("Recording scope pc_offset=%d bci=%d method=%s", pc_offset, bci, method->name_and_sig_as_C_string());
   }
 
-  jint local_count = BytecodeFrame::numLocals(frame);
-  jint expression_count = BytecodeFrame::numStack(frame);
-  jint monitor_count = BytecodeFrame::numLocks(frame);
-  arrayOop values = (arrayOop) BytecodeFrame::values(frame);
-
-  assert(local_count + expression_count + monitor_count == values->length(), "unexpected values length");
-
-  GrowableArray<ScopeValue*>* locals = new GrowableArray<ScopeValue*> ();
-  GrowableArray<ScopeValue*>* expressions = new GrowableArray<ScopeValue*> ();
-  GrowableArray<MonitorValue*>* monitors = new GrowableArray<MonitorValue*> ();
-
-  if (TraceGraal >= 2) {
-    tty->print_cr("Scope at bci %d with %d values", bci, values->length());
-    tty->print_cr("%d locals %d expressions, %d monitors", local_count, expression_count, monitor_count);
-  }
-
-  for (jint i = 0; i < values->length(); i++) {
-    ScopeValue* second = NULL;
-    oop value=((objArrayOop) (values))->obj_at(i);
-    if (i < local_count) {
-      ScopeValue* first = get_scope_value(value, _total_frame_size, objects, second, _oop_recorder);
-      if (second != NULL) {
-        locals->append(second);
-      }
-      locals->append(first);
-    } else if (i < local_count + expression_count) {
-      ScopeValue* first = get_scope_value(value, _total_frame_size, objects, second, _oop_recorder);
-      if (second != NULL) {
-        expressions->append(second);
-      }
-      expressions->append(first);
+  bool reexecute = false;
+  if (frame != NULL) {
+    if (bci == SynchronizationEntryBCI){
+       reexecute = false;
     } else {
-      monitors->append(get_monitor_value(value, _total_frame_size, objects, _oop_recorder));
-    }
-    if (second != NULL) {
-      i++;
-      assert(i < values->length(), "double-slot value not followed by Value.ILLEGAL");
-      assert(((objArrayOop) (values))->obj_at(i) == Value::ILLEGAL(), "double-slot value not followed by Value.ILLEGAL");
+      Bytecodes::Code code = Bytecodes::java_code_at(method, method->bcp_from(bci));
+      reexecute = bytecode_should_reexecute(code);
+      if (frame != NULL) {
+        reexecute = (BytecodeFrame::duringCall(frame) == JNI_FALSE);
+      }
     }
   }
 
+  DebugToken* locals_token = NULL;
+  DebugToken* expressions_token = NULL;
+  DebugToken* monitors_token = NULL;
+  bool throw_exception = false;
 
-  _debug_recorder->dump_object_pool(objects);
+  if (frame != NULL) {
+    jint local_count = BytecodeFrame::numLocals(frame);
+    jint expression_count = BytecodeFrame::numStack(frame);
+    jint monitor_count = BytecodeFrame::numLocks(frame);
+    arrayOop values = (arrayOop) BytecodeFrame::values(frame);
 
-  DebugToken* locals_token = _debug_recorder->create_scope_values(locals);
-  DebugToken* expressions_token = _debug_recorder->create_scope_values(expressions);
-  DebugToken* monitors_token = _debug_recorder->create_monitor_values(monitors);
+    assert(local_count + expression_count + monitor_count == values->length(), "unexpected values length");
 
-  bool throw_exception = BytecodeFrame::rethrowException(frame) == JNI_TRUE;
+    GrowableArray<ScopeValue*>* locals = new GrowableArray<ScopeValue*> ();
+    GrowableArray<ScopeValue*>* expressions = new GrowableArray<ScopeValue*> ();
+    GrowableArray<MonitorValue*>* monitors = new GrowableArray<MonitorValue*> ();
+
+    if (TraceGraal >= 2) {
+      tty->print_cr("Scope at bci %d with %d values", bci, values->length());
+      tty->print_cr("%d locals %d expressions, %d monitors", local_count, expression_count, monitor_count);
+    }
+
+    for (jint i = 0; i < values->length(); i++) {
+      ScopeValue* second = NULL;
+      oop value=((objArrayOop) (values))->obj_at(i);
+      if (i < local_count) {
+        ScopeValue* first = get_scope_value(value, _total_frame_size, objects, second, _oop_recorder);
+        if (second != NULL) {
+          locals->append(second);
+        }
+        locals->append(first);
+      } else if (i < local_count + expression_count) {
+        ScopeValue* first = get_scope_value(value, _total_frame_size, objects, second, _oop_recorder);
+        if (second != NULL) {
+          expressions->append(second);
+        }
+        expressions->append(first);
+      } else {
+        monitors->append(get_monitor_value(value, _total_frame_size, objects, _oop_recorder));
+      }
+      if (second != NULL) {
+        i++;
+        assert(i < values->length(), "double-slot value not followed by Value.ILLEGAL");
+        assert(((objArrayOop) (values))->obj_at(i) == Value::ILLEGAL(), "double-slot value not followed by Value.ILLEGAL");
+      }
+    }
+
+    _debug_recorder->dump_object_pool(objects);
+
+    locals_token = _debug_recorder->create_scope_values(locals);
+    expressions_token = _debug_recorder->create_scope_values(expressions);
+    monitors_token = _debug_recorder->create_monitor_values(monitors);
+
+    throw_exception = BytecodeFrame::rethrowException(frame) == JNI_TRUE;
+  }
 
   _debug_recorder->describe_scope(pc_offset, method, NULL, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token);
 }
@@ -767,6 +781,20 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
   }
 
   _debug_recorder->end_safepoint(pc_offset);
+}
+
+void CodeInstaller::site_Infopoint(CodeBuffer& buffer, jint pc_offset, oop site) {
+  oop debug_info = CompilationResult_Infopoint::debugInfo(site);
+  assert(debug_info != NULL, "debug info expected");
+
+  _debug_recorder->add_non_safepoint(pc_offset);
+
+  oop position = DebugInfo::bytecodePosition(debug_info);
+  if (position != NULL) {
+    record_scope(pc_offset, position, NULL);
+  }
+
+  _debug_recorder->end_non_safepoint(pc_offset);
 }
 
 void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {
