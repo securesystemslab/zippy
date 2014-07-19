@@ -94,73 +94,6 @@ public class PythonTreeTranslator extends Visitor {
         return result;
     }
 
-    public PNode assignSourceFromNode(PythonTree node, PNode truffleNode) {
-        String identifier = node.getText();
-        int charStartIndex = node.getCharStartIndex();
-        int charStopIndex = node.getCharStopIndex();
-        int charLength = charStopIndex - charStartIndex;
-        SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
-        truffleNode.assignSourceSection(sourceSection);
-        return truffleNode;
-    }
-
-    public PNode assignSourceFromChildren(PythonTree jythonNode, PNode truffleNode, PNode leftChild, PNode rightChild) {
-        String identifier = jythonNode.getText();
-
-        try {
-            if (leftChild.getSourceSection() == null) {
-                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s left node " + leftChild.getClass().getSimpleName() + "does not have a source section");
-            }
-
-            if (rightChild.getSourceSection() == null) {
-                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s right node " + rightChild.getClass().getSimpleName() + "does not have a source section");
-            }
-
-            int charStartIndex = leftChild.getSourceSection().getCharIndex();
-            int charStopIndex = rightChild.getSourceSection().getCharEndIndex();
-            int charLength = charStopIndex - charStartIndex;
-            SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
-            truffleNode.assignSourceSection(sourceSection);
-            return truffleNode;
-        } catch (RuntimeException e) {
-            return truffleNode;
-        }
-    }
-
-    public PNode assignSourceToGetAttribute(PNode truffleNode, PNode primary, Name attributeName) {
-        String identifier = "identifier";
-        int charStartIndex = primary.getSourceSection().getCharIndex();
-        int charStopIndex = attributeName.getCharStopIndex();
-        int charLength = charStopIndex - charStartIndex;
-        SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
-        truffleNode.assignSourceSection(sourceSection);
-        return truffleNode;
-    }
-
-    public RootNode assignSourceToRootNode(PythonTree node, RootNode rootNode) {
-        String identifier = node.getText();
-        int charStartIndex = node.getCharStartIndex();
-        int charStopIndex = node.getCharStopIndex();
-        int charLength = charStopIndex - charStartIndex;
-        SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
-        rootNode.assignSourceSection(sourceSection);
-        return rootNode;
-    }
-
-    public PNode assignSourceToBlockNode(PNode node, List<stmt> statements) {
-        if (node.getSourceSection() == null) {
-            stmt firstChild = statements.get(0);
-            stmt lastChild = statements.get(statements.size() - 1);
-            int charStartIndex = firstChild.getCharStartIndex();
-            int charStopIndex = lastChild.getCharStopIndex();
-            int charLength = charStopIndex - charStartIndex;
-            SourceSection sourceSection = source.createSection("block", charStartIndex, charLength);
-            node.assignSourceSection(sourceSection);
-        }
-
-        return node;
-    }
-
     @Override
     public Object visitModule(org.python.antlr.ast.Module node) throws Exception {
         environment.beginScope(node, ScopeInfo.ScopeKind.Module);
@@ -684,6 +617,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode target = (PNode) visit(node.getInternalTarget());
         PNode value = (PNode) visit(node.getInternalValue());
         PNode binaryOp = factory.createBinaryOperation(node.getInternalOp(), target, value);
+        assignSourceToAugAssignNode(node, binaryOp, target, value);
         PNode read = factory.duplicate(target, PNode.class);
         PNodeUtil.clearSourceSections(read);
         PNode writeNode = ((ReadNode) read).makeWriteNode(binaryOp);
@@ -792,7 +726,7 @@ public class PythonTreeTranslator extends Visitor {
                  * x < y <= z . We duplicate the node for y as x < y and y <= z. Since we duplicate
                  * the nodes, we clear the source section of it to avoid problems in the profiler.
                  */
-                PNodeUtil.clearSourceSections(leftOp);
+                // PNodeUtil.clearSourceSections(leftOp);
             }
 
             if (i == 0) {
@@ -987,16 +921,20 @@ public class PythonTreeTranslator extends Visitor {
         List<PNode> orelse = visitStatements(node.getInternalOrelse());
         PNode bodyPart = factory.createBlock(body);
         PNode orelsePart = factory.createBlock(orelse);
-        return assignSourceFromNode(node, createWhileNode(test, bodyPart, orelsePart, loops.endLoop()));
+        return createWhileNode(node, test, bodyPart, orelsePart, loops.endLoop());
     }
 
-    private StatementNode createWhileNode(PNode test, PNode body, PNode orelse, LoopInfo info) {
+    private StatementNode createWhileNode(While node, PNode test, PNode body, PNode orelse, LoopInfo info) {
+        List<stmt> bodyStmt = node.getInternalBody();
         PNode wrappedBody = body;
+
         if (info.hasContinue()) {
             wrappedBody = factory.createContinueTarget(body);
         }
 
+        assignSourceToBlockNode(wrappedBody, bodyStmt);
         StatementNode whileNode = factory.createWhile(factory.toBooleanCastNode(test), wrappedBody);
+        assignSourceFromNode(node, whileNode);
 
         if (!EmptyNode.isEmpty(orelse)) {
             whileNode = factory.createElse(whileNode, orelse);
@@ -1023,16 +961,19 @@ public class PythonTreeTranslator extends Visitor {
         body.addAll(0, targets);
         PNode bodyPart = factory.createBlock(body);
         PNode orelsePart = factory.createBlock(orelse);
-        return assignSourceFromNode(node, createForNode(iteratorWrite, iter, bodyPart, orelsePart, loops.endLoop()));
+        return createForNode(node, iteratorWrite, iter, bodyPart, orelsePart, loops.endLoop());
     }
 
-    private StatementNode createForNode(PNode target, PNode iter, PNode body, PNode orelse, LoopInfo info) {
+    private StatementNode createForNode(For node, PNode target, PNode iter, PNode body, PNode orelse, LoopInfo info) {
+        List<stmt> bodyStmt = node.getInternalBody();
         PNode wrappedBody = body;
         if (info.hasContinue()) {
             wrappedBody = factory.createContinueTarget(body);
         }
 
+        assignSourceToBlockNode(wrappedBody, bodyStmt);
         StatementNode forNode = createForInScope(target, iter, wrappedBody);
+        assignSourceFromNode(node, forNode);
 
         if (!EmptyNode.isEmpty(orelse)) {
             forNode = factory.createElse(forNode, orelse);
@@ -1250,6 +1191,96 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitExec(Exec node) throws Exception {
         throw notCovered();
+    }
+
+    public PNode assignSourceFromNode(PythonTree node, PNode truffleNode) {
+        String identifier = node.getText();
+        int charStartIndex = node.getCharStartIndex();
+        int charStopIndex = node.getCharStopIndex();
+        int charLength = charStopIndex - charStartIndex;
+        SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
+        truffleNode.assignSourceSection(sourceSection);
+        return truffleNode;
+    }
+
+    private PNode assignSourceFromChildren(PythonTree jythonNode, PNode truffleNode, PNode leftChild, PNode rightChild) {
+        String identifier = jythonNode.getText();
+
+        try {
+            if (leftChild.getSourceSection() == null) {
+                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s left node " + leftChild.getClass().getSimpleName() + "does not have a source section");
+            }
+
+            if (rightChild.getSourceSection() == null) {
+                throw new RuntimeException("Node " + truffleNode.getClass().getSimpleName() + "'s right node " + rightChild.getClass().getSimpleName() + "does not have a source section");
+            }
+
+            int charStartIndex = leftChild.getSourceSection().getCharIndex();
+            int charStopIndex = rightChild.getSourceSection().getCharEndIndex();
+            int charLength = charStopIndex - charStartIndex;
+            SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
+            truffleNode.assignSourceSection(sourceSection);
+            return truffleNode;
+        } catch (RuntimeException e) {
+            return truffleNode;
+        }
+    }
+
+    private PNode assignSourceToGetAttribute(PNode truffleNode, PNode primary, Name attributeName) {
+        String identifier = "identifier";
+        int charStartIndex = primary.getSourceSection().getCharIndex();
+        int charStopIndex = attributeName.getCharStopIndex();
+        int charLength = charStopIndex - charStartIndex;
+        SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
+        truffleNode.assignSourceSection(sourceSection);
+        return truffleNode;
+    }
+
+    private RootNode assignSourceToRootNode(PythonTree node, RootNode rootNode) {
+        String identifier = node.getText();
+        int charStartIndex = node.getCharStartIndex();
+        int charStopIndex = node.getCharStopIndex();
+        int charLength = charStopIndex - charStartIndex;
+        SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
+        rootNode.assignSourceSection(sourceSection);
+        return rootNode;
+    }
+
+    private PNode assignSourceToBlockNode(PNode node, List<stmt> statements) {
+        if (node.getSourceSection() == null) {
+            stmt firstChild = statements.get(0);
+            stmt lastChild = statements.get(statements.size() - 1);
+            int charStartIndex = firstChild.getCharStartIndex();
+            int charStopIndex = lastChild.getCharStopIndex();
+            int charLength = charStopIndex - charStartIndex;
+            SourceSection sourceSection = source.createSection("block", charStartIndex, charLength);
+            node.assignSourceSection(sourceSection);
+        }
+
+        return node;
+    }
+
+    private PNode assignSourceToAugAssignNode(AugAssign node, PNode augAssignNode, PNode beforeNode, PNode afterNode) {
+        String identifier = node.getInternalOp().name();
+
+        try {
+            if (beforeNode.getSourceSection() == null) {
+                throw new RuntimeException("Node " + augAssignNode.getClass().getSimpleName() + "'s target node " + beforeNode.getClass().getSimpleName() + "does not have a source section");
+            }
+
+            if (beforeNode.getSourceSection() == null) {
+                throw new RuntimeException("Node " + augAssignNode.getClass().getSimpleName() + "'s value node " + beforeNode.getClass().getSimpleName() + "does not have a source section");
+            }
+
+            int charStartIndex = beforeNode.getSourceSection().getCharEndIndex();
+            int charStopIndex = afterNode.getSourceSection().getCharIndex();
+            int charLength = charStopIndex - charStartIndex;
+            SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
+            augAssignNode.assignSourceSection(sourceSection);
+            return augAssignNode;
+        } catch (RuntimeException e) {
+            return augAssignNode;
+        }
     }
 
 }
