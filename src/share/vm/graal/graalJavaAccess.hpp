@@ -223,8 +223,13 @@ void graal_compute_offsets();
     static_oop_field(Kind, Int, "Lcom/oracle/graal/api/meta/Kind;");                                                                                           \
     static_oop_field(Kind, Long, "Lcom/oracle/graal/api/meta/Kind;");                                                                                          \
   end_class                                                                                                                                                    \
+  start_class(LIRKind)                                                                                                                                         \
+    oop_field(LIRKind, platformKind, "Lcom/oracle/graal/api/meta/PlatformKind;")                                                                               \
+    int_field(LIRKind, referenceMask)                                                                                                                          \
+  end_class                                                                                                                                                    \
   start_class(Value)                                                                                                                                           \
     oop_field(Value, kind, "Lcom/oracle/graal/api/meta/Kind;")                                                                                                 \
+    oop_field(Value, lirKind, "Lcom/oracle/graal/api/meta/LIRKind;")                                                                                           \
     static_oop_field(Value, ILLEGAL, "Lcom/oracle/graal/api/meta/AllocatableValue;");                                                                          \
   end_class                                                                                                                                                    \
   start_class(RegisterValue)                                                                                                                                   \

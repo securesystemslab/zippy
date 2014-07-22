@@ -204,27 +204,36 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
     return new LocationValue(Location::new_stk_loc(Location::invalid, 0));
   }
 
-  BasicType type = GraalRuntime::kindToBasicType(Kind::typeChar(Value::kind(value)));
-  Location::Type locationType = Location::normal;
-  if (type == T_OBJECT || type == T_ARRAY) locationType = Location::oop;
+  oop lirKind = Value::lirKind(value);
+  oop platformKind = LIRKind::platformKind(lirKind);
+  jint referenceMask = LIRKind::referenceMask(lirKind);
+  assert(referenceMask == 0 || referenceMask == 1, "unexpected referenceMask");
+  bool reference = referenceMask == 1;
+
+  BasicType type = GraalRuntime::kindToBasicType(Kind::typeChar(platformKind));
 
   if (value->is_a(RegisterValue::klass())) {
     jint number = code_Register::number(RegisterValue::reg(value));
     if (number < RegisterImpl::number_of_registers) {
-      if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE || type == T_ADDRESS) {
+      Location::Type locationType;
+      if (type == T_INT) {
+        locationType = reference ? Location::narrowoop : Location::int_in_long;
+      } else if (type == T_FLOAT) {
         locationType = Location::int_in_long;
       } else if (type == T_LONG) {
-        locationType = Location::lng;
+        locationType = reference ? Location::oop : Location::lng;
       } else {
-        assert(type == T_OBJECT || type == T_ARRAY, "unexpected type in cpu register");
+        assert(type == T_OBJECT && reference, "unexpected type in cpu register");
+        locationType = Location::oop;
       }
       ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_Register(number)->as_VMReg()));
-      if (type == T_LONG) {
+      if (type == T_LONG && !reference) {
         second = value;
       }
       return value;
     } else {
       assert(type == T_FLOAT || type == T_DOUBLE, "only float and double expected in xmm register");
+      Location::Type locationType;
       if (type == T_FLOAT) {
         // this seems weird, but the same value is used in c1_LinearScan
         locationType = Location::normal;
@@ -233,14 +242,14 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
       }
 #ifdef TARGET_ARCH_x86
       ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_XMMRegister(number - 16)->as_VMReg()));
-      if (type == T_DOUBLE) {
+      if (type == T_DOUBLE && !reference) {
         second = value;
       }
       return value;
 #else
 #ifdef TARGET_ARCH_sparc
       ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_FloatRegister(number)->as_VMReg()));
-      if (type == T_DOUBLE) {
+      if (type == T_DOUBLE && !reference) {
         second = value;
       }
       return value;
@@ -250,41 +259,52 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
 #endif
     }
   } else if (value->is_a(StackSlot::klass())) {
-    if (type == T_DOUBLE) {
+      Location::Type locationType;
+    if (type == T_LONG) {
+      locationType = reference ? Location::oop : Location::lng;
+    } else if (type == T_INT) {
+      locationType = reference ? Location::narrowoop : Location::normal;
+    } else if (type == T_FLOAT) {
+      locationType = Location::normal;
+    } else if (type == T_DOUBLE) {
       locationType = Location::dbl;
-    } else if (type == T_LONG) {
-      locationType = Location::lng;
+    } else {
+      assert(type == T_OBJECT && reference, "unexpected type in stack slot");
+      locationType = Location::oop;
     }
     jint offset = StackSlot::offset(value);
     if (StackSlot::addFrameSize(value)) {
       offset += total_frame_size;
     }
     ScopeValue* value = new LocationValue(Location::new_stk_loc(locationType, offset));
-    if (type == T_DOUBLE || type == T_LONG) {
+    if (type == T_DOUBLE || (type == T_LONG && !reference)) {
       second = value;
     }
     return value;
   } else if (value->is_a(Constant::klass())){
     record_metadata_in_constant(value, oop_recorder);
-    if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE) {
-      jint prim = (jint)PrimitiveConstant::primitive(value);
-      return new ConstantIntValue(prim);
-    } else if (type == T_LONG || type == T_DOUBLE) {
-      jlong prim = PrimitiveConstant::primitive(value);
-      second = new ConstantIntValue(0);
-      return new ConstantLongValue(prim);
-    } else if (type == T_OBJECT) {
+    if (value->is_a(PrimitiveConstant::klass())) {
+      assert(!reference, "unexpected primitive constant type");
+      if (type == T_INT || type == T_FLOAT) {
+        jint prim = (jint)PrimitiveConstant::primitive(value);
+        return new ConstantIntValue(prim);
+      } else {
+        assert(type == T_LONG || type == T_DOUBLE, "unexpected primitive constant type");
+        jlong prim = PrimitiveConstant::primitive(value);
+        second = new ConstantIntValue(0);
+        return new ConstantLongValue(prim);
+      }
+    } else {
+        assert(reference, "unexpected object constant type");
       if (value->is_a(NullConstant::klass())) {
         return new ConstantOopWriteValue(NULL);
       } else {
+        assert(value->is_a(HotSpotObjectConstant::klass()), "unexpected constant type");
         oop obj = HotSpotObjectConstant::object(value);
         assert(obj != NULL, "null value must be in NullConstant");
         return new ConstantOopWriteValue(JNIHandles::make_local(obj));
       }
-    } else if (type == T_ADDRESS) {
-      ShouldNotReachHere();
     }
-    tty->print("%i", type);
   } else if (value->is_a(VirtualObject::klass())) {
     oop type = VirtualObject::type(value);
     int id = VirtualObject::id(value);
