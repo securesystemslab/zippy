@@ -39,15 +39,21 @@ import edu.uci.python.runtime.*;
 public class PythonProfilerNodeProber implements ASTNodeProber {
 
     private final PythonContext context;
-    private Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments = new LinkedHashMap<>();
-    private Map<PythonWrapperNode, ProfilerInstrument> callWrapperToInstruments = new LinkedHashMap<>();
-    private Map<PythonWrapperNode, ProfilerInstrument> loopBodyWrapperToInstruments = new LinkedHashMap<>();
-    private Map<PythonWrapperNode, ProfilerInstrument> ifWrapperToInstruments = new LinkedHashMap<>();
-    private Map<PythonWrapperNode, ProfilerInstrument> thenWrapperToInstruments = new LinkedHashMap<>();
-    private Map<PythonWrapperNode, ProfilerInstrument> elseWrapperToInstruments = new LinkedHashMap<>();
+    private Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments;
+    private Map<PythonWrapperNode, ProfilerInstrument> callWrapperToInstruments;
+    private Map<PythonWrapperNode, ProfilerInstrument> loopBodyWrapperToInstruments;
+    private Map<PythonWrapperNode, ProfilerInstrument> ifWrapperToInstruments;
+    private Map<PythonWrapperNode, ProfilerInstrument> thenWrapperToInstruments;
+    private Map<PythonWrapperNode, ProfilerInstrument> elseWrapperToInstruments;
 
     public PythonProfilerNodeProber(PythonContext context) {
         this.context = context;
+        wrapperToInstruments = new LinkedHashMap<>();
+        callWrapperToInstruments = new LinkedHashMap<>();
+        loopBodyWrapperToInstruments = new LinkedHashMap<>();
+        ifWrapperToInstruments = new LinkedHashMap<>();
+        thenWrapperToInstruments = new LinkedHashMap<>();
+        elseWrapperToInstruments = new LinkedHashMap<>();
     }
 
     public Node probeAs(Node astNode, PhylumTag tag, Object... args) {
@@ -55,99 +61,65 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
     }
 
     public PythonWrapperNode probeAsStatement(PNode node) {
-        PythonWrapperNode wrapper;
-        if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
-            wrapper = (PythonWrapperNode) node.getParent();
-        } else {
-            wrapper = new PythonWrapperNode(context, node);
-            wrapper.getProbe().tagAs(StandardTag.STATEMENT);
-            wrapper.assignSourceSection(node.getSourceSection());
-        }
-
-        ProfilerInstrument profilerInstrument = new ProfilerInstrument();
-        wrapper.getProbe().addInstrument(profilerInstrument);
+        PythonWrapperNode wrapper = createWrapper(node);
+        wrapper.getProbe().tagAs(StandardTag.STATEMENT);
+        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
         wrapperToInstruments.put(wrapper, profilerInstrument);
         return wrapper;
     }
 
     public PythonWrapperNode probeAsCall(PNode node) {
-        PythonWrapperNode wrapper;
-        if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
-            wrapper = (PythonWrapperNode) node.getParent();
-        } else {
-            wrapper = new PythonWrapperNode(context, node);
-            wrapper.getProbe().tagAs(StandardTag.CALL);
-            wrapper.assignSourceSection(node.getSourceSection());
-        }
-
-        ProfilerInstrument profilerInstrument = new ProfilerInstrument();
-        wrapper.getProbe().addInstrument(profilerInstrument);
+        PythonWrapperNode wrapper = createWrapper(node);
+        wrapper.getProbe().tagAs(StandardTag.CALL);
+        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
         callWrapperToInstruments.put(wrapper, profilerInstrument);
         return wrapper;
     }
 
     public PythonWrapperNode probeAsLoopBody(PNode node) {
-        PythonWrapperNode wrapper;
-        if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
-            wrapper = (PythonWrapperNode) node.getParent();
-        } else {
-            wrapper = new PythonWrapperNode(context, node);
-            wrapper.getProbe().tagAs(StandardTag.STATEMENT);
-            wrapper.assignSourceSection(node.getSourceSection());
-        }
-
-        ProfilerInstrument profilerInstrument = new ProfilerInstrument();
-        wrapper.getProbe().addInstrument(profilerInstrument);
+        PythonWrapperNode wrapper = createWrapper(node);
+        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
         loopBodyWrapperToInstruments.put(wrapper, profilerInstrument);
         return wrapper;
     }
 
     public PythonWrapperNode probeAsIfStatement(PNode node) {
-        PythonWrapperNode wrapper;
-        if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
-            wrapper = (PythonWrapperNode) node.getParent();
-        } else {
-            wrapper = new PythonWrapperNode(context, node);
-            wrapper.getProbe().tagAs(StandardTag.STATEMENT);
-            wrapper.assignSourceSection(node.getSourceSection());
-        }
-
-        ProfilerInstrument profilerInstrument = new ProfilerInstrument();
-        wrapper.getProbe().addInstrument(profilerInstrument);
+        PythonWrapperNode wrapper = createWrapper(node);
+        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
         ifWrapperToInstruments.put(wrapper, profilerInstrument);
         return wrapper;
     }
 
     public PythonWrapperNode probeAsThen(PNode node) {
-        PythonWrapperNode wrapper;
-        if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
-            wrapper = (PythonWrapperNode) node.getParent();
-        } else {
-            wrapper = new PythonWrapperNode(context, node);
-            wrapper.getProbe().tagAs(StandardTag.STATEMENT);
-            wrapper.assignSourceSection(node.getSourceSection());
-        }
-
-        ProfilerInstrument profilerInstrument = new ProfilerInstrument();
-        wrapper.getProbe().addInstrument(profilerInstrument);
+        PythonWrapperNode wrapper = createWrapper(node);
+        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
         thenWrapperToInstruments.put(wrapper, profilerInstrument);
         return wrapper;
     }
 
     public PythonWrapperNode probeAsElse(PNode node) {
+        PythonWrapperNode wrapper = createWrapper(node);
+        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
+        elseWrapperToInstruments.put(wrapper, profilerInstrument);
+        return wrapper;
+    }
+
+    private PythonWrapperNode createWrapper(PNode node) {
         PythonWrapperNode wrapper;
         if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
             wrapper = (PythonWrapperNode) node.getParent();
         } else {
             wrapper = new PythonWrapperNode(context, node);
-            wrapper.getProbe().tagAs(StandardTag.STATEMENT);
             wrapper.assignSourceSection(node.getSourceSection());
         }
 
+        return wrapper;
+    }
+
+    private static ProfilerInstrument createAttachProfilerInstrument(PythonWrapperNode wrapper) {
         ProfilerInstrument profilerInstrument = new ProfilerInstrument();
         wrapper.getProbe().addInstrument(profilerInstrument);
-        elseWrapperToInstruments.put(wrapper, profilerInstrument);
-        return wrapper;
+        return profilerInstrument;
     }
 
     public Map<PythonWrapperNode, ProfilerInstrument> getWrapperToInstruments() {
