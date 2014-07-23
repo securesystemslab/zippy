@@ -311,6 +311,7 @@
   GRAAL_ONLY(template(com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,  "com/oracle/graal/hotspot/meta/HotSpotResolvedJavaMethod"))       \
   GRAAL_ONLY(template(com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,  "com/oracle/graal/hotspot/meta/HotSpotResolvedObjectType"))       \
   GRAAL_ONLY(template(com_oracle_graal_hotspot_meta_HotSpotMonitorValue,        "com/oracle/graal/hotspot/meta/HotSpotMonitorValue"))             \
+  GRAAL_ONLY(template(com_oracle_graal_hotspot_meta_HotSpotCompressedNullConstant, "com/oracle/graal/hotspot/meta/HotSpotCompressedNullConstant")) \
   GRAAL_ONLY(template(com_oracle_graal_hotspot_meta_HotSpotObjectConstant,      "com/oracle/graal/hotspot/meta/HotSpotObjectConstant"))           \
   GRAAL_ONLY(template(com_oracle_graal_hotspot_meta_HotSpotMetaspaceConstant,   "com/oracle/graal/hotspot/meta/HotSpotMetaspaceConstant"))        \
   GRAAL_ONLY(template(com_oracle_graal_hotspot_HotSpotStackFrameReference,      "com/oracle/graal/hotspot/HotSpotStackFrameReference"))           \

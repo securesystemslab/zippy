@@ -240,16 +240,17 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
       } else {
         locationType = Location::dbl;
       }
+      assert(!reference, "unexpected type in floating point register");
 #ifdef TARGET_ARCH_x86
       ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_XMMRegister(number - 16)->as_VMReg()));
-      if (type == T_DOUBLE && !reference) {
+      if (type == T_DOUBLE) {
         second = value;
       }
       return value;
 #else
 #ifdef TARGET_ARCH_sparc
       ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_FloatRegister(number)->as_VMReg()));
-      if (type == T_DOUBLE && !reference) {
+      if (type == T_DOUBLE) {
         second = value;
       }
       return value;
@@ -265,8 +266,10 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
     } else if (type == T_INT) {
       locationType = reference ? Location::narrowoop : Location::normal;
     } else if (type == T_FLOAT) {
+      assert(!reference, "unexpected type in stack slot");
       locationType = Location::normal;
     } else if (type == T_DOUBLE) {
+      assert(!reference, "unexpected type in stack slot");
       locationType = Location::dbl;
     } else {
       assert(type == T_OBJECT && reference, "unexpected type in stack slot");
@@ -296,7 +299,7 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
       }
     } else {
         assert(reference, "unexpected object constant type");
-      if (value->is_a(NullConstant::klass())) {
+      if (value->is_a(NullConstant::klass()) || value->is_a(HotSpotCompressedNullConstant::klass())) {
         return new ConstantOopWriteValue(NULL);
       } else {
         assert(value->is_a(HotSpotObjectConstant::klass()), "unexpected constant type");
