@@ -563,16 +563,16 @@ class BaseLibrary(Dependency):
         return not result
 
 """
-A library that will be provided by the JDK but may be absent.
+A library that will be provided by the JRE but may be absent.
 Any project or normal library that depends on a missing library
 will be removed from the global project and library dictionaries
 (i.e., _projects and _libs).
 
 This mechanism exists primarily to be able to support code
-that may use functionality in one JDK (e.g., Oracle JDK)
-that is not present in another JDK (e.g., OpenJDK). A
+that may use functionality in one JRE (e.g., Oracle JRE)
+that is not present in another JRE (e.g., OpenJDK). A
 motivating example is the Java Flight Recorder library
-found in the Oracle JDK. 
+found in the Oracle JRE. 
 """
 class JreLibrary(BaseLibrary):
     def __init__(self, suite, name, jar, optional):
