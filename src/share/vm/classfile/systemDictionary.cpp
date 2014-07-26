@@ -1059,7 +1059,9 @@ Klass* SystemDictionary::parse_stream(Symbol* class_name,
       // deoptimizations.
       add_to_hierarchy(k, CHECK_NULL); // No exception, but can block
 
-      // But, do not add to system dictionary.
+      // But, do not add to system dictionary.  That normally takes
+      // care of updating _number_of_modifications so do it here.
+      notice_modification();
     }
 
     // Rewrite and patch constant pool here.
