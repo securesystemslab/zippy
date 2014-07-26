@@ -68,6 +68,11 @@ VMReg get_hotspot_reg(jint graal_reg) {
       return as_XMMRegister(remainder)->as_VMReg();
     }
 #endif
+#ifdef TARGET_ARCH_sparc
+    if (remainder < FloatRegisterImpl::number_of_registers) {
+      return as_FloatRegister(remainder)->as_VMReg();
+    }
+#endif
     ShouldNotReachHere();
     return NULL;
   }
@@ -127,6 +132,13 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
       for (jint j = 0; j < 4; j++) {
         set_vmreg_oops(map, reg->next(2 * j), register_map, idx + j);
       }
+    }
+#endif
+#ifdef TARGET_ARCH_sparc
+    for (jint i = 0; i < FloatRegisterImpl::number_of_registers; i++) {
+      VMReg reg = as_FloatRegister(i)->as_VMReg();
+      int idx = RegisterImpl::number_of_registers + i;
+      set_vmreg_oops(map, reg, register_map, idx);
     }
 #endif
   }
@@ -210,6 +222,7 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
 
   if (value->is_a(RegisterValue::klass())) {
     jint number = code_Register::number(RegisterValue::reg(value));
+    jint encoding = code_Register::encoding(RegisterValue::reg(value));
     if (number < RegisterImpl::number_of_registers) {
       if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE || type == T_ADDRESS) {
         locationType = Location::int_in_long;
@@ -239,9 +252,9 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
       return value;
 #else
 #ifdef TARGET_ARCH_sparc
-      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_FloatRegister(number)->as_VMReg()));
+      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_FloatRegister(encoding)->as_VMReg()));
       if (type == T_DOUBLE) {
-        second = value;
+        second = new ConstantIntValue(0);
       }
       return value;
 #else

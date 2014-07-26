@@ -232,6 +232,7 @@ void graal_compute_offsets();
   end_class                                                                                                                                                    \
   start_class(code_Register)                                                                                                                                   \
     int_field(code_Register, number)                                                                                                                           \
+    int_field(code_Register, encoding)                                                                                                                         \
   end_class                                                                                                                                                    \
   start_class(StackSlot)                                                                                                                                       \
     int_field(StackSlot, offset)                                                                                                                               \
