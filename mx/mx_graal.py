@@ -484,17 +484,28 @@ def _updateInstalledGraalOptionsFile(jdk):
         if exists(toDelete):
             os.unlink(toDelete)
 
+def _graalRuntime_inline_hpp_path():
+    hsSrcGenDir = join(mx.project('com.oracle.graal.hotspot').source_gen_dir(), 'hotspot')
+    if not exists(hsSrcGenDir):
+        os.makedirs(hsSrcGenDir)
+    return join(hsSrcGenDir, 'graalRuntime.inline.hpp')
+
 def _update_graalRuntime_inline_hpp(graalJar):
     p = mx.project('com.oracle.graal.hotspot.sourcegen')
     mainClass = 'com.oracle.graal.hotspot.sourcegen.GenGraalRuntimeInlineHpp'
     if exists(join(p.output_dir(), mainClass.replace('.', os.sep) + '.class')):
-        hsSrcGenDir = join(mx.project('com.oracle.graal.hotspot').source_gen_dir(), 'hotspot')
-        if not exists(hsSrcGenDir):
-            os.makedirs(hsSrcGenDir)
-
+        graalRuntime_inline_hpp = _graalRuntime_inline_hpp_path()
         tmp = StringIO.StringIO()
         mx.run_java(['-cp', '{}{}{}'.format(graalJar, os.pathsep, p.output_dir()), mainClass], out=tmp.write)
-        mx.update_file(join(hsSrcGenDir, 'graalRuntime.inline.hpp'), tmp.getvalue())
+        mx.update_file(graalRuntime_inline_hpp, tmp.getvalue())
+
+def _check_graalRuntime_inline_hpp_upToDate(jdk, vm, bld):
+    if isGraalEnabled(vm):
+        hpp = _graalRuntime_inline_hpp_path()
+        vmLib = mx.TimeStampFile(join(_vmLibDirInJdk(jdk), vm, mx.add_lib_prefix(mx.add_lib_suffix('jvm'))))
+        if vmLib.isOlderThan(hpp):
+            mx.log('The VM ' + vmLib.path + ' is older than ' + hpp)
+            mx.abort('You need to run "mx --vm ' + vm + ' --vmbuild ' + bld + ' build"')
 
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
@@ -885,6 +896,7 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
     jdk = _jdk(build, vmToCheck=vm, installGraalJar=False)
     _updateInstalledGraalOptionsFile(jdk)
+    _check_graalRuntime_inline_hpp_upToDate(jdk, vm, build)
     mx.expand_project_in_args(args)
     if _make_eclipse_launch:
         mx.make_eclipse_launch(args, 'graal-' + build, name=None, deps=mx.project('com.oracle.graal.hotspot').all_deps([], True))
