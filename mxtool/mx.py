@@ -487,7 +487,17 @@ def _make_absolute(path, prefix):
         return join(prefix, path)
     return path
 
-def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False):
+def sha1OfFile(path):
+    with open(path, 'rb') as f:
+        d = hashlib.sha1()
+        while True:
+            buf = f.read(4096)
+            if not buf:
+                break
+            d.update(buf)
+        return d.hexdigest()
+
+def download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False):
     def _download_lib():
         cacheDir = get_env('MX_CACHE_DIR', join(_opts.user_home, '.mx', 'cache'))
         if not exists(cacheDir):
@@ -495,7 +505,7 @@ def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExis
         base = basename(path)
         cachePath = join(cacheDir, base + '_' + sha1)
 
-        if not exists(cachePath) or _sha1OfFile(cachePath) != sha1:
+        if not exists(cachePath) or sha1OfFile(cachePath) != sha1:
             if exists(cachePath):
                 log('SHA1 of ' + cachePath + ' does not match expected value (' + sha1 + ') - re-downloading')
             print 'Downloading ' + ("sources " if sources else "") + name + ' from ' + str(urls)
@@ -505,6 +515,8 @@ def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExis
         if d != '' and not exists(d):
             os.makedirs(d)
         if 'symlink' in dir(os):
+            if exists(path):
+                os.unlink(path)
             os.symlink(cachePath, path)
         else:
             shutil.copy(cachePath, path)
@@ -515,30 +527,21 @@ def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExis
 
     def _writeSha1Cached():
         with open(sha1path, 'w') as f:
-            f.write(_sha1OfFile(path))
-
-    def _sha1OfFile(path):
-        with open(path, 'rb') as f:
-            d = hashlib.sha1()
-            while True:
-                buf = f.read(4096)
-                if not buf:
-                    break
-                d.update(buf)
-            return d.hexdigest()
+            f.write(sha1OfFile(path))
 
     if resolve and mustExist and not exists(path):
         assert not len(urls) == 0, 'cannot find required library ' + name + ' ' + path
         _download_lib()
 
-    if sha1 and not exists(sha1path):
-        _writeSha1Cached()
+    if exists(path):
+        if sha1 and not exists(sha1path):
+            _writeSha1Cached()
 
-    if sha1 and sha1 != _sha1Cached():
-        _download_lib()
-        if sha1 != _sha1OfFile(path):
-            abort("SHA1 does not match for " + name + ". Broken download? SHA1 not updated in projects file?")
-        _writeSha1Cached()
+        if sha1 and sha1 != _sha1Cached():
+            _download_lib()
+            if sha1 != sha1OfFile(path):
+                abort("SHA1 does not match for " + name + ". Broken download? SHA1 not updated in projects file?")
+            _writeSha1Cached()
 
     return path
 
@@ -604,12 +607,26 @@ class Library(BaseLibrary):
         self.sha1 = sha1
         self.sourcePath = sourcePath
         self.sourceUrls = sourceUrls
+        if sourcePath == path:
+            assert sourceSha1 is None or sourceSha1 == sha1
+            sourceSha1 = sha1
         self.sourceSha1 = sourceSha1
         self.deps = deps
-        abspath = _make_absolute(self.path, self.suite.dir)
+        abspath = _make_absolute(path, self.suite.dir)
         if not optional and not exists(abspath):
             if not len(urls):
                 abort('Non-optional library {} must either exist at {} or specify one or more URLs from which it can be retrieved'.format(name, abspath))
+
+        def _checkSha1PropertyCondition(propName, cond, inputPath):
+            if not cond:
+                absInputPath = _make_absolute(inputPath, self.suite.dir)
+                if exists(absInputPath):
+                    abort('Missing "{}" property for library {}. Add the following line to projects file:\nlibrary@{}@{}={}'.format(propName, name, name, propName, sha1OfFile(absInputPath)))
+                abort('Missing "{}" property for library {}'.format(propName, name))
+
+        _checkSha1PropertyCondition('sha1', sha1, path)
+        _checkSha1PropertyCondition('sourceSha1', not sourcePath or sourceSha1, sourcePath)
+
         for url in urls:
             if url.endswith('/') != self.path.endswith(os.sep):
                 abort('Path for dependency directory must have a URL ending with "/": path=' + self.path + ' url=' + url)
@@ -631,7 +648,7 @@ class Library(BaseLibrary):
         if includedInJDK and java().javaCompliance >= JavaCompliance(includedInJDK):
             return None
 
-        return _download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, not self.optional)
+        return download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, not self.optional)
 
     def get_source_path(self, resolve):
         if self.sourcePath is None:
@@ -639,7 +656,7 @@ class Library(BaseLibrary):
         path = _make_absolute(self.sourcePath, self.suite.dir)
         sha1path = path + '.sha1'
 
-        return _download_file_with_sha1(self.name, path, self.sourceUrls, self.sourceSha1, sha1path, resolve, len(self.sourceUrls) != 0, sources=True)
+        return download_file_with_sha1(self.name, path, self.sourceUrls, self.sourceSha1, sha1path, resolve, len(self.sourceUrls) != 0, sources=True)
 
     def append_to_classpath(self, cp, resolve):
         path = self.get_path(resolve)

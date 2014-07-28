@@ -1481,10 +1481,14 @@ def c1visualizer(args):
     else:
         executable = join(libpath, 'c1visualizer', 'bin', 'c1visualizer')
 
-    archive = join(libpath, 'c1visualizer_2014-04-22.zip')
-    if not exists(executable) or not exists(archive):
-        if not exists(archive):
-            mx.download(archive, ['https://java.net/downloads/c1visualizer/c1visualizer_2014-04-22.zip'])
+    # Check whether the current C1Visualizer installation is the up-to-date
+    if exists(executable) and not exists(mx.library('C1VISUALIZER_DIST').get_path(resolve=False)):
+        mx.log('Updating C1Visualizer')
+        shutil.rmtree(join(libpath, 'c1visualizer'))
+
+    archive = mx.library('C1VISUALIZER_DIST').get_path(resolve=True)
+
+    if not exists(executable):
         zf = zipfile.ZipFile(archive, 'r')
         zf.extractall(libpath)
 
@@ -1827,8 +1831,20 @@ def hsdis(args, copyToDir=None):
         flavor = 'att'
     lib = mx.add_lib_suffix('hsdis-' + _arch())
     path = join(_graal_home, 'lib', lib)
+
+    sha1s = {
+        'att/hsdis-amd64.dll' : 'bcbd535a9568b5075ab41e96205e26a2bac64f72',
+        'att/hsdis-amd64.so' : '58919ba085d4ef7a513f25bae75e7e54ee73c049',
+        'intel/hsdis-amd64.dll' : '6a388372cdd5fe905c1a26ced614334e405d1f30',
+        'intel/hsdis-amd64.so' : '844ed9ffed64fe9599638f29a8450c50140e3192',
+        'intel/hsdis-amd64.dylib' : 'fdb13ef0d7d23d93dacaae9c98837bea0d4fc5a2',
+    }
+
     if not exists(path):
-        mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavor + "/" + lib])
+        flavoredLib = flavor + "/" + lib
+        sha1 = sha1s[flavoredLib]
+        sha1path = path + '.sha1'
+        mx.download_file_with_sha1('hsdis', path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavoredLib], sha1, sha1path, True, True, sources=False)
     if copyToDir is not None and exists(copyToDir):
         shutil.copy(path, copyToDir)
 
@@ -1844,10 +1860,8 @@ def hcfdis(args):
 
     args = parser.parse_args(args)
 
-    path = join(_graal_home, 'lib', 'hcfdis-1.jar')
-    if not exists(path):
-        mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hcfdis-2.jar'])
-    mx.run_java(['-jar', path] + args.files)
+    path = mx.library('HCFDIS').get_path(resolve=True)
+    mx.run_java(['-cp', path, 'com.oracle.max.hcfdis.HexCodeFileDis'] + args.files)
 
     if args.map is not None:
         addressRE = re.compile(r'0[xX]([A-Fa-f0-9]+)')
@@ -1904,11 +1918,7 @@ def isGraalEnabled(vm):
 
 def jol(args):
     """Java Object Layout"""
-    jolurl = "http://lafo.ssw.uni-linz.ac.at/truffle/jol/jol-internals.jar"
-    joljar = "lib/jol-internals.jar"
-    if not exists(joljar):
-        mx.download(joljar, [jolurl])
-
+    joljar = mx.library('JOL_INTERNALS').get_path(resolve=True)
     candidates = mx.findclass(args, logToConsole=False, matcher=lambda s, classname: s == classname or classname.endswith('.' + s) or classname.endswith('$' + s))
     if len(candidates) > 10:
         print "Found %d candidates. Please be more precise." % (len(candidates))
@@ -2054,8 +2064,7 @@ def findbugs(args):
         if not exists(findbugsLib):
             tmp = tempfile.mkdtemp(prefix='findbugs-download-tmp', dir=_graal_home)
             try:
-                findbugsDist = join(tmp, 'findbugs.zip')
-                mx.download(findbugsDist, ['http://lafo.ssw.uni-linz.ac.at/graal-external-deps/findbugs-3.0.0.zip', 'http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0.zip'])
+                findbugsDist = mx.library('FINDBUGS_DIST').get_path(resolve=True)
                 with zipfile.ZipFile(findbugsDist) as zf:
                     candidates = [e for e in zf.namelist() if e.endswith('/lib/findbugs.jar')]
                     assert len(candidates) == 1, candidates
