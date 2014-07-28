@@ -489,8 +489,25 @@ def _make_absolute(path, prefix):
 
 def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False):
     def _download_lib():
-        print 'Downloading ' + ("Sources " if sources else "") + name + ' from ' + str(urls)
-        download(path, urls)
+        cacheDir = get_env('MX_CACHE_DIR', join(_opts.user_home, '.mx', 'cache'))
+        if not exists(cacheDir):
+            os.makedirs(cacheDir)
+        base = basename(path)
+        cachePath = join(cacheDir, base + '_' + sha1)
+
+        if not exists(cachePath) or _sha1OfFile(cachePath) != sha1:
+            if exists(cachePath):
+                log('SHA1 of ' + cachePath + ' does not match expected value (' + sha1 + ') - re-downloading')
+            print 'Downloading ' + ("sources " if sources else "") + name + ' from ' + str(urls)
+            download(cachePath, urls)
+
+        d = dirname(path)
+        if d != '' and not exists(d):
+            os.makedirs(d)
+        if 'symlink' in dir(os):
+            os.symlink(cachePath, path)
+        else:
+            shutil.copy(cachePath, path)
 
     def _sha1Cached():
         with open(sha1path, 'r') as f:
@@ -498,9 +515,9 @@ def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExis
 
     def _writeSha1Cached():
         with open(sha1path, 'w') as f:
-            f.write(_sha1OfFile())
+            f.write(_sha1OfFile(path))
 
-    def _sha1OfFile():
+    def _sha1OfFile(path):
         with open(path, 'rb') as f:
             d = hashlib.sha1()
             while True:
@@ -519,7 +536,7 @@ def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExis
 
     if sha1 and sha1 != _sha1Cached():
         _download_lib()
-        if sha1 != _sha1OfFile():
+        if sha1 != _sha1OfFile(path):
             abort("SHA1 does not match for " + name + ". Broken download? SHA1 not updated in projects file?")
         _writeSha1Cached()
 
