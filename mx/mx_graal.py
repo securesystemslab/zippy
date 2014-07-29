@@ -491,20 +491,17 @@ def _makeHotspotGeneratedSourcesDir():
     return hsSrcGenDir
 
 
-def _graalRuntime_inline_hpp_path():
-    return join(_makeHotspotGeneratedSourcesDir(), 'graalRuntime.inline.hpp')
-
 def _update_graalRuntime_inline_hpp(graalJar):
     p = mx.project('com.oracle.graal.hotspot.sourcegen')
     mainClass = 'com.oracle.graal.hotspot.sourcegen.GenGraalRuntimeInlineHpp'
     if exists(join(p.output_dir(), mainClass.replace('.', os.sep) + '.class')):
-        graalRuntime_inline_hpp = _graalRuntime_inline_hpp_path()
+        graalRuntime_inline_hpp = join(_makeHotspotGeneratedSourcesDir(), 'graalRuntime.inline.hpp')
         tmp = StringIO.StringIO()
         mx.run_java(['-cp', '{}{}{}'.format(graalJar, os.pathsep, p.output_dir()), mainClass], out=tmp.write)
         mx.update_file(graalRuntime_inline_hpp, tmp.getvalue())
 
 def _checkVMIsNewerThanGeneratedSources(jdk, vm, bld):
-    if isGraalEnabled(vm):
+    if isGraalEnabled(vm) and (not _installed_jdks or _installed_jdks == _graal_home):
         vmLib = mx.TimeStampFile(join(_vmLibDirInJdk(jdk), vm, mx.add_lib_prefix(mx.add_lib_suffix('jvm'))))
         for name in ['graalRuntime.inline.hpp', 'HotSpotVMConfig.inline.hpp']:
             genSrc = join(_makeHotspotGeneratedSourcesDir(), name)
@@ -1071,7 +1068,7 @@ def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, ena
             graalDist = mx.distribution('GRAAL')
             graalJarCp = set([d.output_dir() for d in graalDist.sorted_deps()])
             cp = os.pathsep.join([e for e in cp.split(os.pathsep) if e not in graalJarCp])
-            vmArgs = vmArgs + ['-XX:-UseGraalClassLoader']
+            vmArgs = ['-XX:-UseGraalClassLoader'] + vmArgs
 
         if len(testclasses) == 1:
             # Execute Junit directly when one test is being run. This simplifies
