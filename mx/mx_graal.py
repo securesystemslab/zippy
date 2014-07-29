@@ -1545,6 +1545,9 @@ def bench(args):
     if 'python-nopeeling' in args:
         benchmarks += sanitycheck.getPythonBenchmarksNoPeeling(vm)
 
+    if 'python-profiler' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm)
+
     if 'cpython2' in args:
         benchmarks += sanitycheck.getPython2Benchmarks(vm)
         vm = 'cpython2'

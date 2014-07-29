@@ -449,13 +449,13 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
             return false;
         }
 
-        protected static boolean isEmptyDict(@SuppressWarnings("unused") Object first, PDict dict) {
-            return dict.len() == 0;
-        }
-
         @Specialization(order = 11)
         public boolean doPDictionary(Object left, PDict right) {
             return right.hasKey(left);
+        }
+
+        protected static boolean isEmptyDict(@SuppressWarnings("unused") Object first, PDict dict) {
+            return dict.len() == 0;
         }
     }
 

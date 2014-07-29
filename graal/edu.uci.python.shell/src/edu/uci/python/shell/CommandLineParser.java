@@ -69,6 +69,15 @@ public class CommandLineParser {
                 continue;
             }
 
+            if (arg.equals("-profile")) {
+                PythonOptions.ProfileCalls = true;
+                PythonOptions.ProfileLoops = true;
+                PythonOptions.ProfileIfs = true;
+                PythonOptions.ProfileNodes = true;
+                PythonOptions.SortProfilerResults = true;
+                continue;
+            }
+
             if (arg.equals("-profile-calls")) {
                 PythonOptions.ProfileCalls = true;
                 continue;

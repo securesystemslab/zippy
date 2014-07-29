@@ -455,6 +455,18 @@ def getPythonBenchmarksNoPeeling(vm):
 
     return tests
 
+def getPythonBenchmarksProfiling(vm):
+    success, error, matcher = getSuccessErrorMatcher()
+    benchmarks = pythonGeneratorBenchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, "-profile"]
+        vmOpts = ['-Xms2g', '-Xmx2g']
+        tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+
+    return tests
+
 def getPython2Benchmarks(vm):
     success, error, matcher = getSuccessErrorMatcher()
     benchmarks = python2Benchmarks
