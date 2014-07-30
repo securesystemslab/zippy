@@ -793,16 +793,25 @@ def build(args, vm=None):
             else:
                 # extract latest release tag for graal
                 try:
-                    tags = [x.split(' ')[0] for x in subprocess.check_output(['hg', '-R', _graal_home, 'tags']).split('\n') if x.startswith("graal-")]
+                    tags = [x.split() for x in subprocess.check_output(['hg', '-R', _graal_home, 'tags']).split('\n') if x.startswith("graal-")]
+                    current_revision = subprocess.check_output(['hg', '-R', _graal_home, 'id', '-i']).strip()
                 except:
                     # not a mercurial repository or hg commands are not available.
                     tags = None
 
-                if tags:
-                    # extract the most recent tag
-                    tag = sorted(tags, key=lambda e: [int(x) for x in e[len("graal-"):].split('.')], reverse=True)[0]
-                    setMakeVar('USER_RELEASE_SUFFIX', tag)
-                    setMakeVar('GRAAL_VERSION', tag[len("graal-"):])
+                if tags and current_revision:
+                    sorted_tags = sorted(tags, key=lambda e: [int(x) for x in e[0][len("graal-"):].split('.')], reverse=True)
+                    most_recent_tag_name, most_recent_tag_revision = sorted_tags[0]
+                    most_recent_tag_version = most_recent_tag_name[len("graal-"):]
+                    
+                    if current_revision == most_recent_tag_revision:
+                        version = most_recent_tag_version
+                    else:
+                        major, minor = map(int, most_recent_tag_version.split('.'))
+                        version = str(major) + '.' + str(minor + 1) + '-dev'
+                    
+                    setMakeVar('USER_RELEASE_SUFFIX', 'graal-' + version)
+                    setMakeVar('GRAAL_VERSION', version)
                 else:
                     version = 'unknown-{}-{}'.format(platform.node(), time.strftime('%Y-%m-%d_%H-%M-%S_%Z'))
                     setMakeVar('USER_RELEASE_SUFFIX', 'graal-' + version)
