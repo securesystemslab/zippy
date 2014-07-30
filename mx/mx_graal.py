@@ -803,13 +803,13 @@ def build(args, vm=None):
                     sorted_tags = sorted(tags, key=lambda e: [int(x) for x in e[0][len("graal-"):].split('.')], reverse=True)
                     most_recent_tag_name, most_recent_tag_revision = sorted_tags[0]
                     most_recent_tag_version = most_recent_tag_name[len("graal-"):]
-                    
+
                     if current_revision == most_recent_tag_revision:
                         version = most_recent_tag_version
                     else:
                         major, minor = map(int, most_recent_tag_version.split('.'))
                         version = str(major) + '.' + str(minor + 1) + '-dev'
-                    
+
                     setMakeVar('USER_RELEASE_SUFFIX', 'graal-' + version)
                     setMakeVar('GRAAL_VERSION', version)
                 else:
