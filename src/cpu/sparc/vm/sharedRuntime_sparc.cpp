@@ -3567,33 +3567,6 @@ void SharedRuntime::generate_deopt_blob() {
   // Restore G2_thread
   __ get_thread();
 
-#ifdef GRAAL
-  // load throwing pc from JavaThread and patch it as the return address
-  // of the current frame. Then clear the field in JavaThread
-  __ block_comment("load throwing pc and patch return");
-  Address exception_pc(G2_thread, JavaThread::exception_pc_offset());
-  Label has_no_pc;
-  // TODO: Remove this weird check if we should patch the return pc
-  // This is because when graal decides to deoptimize and the ExceptionHandlerStub.java
-  // jumps back to this code and the I7 register contains the pc pointing to the begin
-  // of this code. If this is the case (PC within a certain range) then we need to patch
-  // the return pc.
-  // THIS NEEDS REWORK! (sa)
-  __ rdpc(L0);
-  __ sub(L0, I7, L0);
-  __ cmp(L0, 0xFFF);
-  __ br(Assembler::greater, false, Assembler::pt, has_no_pc);
-  __ delayed() -> nop();
-  __ cmp(L0, -0xFFF);
-  __ br(Assembler::less, false, Assembler::pt, has_no_pc);
-  __ delayed() -> nop();
-  __ ld_ptr(exception_pc, I7);
-  __ sub(I7, 8, I7);
-  __ st_ptr(G0, exception_pc);
-  __ bind(has_no_pc);
-  __ block_comment("/load throwing pc and patch return");
-#endif // GAAL
-
 #ifdef ASSERT
   {
     // verify that there is really an exception oop in exception_oop
