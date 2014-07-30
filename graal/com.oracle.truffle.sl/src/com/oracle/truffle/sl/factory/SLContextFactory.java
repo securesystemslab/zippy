@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,28 +20,31 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.lir;
+package com.oracle.truffle.sl.factory;
 
-import com.oracle.graal.api.code.*;
-import com.oracle.graal.lir.asm.*;
+import java.io.*;
 
-/**
- * Emits an infopoint (only mark the position).
- */
-@Opcode("INFOPOINT")
-public class InfopointOp extends LIRInstruction {
+import com.oracle.truffle.sl.nodes.instrument.*;
+import com.oracle.truffle.sl.runtime.*;
 
-    @State protected LIRFrameState state;
+public final class SLContextFactory {
 
-    private final InfopointReason reason;
+    private static SLASTProber astProber;
 
-    public InfopointOp(LIRFrameState state, InfopointReason reason) {
-        this.state = state;
-        this.reason = reason;
+    private SLContextFactory() {
+
     }
 
-    @Override
-    public void emitCode(CompilationResultBuilder crb) {
-        crb.recordInfopoint(crb.asm.position(), state, reason);
+    public static SLContext create() {
+        final SLContext slContext = new SLContext(new BufferedReader(new InputStreamReader(System.in)), System.out);
+        slContext.initialize();
+        slContext.setVisualizer(new SLDefaultVisualizer());
+        astProber = new SLASTProber();
+        slContext.setASTNodeProber(astProber);
+        return slContext;
+    }
+
+    public static void addNodeProber(SLNodeProber nodeProber) {
+        astProber.addNodeProber(nodeProber);
     }
 }

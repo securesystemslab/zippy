@@ -204,6 +204,7 @@ class Ticks;
   GRAAL_ONLY(do_klass(HotSpotResolvedJavaMethod_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedJavaMethod,      Graal)) \
   GRAAL_ONLY(do_klass(HotSpotResolvedObjectType_klass,       com_oracle_graal_hotspot_meta_HotSpotResolvedObjectType,      Graal)) \
   GRAAL_ONLY(do_klass(HotSpotMonitorValue_klass,             com_oracle_graal_hotspot_meta_HotSpotMonitorValue,            Graal)) \
+  GRAAL_ONLY(do_klass(HotSpotCompressedNullConstant_klass,   com_oracle_graal_hotspot_meta_HotSpotCompressedNullConstant,  Graal)) \
   GRAAL_ONLY(do_klass(HotSpotObjectConstant_klass,           com_oracle_graal_hotspot_meta_HotSpotObjectConstant,          Graal)) \
   GRAAL_ONLY(do_klass(HotSpotMetaspaceConstant_klass,        com_oracle_graal_hotspot_meta_HotSpotMetaspaceConstant,       Graal)) \
   GRAAL_ONLY(do_klass(HotSpotStackFrameReference_klass,      com_oracle_graal_hotspot_HotSpotStackFrameReference,          Graal)) \
@@ -238,6 +239,7 @@ class Ticks;
   GRAAL_ONLY(do_klass(NullConstant_klass,                    com_oracle_graal_api_meta_NullConstant,                       Graal)) \
   GRAAL_ONLY(do_klass(ExceptionHandler_klass,                com_oracle_graal_api_meta_ExceptionHandler,                   Graal)) \
   GRAAL_ONLY(do_klass(Kind_klass,                            com_oracle_graal_api_meta_Kind,                               Graal)) \
+  GRAAL_ONLY(do_klass(LIRKind_klass,                         com_oracle_graal_api_meta_LIRKind,                            Graal)) \
   GRAAL_ONLY(do_klass(JavaMethod_klass,                      com_oracle_graal_api_meta_JavaMethod,                         Graal)) \
   GRAAL_ONLY(do_klass(JavaType_klass,                        com_oracle_graal_api_meta_JavaType,                           Graal)) \
   GRAAL_ONLY(do_klass(Value_klass,                           com_oracle_graal_api_meta_Value,                              Graal)) \

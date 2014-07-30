@@ -484,17 +484,30 @@ def _updateInstalledGraalOptionsFile(jdk):
         if exists(toDelete):
             os.unlink(toDelete)
 
+def _makeHotspotGeneratedSourcesDir():
+    hsSrcGenDir = join(mx.project('com.oracle.graal.hotspot').source_gen_dir(), 'hotspot')
+    if not exists(hsSrcGenDir):
+        os.makedirs(hsSrcGenDir)
+    return hsSrcGenDir
+
+
 def _update_graalRuntime_inline_hpp(graalJar):
     p = mx.project('com.oracle.graal.hotspot.sourcegen')
     mainClass = 'com.oracle.graal.hotspot.sourcegen.GenGraalRuntimeInlineHpp'
     if exists(join(p.output_dir(), mainClass.replace('.', os.sep) + '.class')):
-        hsSrcGenDir = join(mx.project('com.oracle.graal.hotspot').source_gen_dir(), 'hotspot')
-        if not exists(hsSrcGenDir):
-            os.makedirs(hsSrcGenDir)
-
+        graalRuntime_inline_hpp = join(_makeHotspotGeneratedSourcesDir(), 'graalRuntime.inline.hpp')
         tmp = StringIO.StringIO()
         mx.run_java(['-cp', '{}{}{}'.format(graalJar, os.pathsep, p.output_dir()), mainClass], out=tmp.write)
-        mx.update_file(join(hsSrcGenDir, 'graalRuntime.inline.hpp'), tmp.getvalue())
+        mx.update_file(graalRuntime_inline_hpp, tmp.getvalue())
+
+def _checkVMIsNewerThanGeneratedSources(jdk, vm, bld):
+    if isGraalEnabled(vm) and (not _installed_jdks or _installed_jdks == _graal_home):
+        vmLib = mx.TimeStampFile(join(_vmLibDirInJdk(jdk), vm, mx.add_lib_prefix(mx.add_lib_suffix('jvm'))))
+        for name in ['graalRuntime.inline.hpp', 'HotSpotVMConfig.inline.hpp']:
+            genSrc = join(_makeHotspotGeneratedSourcesDir(), name)
+            if vmLib.isOlderThan(genSrc):
+                mx.log('The VM ' + vmLib.path + ' is older than ' + genSrc)
+                mx.abort('You need to run "mx --vm ' + vm + ' --vmbuild ' + bld + ' build"')
 
 def _installGraalJarInJdks(graalDist):
     graalJar = graalDist.path
@@ -617,6 +630,35 @@ def buildvars(args):
 
     mx.log('')
     mx.log('Note that these variables can be given persistent values in the file ' + join(_graal_home, 'mx', 'env') + ' (see \'mx about\').')
+
+cached_graal_version = None
+
+def graal_version(dev_suffix='dev'):
+    global cached_graal_version
+
+    if not cached_graal_version:
+        # extract latest release tag for graal
+        try:
+            tags = [x.split() for x in subprocess.check_output(['hg', '-R', _graal_home, 'tags']).split('\n') if x.startswith("graal-")]
+            current_revision = subprocess.check_output(['hg', '-R', _graal_home, 'id', '-i']).strip()
+        except:
+            # not a mercurial repository or hg commands are not available.
+            tags = None
+
+        if tags and current_revision:
+            sorted_tags = sorted(tags, key=lambda e: [int(x) for x in e[0][len("graal-"):].split('.')], reverse=True)
+            most_recent_tag_name, most_recent_tag_revision = sorted_tags[0]
+            most_recent_tag_version = most_recent_tag_name[len("graal-"):]
+
+            if current_revision == most_recent_tag_revision:
+                cached_graal_version = most_recent_tag_version
+            else:
+                major, minor = map(int, most_recent_tag_version.split('.'))
+                cached_graal_version = str(major) + '.' + str(minor + 1) + '-' + dev_suffix
+        else:
+            cached_graal_version = 'unknown-{}-{}'.format(platform.node(), time.strftime('%Y-%m-%d_%H-%M-%S_%Z'))
+
+    return cached_graal_version
 
 def build(args, vm=None):
     """build the VM binary
@@ -778,22 +820,9 @@ def build(args, vm=None):
                 setMakeVar('INCLUDE_GRAAL', 'false')
                 setMakeVar('ALT_OUTPUTDIR', join(_graal_home, 'build-nograal', mx.get_os()), env=env)
             else:
-                # extract latest release tag for graal
-                try:
-                    tags = [x.split(' ')[0] for x in subprocess.check_output(['hg', '-R', _graal_home, 'tags']).split('\n') if x.startswith("graal-")]
-                except:
-                    # not a mercurial repository or hg commands are not available.
-                    tags = None
-
-                if tags:
-                    # extract the most recent tag
-                    tag = sorted(tags, key=lambda e: [int(x) for x in e[len("graal-"):].split('.')], reverse=True)[0]
-                    setMakeVar('USER_RELEASE_SUFFIX', tag)
-                    setMakeVar('GRAAL_VERSION', tag[len("graal-"):])
-                else:
-                    version = 'unknown-{}-{}'.format(platform.node(), time.strftime('%Y-%m-%d_%H-%M-%S_%Z'))
-                    setMakeVar('USER_RELEASE_SUFFIX', 'graal-' + version)
-                    setMakeVar('GRAAL_VERSION', version)
+                version = graal_version()
+                setMakeVar('USER_RELEASE_SUFFIX', 'graal-' + version)
+                setMakeVar('GRAAL_VERSION', version)
                 setMakeVar('INCLUDE_GRAAL', 'true')
             setMakeVar('INSTALL', 'y', env=env)
             if mx.get_os() == 'solaris':
@@ -885,6 +914,7 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
     jdk = _jdk(build, vmToCheck=vm, installGraalJar=False)
     _updateInstalledGraalOptionsFile(jdk)
+    _checkVMIsNewerThanGeneratedSources(jdk, vm, build)
     mx.expand_project_in_args(args)
     if _make_eclipse_launch:
         mx.make_eclipse_launch(args, 'graal-' + build, name=None, deps=mx.project('com.oracle.graal.hotspot').all_deps([], True))
@@ -1054,7 +1084,7 @@ def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, ena
             graalDist = mx.distribution('GRAAL')
             graalJarCp = set([d.output_dir() for d in graalDist.sorted_deps()])
             cp = os.pathsep.join([e for e in cp.split(os.pathsep) if e not in graalJarCp])
-            vmArgs = vmArgs + ['-XX:-UseGraalClassLoader']
+            vmArgs = ['-XX:-UseGraalClassLoader'] + vmArgs
 
         if len(testclasses) == 1:
             # Execute Junit directly when one test is being run. This simplifies
@@ -1473,6 +1503,12 @@ def igv(args):
             mx.logv('[This execution may take a while as the NetBeans platform needs to be downloaded]')
         mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'], env=env)
 
+def install(args):
+    """install Truffle into your local Maven repository"""
+    mx.archive(["@TRUFFLE"])
+    mx.run(['mvn', 'install:install-file', '-DgroupId=com.oracle', '-DartifactId=truffle', '-Dversion=' + graal_version('SNAPSHOT'), '-Dpackaging=jar', '-Dfile=truffle.jar'])
+    mx.run(['mvn', 'install:install-file', '-DgroupId=com.oracle', '-DartifactId=truffle-dsl-processor', '-Dversion=' + graal_version('SNAPSHOT'), '-Dpackaging=jar', '-Dfile=truffle-dsl-processor.jar'])
+
 def c1visualizer(args):
     """run the Cl Compiler Visualizer"""
     libpath = join(_graal_home, 'lib')
@@ -1481,10 +1517,14 @@ def c1visualizer(args):
     else:
         executable = join(libpath, 'c1visualizer', 'bin', 'c1visualizer')
 
-    archive = join(libpath, 'c1visualizer_2014-04-22.zip')
-    if not exists(executable) or not exists(archive):
-        if not exists(archive):
-            mx.download(archive, ['https://java.net/downloads/c1visualizer/c1visualizer_2014-04-22.zip'])
+    # Check whether the current C1Visualizer installation is the up-to-date
+    if exists(executable) and not exists(mx.library('C1VISUALIZER_DIST').get_path(resolve=False)):
+        mx.log('Updating C1Visualizer')
+        shutil.rmtree(join(libpath, 'c1visualizer'))
+
+    archive = mx.library('C1VISUALIZER_DIST').get_path(resolve=True)
+
+    if not exists(executable):
         zf = zipfile.ZipFile(archive, 'r')
         zf.extractall(libpath)
 
@@ -1827,8 +1867,20 @@ def hsdis(args, copyToDir=None):
         flavor = 'att'
     lib = mx.add_lib_suffix('hsdis-' + _arch())
     path = join(_graal_home, 'lib', lib)
+
+    sha1s = {
+        'att/hsdis-amd64.dll' : 'bcbd535a9568b5075ab41e96205e26a2bac64f72',
+        'att/hsdis-amd64.so' : '58919ba085d4ef7a513f25bae75e7e54ee73c049',
+        'intel/hsdis-amd64.dll' : '6a388372cdd5fe905c1a26ced614334e405d1f30',
+        'intel/hsdis-amd64.so' : '844ed9ffed64fe9599638f29a8450c50140e3192',
+        'intel/hsdis-amd64.dylib' : 'fdb13ef0d7d23d93dacaae9c98837bea0d4fc5a2',
+    }
+
     if not exists(path):
-        mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavor + "/" + lib])
+        flavoredLib = flavor + "/" + lib
+        sha1 = sha1s[flavoredLib]
+        sha1path = path + '.sha1'
+        mx.download_file_with_sha1('hsdis', path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavoredLib], sha1, sha1path, True, True, sources=False)
     if copyToDir is not None and exists(copyToDir):
         shutil.copy(path, copyToDir)
 
@@ -1844,10 +1896,8 @@ def hcfdis(args):
 
     args = parser.parse_args(args)
 
-    path = join(_graal_home, 'lib', 'hcfdis-1.jar')
-    if not exists(path):
-        mx.download(path, ['http://lafo.ssw.uni-linz.ac.at/hcfdis-2.jar'])
-    mx.run_java(['-jar', path] + args.files)
+    path = mx.library('HCFDIS').get_path(resolve=True)
+    mx.run_java(['-cp', path, 'com.oracle.max.hcfdis.HexCodeFileDis'] + args.files)
 
     if args.map is not None:
         addressRE = re.compile(r'0[xX]([A-Fa-f0-9]+)')
@@ -1904,11 +1954,7 @@ def isGraalEnabled(vm):
 
 def jol(args):
     """Java Object Layout"""
-    jolurl = "http://lafo.ssw.uni-linz.ac.at/truffle/jol/jol-internals.jar"
-    joljar = "lib/jol-internals.jar"
-    if not exists(joljar):
-        mx.download(joljar, [jolurl])
-
+    joljar = mx.library('JOL_INTERNALS').get_path(resolve=True)
     candidates = mx.findclass(args, logToConsole=False, matcher=lambda s, classname: s == classname or classname.endswith('.' + s) or classname.endswith('$' + s))
     if len(candidates) > 10:
         print "Found %d candidates. Please be more precise." % (len(candidates))
@@ -2054,8 +2100,7 @@ def findbugs(args):
         if not exists(findbugsLib):
             tmp = tempfile.mkdtemp(prefix='findbugs-download-tmp', dir=_graal_home)
             try:
-                findbugsDist = join(tmp, 'findbugs.zip')
-                mx.download(findbugsDist, ['http://lafo.ssw.uni-linz.ac.at/graal-external-deps/findbugs-3.0.0.zip', 'http://sourceforge.net/projects/findbugs/files/findbugs/3.0.0/findbugs-3.0.0.zip'])
+                findbugsDist = mx.library('FINDBUGS_DIST').get_path(resolve=True)
                 with zipfile.ZipFile(findbugsDist) as zf:
                     candidates = [e for e in zf.namelist() if e.endswith('/lib/findbugs.jar')]
                     assert len(candidates) == 1, candidates
@@ -2123,6 +2168,7 @@ def mx_init(suite):
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
+        'install' : [install, ''],
         'jdkhome': [print_jdkhome, ''],
         'jmh': [jmh, '[VM options] [filters|JMH-args-as-json...]'],
         'dacapo': [dacapo, '[VM options] benchmarks...|"all" [DaCapo options]'],

@@ -41,7 +41,7 @@ public abstract class SLHelloEqualsWorldBuiltin extends SLBuiltinNode {
 
     @Specialization
     public String change() {
-        FrameInstance frameInstance = Truffle.getRuntime().getStackTrace().iterator().next();
+        FrameInstance frameInstance = Truffle.getRuntime().getCallerFrame();
         Frame frame = frameInstance.getFrame(FrameAccess.READ_WRITE, false);
         FrameSlot slot = frame.getFrameDescriptor().findOrAddFrameSlot("hello");
         frame.setObject(slot, "world");

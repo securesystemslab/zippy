@@ -42,4 +42,8 @@ public abstract class SLStatementNode extends Node {
      * Execute this node as as statement, where no return value is necessary.
      */
     public abstract void executeVoid(VirtualFrame frame);
+
+    public SLStatementNode getNonWrapperNode() {
+        return this;
+    }
 }

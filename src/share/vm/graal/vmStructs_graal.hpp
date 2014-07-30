@@ -34,12 +34,14 @@
   nonstatic_field(InstanceKlass, _graal_node_class, oop)                      \
   nonstatic_field(ThreadShadow,  _pending_deoptimization, int)                \
   nonstatic_field(ThreadShadow,  _pending_failed_speculation, oop)            \
+  nonstatic_field(ThreadShadow,  _pending_transfer_to_interpreter, bool)      \
   nonstatic_field(MethodData,    _graal_node_count, int)                      \
 
 #define VM_TYPES_GRAAL(declare_type, declare_toplevel_type)                   \
 
 #define VM_INT_CONSTANTS_GRAAL(declare_constant, declare_preprocessor_constant)                   \
   declare_constant(Deoptimization::Reason_aliasing)                                               \
+  declare_constant(Deoptimization::Reason_transfer_to_interpreter)                                \
   declare_constant(GraalEnv::ok)                                                                  \
   declare_constant(GraalEnv::dependencies_failed)                                                 \
   declare_constant(GraalEnv::cache_full)                                                          \

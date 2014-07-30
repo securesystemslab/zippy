@@ -117,7 +117,6 @@ BasicType GraalRuntime::kindToBasicType(jchar ch) {
     case 'j': return T_LONG;
     case 'd': return T_DOUBLE;
     case 'a': return T_OBJECT;
-    case 'r': return T_ADDRESS;
     case '-': return T_ILLEGAL;
     default:
       fatal(err_msg("unexpected Kind: %c", ch));

@@ -252,53 +252,58 @@ public final class NodeUtil {
 
         private final class NodeIterator implements Iterator<Node> {
             private final Node node;
-            private int fieldIndex;
-            private int arrayIndex;
+            private final int childrenCount;
+            private int index;
 
             protected NodeIterator(Node node) {
                 this.node = node;
+                this.index = 0;
+                this.childrenCount = childrenCount();
+            }
+
+            private int childrenCount() {
+                int nodeCount = childOffsets.length;
+                for (long fieldOffset : childrenOffsets) {
+                    Node[] children = ((Node[]) unsafe.getObject(node, fieldOffset));
+                    if (children != null) {
+                        nodeCount += children.length;
+                    }
+                }
+                return nodeCount;
+            }
+
+            private Node nodeAt(int idx) {
+                int nodeCount = childOffsets.length;
+                if (idx < nodeCount) {
+                    return (Node) unsafe.getObject(node, childOffsets[idx]);
+                } else {
+                    for (long fieldOffset : childrenOffsets) {
+                        Node[] nodeArray = (Node[]) unsafe.getObject(node, fieldOffset);
+                        if (idx < nodeCount + nodeArray.length) {
+                            return nodeArray[idx - nodeCount];
+                        }
+                        nodeCount += nodeArray.length;
+                    }
+                }
+                return null;
             }
 
             private void forward() {
-                if (fieldIndex < childOffsets.length) {
-                    fieldIndex++;
-                } else if (fieldIndex < childOffsets.length + childrenOffsets.length) {
-                    if (arrayIndex + 1 < currentChildrenArrayLength()) {
-                        arrayIndex++;
-                    } else {
-                        arrayIndex = 0;
-                        do {
-                            fieldIndex++;
-                        } while (fieldIndex < childOffsets.length + childrenOffsets.length && currentChildrenArrayLength() == 0);
-                    }
+                if (index < childrenCount) {
+                    index++;
                 }
             }
 
             public boolean hasNext() {
-                return fieldIndex < childOffsets.length || (fieldIndex < childOffsets.length + childrenOffsets.length && arrayIndex < currentChildrenArrayLength());
-            }
-
-            private Node[] currentChildrenArray() {
-                assert fieldIndex >= childOffsets.length && fieldIndex < childOffsets.length + childrenOffsets.length;
-                return (Node[]) unsafe.getObject(node, childrenOffsets[fieldIndex - childOffsets.length]);
-            }
-
-            private int currentChildrenArrayLength() {
-                Node[] childrenArray = currentChildrenArray();
-                return childrenArray != null ? childrenArray.length : 0;
+                return index < childrenCount;
             }
 
             public Node next() {
-                Node next;
-                if (fieldIndex < childOffsets.length) {
-                    next = (Node) unsafe.getObject(node, childOffsets[fieldIndex]);
-                } else if (fieldIndex < childOffsets.length + childrenOffsets.length) {
-                    next = currentChildrenArray()[arrayIndex];
-                } else {
-                    throw new NoSuchElementException();
+                try {
+                    return nodeAt(index);
+                } finally {
+                    forward();
                 }
-                forward();
-                return next;
             }
 
             public void remove() {
@@ -795,20 +800,25 @@ public final class NodeUtil {
                     p.print(" = ");
                     printTree(p, (Node) value, level + 1);
                 } else if (field.getKind() == NodeFieldKind.CHILDREN) {
-                    Node[] children = (Node[]) value;
-                    p.print(" = [");
-                    sep = "";
-                    for (Node child : children) {
-                        p.print(sep);
-                        sep = ", ";
-                        printTree(p, child, level + 1);
-                    }
-                    p.print("]");
+                    printChildren(p, level, value);
                 }
             }
             printNewLine(p, level - 1);
             p.print("}");
         }
+    }
+
+    private static void printChildren(PrintWriter p, int level, Object value) {
+        String sep;
+        Node[] children = (Node[]) value;
+        p.print(" = [");
+        sep = "";
+        for (Node child : children) {
+            p.print(sep);
+            sep = ", ";
+            printTree(p, child, level + 1);
+        }
+        p.print("]");
     }
 
     private static void printNewLine(PrintWriter p, int level) {

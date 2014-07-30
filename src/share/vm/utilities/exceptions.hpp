@@ -65,6 +65,7 @@ class ThreadShadow: public CHeapObj<mtThread> {
   int _pending_deoptimization;
   oop _pending_failed_speculation;
   bool _pending_monitorenter;
+  bool _pending_transfer_to_interpreter;
 #endif
   oop  _pending_exception;                       // Thread has gc actions.
   const char* _exception_file;                   // file information for exception (debugging only)
@@ -100,6 +101,7 @@ class ThreadShadow: public CHeapObj<mtThread> {
   void set_pending_monitorenter(bool b)          { _pending_monitorenter = b; }
   void set_pending_deoptimization(int reason)    { _pending_deoptimization = reason; }
   void set_pending_failed_speculation(oop failed_speculation)    { _pending_failed_speculation = failed_speculation; }
+  void set_pending_transfer_to_interpreter(bool b) { _pending_transfer_to_interpreter = b; }
 #endif
 
   // use THROW whenever possible!
@@ -111,7 +113,7 @@ class ThreadShadow: public CHeapObj<mtThread> {
   ThreadShadow() : _pending_exception(NULL),
                    _exception_file(NULL), _exception_line(0)
 #ifdef GRAAL
-                   , _pending_monitorenter(false), _pending_deoptimization(-1), _pending_failed_speculation(NULL)
+                   , _pending_monitorenter(false), _pending_deoptimization(-1), _pending_failed_speculation(NULL), _pending_transfer_to_interpreter(false)
 #endif
   {}
 };
