@@ -631,6 +631,35 @@ def buildvars(args):
     mx.log('')
     mx.log('Note that these variables can be given persistent values in the file ' + join(_graal_home, 'mx', 'env') + ' (see \'mx about\').')
 
+cached_graal_version = None
+
+def graal_version(dev_suffix='dev'):
+    global cached_graal_version
+
+    if not cached_graal_version:
+        # extract latest release tag for graal
+        try:
+            tags = [x.split() for x in subprocess.check_output(['hg', '-R', _graal_home, 'tags']).split('\n') if x.startswith("graal-")]
+            current_revision = subprocess.check_output(['hg', '-R', _graal_home, 'id', '-i']).strip()
+        except:
+            # not a mercurial repository or hg commands are not available.
+            tags = None
+
+        if tags and current_revision:
+            sorted_tags = sorted(tags, key=lambda e: [int(x) for x in e[0][len("graal-"):].split('.')], reverse=True)
+            most_recent_tag_name, most_recent_tag_revision = sorted_tags[0]
+            most_recent_tag_version = most_recent_tag_name[len("graal-"):]
+
+            if current_revision == most_recent_tag_revision:
+                cached_graal_version = most_recent_tag_version
+            else:
+                major, minor = map(int, most_recent_tag_version.split('.'))
+                cached_graal_version = str(major) + '.' + str(minor + 1) + '-' + dev_suffix
+        else:
+            cached_graal_version = 'unknown-{}-{}'.format(platform.node(), time.strftime('%Y-%m-%d_%H-%M-%S_%Z'))
+
+    return cached_graal_version
+
 def build(args, vm=None):
     """build the VM binary
 
@@ -791,31 +820,9 @@ def build(args, vm=None):
                 setMakeVar('INCLUDE_GRAAL', 'false')
                 setMakeVar('ALT_OUTPUTDIR', join(_graal_home, 'build-nograal', mx.get_os()), env=env)
             else:
-                # extract latest release tag for graal
-                try:
-                    tags = [x.split() for x in subprocess.check_output(['hg', '-R', _graal_home, 'tags']).split('\n') if x.startswith("graal-")]
-                    current_revision = subprocess.check_output(['hg', '-R', _graal_home, 'id', '-i']).strip()
-                except:
-                    # not a mercurial repository or hg commands are not available.
-                    tags = None
-
-                if tags and current_revision:
-                    sorted_tags = sorted(tags, key=lambda e: [int(x) for x in e[0][len("graal-"):].split('.')], reverse=True)
-                    most_recent_tag_name, most_recent_tag_revision = sorted_tags[0]
-                    most_recent_tag_version = most_recent_tag_name[len("graal-"):]
-
-                    if current_revision == most_recent_tag_revision:
-                        version = most_recent_tag_version
-                    else:
-                        major, minor = map(int, most_recent_tag_version.split('.'))
-                        version = str(major) + '.' + str(minor + 1) + '-dev'
-
-                    setMakeVar('USER_RELEASE_SUFFIX', 'graal-' + version)
-                    setMakeVar('GRAAL_VERSION', version)
-                else:
-                    version = 'unknown-{}-{}'.format(platform.node(), time.strftime('%Y-%m-%d_%H-%M-%S_%Z'))
-                    setMakeVar('USER_RELEASE_SUFFIX', 'graal-' + version)
-                    setMakeVar('GRAAL_VERSION', version)
+                version = graal_version()
+                setMakeVar('USER_RELEASE_SUFFIX', 'graal-' + version)
+                setMakeVar('GRAAL_VERSION', version)
                 setMakeVar('INCLUDE_GRAAL', 'true')
             setMakeVar('INSTALL', 'y', env=env)
             if mx.get_os() == 'solaris':
@@ -1496,6 +1503,12 @@ def igv(args):
             mx.logv('[This execution may take a while as the NetBeans platform needs to be downloaded]')
         mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'], env=env)
 
+def install(args):
+    """install Truffle into your local Maven repository"""
+    mx.archive(["@TRUFFLE"])
+    mx.run(['mvn', 'install:install-file', '-DgroupId=com.oracle', '-DartifactId=truffle', '-Dversion=' + graal_version('SNAPSHOT'), '-Dpackaging=jar', '-Dfile=truffle.jar'])
+    mx.run(['mvn', 'install:install-file', '-DgroupId=com.oracle', '-DartifactId=truffle-dsl-processor', '-Dversion=' + graal_version('SNAPSHOT'), '-Dpackaging=jar', '-Dfile=truffle-dsl-processor.jar'])
+
 def c1visualizer(args):
     """run the Cl Compiler Visualizer"""
     libpath = join(_graal_home, 'lib')
@@ -2155,6 +2168,7 @@ def mx_init(suite):
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
+        'install' : [install, ''],
         'jdkhome': [print_jdkhome, ''],
         'jmh': [jmh, '[VM options] [filters|JMH-args-as-json...]'],
         'dacapo': [dacapo, '[VM options] benchmarks...|"all" [DaCapo options]'],
