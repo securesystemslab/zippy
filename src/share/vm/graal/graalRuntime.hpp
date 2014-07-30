@@ -173,7 +173,7 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
   static Klass* load_required_class(Symbol* name);
 
   /**
-   * Creates a separate class loader for classes in graal.jar.
+   * Creates a separate class loader for classes in graal.jar and graal-truffle.jar.
    */
   static oop compute_graal_class_loader(TRAPS);
 

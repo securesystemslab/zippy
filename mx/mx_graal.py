@@ -380,7 +380,7 @@ def _handle_missing_VM(bld, vm):
             return
     mx.abort('You need to run "mx --vm ' + vm + ' --vmbuild ' + bld + ' build" to build the selected VM')
 
-def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
+def _jdk(build='product', vmToCheck=None, create=False, installJars=True):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
@@ -457,9 +457,11 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                 mx.log("The selected JDK directory does not (yet) exist: " + jdk)
             _handle_missing_VM(build, vmToCheck if vmToCheck else 'graal')
 
-    if installGraalJar:
-        _installGraalJarInJdks(mx.distribution('GRAAL'))
-        _installGraalJarInJdks(mx.distribution('GRAAL_LOADER'))
+    if installJars:
+        _installDistInJdks(mx.distribution('GRAAL'))
+        _installDistInJdks(mx.distribution('GRAAL_LOADER'))
+        _installDistInJdks(mx.distribution('TRUFFLE'))
+        _installDistInJdks(mx.distribution('GRAAL_TRUFFLE'))
 
     if vmToCheck is not None:
         jvmCfg = _vmCfgInJdk(jdk)
@@ -491,13 +493,13 @@ def _makeHotspotGeneratedSourcesDir():
     return hsSrcGenDir
 
 
-def _update_graalRuntime_inline_hpp(graalJar):
+def _update_graalRuntime_inline_hpp(jars):
     p = mx.project('com.oracle.graal.hotspot.sourcegen')
     mainClass = 'com.oracle.graal.hotspot.sourcegen.GenGraalRuntimeInlineHpp'
     if exists(join(p.output_dir(), mainClass.replace('.', os.sep) + '.class')):
         graalRuntime_inline_hpp = join(_makeHotspotGeneratedSourcesDir(), 'graalRuntime.inline.hpp')
         tmp = StringIO.StringIO()
-        mx.run_java(['-cp', '{}{}{}'.format(graalJar, os.pathsep, p.output_dir()), mainClass], out=tmp.write)
+        mx.run_java(['-cp', '{}{}{}'.format(os.pathsep.join(jars), os.pathsep, p.output_dir()), mainClass], out=tmp.write)
         mx.update_file(graalRuntime_inline_hpp, tmp.getvalue())
 
 def _checkVMIsNewerThanGeneratedSources(jdk, vm, bld):
@@ -509,10 +511,15 @@ def _checkVMIsNewerThanGeneratedSources(jdk, vm, bld):
                 mx.log('The VM ' + vmLib.path + ' is older than ' + genSrc)
                 mx.abort('You need to run "mx --vm ' + vm + ' --vmbuild ' + bld + ' build"')
 
-def _installGraalJarInJdks(graalDist):
-    graalJar = graalDist.path
-    if graalJar.endswith('graal.jar'):
-        _update_graalRuntime_inline_hpp(graalJar)
+def _installDistInJdks(dist):
+    """
+    Installs the jar(s) for a given Distribution into all existing Graal JDKs
+    """
+
+    distJar = dist.path
+    if dist.name == 'GRAAL_TRUFFLE':
+        jars = [mx.distribution(d).path for d in dist.distDependencies] + [distJar]
+        _update_graalRuntime_inline_hpp(jars)
     jdks = _jdksDir()
 
     if exists(jdks):
@@ -524,7 +531,7 @@ def _installGraalJarInJdks(graalDist):
                     dstJar = join(dstDir, name)
                     if mx.get_env('SYMLINK_GRAAL_JAR', None) == 'true':
                         # Using symlinks is much faster than copying but may
-                        # cause issues if graal.jar is being updated while
+                        # cause issues if the jar is being updated while
                         # the VM is running.
                         if not os.path.islink(dstJar) or not os.path.realpath(dstJar) == srcJar:
                             if exists(dstJar):
@@ -538,9 +545,9 @@ def _installGraalJarInJdks(graalDist):
                         shutil.move(tmp, dstJar)
                         os.chmod(dstJar, JDK_UNIX_PERMISSIONS)
 
-                install(graalJar, jreLibDir)
-                if graalDist.sourcesPath:
-                    install(graalDist.sourcesPath, join(jdks, e))
+                install(distJar, jreLibDir)
+                if dist.sourcesPath:
+                    install(dist.sourcesPath, join(jdks, e))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo=None):
@@ -605,7 +612,7 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
 def jdkhome(vm=None):
     """return the JDK directory selected for the 'vm' command"""
     build = _vmbuild if _vmSourcesAvailable else 'product'
-    return _jdk(build, installGraalJar=False)
+    return _jdk(build, installJars=False)
 
 def print_jdkhome(args, vm=None):
     """print the JDK directory selected for the 'vm' command"""
@@ -912,7 +919,7 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
         mx.abort("conflicting working directories: do not set --vmcwd for this command")
 
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
-    jdk = _jdk(build, vmToCheck=vm, installGraalJar=False)
+    jdk = _jdk(build, vmToCheck=vm, installJars=False)
     _updateInstalledGraalOptionsFile(jdk)
     _checkVMIsNewerThanGeneratedSources(jdk, vm, build)
     mx.expand_project_in_args(args)
@@ -2234,5 +2241,7 @@ def mx_post_parse_cmd_line(opts):  #
     global _vm_prefix
     _vm_prefix = opts.vm_prefix
 
-    mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)
-    mx.distribution('GRAAL_LOADER').add_update_listener(_installGraalJarInJdks)
+    mx.distribution('GRAAL').add_update_listener(_installDistInJdks)
+    mx.distribution('GRAAL_LOADER').add_update_listener(_installDistInJdks)
+    mx.distribution('TRUFFLE').add_update_listener(_installDistInJdks)
+    mx.distribution('GRAAL_TRUFFLE').add_update_listener(_installDistInJdks)

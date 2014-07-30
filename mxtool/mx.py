@@ -3496,10 +3496,12 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         out.open('projects')
         for p in distProjects:
             out.element('project', data=p.name)
+        for d in dist.distDependencies:
+            out.element('project', data=d)
         out.close('projects')
         out.open('buildSpec')
         dist.dir = projectDir
-        dist.javaCompliance = max([p.javaCompliance for p in distProjects])
+        dist.javaCompliance = max([p.javaCompliance for p in distProjects] + [JavaCompliance('1.8')])
         _genEclipseBuilder(out, dist, 'Create' + dist.name + 'Dist', 'archive @' + dist.name, relevantResources=relevantResources, logToFile=True, refresh=False, async=True)
         out.close('buildSpec')
         out.open('natures')
