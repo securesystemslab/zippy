@@ -82,7 +82,8 @@ _make_eclipse_launch = False
 
 _minVersion = mx.VersionSpec('1.8')
 
-JDK_UNIX_PERMISSIONS = 0755
+JDK_UNIX_PERMISSIONS_DIR = 0755
+JDK_UNIX_PERMISSIONS_FILE = 0644
 
 def isVMSupported(vm):
     if 'client' in vm and len(platform.mac_ver()[0]) != 0:
@@ -138,13 +139,11 @@ class VM:
         _vm = self.previousVm
         _vmbuild = self.previousBuild
 
-def _chmodDir(chmodFlags, dirname, fnames):
-    os.chmod(dirname, chmodFlags)
-    for name in fnames:
-        os.chmod(os.path.join(dirname, name), chmodFlags)
+def chmodRecursive(dirname, chmodFlagsDir):
+    def _chmodDir(chmodFlags, dirname, fnames):
+        os.chmod(dirname, chmodFlagsDir)
 
-def chmodRecursive(dirname, chmodFlags):
-    os.path.walk(dirname, _chmodDir, chmodFlags)
+    os.path.walk(dirname, _chmodDir, chmodFlagsDir)
 
 def clean(args):
     """clean the GraalVM source tree"""
@@ -416,7 +415,7 @@ def _jdk(build='product', vmToCheck=None, create=False, installJars=True):
 
             assert defaultVM is not None, 'Could not find default VM in ' + jvmCfg
             if mx.get_os() != 'windows':
-                chmodRecursive(jdk, JDK_UNIX_PERMISSIONS)
+                chmodRecursive(jdk, JDK_UNIX_PERMISSIONS_DIR)
             shutil.move(join(_vmLibDirInJdk(jdk), defaultVM), join(_vmLibDirInJdk(jdk), 'original'))
 
 
@@ -543,7 +542,7 @@ def _installDistInJdks(dist):
                         shutil.copyfile(srcJar, tmp)
                         os.close(fd)
                         shutil.move(tmp, dstJar)
-                        os.chmod(dstJar, JDK_UNIX_PERMISSIONS)
+                        os.chmod(dstJar, JDK_UNIX_PERMISSIONS_FILE)
 
                 install(distJar, jreLibDir)
                 if dist.sourcesPath:
@@ -747,7 +746,7 @@ def build(args, vm=None):
         vmDir = join(_vmLibDirInJdk(jdk), vm)
         if not exists(vmDir):
             if mx.get_os() != 'windows':
-                chmodRecursive(jdk, JDK_UNIX_PERMISSIONS)
+                chmodRecursive(jdk, JDK_UNIX_PERMISSIONS_DIR)
             mx.log('Creating VM directory in JDK: ' + vmDir)
             os.makedirs(vmDir)
 
@@ -881,7 +880,7 @@ def build(args, vm=None):
         if not found:
             mx.log('Appending "' + prefix + 'KNOWN" to ' + jvmCfg)
             if mx.get_os() != 'windows':
-                os.chmod(jvmCfg, JDK_UNIX_PERMISSIONS)
+                os.chmod(jvmCfg, JDK_UNIX_PERMISSIONS_FILE)
             with open(jvmCfg, 'w') as f:
                 for line in lines:
                     if line.startswith(prefix):
