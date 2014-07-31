@@ -457,7 +457,7 @@ def getPythonBenchmarksNoPeeling(vm):
 
 def getPythonBenchmarksProfiling(vm):
     success, error, matcher = getSuccessErrorMatcher()
-    benchmarks = pythonGeneratorBenchmarks
+    benchmarks = pythonBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
         script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
