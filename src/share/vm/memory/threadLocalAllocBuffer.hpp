@@ -38,6 +38,9 @@ class GlobalTLABStats;
 //            used to make it available for such multiplexing.
 class ThreadLocalAllocBuffer: public CHeapObj<mtThread> {
   friend class VMStructs;
+#ifdef GRAAL
+  friend class HSAILAllocationInfo;
+#endif
 private:
   HeapWord* _start;                              // address of TLAB
   HeapWord* _top;                                // address after last allocation
