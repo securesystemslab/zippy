@@ -101,13 +101,13 @@ distribution@GRAAL_LOADER@dependencies=com.oracle.graal.hotspot.loader
 
 distribution@TRUFFLE@path=truffle.jar
 distribution@TRUFFLE@subDir=graal
-distribution@TRUFFLE@sourcesPath=truffle-sources.jar
+distribution@TRUFFLE@sourcesPath=truffle.src.zip
 distribution@TRUFFLE@dependencies=\
 com.oracle.truffle.api.dsl
 
 distribution@GRAAL_TRUFFLE@path=graal-truffle.jar
 distribution@GRAAL_TRUFFLE@subDir=graal
-distribution@GRAAL_TRUFFLE@sourcesPath=graal-truffle-sources.jar
+distribution@GRAAL_TRUFFLE@sourcesPath=graal-truffle.src.zip
 distribution@GRAAL_TRUFFLE@dependencies=\
 com.oracle.graal.truffle,\
 com.oracle.graal.truffle.hotspot.amd64
@@ -116,7 +116,7 @@ distribution@GRAAL_TRUFFLE@distDependencies=GRAAL,TRUFFLE
 
 distribution@TRUFFLE-DSL-PROCESSOR@path=truffle-dsl-processor.jar
 distribution@TRUFFLE-DSL-PROCESSOR@subDir=graal
-distribution@TRUFFLE-DSL-PROCESSOR@sourcesPath=truffle-dsl-processor-sources.jar
+distribution@TRUFFLE-DSL-PROCESSOR@sourcesPath=truffle-dsl-processor.src.zip
 distribution@TRUFFLE-DSL-PROCESSOR@dependencies=\
 com.oracle.truffle.dsl.processor
 distribution@TRUFFLE-DSL-PROCESSOR@distDependencies=TRUFFLE
