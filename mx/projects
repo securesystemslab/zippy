@@ -88,8 +88,6 @@ distribution@GRAAL@sourcesPath=graal.src.zip
 distribution@GRAAL@dependencies=\
 com.oracle.graal.hotspot.amd64,\
 com.oracle.graal.hotspot.ptx,\
-com.oracle.graal.truffle,\
-com.oracle.graal.truffle.hotspot.amd64,\
 com.oracle.graal.hotspot.sparc,\
 com.oracle.graal.hotspot,\
 com.oracle.graal.hotspot.jfr,\
@@ -106,6 +104,15 @@ distribution@TRUFFLE@subDir=graal
 distribution@TRUFFLE@sourcesPath=truffle-sources.jar
 distribution@TRUFFLE@dependencies=\
 com.oracle.truffle.api.dsl
+
+distribution@GRAAL_TRUFFLE@path=graal-truffle.jar
+distribution@GRAAL_TRUFFLE@subDir=graal
+distribution@GRAAL_TRUFFLE@sourcesPath=graal-truffle-sources.jar
+distribution@GRAAL_TRUFFLE@dependencies=\
+com.oracle.graal.truffle,\
+com.oracle.graal.truffle.hotspot.amd64
+distribution@GRAAL_TRUFFLE@exclude=FINDBUGS
+distribution@GRAAL_TRUFFLE@distDependencies=GRAAL,TRUFFLE
 
 distribution@TRUFFLE-DSL-PROCESSOR@path=truffle-dsl-processor.jar
 distribution@TRUFFLE-DSL-PROCESSOR@subDir=graal
