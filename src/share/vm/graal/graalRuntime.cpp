@@ -663,9 +663,26 @@ JVM_ENTRY(jobject, JVM_CreateTruffleRuntime(JNIEnv *env, jclass c))
   return JNIHandles::make_local((oop) result.get_jobject());
 JVM_END
 
+void GraalRuntime::check_generated_sources_sha1(TRAPS) {
+  TempNewSymbol name = SymbolTable::new_symbol("GeneratedSourcesSha1", CHECK_ABORT);
+  KlassHandle klass = load_required_class(name);
+  fieldDescriptor fd;
+  if (!InstanceKlass::cast(klass())->find_field(vmSymbols::value_name(), vmSymbols::string_signature(), true, &fd)) {
+    THROW_MSG(vmSymbols::java_lang_NoSuchFieldError(), "GeneratedSourcesSha1.value");
+  }
+
+  Symbol* value = java_lang_String::as_symbol(klass->java_mirror()->obj_field(fd.offset()), CHECK);
+  if (!value->equals(_generated_sources_sha1)) {
+    char buf[200];
+    jio_snprintf(buf, sizeof(buf), "Generated sources SHA1 check failed (%s != %s) - need to rebuild the VM", value->as_C_string(), _generated_sources_sha1);
+    THROW_MSG(vmSymbols::java_lang_InternalError(), buf);
+  }
+}
+
 Handle GraalRuntime::get_HotSpotGraalRuntime() {
   if (JNIHandles::resolve(_HotSpotGraalRuntime_instance) == NULL) {
     Thread* THREAD = Thread::current();
+    check_generated_sources_sha1(CHECK_ABORT_(Handle()));
     TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/HotSpotGraalRuntime", CHECK_ABORT_(Handle()));
     KlassHandle klass = load_required_class(name);
     TempNewSymbol runtime = SymbolTable::new_symbol("runtime", CHECK_ABORT_(Handle()));

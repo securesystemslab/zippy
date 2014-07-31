@@ -30,6 +30,7 @@ import os, stat, errno, sys, shutil, zipfile, tarfile, tempfile, re, time, datet
 from os.path import join, exists, dirname, basename
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, REMAINDER
 from outputparser import OutputParser, ValuesMatcher
+import hashlib
 import mx
 import xml.dom.minidom
 import sanitycheck
@@ -486,39 +487,71 @@ def _updateInstalledGraalOptionsFile(jdk):
             os.unlink(toDelete)
 
 def _makeHotspotGeneratedSourcesDir():
+    """
+    Gets the directory containing all the HotSpot sources generated from
+    Graal Java sources. This directory will be created if it doesn't yet exist.
+    """
     hsSrcGenDir = join(mx.project('com.oracle.graal.hotspot').source_gen_dir(), 'hotspot')
     if not exists(hsSrcGenDir):
         os.makedirs(hsSrcGenDir)
     return hsSrcGenDir
 
+def _update_graalRuntime_inline_hpp(dist):
+    """
+    (Re)generates graalRuntime.inline.hpp based on a given distribution
+    that transitively represents all the input for the generation process.
 
-def _update_graalRuntime_inline_hpp(jars):
+    A SHA1 digest is computed for all generated content and is written to
+    graalRuntime.inline.hpp as well as stored in a generated class
+    that is appended to the dist.path jar. At runtime, these two digests
+    are checked for consistency.
+    """
+
     p = mx.project('com.oracle.graal.hotspot.sourcegen')
     mainClass = 'com.oracle.graal.hotspot.sourcegen.GenGraalRuntimeInlineHpp'
     if exists(join(p.output_dir(), mainClass.replace('.', os.sep) + '.class')):
-        graalRuntime_inline_hpp = join(_makeHotspotGeneratedSourcesDir(), 'graalRuntime.inline.hpp')
+        genSrcDir = _makeHotspotGeneratedSourcesDir()
+        graalRuntime_inline_hpp = join(genSrcDir, 'graalRuntime.inline.hpp')
+        cp = os.pathsep.join([mx.distribution(d).path for d in dist.distDependencies] + [dist.path, p.output_dir()])
         tmp = StringIO.StringIO()
-        mx.run_java(['-cp', '{}{}{}'.format(os.pathsep.join(jars), os.pathsep, p.output_dir()), mainClass], out=tmp.write)
+        mx.run_java(['-cp', cp, mainClass], out=tmp.write)
+
+        # Compute SHA1 for currently generated graalRuntime.inline.hpp content
+        # and all other generated sources in genSrcDir
+        d = hashlib.sha1()
+        d.update(tmp.getvalue())
+        for e in os.listdir(genSrcDir):
+            if e != 'graalRuntime.inline.hpp':
+                with open(join(genSrcDir, e)) as fp:
+                    d.update(fp.read())
+        sha1 = d.hexdigest()
+
+        # Add SHA1 to end of graalRuntime.inline.hpp
+        print >> tmp, ''
+        print >> tmp, 'const char* GraalRuntime::_generated_sources_sha1 = "' + sha1 + '";'
+
         mx.update_file(graalRuntime_inline_hpp, tmp.getvalue())
 
-def _checkVMIsNewerThanGeneratedSources(jdk, vm, bld):
-    if isGraalEnabled(vm) and (not _installed_jdks or _installed_jdks == _graal_home):
-        vmLib = mx.TimeStampFile(join(_vmLibDirInJdk(jdk), vm, mx.add_lib_prefix(mx.add_lib_suffix('jvm'))))
-        for name in ['graalRuntime.inline.hpp', 'HotSpotVMConfig.inline.hpp']:
-            genSrc = join(_makeHotspotGeneratedSourcesDir(), name)
-            if vmLib.isOlderThan(genSrc):
-                mx.log('The VM ' + vmLib.path + ' is older than ' + genSrc)
-                mx.abort('You need to run "mx --vm ' + vm + ' --vmbuild ' + bld + ' build"')
+        # Store SHA1 in generated Java class and append class to specified jar
+        javaSource = join(_graal_home, 'GeneratedSourcesSha1.java')
+        javaClass = join(_graal_home, 'GeneratedSourcesSha1.class')
+        with open (javaSource, 'w') as fp:
+            print >> fp, 'class GeneratedSourcesSha1 { private static final String value = "' + sha1 + '"; }'
+        subprocess.check_call([mx.java().javac, '-d', _graal_home, javaSource], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        zf = zipfile.ZipFile(dist.path, 'a')
+        with open(javaClass, 'rb') as fp:
+            zf.writestr(os.path.basename(javaClass), fp.read())
+        zf.close()
+        os.unlink(javaSource)
+        os.unlink(javaClass)
 
 def _installDistInJdks(dist):
     """
     Installs the jar(s) for a given Distribution into all existing Graal JDKs
     """
 
-    distJar = dist.path
     if dist.name == 'GRAAL_TRUFFLE':
-        jars = [mx.distribution(d).path for d in dist.distDependencies] + [distJar]
-        _update_graalRuntime_inline_hpp(jars)
+        _update_graalRuntime_inline_hpp(dist)
     jdks = _jdksDir()
 
     if exists(jdks):
@@ -544,7 +577,7 @@ def _installDistInJdks(dist):
                         shutil.move(tmp, dstJar)
                         os.chmod(dstJar, JDK_UNIX_PERMISSIONS_FILE)
 
-                install(distJar, jreLibDir)
+                install(dist.path, jreLibDir)
                 if dist.sourcesPath:
                     install(dist.sourcesPath, join(jdks, e))
 
@@ -920,7 +953,6 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
     jdk = _jdk(build, vmToCheck=vm, installJars=False)
     _updateInstalledGraalOptionsFile(jdk)
-    _checkVMIsNewerThanGeneratedSources(jdk, vm, build)
     mx.expand_project_in_args(args)
     if _make_eclipse_launch:
         mx.make_eclipse_launch(args, 'graal-' + build, name=None, deps=mx.project('com.oracle.graal.hotspot').all_deps([], True))

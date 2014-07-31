@@ -33,6 +33,7 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
 
   static jobject _HotSpotGraalRuntime_instance;
   static address _external_deopt_i2c_entry;
+  static const char* _generated_sources_sha1;
 
   /**
    * Reads the OptionValue object from a specified static field.
@@ -100,6 +101,11 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
    * @param name the name of a class implementing com.oracle.graal.api.runtime.Service
    */
   static Handle create_Service(const char* name, TRAPS);
+
+  /**
+   * Checks that _generated_sources_sha1 equals GeneratedSourcesSha1.value.
+   */
+  static void check_generated_sources_sha1(TRAPS);
 
  public:
 
