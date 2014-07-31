@@ -76,12 +76,18 @@ class Distribution:
         self.excludedDependencies = excludedDependencies
         self.distDependencies = distDependencies
 
-    def sorted_deps(self, includeLibs=False):
+    def sorted_deps(self, includeLibs=False, transitive=False):
+        deps = []
+        if transitive:
+            for depDist in [distribution(name) for name in self.distDependencies]:
+                for d in depDist.sorted_deps(includeLibs=includeLibs, transitive=True):
+                    if d not in deps:
+                        deps.append(d)
         try:
             excl = [dependency(d) for d in self.excludedDependencies]
         except SystemExit as e:
             abort('invalid excluded dependency for {} distribution: {}'.format(self.name, e))
-        return [d for d in sorted_deps(self.deps, includeLibs=includeLibs) if d not in excl]
+        return deps + [d for d in sorted_deps(self.deps, includeLibs=includeLibs) if d not in excl]
 
     def __str__(self):
         return self.name
@@ -3486,7 +3492,8 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     _zip_files(libFiles, suite.dir, configLibsZip)
 
     # Create an Eclipse project for each distribution that will create/update the archive
-    # for the distribution whenever any project of the distribution is updated.
+    # for the distribution whenever any (transitively) dependent project of the
+    # distribution is updated.
     for dist in suite.dists:
         if hasattr(dist, 'subDir'):
             projectDir = join(suite.dir, dist.subDir, dist.name + '.dist')
@@ -3494,7 +3501,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             projectDir = join(suite.dir, dist.name + '.dist')
         if not exists(projectDir):
             os.makedirs(projectDir)
-        distProjects = [d for d in dist.sorted_deps() if d.isProject()]
+        distProjects = [d for d in dist.sorted_deps(transitive=True) if d.isProject()]
         relevantResources = []
         for p in distProjects:
             for srcDir in p.source_dirs():
@@ -3512,7 +3519,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         out.close('projects')
         out.open('buildSpec')
         dist.dir = projectDir
-        dist.javaCompliance = max([p.javaCompliance for p in distProjects] + [JavaCompliance('1.8')])
+        dist.javaCompliance = max([p.javaCompliance for p in distProjects])
         _genEclipseBuilder(out, dist, 'Create' + dist.name + 'Dist', 'archive @' + dist.name, relevantResources=relevantResources, logToFile=True, refresh=False, async=True)
         out.close('buildSpec')
         out.open('natures')
