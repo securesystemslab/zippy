@@ -535,7 +535,7 @@ def _update_graalRuntime_inline_hpp(dist):
         # Store SHA1 in generated Java class and append class to specified jar
         javaSource = join(_graal_home, 'GeneratedSourcesSha1.java')
         javaClass = join(_graal_home, 'GeneratedSourcesSha1.class')
-        with open (javaSource, 'w') as fp:
+        with open(javaSource, 'w') as fp:
             print >> fp, 'class GeneratedSourcesSha1 { private static final String value = "' + sha1 + '"; }'
         subprocess.check_call([mx.java().javac, '-d', _graal_home, javaSource], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         zf = zipfile.ZipFile(dist.path, 'a')
