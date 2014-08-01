@@ -2240,13 +2240,12 @@ def build(args, parser=None):
         sourceDirs = p.source_dirs()
         buildReason = 'forced build' if args.force else None
         taskDeps = []
-        if not buildReason:
-            for dep in p.all_deps([], includeLibs=False, includeAnnotationProcessors=True):
-                taskDep = tasks.get(dep.name)
-                if taskDep:
-                    if not buildReason:
-                        buildReason = dep.name + ' rebuilt'
-                    taskDeps.append(taskDep)
+        for dep in p.all_deps([], includeLibs=False, includeAnnotationProcessors=True):
+            taskDep = tasks.get(dep.name)
+            if taskDep:
+                if not buildReason:
+                    buildReason = dep.name + ' rebuilt'
+                taskDeps.append(taskDep)
 
         jasminAvailable = None
         javafilelist = []
