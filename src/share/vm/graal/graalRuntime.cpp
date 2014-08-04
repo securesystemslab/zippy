@@ -990,6 +990,12 @@ void GraalRuntime::abort_on_pending_exception(Handle exception, const char* mess
   CLEAR_PENDING_EXCEPTION;
   tty->print_cr(message);
   call_printStackTrace(exception, THREAD);
+
+  // Give other aborting threads to also print their stack traces.
+  // This can be very useful when debugging class initialization
+  // failures.
+  os::sleep(THREAD, 200, false);
+
   vm_abort(dump_core);
 }
 
