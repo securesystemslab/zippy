@@ -318,14 +318,6 @@ project@com.oracle.graal.hotspot.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.test@javaCompliance=1.8
 project@com.oracle.graal.hotspot.test@workingSets=Graal,HotSpot,Test
 
-# graal.hotspot.jdk8.test
-project@com.oracle.graal.hotspot.jdk8.test@subDir=graal
-project@com.oracle.graal.hotspot.jdk8.test@sourceDirs=src
-project@com.oracle.graal.hotspot.jdk8.test@dependencies=com.oracle.graal.compiler.test
-project@com.oracle.graal.hotspot.jdk8.test@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.hotspot.jdk8.test@javaCompliance=1.8
-project@com.oracle.graal.hotspot.jdk8.test@workingSets=Graal,HotSpot,Test
-
 # graal.hotspot.amd64.test
 project@com.oracle.graal.hotspot.amd64.test@subDir=graal
 project@com.oracle.graal.hotspot.amd64.test@sourceDirs=src
