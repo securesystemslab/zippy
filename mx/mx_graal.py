@@ -1545,6 +1545,7 @@ def maven_install_truffle(args):
     """install Truffle into your local Maven repository"""
     mx.archive(["@TRUFFLE"])
     mx.run(['mvn', 'install:install-file', '-DgroupId=com.oracle', '-DartifactId=truffle', '-Dversion=' + graal_version('SNAPSHOT'), '-Dpackaging=jar', '-Dfile=build/truffle.jar'])
+    mx.archive(["@TRUFFLE-DSL-PROCESSOR"])
     mx.run(['mvn', 'install:install-file', '-DgroupId=com.oracle', '-DartifactId=truffle-dsl-processor', '-Dversion=' + graal_version('SNAPSHOT'), '-Dpackaging=jar', '-Dfile=build/truffle-dsl-processor.jar'])
 
 def c1visualizer(args):
