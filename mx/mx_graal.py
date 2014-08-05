@@ -765,7 +765,7 @@ def build(args, vm=None):
             if build is None or len(build) == 0:
                 continue
 
-        jdk = _jdk(build, create=True)
+        jdk = _jdk(build, create=True, installJars=not opts2.java)
 
         if vm == 'original':
             if build != 'product':

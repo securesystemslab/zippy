@@ -39,6 +39,7 @@
 
 address GraalRuntime::_external_deopt_i2c_entry = NULL;
 jobject GraalRuntime::_HotSpotGraalRuntime_instance = NULL;
+bool GraalRuntime::_HotSpotGraalRuntime_initialized = false;
 
 void GraalRuntime::initialize_natives(JNIEnv *env, jclass c2vmClass) {
   uintptr_t heap_end = (uintptr_t) Universe::heap()->reserved_region().end();
@@ -681,6 +682,7 @@ void GraalRuntime::check_generated_sources_sha1(TRAPS) {
 
 Handle GraalRuntime::get_HotSpotGraalRuntime() {
   if (JNIHandles::resolve(_HotSpotGraalRuntime_instance) == NULL) {
+    guarantee(!_HotSpotGraalRuntime_initialized, "cannot reinitialize HotSpotGraalRuntime");
     Thread* THREAD = Thread::current();
     check_generated_sources_sha1(CHECK_ABORT_(Handle()));
     TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/HotSpotGraalRuntime", CHECK_ABORT_(Handle()));
@@ -690,6 +692,7 @@ Handle GraalRuntime::get_HotSpotGraalRuntime() {
     JavaValue result(T_OBJECT);
     JavaCalls::call_static(&result, klass, runtime, sig, CHECK_ABORT_(Handle()));
     _HotSpotGraalRuntime_instance = JNIHandles::make_global((oop) result.get_jobject());
+    _HotSpotGraalRuntime_initialized = true;
   }
   return Handle(JNIHandles::resolve_non_null(_HotSpotGraalRuntime_instance));
 }
@@ -990,6 +993,12 @@ void GraalRuntime::abort_on_pending_exception(Handle exception, const char* mess
   CLEAR_PENDING_EXCEPTION;
   tty->print_cr(message);
   call_printStackTrace(exception, THREAD);
+
+  // Give other aborting threads to also print their stack traces.
+  // This can be very useful when debugging class initialization
+  // failures.
+  os::sleep(THREAD, 200, false);
+
   vm_abort(dump_core);
 }
 

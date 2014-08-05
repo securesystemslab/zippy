@@ -32,6 +32,7 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
  private:
 
   static jobject _HotSpotGraalRuntime_instance;
+  static bool _HotSpotGraalRuntime_initialized;
   static address _external_deopt_i2c_entry;
   static const char* _generated_sources_sha1;
 
@@ -111,7 +112,7 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
 
   static void initialize_natives(JNIEnv *env, jclass c2vmClass);
 
-  static bool is_HotSpotGraalRuntime_initialized() { return _HotSpotGraalRuntime_instance != NULL; }
+  static bool is_HotSpotGraalRuntime_initialized() { return _HotSpotGraalRuntime_initialized; }
 
   /**
    * Gets the singleton HotSpotGraalRuntime instance, initializing it if necessary

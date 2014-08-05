@@ -82,9 +82,9 @@ library@VECMATH@path=lib/vecmath-1.3.1.jar
 library@VECMATH@urls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/vecmath-1.3.1.jar,http://mirrors.ibiblio.org/pub/mirrors/maven/java3d/jars/vecmath-1.3.1.jar
 library@VECMATH@sha1=a0ae4f51da409fa0c20fa0ca59e6bbc9413ae71d
 
-distribution@GRAAL@path=graal.jar
+distribution@GRAAL@path=build/graal.jar
 distribution@GRAAL@subDir=graal
-distribution@GRAAL@sourcesPath=graal.src.zip
+distribution@GRAAL@sourcesPath=build/graal.src.zip
 distribution@GRAAL@dependencies=\
 com.oracle.graal.hotspot.amd64,\
 com.oracle.graal.hotspot.ptx,\
@@ -94,29 +94,29 @@ com.oracle.graal.hotspot.jfr,\
 com.oracle.graal.hotspot.hsail
 distribution@GRAAL@exclude=FINDBUGS
 
-distribution@GRAAL_LOADER@path=graal-loader.jar
+distribution@GRAAL_LOADER@path=build/graal-loader.jar
 distribution@GRAAL_LOADER@subDir=graal
-distribution@GRAAL_LOADER@sourcesPath=graal-loader.src.zip
+distribution@GRAAL_LOADER@sourcesPath=build/graal-loader.src.zip
 distribution@GRAAL_LOADER@dependencies=com.oracle.graal.hotspot.loader
 
-distribution@TRUFFLE@path=truffle.jar
+distribution@TRUFFLE@path=build/truffle.jar
 distribution@TRUFFLE@subDir=graal
-distribution@TRUFFLE@sourcesPath=truffle.src.zip
+distribution@TRUFFLE@sourcesPath=build/truffle.src.zip
 distribution@TRUFFLE@dependencies=\
 com.oracle.truffle.api.dsl
 
-distribution@GRAAL_TRUFFLE@path=graal-truffle.jar
+distribution@GRAAL_TRUFFLE@path=build/graal-truffle.jar
 distribution@GRAAL_TRUFFLE@subDir=graal
-distribution@GRAAL_TRUFFLE@sourcesPath=graal-truffle.src.zip
+distribution@GRAAL_TRUFFLE@sourcesPath=build/graal-truffle.src.zip
 distribution@GRAAL_TRUFFLE@dependencies=\
 com.oracle.graal.truffle,\
 com.oracle.graal.truffle.hotspot.amd64
 distribution@GRAAL_TRUFFLE@exclude=FINDBUGS
 distribution@GRAAL_TRUFFLE@distDependencies=GRAAL,TRUFFLE
 
-distribution@TRUFFLE-DSL-PROCESSOR@path=truffle-dsl-processor.jar
+distribution@TRUFFLE-DSL-PROCESSOR@path=build/truffle-dsl-processor.jar
 distribution@TRUFFLE-DSL-PROCESSOR@subDir=graal
-distribution@TRUFFLE-DSL-PROCESSOR@sourcesPath=truffle-dsl-processor.src.zip
+distribution@TRUFFLE-DSL-PROCESSOR@sourcesPath=build/truffle-dsl-processor.src.zip
 distribution@TRUFFLE-DSL-PROCESSOR@dependencies=\
 com.oracle.truffle.dsl.processor
 distribution@TRUFFLE-DSL-PROCESSOR@distDependencies=TRUFFLE
