@@ -321,7 +321,7 @@ project@com.oracle.graal.hotspot.test@workingSets=Graal,HotSpot,Test
 # graal.hotspot.amd64.test
 project@com.oracle.graal.hotspot.amd64.test@subDir=graal
 project@com.oracle.graal.hotspot.amd64.test@sourceDirs=src
-project@com.oracle.graal.hotspot.amd64.test@dependencies=com.oracle.graal.asm.amd64,com.oracle.graal.compiler.test
+project@com.oracle.graal.hotspot.amd64.test@dependencies=com.oracle.graal.asm.amd64,com.oracle.graal.compiler.test,com.oracle.graal.hotspot
 project@com.oracle.graal.hotspot.amd64.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspot.amd64.test@javaCompliance=1.8
 project@com.oracle.graal.hotspot.amd64.test@workingSets=Graal,HotSpot,AMD64,Test
