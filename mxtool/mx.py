@@ -3930,8 +3930,8 @@ jar.compress=false
 # Space-separated list of extra javac options
 javac.compilerargs=
 javac.deprecation=false
-javac.source=1.7
-javac.target=1.7
+javac.source=""" + str(p.javaCompliance) + """
+javac.target=""" + str(p.javaCompliance) + """
 javac.test.classpath=\\
     ${javac.classpath}:\\
     ${build.classes.dir}
