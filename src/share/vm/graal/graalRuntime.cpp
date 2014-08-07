@@ -666,7 +666,17 @@ JVM_END
 
 // private static NativeFunctionInterfaceRuntime.createInterface()
 JVM_ENTRY(jobject, JVM_CreateNativeFunctionInterface(JNIEnv *env, jclass c))
-  TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/amd64/AMD64HotSpotBackend", CHECK_NULL);
+  const char* backendName = NULL;
+  #ifdef TARGET_ARCH_x86
+  #ifdef _LP64
+    backendName = "com/oracle/graal/hotspot/amd64/AMD64HotSpotBackend";
+  #endif 
+  #endif
+
+  if (backendName == NULL) {
+    return NULL;
+  }
+  TempNewSymbol name = SymbolTable::new_symbol(backendName, CHECK_NULL);
   KlassHandle klass = GraalRuntime::resolve_or_fail(name, CHECK_NULL);
 
   TempNewSymbol makeInstance = SymbolTable::new_symbol("createNativeFunctionInterface", CHECK_NULL);
