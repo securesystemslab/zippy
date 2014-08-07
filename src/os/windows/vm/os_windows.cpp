@@ -3672,6 +3672,16 @@ ExtendedPC os::get_thread_pc(Thread* thread) {
 #endif
 }
 
+address os::get_pc(void* context) {
+  CONTEXT* uc = (CONTEXT*)context;
+#ifdef _M_AMD64
+  return (address) context.Rip;
+#else
+  return (address) context.Eip;
+#endif
+}
+
+
 // GetCurrentThreadId() returns DWORD
 intx os::current_thread_id()          { return GetCurrentThreadId(); }
 

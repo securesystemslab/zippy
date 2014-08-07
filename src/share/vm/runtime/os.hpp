@@ -563,6 +563,9 @@ class os: AllStatic {
   static void *find_agent_function(AgentLibrary *agent_lib, bool check_lib,
                                    const char *syms[], size_t syms_len);
 
+
+  static address get_pc(void* context);
+
   // Print out system information; they are called by fatal error handler.
   // Output format may be different on different platforms.
   static void print_os_info(outputStream* st);

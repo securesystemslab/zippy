@@ -5035,6 +5035,11 @@ ExtendedPC os::get_thread_pc(Thread* thread) {
   return fetcher.result();
 }
 
+address os::get_pc(void* context) {
+  ucontext_t *uc = (ucontext_t*)context;
+  return os::Linux::ucontext_get_pc(uc);
+}
+
 int os::Linux::safe_cond_timedwait(pthread_cond_t *_cond, pthread_mutex_t *_mutex, const struct timespec *_abstime)
 {
    if (is_NPTL()) {

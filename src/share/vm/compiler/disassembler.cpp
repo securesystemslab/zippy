@@ -493,6 +493,10 @@ address decode_env::decode_instructions(address start, address end) {
 
 void Disassembler::decode(CodeBlob* cb, outputStream* st) {
   if (!load_library())  return;
+  if (cb->is_nmethod()) {
+    decode((nmethod*)cb, st);
+    return;
+  }
   decode_env env(cb, st);
   env.output()->print_cr("----------------------------------------------------------------------");
   env.output()->print_cr("%s at  [" PTR_FORMAT ", " PTR_FORMAT "]  %d bytes", cb->name(), cb->code_begin(), cb->code_end(), ((jlong)(cb->code_end() - cb->code_begin())) * sizeof(unsigned char*));
