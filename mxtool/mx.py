@@ -503,7 +503,7 @@ def sha1OfFile(path):
             d.update(buf)
         return d.hexdigest()
 
-def download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False):
+def download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False, canSymlink=True):
     def _download_lib():
         cacheDir = get_env('MX_CACHE_DIR', join(_opts.user_home, '.mx', 'cache'))
         if not exists(cacheDir):
@@ -520,7 +520,8 @@ def download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist
         d = dirname(path)
         if d != '' and not exists(d):
             os.makedirs(d)
-        if 'symlink' in dir(os):
+
+        if canSymlink and 'symlink' in dir(os):
             if exists(path):
                 os.unlink(path)
             os.symlink(cachePath, path)
@@ -654,7 +655,9 @@ class Library(BaseLibrary):
         if includedInJDK and java().javaCompliance >= JavaCompliance(includedInJDK):
             return None
 
-        return download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, not self.optional)
+        bootClassPathAgent = self.bootClassPathAgent.lower() == 'true' if hasattr(self, 'bootClassPathAgent') else False
+
+        return download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, not self.optional, canSymlink=not bootClassPathAgent)
 
     def get_source_path(self, resolve):
         if self.sourcePath is None:
