@@ -655,7 +655,7 @@ class Library(BaseLibrary):
         if includedInJDK and java().javaCompliance >= JavaCompliance(includedInJDK):
             return None
 
-        bootClassPathAgent = self.bootClassPathAgent.lower() == 'true' if hasattr(self, 'bootClassPathAgent') else False
+        bootClassPathAgent = getattr(self, 'bootClassPathAgent').lower() == 'true' if hasattr(self, 'bootClassPathAgent') else False
 
         return download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, not self.optional, canSymlink=not bootClassPathAgent)
 
