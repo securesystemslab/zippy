@@ -1543,10 +1543,10 @@ def igv(args):
 
 def maven_install_truffle(args):
     """install Truffle into your local Maven repository"""
-    mx.archive(["@TRUFFLE"])
-    mx.run(['mvn', 'install:install-file', '-DgroupId=com.oracle', '-DartifactId=truffle', '-Dversion=' + graal_version('SNAPSHOT'), '-Dpackaging=jar', '-Dfile=build/truffle.jar'])
-    mx.archive(["@TRUFFLE-DSL-PROCESSOR"])
-    mx.run(['mvn', 'install:install-file', '-DgroupId=com.oracle', '-DartifactId=truffle-dsl-processor', '-Dversion=' + graal_version('SNAPSHOT'), '-Dpackaging=jar', '-Dfile=build/truffle-dsl-processor.jar'])
+    for name in ['TRUFFLE', 'TRUFFLE-DSL-PROCESSOR']:
+        mx.archive(["@" + name])
+        path = mx._dists[name].path
+        mx.run(['mvn', 'install:install-file', '-DgroupId=com.oracle', '-DartifactId=' + name.lower(), '-Dversion=' + graal_version('SNAPSHOT'), '-Dpackaging=jar', '-Dfile=' + path])
 
 def c1visualizer(args):
     """run the Cl Compiler Visualizer"""
