@@ -24,6 +24,7 @@
 
 #include "precompiled.hpp"
 #include "compiler/compileBroker.hpp"
+#include "compiler/disassembler.hpp"
 #include "gc_interface/collectedHeap.hpp"
 #include "prims/whitebox.hpp"
 #include "runtime/arguments.hpp"
@@ -530,6 +531,32 @@ void VMError::report(outputStream* st) {
      if (_verbose && _context) {
        os::print_context(st, _context);
        st->cr();
+     }
+
+  STEP(102, "(printing code blob if possible)")
+
+     if (_verbose && _context) {
+       address pc = os::get_pc(_context);
+       CodeBlob* cb = CodeCache::find_blob(pc);
+       if (cb != NULL) {
+         if (Interpreter::contains(pc)) {
+           // The interpreter CodeBlob is very large so try to print the codelet instead.
+           InterpreterCodelet* codelet = Interpreter::codelet_containing(pc);
+           if (codelet != NULL) {
+             codelet->print_on(st);
+             Disassembler::decode(codelet->code_begin(), codelet->code_end(), st);
+           }
+         } else {
+           StubCodeDesc* desc = StubCodeDesc::desc_for(pc);
+           if (desc != NULL) {
+             desc->print_on(st);
+             Disassembler::decode(desc->begin(), desc->end(), st);
+           } else {
+             Disassembler::decode(cb, st);
+             st->cr();
+           }
+         }
+       }
      }
 
   STEP(105, "(printing register info)")

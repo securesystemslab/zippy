@@ -853,8 +853,8 @@ address SharedRuntime::continuation_for_implicit_exception(JavaThread* thread,
           if (!cb->is_nmethod()) {
             bool is_in_blob = cb->is_adapter_blob() || cb->is_method_handles_adapter_blob();
             if (!is_in_blob) {
-              cb->print();
-              fatal(err_msg("exception happened outside interpreter, nmethods and vtable stubs at pc " INTPTR_FORMAT, pc));
+              // Allow normal crash reporting to handle this
+              return NULL;
             }
             Events::log_exception(thread, "NullPointerException in code blob at " INTPTR_FORMAT, pc);
             // There is no handler here, so we will simply unwind.
