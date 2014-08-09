@@ -106,7 +106,9 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
 
     private PythonWrapperNode createWrapper(PNode node) {
         PythonWrapperNode wrapper;
-        if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
+        if (node instanceof PythonWrapperNode) {
+            wrapper = (PythonWrapperNode) node;
+        } else if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
             wrapper = (PythonWrapperNode) node.getParent();
         } else {
             wrapper = new PythonWrapperNode(context, node);
