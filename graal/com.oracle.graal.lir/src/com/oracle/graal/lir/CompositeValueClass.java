@@ -141,8 +141,8 @@ public class CompositeValueClass extends LIRIntrospection {
         return str.toString();
     }
 
-    public final void forEachComponent(LIRInstruction inst, CompositeValue obj, OperandMode mode, InstructionValueProcedure proc) {
-        forEach(inst, obj, directComponentCount, componentOffsets, mode, componentFlags, proc);
+    public final CompositeValue forEachComponent(LIRInstruction inst, CompositeValue obj, OperandMode mode, InstructionValueProcedure proc) {
+        return forEachComponent(inst, obj, directComponentCount, componentOffsets, mode, componentFlags, proc);
     }
 
     public final void forEachComponent(LIRInstruction inst, CompositeValue obj, OperandMode mode, ValuePositionProcedure proc, ValuePosition outerPosition) {
@@ -165,11 +165,21 @@ public class CompositeValueClass extends LIRIntrospection {
         return getValueForPosition(obj, componentOffsets, directComponentCount, pos);
     }
 
-    void setValue(CompositeValue obj, ValuePosition pos, Value value) {
-        setValueForPosition(obj, componentOffsets, directComponentCount, pos, value);
+    CompositeValue createUpdatedValue(CompositeValue compValue, ValuePosition pos, Value value) {
+        CompositeValue newCompValue = compValue.clone();
+        setValueForPosition(newCompValue, componentOffsets, directComponentCount, pos, value);
+        return newCompValue;
     }
 
     EnumSet<OperandFlag> getFlags(ValuePosition pos) {
         return componentFlags[pos.getIndex()];
+    }
+
+    void copyValueArrays(CompositeValue compositeValue) {
+        for (int i = directComponentCount; i < componentOffsets.length; i++) {
+            Value[] valueArray = getValueArray(compositeValue, componentOffsets[i]);
+            Value[] newValueArray = Arrays.copyOf(valueArray, valueArray.length);
+            setValueArray(compositeValue, componentOffsets[i], newValueArray);
+        }
     }
 }
