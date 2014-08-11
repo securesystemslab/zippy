@@ -52,6 +52,7 @@
 #ifdef GRAAL
 #include "graal/graalCompiler.hpp"
 #ifdef COMPILERGRAAL
+#include "graal/graalRuntime.hpp"
 #include "runtime/vframe.hpp"
 #endif
 #endif
@@ -1203,6 +1204,12 @@ void CompileBroker::compile_method_base(methodHandle method,
           blocking = false;
           break;
         }
+      }
+
+      // Don't allow blocking compilation requests to Graal
+      // if Graal itself is not yet initialized
+      if (!GraalRuntime::is_HotSpotGraalRuntime_initialized() && compiler(comp_level)->is_graal()) {
+        blocking = false;
       }
     }
     // Don't allow blocking compiles

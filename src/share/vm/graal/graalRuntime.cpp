@@ -39,6 +39,7 @@
 
 address GraalRuntime::_external_deopt_i2c_entry = NULL;
 jobject GraalRuntime::_HotSpotGraalRuntime_instance = NULL;
+bool GraalRuntime::_HotSpotGraalRuntime_initialized = false;
 
 void GraalRuntime::initialize_natives(JNIEnv *env, jclass c2vmClass) {
   uintptr_t heap_end = (uintptr_t) Universe::heap()->reserved_region().end();
@@ -663,9 +664,49 @@ JVM_ENTRY(jobject, JVM_CreateTruffleRuntime(JNIEnv *env, jclass c))
   return JNIHandles::make_local((oop) result.get_jobject());
 JVM_END
 
+// private static NativeFunctionInterfaceRuntime.createInterface()
+JVM_ENTRY(jobject, JVM_CreateNativeFunctionInterface(JNIEnv *env, jclass c))
+  const char* backendName = NULL;
+  #ifdef TARGET_ARCH_x86
+  #ifdef _LP64
+    backendName = "com/oracle/graal/hotspot/amd64/AMD64HotSpotBackend";
+  #endif 
+  #endif
+
+  if (backendName == NULL) {
+    return NULL;
+  }
+  TempNewSymbol name = SymbolTable::new_symbol(backendName, CHECK_NULL);
+  KlassHandle klass = GraalRuntime::resolve_or_fail(name, CHECK_NULL);
+
+  TempNewSymbol makeInstance = SymbolTable::new_symbol("createNativeFunctionInterface", CHECK_NULL);
+  TempNewSymbol sig = SymbolTable::new_symbol("()Lcom/oracle/nfi/api/NativeFunctionInterface;", CHECK_NULL);
+  JavaValue result(T_OBJECT);
+  JavaCalls::call_static(&result, klass, makeInstance, sig, CHECK_NULL);
+  return JNIHandles::make_local((oop) result.get_jobject());
+JVM_END
+
+void GraalRuntime::check_generated_sources_sha1(TRAPS) {
+  TempNewSymbol name = SymbolTable::new_symbol("GeneratedSourcesSha1", CHECK_ABORT);
+  KlassHandle klass = load_required_class(name);
+  fieldDescriptor fd;
+  if (!InstanceKlass::cast(klass())->find_field(vmSymbols::value_name(), vmSymbols::string_signature(), true, &fd)) {
+    THROW_MSG(vmSymbols::java_lang_NoSuchFieldError(), "GeneratedSourcesSha1.value");
+  }
+
+  Symbol* value = java_lang_String::as_symbol(klass->java_mirror()->obj_field(fd.offset()), CHECK);
+  if (!value->equals(_generated_sources_sha1)) {
+    char buf[200];
+    jio_snprintf(buf, sizeof(buf), "Generated sources SHA1 check failed (%s != %s) - need to rebuild the VM", value->as_C_string(), _generated_sources_sha1);
+    THROW_MSG(vmSymbols::java_lang_InternalError(), buf);
+  }
+}
+
 Handle GraalRuntime::get_HotSpotGraalRuntime() {
   if (JNIHandles::resolve(_HotSpotGraalRuntime_instance) == NULL) {
+    guarantee(!_HotSpotGraalRuntime_initialized, "cannot reinitialize HotSpotGraalRuntime");
     Thread* THREAD = Thread::current();
+    check_generated_sources_sha1(CHECK_ABORT_(Handle()));
     TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/HotSpotGraalRuntime", CHECK_ABORT_(Handle()));
     KlassHandle klass = load_required_class(name);
     TempNewSymbol runtime = SymbolTable::new_symbol("runtime", CHECK_ABORT_(Handle()));
@@ -673,6 +714,7 @@ Handle GraalRuntime::get_HotSpotGraalRuntime() {
     JavaValue result(T_OBJECT);
     JavaCalls::call_static(&result, klass, runtime, sig, CHECK_ABORT_(Handle()));
     _HotSpotGraalRuntime_instance = JNIHandles::make_global((oop) result.get_jobject());
+    _HotSpotGraalRuntime_initialized = true;
   }
   return Handle(JNIHandles::resolve_non_null(_HotSpotGraalRuntime_instance));
 }
@@ -973,6 +1015,12 @@ void GraalRuntime::abort_on_pending_exception(Handle exception, const char* mess
   CLEAR_PENDING_EXCEPTION;
   tty->print_cr(message);
   call_printStackTrace(exception, THREAD);
+
+  // Give other aborting threads to also print their stack traces.
+  // This can be very useful when debugging class initialization
+  // failures.
+  os::sleep(THREAD, 200, false);
+
   vm_abort(dump_core);
 }
 

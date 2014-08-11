@@ -20,18 +20,24 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.api.code;
+package com.oracle.nfi.api;
 
 /**
- * An opaque representation of a native library handle. A handle is obtained via
- * {@link NativeFunctionInterface#getLibraryHandle(String)}. A handle is used to resolve a string to
- * a {@linkplain NativeFunctionInterface#getFunctionHandle(String, Class, Class...) handle} or
- * {@linkplain NativeFunctionInterface#getFunctionPointer(NativeLibraryHandle[], String) pointer}.
+ * A handle that can be used to {@linkplain #call(Object[]) call} a native function.
  */
-public interface NativeLibraryHandle {
+public interface NativeFunctionHandle {
+
     /**
-     * Gets a name for this library. This may be the path for the file from which the library was
-     * loaded.
+     * Calls the native function.
+     * <p>
+     * The caller is responsible for ensuring {@code args} comply with the platform ABI (e.g. <a
+     * href="http://www.uclibc.org/docs/psABI-x86_64.pdf"> Unix AMD64 ABI</a>). If the library
+     * function has struct parameters, the fields of the struct must be passed as individual
+     * arguments.
+     *
+     * @param args the arguments that will be passed to the native function
+     * @return boxed return value of the function call
      */
-    String getName();
+    Object call(Object... args);
+
 }

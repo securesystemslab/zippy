@@ -76,12 +76,18 @@ class Distribution:
         self.excludedDependencies = excludedDependencies
         self.distDependencies = distDependencies
 
-    def sorted_deps(self, includeLibs=False):
+    def sorted_deps(self, includeLibs=False, transitive=False):
+        deps = []
+        if transitive:
+            for depDist in [distribution(name) for name in self.distDependencies]:
+                for d in depDist.sorted_deps(includeLibs=includeLibs, transitive=True):
+                    if d not in deps:
+                        deps.append(d)
         try:
             excl = [dependency(d) for d in self.excludedDependencies]
         except SystemExit as e:
             abort('invalid excluded dependency for {} distribution: {}'.format(self.name, e))
-        return [d for d in sorted_deps(self.deps, includeLibs=includeLibs) if d not in excl]
+        return deps + [d for d in sorted_deps(self.deps, includeLibs=includeLibs) if d not in excl]
 
     def __str__(self):
         return self.name
@@ -497,7 +503,7 @@ def sha1OfFile(path):
             d.update(buf)
         return d.hexdigest()
 
-def download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False):
+def download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False, canSymlink=True):
     def _download_lib():
         cacheDir = get_env('MX_CACHE_DIR', join(_opts.user_home, '.mx', 'cache'))
         if not exists(cacheDir):
@@ -514,7 +520,8 @@ def download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist
         d = dirname(path)
         if d != '' and not exists(d):
             os.makedirs(d)
-        if 'symlink' in dir(os):
+
+        if canSymlink and 'symlink' in dir(os):
             if exists(path):
                 os.unlink(path)
             os.symlink(cachePath, path)
@@ -557,16 +564,16 @@ class BaseLibrary(Dependency):
         return not result
 
 """
-A library that will be provided by the JDK but may be absent.
+A library that will be provided by the JRE but may be absent.
 Any project or normal library that depends on a missing library
 will be removed from the global project and library dictionaries
 (i.e., _projects and _libs).
 
 This mechanism exists primarily to be able to support code
-that may use functionality in one JDK (e.g., Oracle JDK)
-that is not present in another JDK (e.g., OpenJDK). A
+that may use functionality in one JRE (e.g., Oracle JRE)
+that is not present in another JRE (e.g., OpenJDK). A
 motivating example is the Java Flight Recorder library
-found in the Oracle JDK. 
+found in the Oracle JRE. 
 """
 class JreLibrary(BaseLibrary):
     def __init__(self, suite, name, jar, optional):
@@ -648,7 +655,9 @@ class Library(BaseLibrary):
         if includedInJDK and java().javaCompliance >= JavaCompliance(includedInJDK):
             return None
 
-        return download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, not self.optional)
+        bootClassPathAgent = getattr(self, 'bootClassPathAgent').lower() == 'true' if hasattr(self, 'bootClassPathAgent') else False
+
+        return download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, not self.optional, canSymlink=not bootClassPathAgent)
 
     def get_source_path(self, resolve):
         if self.sourcePath is None:
@@ -1006,7 +1015,7 @@ class Suite:
                             logv('[omitting project {} as dependency {} is missing]'.format(d, name))
                             del _projects[d.name]
                             self.projects.remove(d)
-        for dist in _dists.values():
+        for dist in _dists.itervalues():
             for name in list(dist.deps):
                 if not dependency(name, fatalIfMissing=False):
                     logv('[omitting {} from distribution {}]'.format(name, dist))
@@ -1314,6 +1323,23 @@ def sorted_deps(projectNames=None, includeLibs=False, includeJreLibs=False, incl
     projects = projects_from_names(projectNames)
 
     return sorted_project_deps(projects, includeLibs=includeLibs, includeJreLibs=includeJreLibs, includeAnnotationProcessors=includeAnnotationProcessors)
+
+def sorted_dists():
+    """
+    Gets distributions sorted such that each distribution comes after
+    any distributions it depends upon.
+    """
+    dists = []
+    def add_dist(dist):
+        if not dist in dists:
+            for depDist in [distribution(name) for name in dist.distDependencies]:
+                add_dist(depDist)
+            if not dist in dists:
+                dists.append(dist)
+
+    for d in _dists.itervalues():
+        add_dist(d)
+    return dists
 
 def sorted_project_deps(projects, includeLibs=False, includeJreLibs=False, includeAnnotationProcessors=False):
     deps = []
@@ -2217,13 +2243,12 @@ def build(args, parser=None):
         sourceDirs = p.source_dirs()
         buildReason = 'forced build' if args.force else None
         taskDeps = []
-        if not buildReason:
-            for dep in p.all_deps([], includeLibs=False, includeAnnotationProcessors=True):
-                taskDep = tasks.get(dep.name)
-                if taskDep:
-                    if not buildReason:
-                        buildReason = dep.name + ' rebuilt'
-                    taskDeps.append(taskDep)
+        for dep in p.all_deps([], includeLibs=False, includeAnnotationProcessors=True):
+            taskDep = tasks.get(dep.name)
+            if taskDep:
+                if not buildReason:
+                    buildReason = dep.name + ' rebuilt'
+                taskDeps.append(taskDep)
 
         jasminAvailable = None
         javafilelist = []
@@ -2392,7 +2417,7 @@ def build(args, parser=None):
                 log('Compiling {} failed'.format(t.proj.name))
             abort('{} Java compilation tasks failed'.format(len(failed)))
 
-    for dist in _dists.values():
+    for dist in sorted_dists():
         archive(['@' + dist.name])
 
     if suppliedParser:
@@ -2664,6 +2689,8 @@ class Archiver:
 
     def __enter__(self):
         if self.path:
+            if not isdir(dirname(self.path)):
+                os.makedirs(dirname(self.path))
             fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(self.path) + '.', dir=dirname(self.path))
             self.tmpFd = fd
             self.tmpPath = tmp
@@ -3457,12 +3484,6 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     if buildProcessorJars:
         files += _processorjars_suite(suite)
 
-    projToDist = dict()
-    for dist in _dists.values():
-        distDeps = dist.sorted_deps()
-        for p in distDeps:
-            projToDist[p.name] = (dist, [dep.name for dep in distDeps])
-
     for p in suite.projects:
         if p.native:
             continue
@@ -3475,7 +3496,8 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     _zip_files(libFiles, suite.dir, configLibsZip)
 
     # Create an Eclipse project for each distribution that will create/update the archive
-    # for the distribution whenever any project of the distribution is updated.
+    # for the distribution whenever any (transitively) dependent project of the
+    # distribution is updated.
     for dist in suite.dists:
         if hasattr(dist, 'subDir'):
             projectDir = join(suite.dir, dist.subDir, dist.name + '.dist')
@@ -3483,7 +3505,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
             projectDir = join(suite.dir, dist.name + '.dist')
         if not exists(projectDir):
             os.makedirs(projectDir)
-        distProjects = [d for d in dist.sorted_deps() if d.isProject()]
+        distProjects = [d for d in dist.sorted_deps(transitive=True) if d.isProject()]
         relevantResources = []
         for p in distProjects:
             for srcDir in p.source_dirs():
@@ -3496,6 +3518,8 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         out.open('projects')
         for p in distProjects:
             out.element('project', data=p.name)
+        for d in dist.distDependencies:
+            out.element('project', data=d)
         out.close('projects')
         out.open('buildSpec')
         dist.dir = projectDir
@@ -3909,8 +3933,8 @@ jar.compress=false
 # Space-separated list of extra javac options
 javac.compilerargs=
 javac.deprecation=false
-javac.source=1.7
-javac.target=1.7
+javac.source=""" + str(p.javaCompliance) + """
+javac.target=""" + str(p.javaCompliance) + """
 javac.test.classpath=\\
     ${javac.classpath}:\\
     ${build.classes.dir}

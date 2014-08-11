@@ -3561,6 +3561,7 @@ void SharedRuntime::generate_deopt_blob() {
   int exception_in_tls_offset = __ offset() - start;
 
   // No need to update oop_map  as each call to save_live_registers will produce identical oopmap
+  // Opens a new stack frame
   (void) RegisterSaver::save_live_registers(masm, 0, &frame_size_words);
 
   // Restore G2_thread
@@ -3592,7 +3593,10 @@ void SharedRuntime::generate_deopt_blob() {
   // Reexecute entry, similar to c2 uncommon trap
   //
   int reexecute_offset = __ offset() - start;
-
+#if defined(COMPILERGRAAL) && !defined(COMPILER1)
+  // Graal does not use this kind of deoptimization
+  __ should_not_reach_here();
+#endif
   // No need to update oop_map  as each call to save_live_registers will produce identical oopmap
   (void) RegisterSaver::save_live_registers(masm, 0, &frame_size_words);
 

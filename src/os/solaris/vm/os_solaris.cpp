@@ -4379,6 +4379,10 @@ ExtendedPC os::get_thread_pc(Thread* thread) {
   return fetcher.result();
 }
 
+address os::get_pc(void* context) {
+  ucontext_t *uc = (ucontext_t*)context;
+  return os::Solaris::ucontext_get_pc(uc);
+}
 
 // This does not do anything on Solaris. This is basically a hook for being
 // able to use structured exception handling (thread-local exception filters) on, e.g., Win32.

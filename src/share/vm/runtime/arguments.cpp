@@ -3252,7 +3252,7 @@ jint Arguments::finalize_vm_init_args(SysClassPath* scp_p, bool scp_assembly_req
   if (!UseGraalClassLoader) {
     // Append graal.jar to boot class path
     const char* home = Arguments::get_java_home();
-    scp_p->add_suffix(os::format_boot_path("%/lib/graal.jar", home, (int)strlen(home), os::file_separator()[0], os::path_separator()[0]));
+    scp_p->add_suffix(os::format_boot_path("%/lib/graal.jar:%/lib/graal-truffle.jar", home, (int)strlen(home), os::file_separator()[0], os::path_separator()[0]));
     scp_assembly_required = true;
   }
 #endif

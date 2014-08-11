@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,30 +20,31 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.api.code;
+package com.oracle.truffle.sl.test.instrument;
+
+import java.io.*;
+
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.instrument.*;
+import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.sl.nodes.local.*;
 
 /**
- * A handle that can be used to {@linkplain #call(Object[]) call} a native function.
+ * This sample instrument provides prints the value of an assignment (after the assignment is
+ * complete) to the {@link PrintStream} specified in the constructor. This instrument can only be
+ * attached to a wrapped {@link SLWriteLocalVariableNode}, but provides no guards to protect it from
+ * being attached elsewhere.
  */
-public interface NativeFunctionHandle {
+public final class SLPrintAssigmentValueInstrument extends Instrument {
 
-    /**
-     * Calls the native function.
-     * <p>
-     * The caller is responsible for ensuring {@code args} comply with the platform ABI (e.g. <a
-     * href="http://www.uclibc.org/docs/psABI-x86_64.pdf"> Unix AMD64 ABI</a>). If the library
-     * function has struct parameters, the fields of the struct must be passed as individual
-     * arguments.
-     * 
-     * @param args the arguments that will be passed to the native function
-     * @return boxed return value of the function call
-     */
-    Object call(Object... args);
+    private PrintStream output;
 
-    /**
-     * Returns the installed code of the call stub for the native function call.
-     * 
-     * @return the installed code of the native call stub
-     */
-    InstalledCode getCallStub();
+    public SLPrintAssigmentValueInstrument(PrintStream output) {
+        this.output = output;
+    }
+
+    @Override
+    public void leave(Node astNode, VirtualFrame frame, Object result) {
+        output.println(result);
+    }
 }

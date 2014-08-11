@@ -30,6 +30,7 @@ import os, stat, errno, sys, shutil, zipfile, tarfile, tempfile, re, time, datet
 from os.path import join, exists, dirname, basename
 from argparse import ArgumentParser, RawDescriptionHelpFormatter, REMAINDER
 from outputparser import OutputParser, ValuesMatcher
+import hashlib
 import mx
 import xml.dom.minidom
 import sanitycheck
@@ -82,7 +83,8 @@ _make_eclipse_launch = False
 
 _minVersion = mx.VersionSpec('1.8')
 
-JDK_UNIX_PERMISSIONS = 0755
+JDK_UNIX_PERMISSIONS_DIR = 0755
+JDK_UNIX_PERMISSIONS_FILE = 0644
 
 def isVMSupported(vm):
     if 'client' in vm and len(platform.mac_ver()[0]) != 0:
@@ -138,13 +140,11 @@ class VM:
         _vm = self.previousVm
         _vmbuild = self.previousBuild
 
-def _chmodDir(chmodFlags, dirname, fnames):
-    os.chmod(dirname, chmodFlags)
-    for name in fnames:
-        os.chmod(os.path.join(dirname, name), chmodFlags)
+def chmodRecursive(dirname, chmodFlagsDir):
+    def _chmodDir(chmodFlags, dirname, fnames):
+        os.chmod(dirname, chmodFlagsDir)
 
-def chmodRecursive(dirname, chmodFlags):
-    os.path.walk(dirname, _chmodDir, chmodFlags)
+    os.path.walk(dirname, _chmodDir, chmodFlagsDir)
 
 def clean(args):
     """clean the GraalVM source tree"""
@@ -380,7 +380,7 @@ def _handle_missing_VM(bld, vm):
             return
     mx.abort('You need to run "mx --vm ' + vm + ' --vmbuild ' + bld + ' build" to build the selected VM')
 
-def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
+def _jdk(build='product', vmToCheck=None, create=False, installJars=True):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
@@ -416,7 +416,7 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
 
             assert defaultVM is not None, 'Could not find default VM in ' + jvmCfg
             if mx.get_os() != 'windows':
-                chmodRecursive(jdk, JDK_UNIX_PERMISSIONS)
+                chmodRecursive(jdk, JDK_UNIX_PERMISSIONS_DIR)
             shutil.move(join(_vmLibDirInJdk(jdk), defaultVM), join(_vmLibDirInJdk(jdk), 'original'))
 
 
@@ -457,9 +457,11 @@ def _jdk(build='product', vmToCheck=None, create=False, installGraalJar=True):
                 mx.log("The selected JDK directory does not (yet) exist: " + jdk)
             _handle_missing_VM(build, vmToCheck if vmToCheck else 'graal')
 
-    if installGraalJar:
-        _installGraalJarInJdks(mx.distribution('GRAAL'))
-        _installGraalJarInJdks(mx.distribution('GRAAL_LOADER'))
+    if installJars:
+        _installDistInJdks(mx.distribution('GRAAL'))
+        _installDistInJdks(mx.distribution('GRAAL_LOADER'))
+        _installDistInJdks(mx.distribution('TRUFFLE'))
+        _installDistInJdks(mx.distribution('GRAAL_TRUFFLE'))
 
     if vmToCheck is not None:
         jvmCfg = _vmCfgInJdk(jdk)
@@ -485,37 +487,71 @@ def _updateInstalledGraalOptionsFile(jdk):
             os.unlink(toDelete)
 
 def _makeHotspotGeneratedSourcesDir():
+    """
+    Gets the directory containing all the HotSpot sources generated from
+    Graal Java sources. This directory will be created if it doesn't yet exist.
+    """
     hsSrcGenDir = join(mx.project('com.oracle.graal.hotspot').source_gen_dir(), 'hotspot')
     if not exists(hsSrcGenDir):
         os.makedirs(hsSrcGenDir)
     return hsSrcGenDir
 
+def _update_graalRuntime_inline_hpp(dist):
+    """
+    (Re)generates graalRuntime.inline.hpp based on a given distribution
+    that transitively represents all the input for the generation process.
 
-def _graalRuntime_inline_hpp_path():
-    return join(_makeHotspotGeneratedSourcesDir(), 'graalRuntime.inline.hpp')
+    A SHA1 digest is computed for all generated content and is written to
+    graalRuntime.inline.hpp as well as stored in a generated class
+    that is appended to the dist.path jar. At runtime, these two digests
+    are checked for consistency.
+    """
 
-def _update_graalRuntime_inline_hpp(graalJar):
     p = mx.project('com.oracle.graal.hotspot.sourcegen')
     mainClass = 'com.oracle.graal.hotspot.sourcegen.GenGraalRuntimeInlineHpp'
     if exists(join(p.output_dir(), mainClass.replace('.', os.sep) + '.class')):
-        graalRuntime_inline_hpp = _graalRuntime_inline_hpp_path()
+        genSrcDir = _makeHotspotGeneratedSourcesDir()
+        graalRuntime_inline_hpp = join(genSrcDir, 'graalRuntime.inline.hpp')
+        cp = os.pathsep.join([mx.distribution(d).path for d in dist.distDependencies] + [dist.path, p.output_dir()])
         tmp = StringIO.StringIO()
-        mx.run_java(['-cp', '{}{}{}'.format(graalJar, os.pathsep, p.output_dir()), mainClass], out=tmp.write)
+        mx.run_java(['-cp', cp, mainClass], out=tmp.write)
+
+        # Compute SHA1 for currently generated graalRuntime.inline.hpp content
+        # and all other generated sources in genSrcDir
+        d = hashlib.sha1()
+        d.update(tmp.getvalue())
+        for e in os.listdir(genSrcDir):
+            if e != 'graalRuntime.inline.hpp':
+                with open(join(genSrcDir, e)) as fp:
+                    d.update(fp.read())
+        sha1 = d.hexdigest()
+
+        # Add SHA1 to end of graalRuntime.inline.hpp
+        print >> tmp, ''
+        print >> tmp, 'const char* GraalRuntime::_generated_sources_sha1 = "' + sha1 + '";'
+
         mx.update_file(graalRuntime_inline_hpp, tmp.getvalue())
 
-def _checkVMIsNewerThanGeneratedSources(jdk, vm, bld):
-    if isGraalEnabled(vm):
-        vmLib = mx.TimeStampFile(join(_vmLibDirInJdk(jdk), vm, mx.add_lib_prefix(mx.add_lib_suffix('jvm'))))
-        for name in ['graalRuntime.inline.hpp', 'HotSpotVMConfig.inline.hpp']:
-            genSrc = join(_makeHotspotGeneratedSourcesDir(), name)
-            if vmLib.isOlderThan(genSrc):
-                mx.log('The VM ' + vmLib.path + ' is older than ' + genSrc)
-                mx.abort('You need to run "mx --vm ' + vm + ' --vmbuild ' + bld + ' build"')
+        # Store SHA1 in generated Java class and append class to specified jar
+        javaSource = join(_graal_home, 'GeneratedSourcesSha1.java')
+        javaClass = join(_graal_home, 'GeneratedSourcesSha1.class')
+        with open(javaSource, 'w') as fp:
+            print >> fp, 'class GeneratedSourcesSha1 { private static final String value = "' + sha1 + '"; }'
+        subprocess.check_call([mx.java().javac, '-d', _graal_home, javaSource], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        zf = zipfile.ZipFile(dist.path, 'a')
+        with open(javaClass, 'rb') as fp:
+            zf.writestr(os.path.basename(javaClass), fp.read())
+        zf.close()
+        os.unlink(javaSource)
+        os.unlink(javaClass)
 
-def _installGraalJarInJdks(graalDist):
-    graalJar = graalDist.path
-    if graalJar.endswith('graal.jar'):
-        _update_graalRuntime_inline_hpp(graalJar)
+def _installDistInJdks(dist):
+    """
+    Installs the jar(s) for a given Distribution into all existing Graal JDKs
+    """
+
+    if dist.name == 'GRAAL_TRUFFLE':
+        _update_graalRuntime_inline_hpp(dist)
     jdks = _jdksDir()
 
     if exists(jdks):
@@ -527,7 +563,7 @@ def _installGraalJarInJdks(graalDist):
                     dstJar = join(dstDir, name)
                     if mx.get_env('SYMLINK_GRAAL_JAR', None) == 'true':
                         # Using symlinks is much faster than copying but may
-                        # cause issues if graal.jar is being updated while
+                        # cause issues if the jar is being updated while
                         # the VM is running.
                         if not os.path.islink(dstJar) or not os.path.realpath(dstJar) == srcJar:
                             if exists(dstJar):
@@ -539,11 +575,11 @@ def _installGraalJarInJdks(graalDist):
                         shutil.copyfile(srcJar, tmp)
                         os.close(fd)
                         shutil.move(tmp, dstJar)
-                        os.chmod(dstJar, JDK_UNIX_PERMISSIONS)
+                        os.chmod(dstJar, JDK_UNIX_PERMISSIONS_FILE)
 
-                install(graalJar, jreLibDir)
-                if graalDist.sourcesPath:
-                    install(graalDist.sourcesPath, join(jdks, e))
+                install(dist.path, jreLibDir)
+                if dist.sourcesPath:
+                    install(dist.sourcesPath, join(jdks, e))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo=None):
@@ -608,7 +644,7 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
 def jdkhome(vm=None):
     """return the JDK directory selected for the 'vm' command"""
     build = _vmbuild if _vmSourcesAvailable else 'product'
-    return _jdk(build, installGraalJar=False)
+    return _jdk(build, installJars=False)
 
 def print_jdkhome(args, vm=None):
     """print the JDK directory selected for the 'vm' command"""
@@ -633,6 +669,35 @@ def buildvars(args):
 
     mx.log('')
     mx.log('Note that these variables can be given persistent values in the file ' + join(_graal_home, 'mx', 'env') + ' (see \'mx about\').')
+
+cached_graal_version = None
+
+def graal_version(dev_suffix='dev'):
+    global cached_graal_version
+
+    if not cached_graal_version:
+        # extract latest release tag for graal
+        try:
+            tags = [x.split() for x in subprocess.check_output(['hg', '-R', _graal_home, 'tags']).split('\n') if x.startswith("graal-")]
+            current_revision = subprocess.check_output(['hg', '-R', _graal_home, 'id', '-i']).strip()
+        except:
+            # not a mercurial repository or hg commands are not available.
+            tags = None
+
+        if tags and current_revision:
+            sorted_tags = sorted(tags, key=lambda e: [int(x) for x in e[0][len("graal-"):].split('.')], reverse=True)
+            most_recent_tag_name, most_recent_tag_revision = sorted_tags[0]
+            most_recent_tag_version = most_recent_tag_name[len("graal-"):]
+
+            if current_revision == most_recent_tag_revision:
+                cached_graal_version = most_recent_tag_version
+            else:
+                major, minor = map(int, most_recent_tag_version.split('.'))
+                cached_graal_version = str(major) + '.' + str(minor + 1) + '-' + dev_suffix
+        else:
+            cached_graal_version = 'unknown-{}-{}'.format(platform.node(), time.strftime('%Y-%m-%d_%H-%M-%S_%Z'))
+
+    return cached_graal_version
 
 def build(args, vm=None):
     """build the VM binary
@@ -700,7 +765,7 @@ def build(args, vm=None):
             if build is None or len(build) == 0:
                 continue
 
-        jdk = _jdk(build, create=True)
+        jdk = _jdk(build, create=True, installJars=not opts2.java)
 
         if vm == 'original':
             if build != 'product':
@@ -714,7 +779,7 @@ def build(args, vm=None):
         vmDir = join(_vmLibDirInJdk(jdk), vm)
         if not exists(vmDir):
             if mx.get_os() != 'windows':
-                chmodRecursive(jdk, JDK_UNIX_PERMISSIONS)
+                chmodRecursive(jdk, JDK_UNIX_PERMISSIONS_DIR)
             mx.log('Creating VM directory in JDK: ' + vmDir)
             os.makedirs(vmDir)
 
@@ -794,22 +859,9 @@ def build(args, vm=None):
                 setMakeVar('INCLUDE_GRAAL', 'false')
                 setMakeVar('ALT_OUTPUTDIR', join(_graal_home, 'build-nograal', mx.get_os()), env=env)
             else:
-                # extract latest release tag for graal
-                try:
-                    tags = [x.split(' ')[0] for x in subprocess.check_output(['hg', '-R', _graal_home, 'tags']).split('\n') if x.startswith("graal-")]
-                except:
-                    # not a mercurial repository or hg commands are not available.
-                    tags = None
-
-                if tags:
-                    # extract the most recent tag
-                    tag = sorted(tags, key=lambda e: [int(x) for x in e[len("graal-"):].split('.')], reverse=True)[0]
-                    setMakeVar('USER_RELEASE_SUFFIX', tag)
-                    setMakeVar('GRAAL_VERSION', tag[len("graal-"):])
-                else:
-                    version = 'unknown-{}-{}'.format(platform.node(), time.strftime('%Y-%m-%d_%H-%M-%S_%Z'))
-                    setMakeVar('USER_RELEASE_SUFFIX', 'graal-' + version)
-                    setMakeVar('GRAAL_VERSION', version)
+                version = graal_version()
+                setMakeVar('USER_RELEASE_SUFFIX', 'graal-' + version)
+                setMakeVar('GRAAL_VERSION', version)
                 setMakeVar('INCLUDE_GRAAL', 'true')
             setMakeVar('INSTALL', 'y', env=env)
             if mx.get_os() == 'solaris':
@@ -861,7 +913,7 @@ def build(args, vm=None):
         if not found:
             mx.log('Appending "' + prefix + 'KNOWN" to ' + jvmCfg)
             if mx.get_os() != 'windows':
-                os.chmod(jvmCfg, JDK_UNIX_PERMISSIONS)
+                os.chmod(jvmCfg, JDK_UNIX_PERMISSIONS_FILE)
             with open(jvmCfg, 'w') as f:
                 for line in lines:
                     if line.startswith(prefix):
@@ -899,9 +951,8 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
         mx.abort("conflicting working directories: do not set --vmcwd for this command")
 
     build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
-    jdk = _jdk(build, vmToCheck=vm, installGraalJar=False)
+    jdk = _jdk(build, vmToCheck=vm, installJars=False)
     _updateInstalledGraalOptionsFile(jdk)
-    _checkVMIsNewerThanGeneratedSources(jdk, vm, build)
     mx.expand_project_in_args(args)
     if _make_eclipse_launch:
         mx.make_eclipse_launch(args, 'graal-' + build, name=None, deps=mx.project('com.oracle.graal.hotspot').all_deps([], True))
@@ -1071,7 +1122,7 @@ def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, ena
             graalDist = mx.distribution('GRAAL')
             graalJarCp = set([d.output_dir() for d in graalDist.sorted_deps()])
             cp = os.pathsep.join([e for e in cp.split(os.pathsep) if e not in graalJarCp])
-            vmArgs = vmArgs + ['-XX:-UseGraalClassLoader']
+            vmArgs = ['-XX:-UseGraalClassLoader'] + vmArgs
 
         if len(testclasses) == 1:
             # Execute Junit directly when one test is being run. This simplifies
@@ -1489,6 +1540,13 @@ def igv(args):
         if not exists(nbplatform):
             mx.logv('[This execution may take a while as the NetBeans platform needs to be downloaded]')
         mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'], env=env)
+
+def maven_install_truffle(args):
+    """install Truffle into your local Maven repository"""
+    for name in ['TRUFFLE', 'TRUFFLE-DSL-PROCESSOR']:
+        mx.archive(["@" + name])
+        path = mx._dists[name].path
+        mx.run(['mvn', 'install:install-file', '-DgroupId=com.oracle', '-DartifactId=' + name.lower(), '-Dversion=' + graal_version('SNAPSHOT'), '-Dpackaging=jar', '-Dfile=' + path])
 
 def c1visualizer(args):
     """run the Cl Compiler Visualizer"""
@@ -2149,6 +2207,7 @@ def mx_init(suite):
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
+        'maven-install-truffle' : [maven_install_truffle, ''],
         'jdkhome': [print_jdkhome, ''],
         'jmh': [jmh, '[VM options] [filters|JMH-args-as-json...]'],
         'dacapo': [dacapo, '[VM options] benchmarks...|"all" [DaCapo options]'],
@@ -2214,5 +2273,7 @@ def mx_post_parse_cmd_line(opts):  #
     global _vm_prefix
     _vm_prefix = opts.vm_prefix
 
-    mx.distribution('GRAAL').add_update_listener(_installGraalJarInJdks)
-    mx.distribution('GRAAL_LOADER').add_update_listener(_installGraalJarInJdks)
+    mx.distribution('GRAAL').add_update_listener(_installDistInJdks)
+    mx.distribution('GRAAL_LOADER').add_update_listener(_installDistInJdks)
+    mx.distribution('TRUFFLE').add_update_listener(_installDistInJdks)
+    mx.distribution('GRAAL_TRUFFLE').add_update_listener(_installDistInJdks)

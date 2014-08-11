@@ -192,6 +192,7 @@ public class SLMain {
         } finally {
             printScript("after execution", context, logOutput, printASTToLog, printSourceAttributionToLog, dumpASTToIGV);
         }
+        return;
     }
 
     /**

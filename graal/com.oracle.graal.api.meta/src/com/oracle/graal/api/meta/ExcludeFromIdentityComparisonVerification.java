@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,22 +20,19 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.api.code;
+package com.oracle.graal.api.meta;
+
+import java.lang.annotation.*;
 
 /**
- * An opaque representation of a native function pointer.
- * <p>
- * Use {@code NativeFunctionInterface#getFunctionHandle(NativeFunctionPointer, Class, Class...)} to
- * get a handle enabling the native function to be {@linkplain NativeFunctionHandle#call(Object...)
- * called}.
+ * This annotation can be use to mark methods which are allowed to use identity checks (==/!=) on
+ * restricted types.
+ *
+ * @see CheckGraalInvariants
  */
-public interface NativeFunctionPointer {
-
-    /**
-     * Returns the name of the function.
-     * 
-     * @return name of the function
-     */
-    String getName();
+@SuppressWarnings("javadoc")
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.METHOD)
+public @interface ExcludeFromIdentityComparisonVerification {
 
 }
