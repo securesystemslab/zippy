@@ -3675,9 +3675,9 @@ ExtendedPC os::get_thread_pc(Thread* thread) {
 address os::get_pc(void* context) {
   CONTEXT* uc = (CONTEXT*)context;
 #ifdef _M_AMD64
-  return (address) context.Rip;
+  return (address) uc->Rip;
 #else
-  return (address) context.Eip;
+  return (address) uc->Eip;
 #endif
 }
 
