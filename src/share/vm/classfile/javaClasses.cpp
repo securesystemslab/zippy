@@ -594,6 +594,12 @@ oop java_lang_Class::create_mirror(KlassHandle k, Handle protection_domain, TRAP
       set_init_lock(mirror(), r);
 
       // Set protection domain also
+#ifdef GRAAL
+      if (k->class_loader() == SystemDictionary::graal_loader()) {
+        // Same protection domain as for classes loaded by the boot loader
+        protection_domain = Handle();
+      }
+#endif
       set_protection_domain(mirror(), protection_domain());
 
       // Initialize static fields
