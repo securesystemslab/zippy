@@ -85,6 +85,7 @@ _minVersion = mx.VersionSpec('1.8')
 
 JDK_UNIX_PERMISSIONS_DIR = 0755
 JDK_UNIX_PERMISSIONS_FILE = 0644
+JDK_UNIX_PERMISSIONS_EXEC = 0755
 
 def isVMSupported(vm):
     if 'client' in vm and len(platform.mac_ver()[0]) != 0:
@@ -545,7 +546,29 @@ def _update_graalRuntime_inline_hpp(dist):
         os.unlink(javaSource)
         os.unlink(javaClass)
 
-def _installDistInJdks(dist):
+def _copyToJdk(src, dst):
+    name = os.path.basename(src)
+    dstLib = join(dst, name)
+    if mx.get_env('SYMLINK_GRAAL_JAR', None) == 'true':
+        # Using symlinks is much faster than copying but may
+        # cause issues if the lib is being updated while
+        # the VM is running.
+        if not os.path.islink(dstLib) or not os.path.realpath(dstLib) == src:
+            if exists(dstLib):
+                os.remove(dstLib)
+                os.symlink(src, dstLib)
+    else:
+        # do a copy and then a move to get atomic updating (on Unix)
+        fd, tmp = tempfile.mkstemp(suffix='', prefix=name, dir=dst)
+        shutil.copyfile(src, tmp)
+        os.close(fd)
+        shutil.move(tmp, dstLib)
+        os.chmod(dstLib, JDK_UNIX_PERMISSIONS_FILE)
+
+def _installDistInJdksExt(dist):
+    _installDistInJdks(dist, True)
+
+def _installDistInJdks(dist, ext=False):
     """
     Installs the jar(s) for a given Distribution into all existing Graal JDKs
     """
@@ -557,29 +580,12 @@ def _installDistInJdks(dist):
     if exists(jdks):
         for e in os.listdir(jdks):
             jreLibDir = join(jdks, e, 'jre', 'lib')
+            if ext:
+                jreLibDir = join(jreLibDir, 'ext')
             if exists(jreLibDir):
-                def install(srcJar, dstDir):
-                    name = os.path.basename(srcJar)
-                    dstJar = join(dstDir, name)
-                    if mx.get_env('SYMLINK_GRAAL_JAR', None) == 'true':
-                        # Using symlinks is much faster than copying but may
-                        # cause issues if the jar is being updated while
-                        # the VM is running.
-                        if not os.path.islink(dstJar) or not os.path.realpath(dstJar) == srcJar:
-                            if exists(dstJar):
-                                os.remove(dstJar)
-                            os.symlink(srcJar, dstJar)
-                    else:
-                        # do a copy and then a move to get atomic updating (on Unix)
-                        fd, tmp = tempfile.mkstemp(suffix='', prefix=name, dir=dstDir)
-                        shutil.copyfile(srcJar, tmp)
-                        os.close(fd)
-                        shutil.move(tmp, dstJar)
-                        os.chmod(dstJar, JDK_UNIX_PERMISSIONS_FILE)
-
-                install(dist.path, jreLibDir)
+                _copyToJdk(dist.path, jreLibDir)
                 if dist.sourcesPath:
-                    install(dist.sourcesPath, join(jdks, e))
+                    _copyToJdk(dist.sourcesPath, join(jdks, e))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo=None):
@@ -1879,7 +1885,7 @@ def specjvm2008(args):
     _run_benchmark(args, sorted(availableBenchmarks), launcher)
 
 def specjbb2013(args):
-    """runs the composite SPECjbb2013 benchmark"""
+    """run the composite SPECjbb2013 benchmark"""
 
     def launcher(bm, harnessArgs, extraVmOpts):
         assert bm is None
@@ -1888,7 +1894,7 @@ def specjbb2013(args):
     _run_benchmark(args, None, launcher)
 
 def specjbb2005(args):
-    """runs the composite SPECjbb2005 benchmark"""
+    """run the composite SPECjbb2005 benchmark"""
 
     def launcher(bm, harnessArgs, extraVmOpts):
         assert bm is None
