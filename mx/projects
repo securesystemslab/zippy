@@ -355,6 +355,7 @@ project@com.oracle.graal.graph.processor@subDir=graal
 project@com.oracle.graal.graph.processor@sourceDirs=src
 project@com.oracle.graal.graph.processor@dependencies=com.oracle.graal.graph,com.oracle.truffle.dsl.processor
 project@com.oracle.graal.graph.processor@javaCompliance=1.8
+project@com.oracle.graal.graph.processor@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.graph.processor@workingSets=Graal,Graph
 
 # graal.graph.test
