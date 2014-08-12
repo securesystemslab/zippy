@@ -436,7 +436,7 @@ class Thread: public ThreadShadow {
   ThreadLocalAllocBuffer& tlab()                 { return _tlab; }
   void initialize_tlab() {
     if (UseTLAB) {
-      tlab().initialize();
+      tlab().initialize(this);
     }
   }
 
@@ -950,6 +950,8 @@ class JavaThread: public Thread {
   Method* _gpu_exception_method;
   // Record the hsailDeoptimization info so gc oops_do processing can find it
   void*   _gpu_hsail_deopt_info;
+  jint    _gpu_hsail_tlabs_count;
+  ThreadLocalAllocBuffer** _gpu_hsail_tlabs;
 #endif
 
  public:
@@ -960,9 +962,17 @@ class JavaThread: public Thread {
   Method* get_gpu_exception_method()             { return _gpu_exception_method; }
   void set_gpu_hsail_deopt_info(void * deoptInfo) { _gpu_hsail_deopt_info = deoptInfo; }
   void* get_gpu_hsail_deopt_info()               { return _gpu_hsail_deopt_info; }
+  jint  get_gpu_hsail_tlabs_count()              { return _gpu_hsail_tlabs_count; }
+
+  void  initialize_gpu_hsail_tlabs(jint count);
+  ThreadLocalAllocBuffer* get_gpu_hsail_tlab_at(jint idx);
+  void gpu_hsail_tlabs_make_parsable(bool retire);
+  void  delete_gpu_hsail_tlabs();
 #endif
-  
+
  private:  
+  void tlabs_make_parsable(bool retire);
+
   // support for JNI critical regions
   jint    _jni_active_critical;                  // count of entries into JNI critical region
 
