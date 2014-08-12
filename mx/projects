@@ -350,6 +350,13 @@ project@com.oracle.graal.graph@dependencies=com.oracle.graal.debug,com.oracle.gr
 project@com.oracle.graal.graph@javaCompliance=1.8
 project@com.oracle.graal.graph@workingSets=Graal,Graph
 
+# graal.graph
+project@com.oracle.graal.graph.processor@subDir=graal
+project@com.oracle.graal.graph.processor@sourceDirs=src
+project@com.oracle.graal.graph.processor@dependencies=com.oracle.graal.graph,com.oracle.truffle.dsl.processor
+project@com.oracle.graal.graph.processor@javaCompliance=1.8
+project@com.oracle.graal.graph.processor@workingSets=Graal,Graph
+
 # graal.graph.test
 project@com.oracle.graal.graph.test@subDir=graal
 project@com.oracle.graal.graph.test@sourceDirs=src
@@ -477,7 +484,7 @@ project@com.oracle.graal.nodes@sourceDirs=src
 project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements,com.oracle.graal.lir
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.8
-project@com.oracle.graal.nodes@annotationProcessors=com.oracle.graal.replacements.verifier
+project@com.oracle.graal.nodes@annotationProcessors=com.oracle.graal.replacements.verifier,com.oracle.graal.graph.processor
 project@com.oracle.graal.nodes@workingSets=Graal,Graph
 
 # graal.nodes.test
