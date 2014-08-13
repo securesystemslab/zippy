@@ -41,7 +41,6 @@ import com.oracle.truffle.dsl.processor.java.model.CodeTypeMirror.DeclaredCodeTy
 public class ElementUtils {
 
     public static TypeMirror getType(ProcessingEnvironment processingEnv, Class<?> element) {
-        TypeMirror mirror;
         if (element.isPrimitive()) {
             if (element == void.class) {
                 return processingEnv.getTypeUtils().getNoType(TypeKind.VOID);
@@ -67,11 +66,14 @@ public class ElementUtils {
                 assert false;
                 return null;
             }
-            mirror = processingEnv.getTypeUtils().getPrimitiveType(typeKind);
+            return processingEnv.getTypeUtils().getPrimitiveType(typeKind);
         } else {
-            mirror = processingEnv.getElementUtils().getTypeElement(element.getCanonicalName()).asType();
+            TypeElement typeElement = processingEnv.getElementUtils().getTypeElement(element.getCanonicalName());
+            if (typeElement == null) {
+                return null;
+            }
+            return typeElement.asType();
         }
-        return mirror;
     }
 
     public static ExecutableElement findExecutableElement(DeclaredType type, String name) {
@@ -898,24 +900,25 @@ public class ElementUtils {
     }
 
     public static boolean typeEquals(TypeMirror type1, TypeMirror type2) {
-        if (type1 == null && type2 == null) {
+        if (type1 == type2) {
             return true;
         } else if (type1 == null || type2 == null) {
             return false;
-        } else if (type1 == type2) {
-            return true;
-        }
-        String qualified1 = getQualifiedName(type1);
-        String qualified2 = getQualifiedName(type2);
-
-        if (type1.getKind() == TypeKind.ARRAY || type2.getKind() == TypeKind.ARRAY) {
-            if (type1.getKind() == TypeKind.ARRAY && type2.getKind() == TypeKind.ARRAY) {
-                return typeEquals(((ArrayType) type1).getComponentType(), ((ArrayType) type2).getComponentType());
+        } else {
+            if (type1.getKind() == type2.getKind()) {
+                return getUniqueIdentifier(type1).equals(getUniqueIdentifier(type2));
             } else {
                 return false;
             }
         }
-        return qualified1.equals(qualified2);
+    }
+
+    public static String getUniqueIdentifier(TypeMirror typeMirror) {
+        if (typeMirror.getKind() == TypeKind.ARRAY) {
+            return getUniqueIdentifier(((ArrayType) typeMirror).getComponentType()) + "[]";
+        } else {
+            return getQualifiedName(typeMirror);
+        }
     }
 
     public static int compareByTypeHierarchy(TypeMirror t1, TypeMirror t2) {

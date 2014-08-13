@@ -145,6 +145,7 @@ public class NodeParser extends AbstractParser<NodeData> {
             return node; // error sync point
         }
 
+        node.setExecutableTypes(groupExecutableTypes(new ExecutableTypeMethodParser(context, node).parse(elements)));
         initializeChildren(node);
 
         node.getSpecializations().addAll(new SpecializationMethodParser(context, node).parse(elements));
@@ -209,7 +210,6 @@ public class NodeParser extends AbstractParser<NodeData> {
         List<NodeExecutionData> executions = parseExecutions(children, elements);
 
         NodeData nodeData = new NodeData(context, templateType, shortName, typeSystem, children, executions, fields, assumptionsList);
-        nodeData.setExecutableTypes(groupExecutableTypes(new ExecutableTypeMethodParser(context, nodeData).parse(elements)));
 
         parsedNodes.put(ElementUtils.getQualifiedName(templateType), nodeData);
 
