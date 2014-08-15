@@ -95,6 +95,16 @@ class Distribution:
     def add_update_listener(self, listener):
         self.update_listeners.add(listener)
 
+    """
+    Gets the directory in which the IDE project configuration
+    for this distribution is generated.
+    """
+    def get_ide_project_dir(self):
+        if hasattr(self, 'subDir'):
+            return join(self.suite.dir, self.subDir, self.name + '.dist')
+        else:
+            return join(self.suite.dir, self.name + '.dist')
+
     def make_archive(self):
         # are sources combined into main archive?
         unified = self.path == self.sourcesPath
@@ -954,6 +964,7 @@ class Suite:
                                 else:
                                     arc.zf.writestr(arcname, lp.read(arcname))
                 d.add_update_listener(_refineAnnotationProcessorServiceConfig)
+                self.dists.append(d)
 
         if self.name is None:
             abort('Missing "suite=<name>" in ' + projectsFile)
@@ -3541,10 +3552,7 @@ def _eclipseinit_suite(args, suite, refreshOnly=False):
     # for the distribution whenever any (transitively) dependent project of the
     # distribution is updated.
     for dist in suite.dists:
-        if hasattr(dist, 'subDir'):
-            projectDir = join(suite.dir, dist.subDir, dist.name + '.dist')
-        else:
-            projectDir = join(suite.dir, dist.name + '.dist')
+        projectDir = dist.get_ide_project_dir()
         if not exists(projectDir):
             os.makedirs(projectDir)
         distProjects = [d for d in dist.sorted_deps(transitive=True) if d.isProject()]
@@ -4288,6 +4296,9 @@ def ideclean(args):
             rm(join(p.dir, p.name + '.jar'))
         except:
             log("Error removing {0}".format(p.name + '.jar'))
+
+    for d in _dists.itervalues():
+        shutil.rmtree(d.get_ide_project_dir(), ignore_errors=True)
 
 
 def ideinit(args, refreshOnly=False):
