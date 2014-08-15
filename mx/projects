@@ -827,7 +827,7 @@ project@com.oracle.truffle.sl.test@workingSets=Truffle,SimpleLanguage,Test
 # graal.truffle
 project@com.oracle.graal.truffle@subDir=graal
 project@com.oracle.graal.truffle@sourceDirs=src
-project@com.oracle.graal.truffle@dependencies=com.oracle.truffle.api,com.oracle.graal.replacements,com.oracle.graal.runtime,com.oracle.graal.printer
+project@com.oracle.graal.truffle@dependencies=com.oracle.graal.replacements,com.oracle.graal.printer,com.oracle.graal.runtime
 project@com.oracle.graal.truffle@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.truffle@javaCompliance=1.8
 project@com.oracle.graal.truffle@workingSets=Graal,Truffle
