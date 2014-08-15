@@ -341,20 +341,20 @@ project@com.oracle.graal.options.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.options.test@javaCompliance=1.8
 project@com.oracle.graal.options.test@workingSets=Graal
 
+# graal.nodeinfo
+project@com.oracle.graal.nodeinfo@subDir=graal
+project@com.oracle.graal.nodeinfo@sourceDirs=src
+project@com.oracle.graal.nodeinfo@dependencies=com.oracle.truffle.dsl.processor
+project@com.oracle.graal.nodeinfo@javaCompliance=1.8
+project@com.oracle.graal.nodeinfo@workingSets=Graal,Graph
+
 # graal.graph
 project@com.oracle.graal.graph@subDir=graal
 project@com.oracle.graal.graph@sourceDirs=src
-project@com.oracle.graal.graph@dependencies=com.oracle.graal.debug,com.oracle.graal.compiler.common,com.oracle.graal.api.collections,com.oracle.graal.api.runtime,FINDBUGS
+project@com.oracle.graal.graph@dependencies=com.oracle.graal.nodeinfo,com.oracle.graal.debug,com.oracle.graal.compiler.common,com.oracle.graal.api.collections,com.oracle.graal.api.runtime,FINDBUGS
 project@com.oracle.graal.graph@javaCompliance=1.8
+project@com.oracle.graal.graph@annotationProcessors=com.oracle.graal.nodeinfo
 project@com.oracle.graal.graph@workingSets=Graal,Graph
-
-# graal.graph
-project@com.oracle.graal.graph.processor@subDir=graal
-project@com.oracle.graal.graph.processor@sourceDirs=src
-project@com.oracle.graal.graph.processor@dependencies=com.oracle.graal.graph,com.oracle.truffle.dsl.processor
-project@com.oracle.graal.graph.processor@javaCompliance=1.8
-project@com.oracle.graal.graph.processor@checkstyle=com.oracle.graal.graph
-project@com.oracle.graal.graph.processor@workingSets=Graal,Graph
 
 # graal.graph.test
 project@com.oracle.graal.graph.test@subDir=graal
@@ -483,7 +483,7 @@ project@com.oracle.graal.nodes@sourceDirs=src
 project@com.oracle.graal.nodes@dependencies=com.oracle.graal.graph,com.oracle.graal.api.replacements,com.oracle.graal.lir
 project@com.oracle.graal.nodes@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodes@javaCompliance=1.8
-project@com.oracle.graal.nodes@annotationProcessors=com.oracle.graal.replacements.verifier,com.oracle.graal.graph.processor
+project@com.oracle.graal.nodes@annotationProcessors=com.oracle.graal.replacements.verifier
 project@com.oracle.graal.nodes@workingSets=Graal,Graph
 
 # graal.nodes.test
