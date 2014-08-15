@@ -2285,7 +2285,7 @@ def build(args, parser=None):
         sortedProjects = sorted_project_deps(projects, includeAnnotationProcessors=True)
 
     if args.java:
-        ideinit([], refreshOnly=True)
+        ideinit([], refreshOnly=True, buildProcessorJars=False)
 
     def prepareOutputDirs(p, clean):
         outputDir = p.output_dir()
@@ -2574,7 +2574,7 @@ def eclipseformat(args):
     if not os.access(args.eclipse_exe, os.X_OK):
         abort('Not an executable file: ' + args.eclipse_exe)
 
-    eclipseinit([])
+    eclipseinit([], buildProcessorJars=False)
 
     # build list of projects to be processed
     projects = sorted_deps()
@@ -2684,6 +2684,19 @@ def eclipseformat(args):
             log('Wrote backup of {0} modified files to {1}'.format(len(modified), backup))
         return 1
     return 0
+
+def processorjars():
+    for s in suites(True):
+        _processorjars_suite(s)
+
+def _processorjars_suite(s):
+    projs = [p for p in s.projects if p.definedAnnotationProcessors is not None]
+    if len(projs) <= 0:
+        return []
+
+    pnames = [p.name for p in projs]
+    build(['--jdt-warning-as-error', '--projects', ",".join(pnames)])
+    return [p.definedAnnotationProcessorsDist.path for p in s.projects if p.definedAnnotationProcessorsDist is not None]
 
 def pylint(args):
     """run pylint (if available) over Python source files (found by 'hg locate' or by tree walk with -walk)"""
@@ -3292,10 +3305,10 @@ def make_eclipse_launch(javaArgs, jre, name=None, deps=None):
         os.makedirs(eclipseLaunches)
     return update_file(join(eclipseLaunches, name + '.launch'), launch)
 
-def eclipseinit(args, refreshOnly=False):
+def eclipseinit(args, buildProcessorJars=True, refreshOnly=False):
     """(re)generate Eclipse project configurations and working sets"""
     for s in suites(True):
-        _eclipseinit_suite(args, s, refreshOnly)
+        _eclipseinit_suite(args, s, buildProcessorJars, refreshOnly)
 
     generate_eclipse_workingsets()
 
@@ -3522,7 +3535,7 @@ def _eclipseinit_project(p, files=None, libFiles=None):
         if files:
             files.append(join(p.dir, '.factorypath'))
 
-def _eclipseinit_suite(args, suite, refreshOnly=False):
+def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     configZip = TimeStampFile(join(suite.mxDir, 'eclipse-config.zip'))
     configLibsZip = join(suite.mxDir, 'eclipse-config-libs.zip')
     if refreshOnly and not configZip.exists():
@@ -3532,21 +3545,18 @@ def _eclipseinit_suite(args, suite, refreshOnly=False):
         logv('[Eclipse configurations are up to date - skipping]')
         return
 
-
-
     files = []
     libFiles = []
+    if buildProcessorJars:
+        files += _processorjars_suite(suite)
 
     for p in suite.projects:
         if p.native:
             continue
-        _eclipseinit_project(p)
+        _eclipseinit_project(p, files, libFiles)
 
     _, launchFile = make_eclipse_attach(suite, 'localhost', '8000', deps=sorted_deps(projectNames=None, includeLibs=True))
     files.append(launchFile)
-
-    _zip_files(files, suite.dir, configZip.path)
-    _zip_files(libFiles, suite.dir, configLibsZip)
 
     # Create an Eclipse project for each distribution that will create/update the archive
     # for the distribution whenever any (transitively) dependent project of the
@@ -3583,6 +3593,9 @@ def _eclipseinit_suite(args, suite, refreshOnly=False):
         projectFile = join(projectDir, '.project')
         update_file(projectFile, out.xml(indent='\t', newl='\n'))
         files.append(projectFile)
+
+    _zip_files(files, suite.dir, configZip.path)
+    _zip_files(libFiles, suite.dir, configLibsZip)
 
 def _zip_files(files, baseDir, zipPath):
     fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(zipPath), dir=baseDir)
@@ -3838,13 +3851,13 @@ def _workingset_open(wsdoc, ws):
 def _workingset_element(wsdoc, p):
     wsdoc.element('item', {'elementID': '=' + p, 'factoryID': 'org.eclipse.jdt.ui.PersistableJavaElementFactory'})
 
-def netbeansinit(args, refreshOnly=False):
+def netbeansinit(args, refreshOnly=False, buildProcessorJars=True):
     """(re)generate NetBeans project configurations"""
 
     for suite in suites(True):
-        _netbeansinit_suite(args, suite, refreshOnly)
+        _netbeansinit_suite(args, suite, refreshOnly, buildProcessorJars)
 
-def _netbeansinit_suite(args, suite, refreshOnly=False):
+def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True):
     configZip = TimeStampFile(join(suite.mxDir, 'netbeans-config.zip'))
     configLibsZip = join(suite.mxDir, 'eclipse-config-libs.zip')
     if refreshOnly and not configZip.exists():
@@ -4300,11 +4313,10 @@ def ideclean(args):
     for d in _dists.itervalues():
         shutil.rmtree(d.get_ide_project_dir(), ignore_errors=True)
 
-
-def ideinit(args, refreshOnly=False):
+def ideinit(args, refreshOnly=False, buildProcessorJars=True):
     """(re)generate Eclipse, NetBeans and Intellij project configurations"""
-    eclipseinit(args, refreshOnly=refreshOnly)
-    netbeansinit(args, refreshOnly=refreshOnly)
+    eclipseinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
+    netbeansinit(args, refreshOnly=refreshOnly, buildProcessorJars=buildProcessorJars)
     intellijinit(args, refreshOnly=refreshOnly)
     if not refreshOnly:
         fsckprojects([])
