@@ -344,12 +344,14 @@ project@com.oracle.graal.options.test@workingSets=Graal
 # graal.nodeinfo
 project@com.oracle.graal.nodeinfo@subDir=graal
 project@com.oracle.graal.nodeinfo@sourceDirs=src
+project@com.oracle.graal.nodeinfo@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodeinfo@javaCompliance=1.8
 project@com.oracle.graal.nodeinfo@workingSets=Graal,Graph
 
 # graal.nodeinfo.processor
 project@com.oracle.graal.nodeinfo.processor@subDir=graal
 project@com.oracle.graal.nodeinfo.processor@sourceDirs=src
+project@com.oracle.graal.nodeinfo.processor@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.nodeinfo.processor@dependencies=com.oracle.graal.nodeinfo,com.oracle.truffle.dsl.processor
 project@com.oracle.graal.nodeinfo.processor@javaCompliance=1.8
 project@com.oracle.graal.nodeinfo.processor@workingSets=Graal,Graph
