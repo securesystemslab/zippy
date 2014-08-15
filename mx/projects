@@ -344,15 +344,22 @@ project@com.oracle.graal.options.test@workingSets=Graal
 # graal.nodeinfo
 project@com.oracle.graal.nodeinfo@subDir=graal
 project@com.oracle.graal.nodeinfo@sourceDirs=src
-project@com.oracle.graal.nodeinfo@dependencies=com.oracle.truffle.dsl.processor
 project@com.oracle.graal.nodeinfo@javaCompliance=1.8
 project@com.oracle.graal.nodeinfo@workingSets=Graal,Graph
+
+# graal.nodeinfo.processor
+project@com.oracle.graal.nodeinfo.processor@subDir=graal
+project@com.oracle.graal.nodeinfo.processor@sourceDirs=src
+project@com.oracle.graal.nodeinfo.processor@dependencies=com.oracle.graal.nodeinfo,com.oracle.truffle.dsl.processor
+project@com.oracle.graal.nodeinfo.processor@javaCompliance=1.8
+project@com.oracle.graal.nodeinfo.processor@workingSets=Graal,Graph
 
 # graal.graph
 project@com.oracle.graal.graph@subDir=graal
 project@com.oracle.graal.graph@sourceDirs=src
 project@com.oracle.graal.graph@dependencies=com.oracle.graal.nodeinfo,com.oracle.graal.debug,com.oracle.graal.compiler.common,com.oracle.graal.api.collections,com.oracle.graal.api.runtime,FINDBUGS
 project@com.oracle.graal.graph@javaCompliance=1.8
+project@com.oracle.graal.graph@annotationProcessors=com.oracle.graal.nodeinfo.processor
 project@com.oracle.graal.graph@workingSets=Graal,Graph
 
 # graal.graph.test
@@ -826,7 +833,7 @@ project@com.oracle.truffle.sl.test@workingSets=Truffle,SimpleLanguage,Test
 # graal.truffle
 project@com.oracle.graal.truffle@subDir=graal
 project@com.oracle.graal.truffle@sourceDirs=src
-project@com.oracle.graal.truffle@dependencies=com.oracle.graal.replacements,com.oracle.graal.printer,com.oracle.graal.runtime
+project@com.oracle.graal.truffle@dependencies=com.oracle.truffle.api,com.oracle.graal.replacements,com.oracle.graal.runtime,com.oracle.graal.printer
 project@com.oracle.graal.truffle@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.truffle@javaCompliance=1.8
 project@com.oracle.graal.truffle@workingSets=Graal,Truffle
