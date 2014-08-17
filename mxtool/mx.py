@@ -97,9 +97,14 @@ class Distribution:
 
     """
     Gets the directory in which the IDE project configuration
-    for this distribution is generated.
+    for this distribution is generated. If this is a distribution
+    derived from a project defining an annotation processor, then
+    None is return to indicate no IDE configuration should be
+    created for this distribution.
     """
     def get_ide_project_dir(self):
+        if hasattr(self, 'definingProject') and self.definingProject.definedAnnotationProcessorsDist == self:
+            return None
         if hasattr(self, 'subDir'):
             return join(self.suite.dir, self.subDir, self.name + '.dist')
         else:
@@ -3472,6 +3477,24 @@ def _eclipseinit_project(p, files=None, libFiles=None):
             out.element('arguments', data='')
             out.close('buildCommand')
 
+    if p.definedAnnotationProcessorsDist:
+        # Create a launcher that will (re)build the annotation processor
+        # jar any time one of its sources is modified.
+        dist = p.definedAnnotationProcessorsDist
+
+        distProjects = [d for d in dist.sorted_deps(transitive=True) if d.isProject()]
+        relevantResources = []
+        for p in distProjects:
+            for srcDir in p.source_dirs():
+                relevantResources.append(join(p.name, os.path.relpath(srcDir, p.dir)))
+            relevantResources.append(join(p.name, os.path.relpath(p.output_dir(), p.dir)))
+
+        # The path should always be p.name/dir independent of where the workspace actually is.
+        # So we use the parent folder of the project, whatever that is, to generate such a relative path.
+        logicalWorkspaceRoot = os.path.dirname(p.dir)
+        refreshFile = os.path.relpath(p.definedAnnotationProcessorsDist.path, logicalWorkspaceRoot)
+        _genEclipseBuilder(out, p, 'CreateAnnotationProcessorJar', 'archive @' + dist.name, refresh=True, refreshFile=refreshFile, relevantResources=relevantResources, async=True, xmlIndent='', xmlStandalone='no')
+
     out.close('buildSpec')
     out.open('natures')
     out.element('nature', data='org.eclipse.jdt.core.javanature')
@@ -3567,6 +3590,8 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     # distribution is updated.
     for dist in suite.dists:
         projectDir = dist.get_ide_project_dir()
+        if not projectDir:
+            continue
         if not exists(projectDir):
             os.makedirs(projectDir)
         distProjects = [d for d in dist.sorted_deps(transitive=True) if d.isProject()]
@@ -4315,7 +4340,8 @@ def ideclean(args):
             log("Error removing {0}".format(p.name + '.jar'))
 
     for d in _dists.itervalues():
-        shutil.rmtree(d.get_ide_project_dir(), ignore_errors=True)
+        if d.get_ide_project_dir():
+            shutil.rmtree(d.get_ide_project_dir(), ignore_errors=True)
 
 def ideinit(args, refreshOnly=False, buildProcessorJars=True):
     """(re)generate Eclipse, NetBeans and Intellij project configurations"""
