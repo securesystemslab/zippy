@@ -52,7 +52,7 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
    * @param value string value to parse
    * @throws InternalError if value could not be parsed according to spec
    */
-  static jlong parse_primitive_option_value(char spec, const char* name, int name_len, const char* value, TRAPS);
+  static jlong parse_primitive_option_value(char spec, const char* name, size_t name_len, const char* value, TRAPS);
 
   /**
    * Loads default option value overrides from a <jre_home>/lib/graal.options if it exists. Each
@@ -82,7 +82,7 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
    * @returns true if the option was found
    * @throws InternalError if there was a problem setting the option's value
    */
-  static bool set_option_bool(KlassHandle hotSpotOptionsClass, char* name, int name_len, char value, TRAPS);
+  static bool set_option_bool(KlassHandle hotSpotOptionsClass, char* name, size_t name_len, char value, TRAPS);
 
   /**
    * Searches for a Graal option denoted by a given name and sets it value.
@@ -96,12 +96,12 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
    * @returns true if the option was found
    * @throws InternalError if there was a problem setting the option's value
    */
-  static bool set_option(KlassHandle hotSpotOptionsClass, char* name, int name_len, const char* value, TRAPS);
+  static bool set_option(KlassHandle hotSpotOptionsClass, char* name, size_t name_len, const char* value, TRAPS);
 
   /**
    * Raises an InternalError for an option that expects a value but was specified without a "=<value>" prefix.
    */
-  static void check_required_value(const char* name, int name_len, const char* value, TRAPS);
+  static void check_required_value(const char* name, size_t name_len, const char* value, TRAPS);
 
   /**
    * Java call to HotSpotOptions.setOption(String name, OptionValue<?> option, char spec, String stringValue, long primitiveValue)
@@ -109,7 +109,7 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
    * @param name option name
    * @param name_len length of option name
    */
-  static void set_option_helper(KlassHandle hotSpotOptionsClass, char* name, int name_len, Handle option, jchar spec, Handle stringValue, jlong primitiveValue);
+  static void set_option_helper(KlassHandle hotSpotOptionsClass, char* name, size_t name_len, Handle option, jchar spec, Handle stringValue, jlong primitiveValue);
 
   /**
    * Instantiates a service object, calls its default constructor and returns it.
