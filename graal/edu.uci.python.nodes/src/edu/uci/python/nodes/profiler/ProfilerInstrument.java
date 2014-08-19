@@ -34,6 +34,7 @@ import com.oracle.truffle.api.nodes.*;
 
 public final class ProfilerInstrument extends Instrument {
 
+    private Node node;
     private long counter;
 
     public ProfilerInstrument() {
@@ -41,8 +42,13 @@ public final class ProfilerInstrument extends Instrument {
     }
 
     @Override
-    public void enter(Node astNode, VirtualFrame frame) {
+    public void leave(Node astNode, VirtualFrame frame, Object result) {
         counter++;
+        this.node = astNode;
+    }
+
+    public Node getNode() {
+        return node;
     }
 
     public long getCounter() {

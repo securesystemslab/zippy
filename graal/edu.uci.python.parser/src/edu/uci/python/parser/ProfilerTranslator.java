@@ -24,6 +24,8 @@
  */
 package edu.uci.python.parser;
 
+import java.util.*;
+
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -101,16 +103,21 @@ public class ProfilerTranslator implements NodeVisitor {
         if (node instanceof IfNode) {
             IfNode ifNode = (IfNode) node;
             if (hasSourceSection(ifNode)) {
-                createIfWrapper(ifNode);
                 PNode thenNode = ifNode.getThen();
-                createThenWrapper(thenNode);
                 PNode elseNode = ifNode.getElse();
                 /**
-                 * Only create a wrapper node if an else part exists.
+                 * Only create a wrapper node for the else part if the else part exists.
                  */
-                if (!(elseNode instanceof EmptyNode)) {
-                    createElseWrapper(elseNode);
+                if (elseNode instanceof EmptyNode) {
+                    if (checkSourceSection(thenNode)) {
+                        createIfWithoutElseWrappers(ifNode, thenNode);
+                    }
+                } else {
+                    if (checkSourceSection(thenNode) && checkSourceSection(elseNode)) {
+                        createIfWrappers(ifNode, thenNode, elseNode);
+                    }
                 }
+
             }
         }
     }
@@ -189,34 +196,17 @@ public class ProfilerTranslator implements NodeVisitor {
         return null;
     }
 
-    private PythonWrapperNode createIfWrapper(PNode node) {
-        if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsIfStatement(node);
-            replaceNodeWithWrapper(node, wrapperNode);
-            return wrapperNode;
-        }
-
-        return null;
+    private void createIfWrappers(IfNode ifNode, PNode thenNode, PNode elseNode) {
+        List<PythonWrapperNode> wrappers = profilerProber.probeAsIf(ifNode, thenNode, elseNode);
+        replaceNodeWithWrapper(ifNode, wrappers.get(0));
+        replaceNodeWithWrapper(thenNode, wrappers.get(1));
+        replaceNodeWithWrapper(elseNode, wrappers.get(2));
     }
 
-    private PythonWrapperNode createThenWrapper(PNode node) {
-        if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsThen(node);
-            replaceNodeWithWrapper(node, wrapperNode);
-            return wrapperNode;
-        }
-
-        return null;
-    }
-
-    private PythonWrapperNode createElseWrapper(PNode node) {
-        if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsElse(node);
-            replaceNodeWithWrapper(node, wrapperNode);
-            return wrapperNode;
-        }
-
-        return null;
+    private void createIfWithoutElseWrappers(PNode ifNode, PNode thenNode) {
+        List<PythonWrapperNode> wrappers = profilerProber.probeAsIfWithoutElse(ifNode, thenNode);
+        replaceNodeWithWrapper(ifNode, wrappers.get(0));
+        replaceNodeWithWrapper(thenNode, wrappers.get(1));
     }
 
     private PythonWrapperNode createWrapper(PNode node) {

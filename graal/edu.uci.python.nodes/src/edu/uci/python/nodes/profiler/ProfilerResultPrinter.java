@@ -26,12 +26,11 @@ package edu.uci.python.nodes.profiler;
 
 import java.io.*;
 import java.util.*;
-import java.util.Map.*;
+import java.util.Map.Entry;
 
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.*;
 
@@ -62,14 +61,14 @@ public class ProfilerResultPrinter {
     }
 
     public void printCallProfilerResults() {
-        Map<PythonWrapperNode, ProfilerInstrument> calls;
+        List<ProfilerInstrument> callInstruments;
         if (PythonOptions.SortProfilerResults) {
-            calls = sortByValue(profilerProber.getCallWrapperToInstruments());
+            callInstruments = sortProfilerResult(profilerProber.getCallInstruments());
         } else {
-            calls = profilerProber.getCallWrapperToInstruments();
+            callInstruments = profilerProber.getCallInstruments();
         }
 
-        if (calls.size() > 0) {
+        if (callInstruments.size() > 0) {
             printBanner("Call Profiling Results", 72);
             /**
              * 50 is the length of the text by default padding left padding is added, so space is
@@ -84,19 +83,14 @@ public class ProfilerResultPrinter {
             out.println();
             out.println("===============                                   ===============     ====     ======     ======");
 
-            Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = calls.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
-                PythonWrapperNode wrapper = entry.getKey();
-                ProfilerInstrument instrument = entry.getValue();
-                PNode child = wrapper.getChild();
-                FunctionRootNode rootNode = (FunctionRootNode) (wrapper.getParent());
+            for (ProfilerInstrument instrument : callInstruments) {
+                Node node = instrument.getNode();
                 if (instrument.getCounter() > 0) {
-                    out.format("%-50s", rootNode.getFunctionName());
+                    out.format("%-50s", ((FunctionRootNode) node.getRootNode()).getFunctionName());
                     out.format("%15s", instrument.getCounter());
-                    out.format("%9s", child.getSourceSection().getStartLine());
-                    out.format("%11s", child.getSourceSection().getStartColumn());
-                    out.format("%11s", child.getSourceSection().getCharLength());
+                    out.format("%9s", node.getSourceSection().getStartLine());
+                    out.format("%11s", node.getSourceSection().getStartColumn());
+                    out.format("%11s", node.getSourceSection().getCharLength());
                     out.println();
                 }
             }
@@ -104,19 +98,15 @@ public class ProfilerResultPrinter {
     }
 
     public void printLoopProfilerResults() {
-        Map<PythonWrapperNode, ProfilerInstrument> loopBodies;
+        List<ProfilerInstrument> loopInstruments;
         if (PythonOptions.SortProfilerResults) {
-            loopBodies = sortByValue(profilerProber.getLoopBodyWrapperToInstruments());
+            loopInstruments = sortProfilerResult(profilerProber.getLoopInstruments());
         } else {
-            loopBodies = profilerProber.getLoopBodyWrapperToInstruments();
+            loopInstruments = profilerProber.getLoopInstruments();
         }
 
-        if (loopBodies.size() > 0) {
+        if (loopInstruments.size() > 0) {
             printBanner("Loop Profiling Results", 72);
-            /**
-             * 50 is the length of the text by default padding left padding is added, so space is
-             * added to the beginning of the string, minus sign adds padding to the right
-             */
 
             out.format("%-50s", "Node");
             out.format("%-20s", "Counter");
@@ -126,18 +116,14 @@ public class ProfilerResultPrinter {
             out.println();
             out.println("=============                                     ===============     ====     ======     ======");
 
-            Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = loopBodies.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
-                PythonWrapperNode wrapper = entry.getKey();
-                Node loopNode = wrapper.getParent();
-                ProfilerInstrument instrument = entry.getValue();
+            for (ProfilerInstrument instrument : loopInstruments) {
+                Node node = instrument.getNode();
                 if (instrument.getCounter() > 0) {
-                    out.format("%-50s", loopNode.getClass().getSimpleName());
+                    out.format("%-50s", node.getClass().getSimpleName());
                     out.format("%15s", instrument.getCounter());
-                    out.format("%9s", loopNode.getSourceSection().getStartLine());
-                    out.format("%11s", loopNode.getSourceSection().getStartColumn());
-                    out.format("%11s", loopNode.getSourceSection().getCharLength());
+                    out.format("%9s", node.getSourceSection().getStartLine());
+                    out.format("%11s", node.getSourceSection().getStartColumn());
+                    out.format("%11s", node.getSourceSection().getCharLength());
                     out.println();
                 }
             }
@@ -145,18 +131,15 @@ public class ProfilerResultPrinter {
     }
 
     public void printIfProfilerResults() {
-        Map<PythonWrapperNode, ProfilerInstrument> ifNodes;
+        Map<ProfilerInstrument, List<ProfilerInstrument>> ifInstruments;
         if (PythonOptions.SortProfilerResults) {
-            ifNodes = sortByValue(profilerProber.getIfWrapperToInstruments());
+            ifInstruments = sortIfProfilerResults(profilerProber.getIfInstruments());
         } else {
-            ifNodes = profilerProber.getIfWrapperToInstruments();
+            ifInstruments = profilerProber.getIfInstruments();
         }
 
-        if (ifNodes.size() > 0) {
+        if (ifInstruments.size() > 0) {
             printBanner("If Node Profiling Results", 60);
-            Map<PythonWrapperNode, ProfilerInstrument> thens = profilerProber.getThenWrapperToInstruments();
-            Map<PythonWrapperNode, ProfilerInstrument> elses = profilerProber.getElseWrapperToInstruments();
-
             out.format("%-20s", "If Counter");
             out.format("%15s", "Then Counter");
             out.format("%20s", "Else Counter");
@@ -166,27 +149,24 @@ public class ProfilerResultPrinter {
             out.println();
             out.println("===========            ============        ============     ====     ======     ======");
 
-            Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = ifNodes.entrySet().iterator();
+            Iterator<Map.Entry<ProfilerInstrument, List<ProfilerInstrument>>> it = ifInstruments.entrySet().iterator();
             while (it.hasNext()) {
-                Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
-                PythonWrapperNode ifWrapper = entry.getKey();
-                IfNode ifNode = (IfNode) ifWrapper.getChild();
-                ProfilerInstrument ifInstrument = entry.getValue();
-                PNode thenNode = ifNode.getThen();
-                PNode elseNode = ifNode.getElse();
-                ProfilerInstrument thenInstrument = thens.get(thenNode);
-
+                Entry<ProfilerInstrument, List<ProfilerInstrument>> entry = it.next();
+                ProfilerInstrument ifInstrument = entry.getKey();
                 if (ifInstrument.getCounter() > 0) {
+                    List<ProfilerInstrument> instruments = entry.getValue();
+                    ProfilerInstrument thenInstrument = instruments.get(0);
                     out.format("%11s", ifInstrument.getCounter());
                     out.format("%24s", thenInstrument.getCounter());
 
-                    if (!(ifNode.getElse() instanceof EmptyNode)) {
-                        ProfilerInstrument elseInstrument = elses.get(elseNode);
-                        out.format("%20s", elseInstrument.getCounter());
-                    } else {
+                    if (instruments.size() == 1) {
                         out.format("%20s", "-");
+                    } else if (instruments.size() == 2) {
+                        ProfilerInstrument elseInstrument = instruments.get(1);
+                        out.format("%20s", elseInstrument.getCounter());
                     }
 
+                    Node ifNode = ifInstrument.getNode();
                     out.format("%9s", ifNode.getSourceSection().getStartLine());
                     out.format("%11s", ifNode.getSourceSection().getStartColumn());
                     out.format("%11s", ifNode.getSourceSection().getCharLength());
@@ -197,20 +177,15 @@ public class ProfilerResultPrinter {
     }
 
     public void printNodeProfilerResults() {
-        Map<PythonWrapperNode, ProfilerInstrument> nodes;
+        List<ProfilerInstrument> nodeInstruments;
         if (PythonOptions.SortProfilerResults) {
-            nodes = sortByValue(profilerProber.getWrapperToInstruments());
+            nodeInstruments = sortProfilerResult(profilerProber.getNodeInstruments());
         } else {
-            nodes = profilerProber.getWrapperToInstruments();
+            nodeInstruments = profilerProber.getNodeInstruments();
         }
 
-        if (nodes.size() > 0) {
+        if (nodeInstruments.size() > 0) {
             printBanner("Node Profiling Results", 72);
-            /**
-             * 50 is the length of the text by default padding left padding is added, so space is
-             * added to the beginning of the string, minus sign adds padding to the right
-             */
-
             out.format("%-50s", "Node");
             out.format("%-20s", "Counter");
             out.format("%-9s", "Line");
@@ -219,39 +194,47 @@ public class ProfilerResultPrinter {
             out.println();
             out.println("=============                                     ===============     ====     ======     ======");
 
-            Iterator<Map.Entry<PythonWrapperNode, ProfilerInstrument>> it = nodes.entrySet().iterator();
-            while (it.hasNext()) {
-                Entry<PythonWrapperNode, ProfilerInstrument> entry = it.next();
-                PythonWrapperNode wrapper = entry.getKey();
-                ProfilerInstrument instrument = entry.getValue();
+            for (ProfilerInstrument instrument : nodeInstruments) {
+                Node node = instrument.getNode();
                 if (instrument.getCounter() > 0) {
-                    PNode child = wrapper.getChild();
-                    out.format("%-50s", child.getClass().getSimpleName());
+                    out.format("%-50s", node.getClass().getSimpleName());
                     out.format("%15s", instrument.getCounter());
-                    out.format("%9s", child.getSourceSection().getStartLine());
-                    out.format("%11s", child.getSourceSection().getStartColumn());
-                    out.format("%11s", child.getSourceSection().getCharLength());
+                    out.format("%9s", node.getSourceSection().getStartLine());
+                    out.format("%11s", node.getSourceSection().getStartColumn());
+                    out.format("%11s", node.getSourceSection().getCharLength());
                     out.println();
                 }
             }
         }
     }
 
-    private static Map<PythonWrapperNode, ProfilerInstrument> sortByValue(Map<PythonWrapperNode, ProfilerInstrument> map) {
-        List<Map.Entry<PythonWrapperNode, ProfilerInstrument>> list = new LinkedList<>(map.entrySet());
-
-        Collections.sort(list, new Comparator<Map.Entry<PythonWrapperNode, ProfilerInstrument>>() {
-
-            public int compare(Map.Entry<PythonWrapperNode, ProfilerInstrument> m1, Map.Entry<PythonWrapperNode, ProfilerInstrument> m2) {
-                return Long.compare(m2.getValue().getCounter(), m1.getValue().getCounter());
+    private static List<ProfilerInstrument> sortProfilerResult(List<ProfilerInstrument> list) {
+        Collections.sort(list, new Comparator<ProfilerInstrument>() {
+            @Override
+            public int compare(final ProfilerInstrument profiler1, final ProfilerInstrument profiler2) {
+                return Long.compare(profiler2.getCounter(), profiler1.getCounter());
             }
         });
 
-        Map<PythonWrapperNode, ProfilerInstrument> result = new LinkedHashMap<>();
-        for (Map.Entry<PythonWrapperNode, ProfilerInstrument> entry : list) {
+        return list;
+    }
+
+    private static Map<ProfilerInstrument, List<ProfilerInstrument>> sortIfProfilerResults(Map<ProfilerInstrument, List<ProfilerInstrument>> map) {
+        List<Map.Entry<ProfilerInstrument, List<ProfilerInstrument>>> list = new LinkedList<>(map.entrySet());
+
+        Collections.sort(list, new Comparator<Map.Entry<ProfilerInstrument, List<ProfilerInstrument>>>() {
+
+            public int compare(Map.Entry<ProfilerInstrument, List<ProfilerInstrument>> if1, Map.Entry<ProfilerInstrument, List<ProfilerInstrument>> if2) {
+                return Long.compare(if2.getKey().getCounter(), if1.getKey().getCounter());
+            }
+        });
+
+        Map<ProfilerInstrument, List<ProfilerInstrument>> result = new LinkedHashMap<>();
+        for (Map.Entry<ProfilerInstrument, List<ProfilerInstrument>> entry : list) {
             result.put(entry.getKey(), entry.getValue());
         }
         return result;
+
     }
 
     public void printNodesEmptySourceSections() {

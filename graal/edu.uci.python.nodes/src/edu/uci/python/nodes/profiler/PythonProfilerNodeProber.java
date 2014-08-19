@@ -39,21 +39,17 @@ import edu.uci.python.runtime.*;
 public class PythonProfilerNodeProber implements ASTNodeProber {
 
     private final PythonContext context;
-    private Map<PythonWrapperNode, ProfilerInstrument> wrapperToInstruments;
-    private Map<PythonWrapperNode, ProfilerInstrument> callWrapperToInstruments;
-    private Map<PythonWrapperNode, ProfilerInstrument> loopBodyWrapperToInstruments;
-    private Map<PythonWrapperNode, ProfilerInstrument> ifWrapperToInstruments;
-    private Map<PythonWrapperNode, ProfilerInstrument> thenWrapperToInstruments;
-    private Map<PythonWrapperNode, ProfilerInstrument> elseWrapperToInstruments;
+    private List<ProfilerInstrument> nodeInstruments;
+    private List<ProfilerInstrument> callInstruments;
+    private List<ProfilerInstrument> loopInstruments;
+    private Map<ProfilerInstrument, List<ProfilerInstrument>> ifInstruments;
 
     public PythonProfilerNodeProber(PythonContext context) {
         this.context = context;
-        wrapperToInstruments = new LinkedHashMap<>();
-        callWrapperToInstruments = new LinkedHashMap<>();
-        loopBodyWrapperToInstruments = new LinkedHashMap<>();
-        ifWrapperToInstruments = new LinkedHashMap<>();
-        thenWrapperToInstruments = new LinkedHashMap<>();
-        elseWrapperToInstruments = new LinkedHashMap<>();
+        nodeInstruments = new ArrayList<>();
+        callInstruments = new ArrayList<>();
+        loopInstruments = new ArrayList<>();
+        ifInstruments = new LinkedHashMap<>();
     }
 
     public Node probeAs(Node astNode, PhylumTag tag, Object... args) {
@@ -64,7 +60,7 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         PythonWrapperNode wrapper = createWrapper(node);
         wrapper.getProbe().tagAs(StandardTag.STATEMENT);
         ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-        wrapperToInstruments.put(wrapper, profilerInstrument);
+        nodeInstruments.add(profilerInstrument);
         return wrapper;
     }
 
@@ -72,36 +68,51 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         PythonWrapperNode wrapper = createWrapper(node);
         wrapper.getProbe().tagAs(StandardTag.CALL);
         ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-        callWrapperToInstruments.put(wrapper, profilerInstrument);
+        callInstruments.add(profilerInstrument);
         return wrapper;
     }
 
     public PythonWrapperNode probeAsLoopBody(PNode node) {
         PythonWrapperNode wrapper = createWrapper(node);
         ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-        loopBodyWrapperToInstruments.put(wrapper, profilerInstrument);
+        loopInstruments.add(profilerInstrument);
         return wrapper;
     }
 
-    public PythonWrapperNode probeAsIfStatement(PNode node) {
-        PythonWrapperNode wrapper = createWrapper(node);
-        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-        ifWrapperToInstruments.put(wrapper, profilerInstrument);
-        return wrapper;
+    public List<PythonWrapperNode> probeAsIf(PNode ifNode, PNode thenNode, PNode elseNode) {
+        List<PythonWrapperNode> wrappers = new ArrayList<>();
+        PythonWrapperNode ifWrapper = createWrapper(ifNode);
+        PythonWrapperNode thenWrapper = createWrapper(thenNode);
+        PythonWrapperNode elseWrapper = createWrapper(elseNode);
+        wrappers.add(ifWrapper);
+        wrappers.add(thenWrapper);
+        wrappers.add(elseWrapper);
+
+        List<ProfilerInstrument> instruments = new ArrayList<>();
+        ProfilerInstrument ifInstrument = createAttachProfilerInstrument(ifWrapper);
+        ProfilerInstrument thenInstrument = createAttachProfilerInstrument(thenWrapper);
+        ProfilerInstrument elseInstrument = createAttachProfilerInstrument(elseWrapper);
+        instruments.add(thenInstrument);
+        instruments.add(elseInstrument);
+        ifInstruments.put(ifInstrument, instruments);
+
+        return wrappers;
     }
 
-    public PythonWrapperNode probeAsThen(PNode node) {
-        PythonWrapperNode wrapper = createWrapper(node);
-        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-        thenWrapperToInstruments.put(wrapper, profilerInstrument);
-        return wrapper;
-    }
+    public List<PythonWrapperNode> probeAsIfWithoutElse(PNode ifNode, PNode thenNode) {
+        List<PythonWrapperNode> wrappers = new ArrayList<>();
+        PythonWrapperNode ifWrapper = createWrapper(ifNode);
+        PythonWrapperNode thenWrapper = createWrapper(thenNode);
+        wrappers.add(ifWrapper);
+        wrappers.add(thenWrapper);
 
-    public PythonWrapperNode probeAsElse(PNode node) {
-        PythonWrapperNode wrapper = createWrapper(node);
-        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-        elseWrapperToInstruments.put(wrapper, profilerInstrument);
-        return wrapper;
+        List<ProfilerInstrument> instruments = new ArrayList<>();
+        ProfilerInstrument ifInstrument = createAttachProfilerInstrument(ifWrapper);
+        ProfilerInstrument thenInstrument = createAttachProfilerInstrument(thenWrapper);
+        instruments.add(thenInstrument);
+        ifInstruments.put(ifInstrument, instruments);
+
+        return wrappers;
     }
 
     private PythonWrapperNode createWrapper(PNode node) {
@@ -124,28 +135,20 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return profilerInstrument;
     }
 
-    public Map<PythonWrapperNode, ProfilerInstrument> getWrapperToInstruments() {
-        return wrapperToInstruments;
+    public List<ProfilerInstrument> getNodeInstruments() {
+        return nodeInstruments;
     }
 
-    public Map<PythonWrapperNode, ProfilerInstrument> getCallWrapperToInstruments() {
-        return callWrapperToInstruments;
+    public List<ProfilerInstrument> getCallInstruments() {
+        return callInstruments;
     }
 
-    public Map<PythonWrapperNode, ProfilerInstrument> getLoopBodyWrapperToInstruments() {
-        return loopBodyWrapperToInstruments;
+    public List<ProfilerInstrument> getLoopInstruments() {
+        return loopInstruments;
     }
 
-    public Map<PythonWrapperNode, ProfilerInstrument> getIfWrapperToInstruments() {
-        return ifWrapperToInstruments;
-    }
-
-    public Map<PythonWrapperNode, ProfilerInstrument> getThenWrapperToInstruments() {
-        return thenWrapperToInstruments;
-    }
-
-    public Map<PythonWrapperNode, ProfilerInstrument> getElseWrapperToInstruments() {
-        return elseWrapperToInstruments;
+    public Map<ProfilerInstrument, List<ProfilerInstrument>> getIfInstruments() {
+        return ifInstruments;
     }
 
     public PythonContext getContext() {

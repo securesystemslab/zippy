@@ -58,7 +58,6 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        probe.enter(child, frame);
         Object result;
 
         try {
