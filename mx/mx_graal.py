@@ -546,7 +546,7 @@ def _update_graalRuntime_inline_hpp(dist):
         os.unlink(javaSource)
         os.unlink(javaClass)
 
-def _copyToJdk(src, dst):
+def _copyToJdk(src, dst, permissions=JDK_UNIX_PERMISSIONS_FILE):
     name = os.path.basename(src)
     dstLib = join(dst, name)
     if mx.get_env('SYMLINK_GRAAL_JAR', None) == 'true':
@@ -563,10 +563,7 @@ def _copyToJdk(src, dst):
         shutil.copyfile(src, tmp)
         os.close(fd)
         shutil.move(tmp, dstLib)
-        os.chmod(dstLib, JDK_UNIX_PERMISSIONS_FILE)
-
-def _installDistInJdksExt(dist):
-    _installDistInJdks(dist, True)
+        os.chmod(dstLib, permissions)
 
 def _installDistInJdks(dist, ext=False):
     """
