@@ -556,7 +556,7 @@ def _copyToJdk(src, dst):
         if not os.path.islink(dstLib) or not os.path.realpath(dstLib) == src:
             if exists(dstLib):
                 os.remove(dstLib)
-                os.symlink(src, dstLib)
+            os.symlink(src, dstLib)
     else:
         # do a copy and then a move to get atomic updating (on Unix)
         fd, tmp = tempfile.mkstemp(suffix='', prefix=name, dir=dst)
