@@ -685,17 +685,19 @@ def graal_version(dev_suffix='dev'):
         # extract latest release tag for graal
         try:
             tags = [x.split() for x in subprocess.check_output(['hg', '-R', _graal_home, 'tags']).split('\n') if x.startswith("graal-")]
-            current_revision = subprocess.check_output(['hg', '-R', _graal_home, 'id', '-i']).strip()
+            current_id = subprocess.check_output(['hg', '-R', _graal_home, 'log', '--template', '{rev}\n', '--rev', 'tip']).strip()
         except:
             # not a mercurial repository or hg commands are not available.
             tags = None
 
-        if tags and current_revision:
+        if tags and current_id:
             sorted_tags = sorted(tags, key=lambda e: [int(x) for x in e[0][len("graal-"):].split('.')], reverse=True)
             most_recent_tag_name, most_recent_tag_revision = sorted_tags[0]
+            most_recent_tag_id = most_recent_tag_revision[:most_recent_tag_revision.index(":")]
             most_recent_tag_version = most_recent_tag_name[len("graal-"):]
 
-            if current_revision == most_recent_tag_revision:
+            # tagged commit is one-off with commit that tags it
+            if int(current_id) - int(most_recent_tag_id) <= 1:
                 cached_graal_version = most_recent_tag_version
             else:
                 major, minor = map(int, most_recent_tag_version.split('.'))
