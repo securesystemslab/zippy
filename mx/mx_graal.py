@@ -990,6 +990,10 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
         if  len(ignoredArgs) > 0:
             mx.log("Warning: The following options will be ignored by the vm because they come after the '-version' argument: " + ' '.join(ignoredArgs))
 
+    if vm == 'original':
+        truffle_jar = mx.archive(['@TRUFFLE'])[0]
+        args = ['-Xbootclasspath/p:' + truffle_jar] + args
+
     args = mx.java().processArgs(args)
     return (pfx, exe, vm, args, cwd)
 
