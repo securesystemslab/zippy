@@ -34,6 +34,7 @@ import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
+import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.nodes.subscript.*;
@@ -92,9 +93,12 @@ public class ProfilerTranslator implements NodeVisitor {
     }
 
     private void profileLoops(Node node) {
-        if (node instanceof LoopNode) {
-            LoopNode loopNodeNode = (LoopNode) node;
-            PNode loopBodyNode = loopNodeNode.getBody();
+        /**
+         * TODO Currently generator loops are not profiled
+         */
+        if (node instanceof LoopNode && !(node instanceof GeneratorForNode) && !(node instanceof GeneratorWhileNode)) {
+            LoopNode loopNode = (LoopNode) node;
+            PNode loopBodyNode = loopNode.getBody();
             createLoopBodyWrapper(loopBodyNode);
         }
     }
@@ -117,7 +121,6 @@ public class ProfilerTranslator implements NodeVisitor {
                         createIfWrappers(ifNode, thenNode, elseNode);
                     }
                 }
-
             }
         }
     }
@@ -188,7 +191,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createLoopBodyWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsLoopBody(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsLoop(node);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }

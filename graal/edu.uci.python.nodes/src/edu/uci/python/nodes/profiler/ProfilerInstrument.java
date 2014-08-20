@@ -41,10 +41,41 @@ public final class ProfilerInstrument extends Instrument {
         counter = 0;
     }
 
+// @Override
+// public void enter(Node astNode, VirtualFrame frame) {
+// counter++;
+// this.node = astNode;
+// }
+
     @Override
-    public void leave(Node astNode, VirtualFrame frame, Object result) {
+    public void leave(Node astNode, VirtualFrame frame) {
         counter++;
         this.node = astNode;
+    }
+
+    @Override
+    public void leave(Node astNode, VirtualFrame frame, boolean result) {
+        leave(astNode, frame);
+    }
+
+    @Override
+    public void leave(Node astNode, VirtualFrame frame, int result) {
+        leave(astNode, frame);
+    }
+
+    @Override
+    public void leave(Node astNode, VirtualFrame frame, double result) {
+        leave(astNode, frame);
+    }
+
+    @Override
+    public void leave(Node astNode, VirtualFrame frame, Object result) {
+        leave(astNode, frame);
+    }
+
+    @Override
+    public void leaveExceptional(Node astNode, VirtualFrame frame, Exception e) {
+        leave(astNode, frame);
     }
 
     public Node getNode() {

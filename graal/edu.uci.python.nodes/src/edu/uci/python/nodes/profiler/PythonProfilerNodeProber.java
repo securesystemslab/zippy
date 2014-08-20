@@ -72,7 +72,7 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
-    public PythonWrapperNode probeAsLoopBody(PNode node) {
+    public PythonWrapperNode probeAsLoop(PNode node) {
         PythonWrapperNode wrapper = createWrapper(node);
         ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
         loopInstruments.add(profilerInstrument);
@@ -111,7 +111,6 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         ProfilerInstrument thenInstrument = createAttachProfilerInstrument(thenWrapper);
         instruments.add(thenInstrument);
         ifInstruments.put(ifInstrument, instruments);
-
         return wrappers;
     }
 

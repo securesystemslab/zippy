@@ -84,8 +84,8 @@ public class ProfilerResultPrinter {
             out.println("===============                                   ===============     ====     ======     ======");
 
             for (ProfilerInstrument instrument : callInstruments) {
-                Node node = instrument.getNode();
                 if (instrument.getCounter() > 0) {
+                    Node node = instrument.getNode();
                     out.format("%-50s", ((FunctionRootNode) node.getRootNode()).getFunctionName());
                     out.format("%15s", instrument.getCounter());
                     out.format("%9s", node.getSourceSection().getStartLine());
@@ -106,24 +106,28 @@ public class ProfilerResultPrinter {
         }
 
         if (loopInstruments.size() > 0) {
-            printBanner("Loop Profiling Results", 72);
+            printBanner("Loop Profiling Results", 132);
 
             out.format("%-50s", "Node");
             out.format("%-20s", "Counter");
             out.format("%-9s", "Line");
             out.format("%-11s", "Column");
             out.format("%-11s", "Length");
+            out.format("%-70s", "In Method");
             out.println();
-            out.println("=============                                     ===============     ====     ======     ======");
+            out.println("=============                                     ===============     ====     ======     ======     =======================================================");
 
             for (ProfilerInstrument instrument : loopInstruments) {
-                Node node = instrument.getNode();
                 if (instrument.getCounter() > 0) {
-                    out.format("%-50s", node.getClass().getSimpleName());
+                    Node node = instrument.getNode();
+                    Node loopNode = node.getParent().getParent();
+                    out.format("%-50s", loopNode.getClass().getSimpleName());
                     out.format("%15s", instrument.getCounter());
                     out.format("%9s", node.getSourceSection().getStartLine());
                     out.format("%11s", node.getSourceSection().getStartColumn());
                     out.format("%11s", node.getSourceSection().getCharLength());
+                    out.format("%5s", "");
+                    out.format("%-70s", node.getRootNode());
                     out.println();
                 }
             }
@@ -139,15 +143,16 @@ public class ProfilerResultPrinter {
         }
 
         if (ifInstruments.size() > 0) {
-            printBanner("If Node Profiling Results", 60);
+            printBanner("If Node Profiling Results", 120);
             out.format("%-20s", "If Counter");
             out.format("%15s", "Then Counter");
             out.format("%20s", "Else Counter");
             out.format("%9s", "Line");
             out.format("%11s", "Column");
             out.format("%11s", "Length");
+            out.format("%-70s", "In Method");
             out.println();
-            out.println("===========            ============        ============     ====     ======     ======");
+            out.println("===========            ============        ============     ====     ======     ======     =======================================================");
 
             Iterator<Map.Entry<ProfilerInstrument, List<ProfilerInstrument>>> it = ifInstruments.entrySet().iterator();
             while (it.hasNext()) {
@@ -170,6 +175,8 @@ public class ProfilerResultPrinter {
                     out.format("%9s", ifNode.getSourceSection().getStartLine());
                     out.format("%11s", ifNode.getSourceSection().getStartColumn());
                     out.format("%11s", ifNode.getSourceSection().getCharLength());
+                    out.format("%5s", "");
+                    out.format("%-70s", ifNode.getRootNode());
                     out.println();
                 }
             }
@@ -185,23 +192,26 @@ public class ProfilerResultPrinter {
         }
 
         if (nodeInstruments.size() > 0) {
-            printBanner("Node Profiling Results", 72);
+            printBanner("Node Profiling Results", 132);
             out.format("%-50s", "Node");
             out.format("%-20s", "Counter");
             out.format("%-9s", "Line");
             out.format("%-11s", "Column");
             out.format("%-11s", "Length");
+            out.format("%-70s", "In Method");
             out.println();
-            out.println("=============                                     ===============     ====     ======     ======");
+            out.println("=============                                     ===============     ====     ======     ======     =======================================================");
 
             for (ProfilerInstrument instrument : nodeInstruments) {
-                Node node = instrument.getNode();
                 if (instrument.getCounter() > 0) {
+                    Node node = instrument.getNode();
                     out.format("%-50s", node.getClass().getSimpleName());
                     out.format("%15s", instrument.getCounter());
                     out.format("%9s", node.getSourceSection().getStartLine());
                     out.format("%11s", node.getSourceSection().getStartColumn());
                     out.format("%11s", node.getSourceSection().getCharLength());
+                    out.format("%5s", "");
+                    out.format("%-70s", node.getRootNode());
                     out.println();
                 }
             }
