@@ -790,7 +790,7 @@ void GraalRuntime::parse_argument(KlassHandle hotSpotOptionsClass, char* arg, TR
   if (first == '+' || first == '-') {
     name = arg + 1;
     name_len = strlen(name);
-    recognized = set_option(hotSpotOptionsClass, name, (int)name_len, arg, CHECK);
+    recognized = set_option_bool(hotSpotOptionsClass, name, (int)name_len, first, CHECK);
   } else {
     char* sep = strchr(arg, '=');
     name = arg;
