@@ -459,10 +459,14 @@ def _jdk(build='product', vmToCheck=None, create=False, installJars=True):
             _handle_missing_VM(build, vmToCheck if vmToCheck else 'graal')
 
     if installJars:
-        _installDistInJdks(mx.distribution('GRAAL'))
-        _installDistInJdks(mx.distribution('GRAAL_LOADER'))
-        _installDistInJdks(mx.distribution('TRUFFLE'))
-        _installDistInJdks(mx.distribution('GRAAL_TRUFFLE'))
+        def _installDistInJdksIfExists(dist):
+            if exists(dist.path):
+                _installDistInJdks(dist)
+
+        _installDistInJdksIfExists(mx.distribution('GRAAL'))
+        _installDistInJdksIfExists(mx.distribution('GRAAL_LOADER'))
+        _installDistInJdksIfExists(mx.distribution('TRUFFLE'))
+        _installDistInJdksIfExists(mx.distribution('GRAAL_TRUFFLE'))
 
     if vmToCheck is not None:
         jvmCfg = _vmCfgInJdk(jdk)
@@ -770,7 +774,7 @@ def build(args, vm=None):
             if build is None or len(build) == 0:
                 continue
 
-        jdk = _jdk(build, create=True, installJars=not opts2.java)
+        jdk = _jdk(build, create=True, installJars=vm != 'original' and not opts2.java)
 
         if vm == 'original':
             if build != 'product':
@@ -985,6 +989,10 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
         ignoredArgs = args[args.index('-version') + 1:]
         if  len(ignoredArgs) > 0:
             mx.log("Warning: The following options will be ignored by the vm because they come after the '-version' argument: " + ' '.join(ignoredArgs))
+
+    if vm == 'original':
+        truffle_jar = mx.archive(['@TRUFFLE'])[0]
+        args = ['-Xbootclasspath/p:' + truffle_jar] + args
 
     args = mx.java().processArgs(args)
     return (pfx, exe, vm, args, cwd)

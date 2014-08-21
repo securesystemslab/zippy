@@ -1269,6 +1269,8 @@ bool os::set_boot_path(char fileSep, char pathSep) {
 #endif
 #ifdef GRAAL
         "%/lib/graal-loader.jar:"
+#endif
+#ifndef NO_TRUFFLE_JAR
         "%/lib/truffle.jar:"
 #endif
         "%/classes";
