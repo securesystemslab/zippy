@@ -31,6 +31,7 @@ import java.util.Map.Entry;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.*;
 
@@ -42,7 +43,8 @@ public class ProfilerResultPrinter {
 
     private PrintStream out = System.out;
 
-    private final PythonProfilerNodeProber profilerProber;
+    private PythonProfilerNodeProber profilerProber;
+    private PythonProfiler profiler;
 
     private List<PNode> nodesEmptySourceSections = new ArrayList<>();
 
@@ -50,6 +52,11 @@ public class ProfilerResultPrinter {
 
     public ProfilerResultPrinter(PythonProfilerNodeProber profilerProber) {
         this.profilerProber = profilerProber;
+    }
+
+    public ProfilerResultPrinter(PythonProfilerNodeProber profilerProber, PythonProfiler profiler) {
+        this.profilerProber = profilerProber;
+        this.profiler = profiler;
     }
 
     public void addNodeEmptySourceSection(PNode node) {
@@ -121,14 +128,22 @@ public class ProfilerResultPrinter {
                 if (instrument.getCounter() > 0) {
                     Node node = instrument.getNode();
                     Node loopNode = node.getParent().getParent();
-                    out.format("%-50s", loopNode.getClass().getSimpleName());
-                    out.format("%15s", instrument.getCounter());
-                    out.format("%9s", node.getSourceSection().getStartLine());
-                    out.format("%11s", node.getSourceSection().getStartColumn());
-                    out.format("%11s", node.getSourceSection().getCharLength());
-                    out.format("%5s", "");
-                    out.format("%-70s", node.getRootNode());
-                    out.println();
+
+                    if (loopNode instanceof LoopNode) {
+                        /**
+                         * During generator optimizations for node is replaced with
+                         * PeeledGeneratorLoopNode. Since the for loop is replaced, it's better not
+                         * to print the result of this specific for profiling.
+                         */
+                        out.format("%-50s", loopNode.getClass().getSimpleName());
+                        out.format("%15s", instrument.getCounter());
+                        out.format("%9s", node.getSourceSection().getStartLine());
+                        out.format("%11s", node.getSourceSection().getStartColumn());
+                        out.format("%11s", node.getSourceSection().getCharLength());
+                        out.format("%5s", "");
+                        out.format("%-70s", node.getRootNode());
+                        out.println();
+                    }
                 }
             }
         }
@@ -216,6 +231,51 @@ public class ProfilerResultPrinter {
                 }
             }
         }
+    }
+
+    public void printNodeProfilerResultsWithoutInstruments() {
+        List<ProfilerNode> nodes;
+        if (PythonOptions.SortProfilerResults) {
+            nodes = sortProfilerResult2(profiler.getNodes());
+        } else {
+            nodes = profiler.getNodes();
+        }
+
+        if (nodes.size() > 0) {
+            printBanner("Node Profiling Results Without Instruments", 132);
+            out.format("%-50s", "Node");
+            out.format("%-20s", "Counter");
+            out.format("%-9s", "Line");
+            out.format("%-11s", "Column");
+            out.format("%-11s", "Length");
+            out.format("%-70s", "In Method");
+            out.println();
+            out.println("=============                                     ===============     ====     ======     ======     =======================================================");
+
+            for (ProfilerNode node : nodes) {
+                if (node.getCounter() > 0) {
+                    out.format("%-50s", node.getChild().getClass().getSimpleName());
+                    out.format("%15s", node.getCounter());
+                    out.format("%9s", node.getChild().getSourceSection().getStartLine());
+                    out.format("%11s", node.getChild().getSourceSection().getStartColumn());
+                    out.format("%11s", node.getChild().getSourceSection().getCharLength());
+                    out.format("%5s", "");
+                    out.format("%-70s", node.getChild().getRootNode());
+                    out.println();
+                }
+            }
+        }
+    }
+
+    private static List<ProfilerNode> sortProfilerResult2(List<ProfilerNode> list) {
+        Collections.sort(list, new Comparator<ProfilerNode>() {
+            @Override
+            public int compare(final ProfilerNode profiler1, final ProfilerNode profiler2) {
+                return Long.compare(profiler2.getCounter(), profiler1.getCounter());
+            }
+        });
+
+        return list;
     }
 
     private static List<ProfilerInstrument> sortProfilerResult(List<ProfilerInstrument> list) {

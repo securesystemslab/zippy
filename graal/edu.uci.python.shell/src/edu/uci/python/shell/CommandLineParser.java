@@ -69,6 +69,11 @@ public class CommandLineParser {
                 continue;
             }
 
+            if (arg.equals("-profiler-no-instrument")) {
+                PythonOptions.ProfileWithoutInstruments = true;
+                continue;
+            }
+
             if (arg.equals("-profile")) {
                 PythonOptions.ProfileCalls = true;
                 PythonOptions.ProfileLoops = true;

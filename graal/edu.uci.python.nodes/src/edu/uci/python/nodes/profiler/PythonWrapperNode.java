@@ -63,7 +63,6 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        probe.enter(child, frame);
         Object result;
 
         try {
@@ -79,239 +78,291 @@ public class PythonWrapperNode extends PNode implements Wrapper {
         return result;
     }
 
-    @Override
-    public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
-        probe.enter(child, frame);
-        int result;
+// @Override
+// public Object execute(VirtualFrame frame) {
+// probe.enter(child, frame);
+// Object result;
+//
+// try {
+// result = child.execute(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
 
-        try {
-            result = child.executeInt(frame);
-            probe.leave(child, frame);
-        } catch (KillException e) {
-            throw (e);
-        } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
-            throw (e);
-        }
+// @Override
+// public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
+// probe.enter(child, frame);
+// int result;
+//
+// try {
+// result = child.executeInt(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
 
-        return result;
-    }
+// @Override
+// public Object execute(VirtualFrame frame) {
+// Object result;
+//
+// try {
+// result = child.execute(frame);
+// profilerInstrument.increment(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// profilerInstrument.increment(child, frame);
+// throw (e);
+// }
+//
+// return result;
+// }
+//
+// @Override
+// public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
+// int result;
+//
+// try {
+// result = child.executeInt(frame);
+// profilerInstrument.increment(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// profilerInstrument.increment(child, frame);
+// throw (e);
+// }
+//
+// return result;
+// }
 
-    @Override
-    public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
-        probe.enter(child, frame);
-        double result;
-
-        try {
-            result = child.executeDouble(frame);
-            probe.leave(child, frame);
-        } catch (KillException e) {
-            throw (e);
-        } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
-            throw (e);
-        }
-
-        return result;
-    }
-
-    @Override
-    public char executeCharacter(VirtualFrame frame) throws UnexpectedResultException {
-        probe.enter(child, frame);
-        char result;
-
-        try {
-            result = child.executeCharacter(frame);
-            probe.leave(child, frame);
-        } catch (KillException e) {
-            throw (e);
-        } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
-            throw (e);
-        }
-
-        return result;
-    }
-
-    @Override
-    public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
-        probe.enter(child, frame);
-        boolean result;
-
-        try {
-            result = child.executeBoolean(frame);
-            probe.leave(child, frame);
-        } catch (KillException e) {
-            throw (e);
-        } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
-            throw (e);
-        }
-
-        return result;
-    }
-
-    @Override
-    public BigInteger executeBigInteger(VirtualFrame frame) throws UnexpectedResultException {
-        probe.enter(child, frame);
-        BigInteger result;
-
-        try {
-            result = child.executeBigInteger(frame);
-            probe.leave(child, frame);
-        } catch (KillException e) {
-            throw (e);
-        } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
-            throw (e);
-        }
-
-        return result;
-    }
-
-    @Override
-    public String executeString(VirtualFrame frame) throws UnexpectedResultException {
-        probe.enter(child, frame);
-        String result;
-
-        try {
-            result = child.executeString(frame);
-            probe.leave(child, frame);
-        } catch (KillException e) {
-            throw (e);
-        } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
-            throw (e);
-        }
-
-        return result;
-    }
-
-    @Override
-    public PComplex executePComplex(VirtualFrame frame) throws UnexpectedResultException {
-        probe.enter(child, frame);
-        PComplex result;
-
-        try {
-            result = child.executePComplex(frame);
-            probe.leave(child, frame);
-        } catch (KillException e) {
-            throw (e);
-        } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
-            throw (e);
-        }
-
-        return result;
-    }
-
-    @Override
-    public PBytes executeBytes(VirtualFrame frame) throws UnexpectedResultException {
-        probe.enter(child, frame);
-        PBytes result;
-
-        try {
-            result = child.executeBytes(frame);
-            probe.leave(child, frame);
-        } catch (KillException e) {
-            throw (e);
-        } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
-            throw (e);
-        }
-
-        return result;
-    }
-
-    @Override
-    public PDict executePDictionary(VirtualFrame frame) throws UnexpectedResultException {
-        probe.enter(child, frame);
-        PDict result;
-
-        try {
-            result = child.executePDictionary(frame);
-            probe.leave(child, frame);
-        } catch (KillException e) {
-            throw (e);
-        } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
-            throw (e);
-        }
-
-        return result;
-    }
-
-    @Override
-    public PList executePList(VirtualFrame frame) throws UnexpectedResultException {
-        probe.enter(child, frame);
-        PList result;
-
-        try {
-            result = child.executePList(frame);
-            probe.leave(child, frame);
-        } catch (KillException e) {
-            throw (e);
-        } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
-            throw (e);
-        }
-
-        return result;
-    }
-
-    @Override
-    public PTuple executePTuple(VirtualFrame frame) throws UnexpectedResultException {
-        probe.enter(child, frame);
-        PTuple result;
-
-        try {
-            result = child.executePTuple(frame);
-            probe.leave(child, frame);
-        } catch (KillException e) {
-            throw (e);
-        } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
-            throw (e);
-        }
-
-        return result;
-    }
-
-    @Override
-    public PRange executePRange(VirtualFrame frame) throws UnexpectedResultException {
-        probe.enter(child, frame);
-        PRange result;
-
-        try {
-            result = child.executePRange(frame);
-            probe.leave(child, frame);
-        } catch (KillException e) {
-            throw (e);
-        } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
-            throw (e);
-        }
-
-        return result;
-    }
-
-    @Override
-    public PSequence executePSequence(VirtualFrame frame) throws UnexpectedResultException {
-        probe.enter(child, frame);
-        PSequence result;
-
-        try {
-            result = child.executePSequence(frame);
-            probe.leave(child, frame);
-        } catch (KillException e) {
-            throw (e);
-        } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
-            throw (e);
-        }
-
-        return result;
-    }
+// @Override
+// public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+// probe.enter(child, frame);
+// double result;
+//
+// try {
+// result = child.executeDouble(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
+//
+// @Override
+// public char executeCharacter(VirtualFrame frame) throws UnexpectedResultException {
+// probe.enter(child, frame);
+// char result;
+//
+// try {
+// result = child.executeCharacter(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
+//
+// @Override
+// public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
+// probe.enter(child, frame);
+// boolean result;
+//
+// try {
+// result = child.executeBoolean(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
+//
+// @Override
+// public BigInteger executeBigInteger(VirtualFrame frame) throws UnexpectedResultException {
+// probe.enter(child, frame);
+// BigInteger result;
+//
+// try {
+// result = child.executeBigInteger(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
+//
+// @Override
+// public String executeString(VirtualFrame frame) throws UnexpectedResultException {
+// probe.enter(child, frame);
+// String result;
+//
+// try {
+// result = child.executeString(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
+//
+// @Override
+// public PComplex executePComplex(VirtualFrame frame) throws UnexpectedResultException {
+// probe.enter(child, frame);
+// PComplex result;
+//
+// try {
+// result = child.executePComplex(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
+//
+// @Override
+// public PBytes executeBytes(VirtualFrame frame) throws UnexpectedResultException {
+// probe.enter(child, frame);
+// PBytes result;
+//
+// try {
+// result = child.executeBytes(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
+//
+// @Override
+// public PDict executePDictionary(VirtualFrame frame) throws UnexpectedResultException {
+// probe.enter(child, frame);
+// PDict result;
+//
+// try {
+// result = child.executePDictionary(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
+//
+// @Override
+// public PList executePList(VirtualFrame frame) throws UnexpectedResultException {
+// probe.enter(child, frame);
+// PList result;
+//
+// try {
+// result = child.executePList(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
+//
+// @Override
+// public PTuple executePTuple(VirtualFrame frame) throws UnexpectedResultException {
+// probe.enter(child, frame);
+// PTuple result;
+//
+// try {
+// result = child.executePTuple(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
+//
+// @Override
+// public PRange executePRange(VirtualFrame frame) throws UnexpectedResultException {
+// probe.enter(child, frame);
+// PRange result;
+//
+// try {
+// result = child.executePRange(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
+//
+// @Override
+// public PSequence executePSequence(VirtualFrame frame) throws UnexpectedResultException {
+// probe.enter(child, frame);
+// PSequence result;
+//
+// try {
+// result = child.executePSequence(frame);
+// probe.leave(child, frame);
+// } catch (KillException e) {
+// throw (e);
+// } catch (Exception e) {
+// probe.leaveExceptional(child, frame, e);
+// throw (e);
+// }
+//
+// return result;
+// }
 
     public PNode getChild() {
         return child;

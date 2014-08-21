@@ -49,9 +49,16 @@ public class ProfilerTranslator implements NodeVisitor {
     private final PythonProfilerNodeProber profilerProber;
     private final ProfilerResultPrinter resultPrinter;
 
+    private PythonProfiler profiler;
+
     public ProfilerTranslator(PythonContext context) {
         this.profilerProber = new PythonProfilerNodeProber(context);
-        this.resultPrinter = new ProfilerResultPrinter(this.profilerProber);
+        if (PythonOptions.ProfileWithoutInstruments) {
+            this.profiler = new PythonProfiler(context);
+            this.resultPrinter = new ProfilerResultPrinter(this.profilerProber, profiler);
+        } else {
+            this.resultPrinter = new ProfilerResultPrinter(this.profilerProber);
+        }
     }
 
     public void translate(PythonParseResult parseResult) {
@@ -78,7 +85,11 @@ public class ProfilerTranslator implements NodeVisitor {
         }
 
         if (PythonOptions.ProfileNodes) {
-            profileNodes(node);
+            if (PythonOptions.ProfileWithoutInstruments) {
+                profileNodesWithoutInstruments(node);
+            } else {
+                profileNodes(node);
+            }
         }
 
         return true;
@@ -125,7 +136,7 @@ public class ProfilerTranslator implements NodeVisitor {
         }
     }
 
-    private void profileNodes(Node node) {
+    protected void profileNodes(Node node) {
         if (!(node.getParent() instanceof PythonCallNode)) {
             /**
              * PythonCallNode has primaryNode and calleeNode. primaryNode is extracted from
@@ -149,6 +160,7 @@ public class ProfilerTranslator implements NodeVisitor {
              * BinaryComparisonNode, SubscriptLoadIndexNode, SubscriptLoadSliceNode,
              * SubscriptDeleteNode
              */
+
             else if (node instanceof BinaryArithmeticNode) {
                 createWrapper((PNode) node);
             } else if (node instanceof BinaryBitwiseNode) {
@@ -175,6 +187,61 @@ public class ProfilerTranslator implements NodeVisitor {
                 createWrapper((PNode) node);
             } else if (node instanceof PythonCallNode) {
                 createWrapper((PNode) node);
+            }
+        }
+    }
+
+    private void profileNodesWithoutInstruments(Node node) {
+        if (!(node.getParent() instanceof PythonCallNode)) {
+            /**
+             * PythonCallNode has primaryNode and calleeNode. primaryNode is extracted from
+             * calleeNode, so primary should not be profiled twice
+             */
+            if (node instanceof WriteLocalVariableNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof ReadLocalVariableNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof ReadLevelVariableNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof ReadGlobalNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof SetAttributeNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof GetAttributeNode) {
+                createProfilerNode((PNode) node);
+            }
+            /**
+             * Profile binary operations:BinaryArithmeticNode, BinaryBitwiseNode, BinaryBooleanNode,
+             * BinaryComparisonNode, SubscriptLoadIndexNode, SubscriptLoadSliceNode,
+             * SubscriptDeleteNode
+             */
+
+            else if (node instanceof BinaryArithmeticNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof BinaryBitwiseNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof BinaryBooleanNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof BinaryComparisonNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof SubscriptLoadIndexNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof SubscriptLoadSliceNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof SubscriptDeleteNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof UnaryArithmeticNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof SubscriptStoreIndexNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof SubscriptStoreSliceNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof BreakNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof ContinueNode) {
+                createProfilerNode((PNode) node);
+            } else if (node instanceof PythonCallNode) {
+                createProfilerNode((PNode) node);
             }
         }
     }
@@ -214,12 +281,34 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsStatement(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsNode(node);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
 
         return null;
+    }
+
+    private ProfilerNode createProfilerNode(PNode node) {
+        if (checkSourceSection(node)) {
+            ProfilerNode wrapperNode = profiler.probeAsNode(node);
+            replaceNodeWithProfilerNode(node, wrapperNode);
+            return wrapperNode;
+        }
+
+        return null;
+    }
+
+    private static void replaceNodeWithProfilerNode(PNode node, ProfilerNode wrapperNode) {
+        /**
+         * If a node is already wrapped, then another wrapper node is not created, and existing
+         * wrapper node is used. If a wrapper node is not created, do not replace the node,
+         * otherwise replace the node with the new created wrapper node
+         */
+        if (!wrapperNode.equals(node.getParent())) {
+            node.replace(wrapperNode);
+            wrapperNode.adoptChildren();
+        }
     }
 
     private static void replaceNodeWithWrapper(PNode node, PythonWrapperNode wrapperNode) {

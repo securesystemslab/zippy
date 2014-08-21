@@ -24,67 +24,54 @@
  */
 package edu.uci.python.nodes.profiler;
 
-import com.oracle.truffle.api.frame.*;
+import java.util.*;
+
 import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
+
+import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.*;
 
 /**
  * @author Gulfem
  */
 
-public final class ProfilerInstrument extends Instrument {
+public class PythonProfiler {
 
-    private Node node;
-    private long counter;
+    private final PythonContext context;
+    private List<ProfilerNode> nodes;
 
-    public ProfilerInstrument() {
-        counter = 0;
+    public PythonProfiler(PythonContext context) {
+        this.context = context;
+        nodes = new ArrayList<>();
+
     }
 
-// @Override
-// public void enter(Node astNode, VirtualFrame frame) {
-// counter++;
-// this.node = astNode;
-// }
-//
-
-    @Override
-    public void leave(Node astNode, VirtualFrame frame) {
-        counter++;
-        this.node = astNode;
+    public ProfilerNode probeAsNode(PNode node) {
+        ProfilerNode wrapper = createWrapper(node);
+        nodes.add(wrapper);
+        return wrapper;
     }
 
-    @Override
-    public void leave(Node astNode, VirtualFrame frame, boolean result) {
-        leave(astNode, frame);
+    private ProfilerNode createWrapper(PNode node) {
+        ProfilerNode wrapper;
+        if (node instanceof ProfilerNode) {
+            wrapper = (ProfilerNode) node;
+        } else if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
+            wrapper = (ProfilerNode) node.getParent();
+        } else {
+            wrapper = new ProfilerNode(node);
+            wrapper.assignSourceSection(node.getSourceSection());
+        }
+
+        return wrapper;
     }
 
-    @Override
-    public void leave(Node astNode, VirtualFrame frame, int result) {
-        leave(astNode, frame);
+    public List<ProfilerNode> getNodes() {
+        return nodes;
     }
 
-    @Override
-    public void leave(Node astNode, VirtualFrame frame, double result) {
-        leave(astNode, frame);
+    public PythonContext getContext() {
+        return context;
     }
-
-    @Override
-    public void leave(Node astNode, VirtualFrame frame, Object result) {
-        leave(astNode, frame);
-    }
-
-    @Override
-    public void leaveExceptional(Node astNode, VirtualFrame frame, Exception e) {
-        leave(astNode, frame);
-    }
-
-    public Node getNode() {
-        return node;
-    }
-
-    public long getCounter() {
-        return counter;
-    }
-
 }

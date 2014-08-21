@@ -56,9 +56,8 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return astNode;
     }
 
-    public PythonWrapperNode probeAsStatement(PNode node) {
+    public PythonWrapperNode probeAsNode(PNode node) {
         PythonWrapperNode wrapper = createWrapper(node);
-        wrapper.getProbe().tagAs(StandardTag.STATEMENT);
         ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
         nodeInstruments.add(profilerInstrument);
         return wrapper;
@@ -128,7 +127,7 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
-    private static ProfilerInstrument createAttachProfilerInstrument(PythonWrapperNode wrapper) {
+    public static ProfilerInstrument createAttachProfilerInstrument(PythonWrapperNode wrapper) {
         ProfilerInstrument profilerInstrument = new ProfilerInstrument();
         wrapper.getProbe().addInstrument(profilerInstrument);
         return profilerInstrument;

@@ -26,65 +26,44 @@ package edu.uci.python.nodes.profiler;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.instrument.*;
-import com.oracle.truffle.api.nodes.*;
+
+import edu.uci.python.nodes.*;
 
 /**
  * @author Gulfem
  */
 
-public final class ProfilerInstrument extends Instrument {
+public class ProfilerNode extends PNode {
 
-    private Node node;
-    private long counter;
+    @Child protected PNode child;
+    long counter;
 
-    public ProfilerInstrument() {
-        counter = 0;
-    }
-
-// @Override
-// public void enter(Node astNode, VirtualFrame frame) {
-// counter++;
-// this.node = astNode;
-// }
-//
-
-    @Override
-    public void leave(Node astNode, VirtualFrame frame) {
+    public ProfilerNode(PNode child) {
+        this.child = child;
         counter++;
-        this.node = astNode;
     }
 
     @Override
-    public void leave(Node astNode, VirtualFrame frame, boolean result) {
-        leave(astNode, frame);
+    public Object execute(VirtualFrame frame) {
+        counter++;
+        Object result;
+
+        try {
+            result = child.execute(frame);
+        } catch (KillException e) {
+            throw (e);
+        } catch (Exception e) {
+            throw (e);
+        }
+
+        return result;
     }
 
-    @Override
-    public void leave(Node astNode, VirtualFrame frame, int result) {
-        leave(astNode, frame);
-    }
-
-    @Override
-    public void leave(Node astNode, VirtualFrame frame, double result) {
-        leave(astNode, frame);
-    }
-
-    @Override
-    public void leave(Node astNode, VirtualFrame frame, Object result) {
-        leave(astNode, frame);
-    }
-
-    @Override
-    public void leaveExceptional(Node astNode, VirtualFrame frame, Exception e) {
-        leave(astNode, frame);
-    }
-
-    public Node getNode() {
-        return node;
+    public PNode getChild() {
+        return child;
     }
 
     public long getCounter() {
         return counter;
     }
-
 }
