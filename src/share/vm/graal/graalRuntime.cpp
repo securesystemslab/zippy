@@ -487,7 +487,7 @@ JRT_LEAF(void, GraalRuntime::monitorexit(JavaThread* thread, oopDesc* obj, Basic
   }
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::log_object(JavaThread* thread, oopDesc* obj, jint flags))
+JRT_LEAF(void, GraalRuntime::log_object(JavaThread* thread, oopDesc* obj, jint flags))
   bool string =  mask_bits_are_true(flags, LOG_OBJECT_STRING);
   bool addr = mask_bits_are_true(flags, LOG_OBJECT_ADDRESS);
   bool newline = mask_bits_are_true(flags, LOG_OBJECT_NEWLINE);
@@ -600,7 +600,7 @@ JRT_LEAF(void, GraalRuntime::vm_message(jboolean vmError, jlong format, jlong v1
   }
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline))
+JRT_LEAF(void, GraalRuntime::log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline))
   union {
       jlong l;
       jdouble d;
