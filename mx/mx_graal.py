@@ -83,6 +83,18 @@ _make_eclipse_launch = False
 
 _minVersion = mx.VersionSpec('1.8')
 
+class JDKDeployedDist:
+    def __init__(self, name, isExtension):
+        self.name = name
+        self.isExtension = isExtension
+
+_jdkDeployedDists = [
+    JDKDeployedDist('TRUFFLE', isExtension=False),
+    JDKDeployedDist('GRAAL_LOADER', isExtension=False),
+    JDKDeployedDist('GRAAL', isExtension=False),
+    JDKDeployedDist('GRAAL_TRUFFLE', isExtension=False)
+]
+
 JDK_UNIX_PERMISSIONS_DIR = 0755
 JDK_UNIX_PERMISSIONS_FILE = 0644
 JDK_UNIX_PERMISSIONS_EXEC = 0755
@@ -459,14 +471,10 @@ def _jdk(build='product', vmToCheck=None, create=False, installJars=True):
             _handle_missing_VM(build, vmToCheck if vmToCheck else 'graal')
 
     if installJars:
-        def _installDistInJdksIfExists(dist):
+        for jdkDist in _jdkDeployedDists:
+            dist = mx.distribution(jdkDist.name)
             if exists(dist.path):
-                _installDistInJdks(dist)
-
-        _installDistInJdksIfExists(mx.distribution('GRAAL'))
-        _installDistInJdksIfExists(mx.distribution('GRAAL_LOADER'))
-        _installDistInJdksIfExists(mx.distribution('TRUFFLE'))
-        _installDistInJdksIfExists(mx.distribution('GRAAL_TRUFFLE'))
+                _installDistInJdks(dist, jdkDist.isExtension)
 
     if vmToCheck is not None:
         jvmCfg = _vmCfgInJdk(jdk)
@@ -568,6 +576,9 @@ def _copyToJdk(src, dst, permissions=JDK_UNIX_PERMISSIONS_FILE):
         os.close(fd)
         shutil.move(tmp, dstLib)
         os.chmod(dstLib, permissions)
+
+def _installDistInJdksExt(dist):
+    _installDistInJdks(dist, True)
 
 def _installDistInJdks(dist, ext=False):
     """
@@ -740,8 +751,15 @@ def build(args, vm=None):
         else:
             assert os.path.isdir(opts2.export_dir), '{} is not a directory'.format(opts2.export_dir)
 
-        shutil.copy(mx.distribution('GRAAL').path, opts2.export_dir)
-        shutil.copy(mx.distribution('GRAAL_LOADER').path, opts2.export_dir)
+        defsPath = join(_graal_home, 'make', 'defs.make')
+        with open(defsPath) as fp:
+            defs = fp.read()
+        for jdkDist in _jdkDeployedDists:
+            dist = mx.distribution(jdkDist.name)
+            defLine = 'EXPORT_LIST += $(EXPORT_JRE_LIB_DIR)/' + basename(dist.path)
+            if defLine not in defs:
+                mx.abort('Missing following line in ' + defsPath + '\n' + defLine)
+            shutil.copy(dist.path, opts2.export_dir)
         graalOptions = join(_graal_home, 'graal.options')
         if exists(graalOptions):
             shutil.copy(graalOptions, opts2.export_dir)
@@ -1132,9 +1150,11 @@ def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, ena
         # access core Graal classes.
         cp = prefixCp + coreCp + os.pathsep + projectsCp
         if isGraalEnabled(_get_vm()):
-            graalDist = mx.distribution('GRAAL')
-            graalJarCp = set([d.output_dir() for d in graalDist.sorted_deps()])
-            cp = os.pathsep.join([e for e in cp.split(os.pathsep) if e not in graalJarCp])
+            excluded = set()
+            for jdkDist in _jdkDeployedDists:
+                dist = mx.distribution(jdkDist.name)
+                excluded.update([d.output_dir() for d in dist.sorted_deps()])
+            cp = os.pathsep.join([e for e in cp.split(os.pathsep) if e not in excluded])
             vmArgs = ['-XX:-UseGraalClassLoader'] + vmArgs
 
         if len(testclasses) == 1:
@@ -2170,7 +2190,7 @@ def findbugs(args):
     cmd = ['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15']
     if sys.stdout.isatty():
         cmd.append('-progress')
-    cmd = cmd + ['-auxclasspath', mx.classpath(['GRAAL'] + [p.name for p in nonTestProjects]), '-output', findbugsResults, '-exitcode'] + args + outputDirs
+    cmd = cmd + ['-auxclasspath', mx.classpath([d.name for d in _jdkDeployedDists] + [p.name for p in nonTestProjects]), '-output', findbugsResults, '-exitcode'] + args + outputDirs
     exitcode = mx.run_java(cmd, nonZeroIsFatal=False)
     if exitcode != 0:
         with open(findbugsResults) as fp:
@@ -2286,7 +2306,8 @@ def mx_post_parse_cmd_line(opts):  #
     global _vm_prefix
     _vm_prefix = opts.vm_prefix
 
-    mx.distribution('GRAAL').add_update_listener(_installDistInJdks)
-    mx.distribution('GRAAL_LOADER').add_update_listener(_installDistInJdks)
-    mx.distribution('TRUFFLE').add_update_listener(_installDistInJdks)
-    mx.distribution('GRAAL_TRUFFLE').add_update_listener(_installDistInJdks)
+    for jdkDist in _jdkDeployedDists:
+        if jdkDist.isExtension:
+            mx.distribution(jdkDist.name).add_update_listener(_installDistInJdksExt)
+        else:
+            mx.distribution(jdkDist.name).add_update_listener(_installDistInJdks)
