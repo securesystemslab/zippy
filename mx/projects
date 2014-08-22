@@ -128,14 +128,14 @@ project@com.oracle.nfi@subDir=graal
 project@com.oracle.nfi@sourceDirs=src
 project@com.oracle.nfi@dependencies=
 project@com.oracle.nfi@checkstyle=com.oracle.graal.graph
-project@com.oracle.nfi@javaCompliance=1.8
+project@com.oracle.nfi@javaCompliance=1.7
 
 # nfi.test
 project@com.oracle.nfi.test@subDir=graal
 project@com.oracle.nfi.test@sourceDirs=test
 project@com.oracle.nfi.test@dependencies=com.oracle.nfi,com.oracle.graal.compiler.common,JUNIT
 project@com.oracle.nfi.test@checkstyle=com.oracle.graal.graph
-project@com.oracle.nfi.test@javaCompliance=1.8
+project@com.oracle.nfi.test@javaCompliance=1.7
 
 # graal.api.collections
 project@com.oracle.graal.api.collections@subDir=graal
