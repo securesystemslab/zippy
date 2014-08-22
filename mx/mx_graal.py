@@ -459,10 +459,14 @@ def _jdk(build='product', vmToCheck=None, create=False, installJars=True):
             _handle_missing_VM(build, vmToCheck if vmToCheck else 'graal')
 
     if installJars:
-        _installDistInJdks(mx.distribution('GRAAL'))
-        _installDistInJdks(mx.distribution('GRAAL_LOADER'))
-        _installDistInJdks(mx.distribution('TRUFFLE'))
-        _installDistInJdks(mx.distribution('GRAAL_TRUFFLE'))
+        def _installDistInJdksIfExists(dist):
+            if exists(dist.path):
+                _installDistInJdks(dist)
+
+        _installDistInJdksIfExists(mx.distribution('GRAAL'))
+        _installDistInJdksIfExists(mx.distribution('GRAAL_LOADER'))
+        _installDistInJdksIfExists(mx.distribution('TRUFFLE'))
+        _installDistInJdksIfExists(mx.distribution('GRAAL_TRUFFLE'))
 
     if vmToCheck is not None:
         jvmCfg = _vmCfgInJdk(jdk)
@@ -546,7 +550,7 @@ def _update_graalRuntime_inline_hpp(dist):
         os.unlink(javaSource)
         os.unlink(javaClass)
 
-def _copyToJdk(src, dst):
+def _copyToJdk(src, dst, permissions=JDK_UNIX_PERMISSIONS_FILE):
     name = os.path.basename(src)
     dstLib = join(dst, name)
     if mx.get_env('SYMLINK_GRAAL_JAR', None) == 'true':
@@ -556,17 +560,14 @@ def _copyToJdk(src, dst):
         if not os.path.islink(dstLib) or not os.path.realpath(dstLib) == src:
             if exists(dstLib):
                 os.remove(dstLib)
-                os.symlink(src, dstLib)
+            os.symlink(src, dstLib)
     else:
         # do a copy and then a move to get atomic updating (on Unix)
         fd, tmp = tempfile.mkstemp(suffix='', prefix=name, dir=dst)
         shutil.copyfile(src, tmp)
         os.close(fd)
         shutil.move(tmp, dstLib)
-        os.chmod(dstLib, JDK_UNIX_PERMISSIONS_FILE)
-
-def _installDistInJdksExt(dist):
-    _installDistInJdks(dist, True)
+        os.chmod(dstLib, permissions)
 
 def _installDistInJdks(dist, ext=False):
     """
@@ -685,17 +686,19 @@ def graal_version(dev_suffix='dev'):
         # extract latest release tag for graal
         try:
             tags = [x.split() for x in subprocess.check_output(['hg', '-R', _graal_home, 'tags']).split('\n') if x.startswith("graal-")]
-            current_revision = subprocess.check_output(['hg', '-R', _graal_home, 'id', '-i']).strip()
+            current_id = subprocess.check_output(['hg', '-R', _graal_home, 'log', '--template', '{rev}\n', '--rev', 'tip']).strip()
         except:
             # not a mercurial repository or hg commands are not available.
             tags = None
 
-        if tags and current_revision:
+        if tags and current_id:
             sorted_tags = sorted(tags, key=lambda e: [int(x) for x in e[0][len("graal-"):].split('.')], reverse=True)
             most_recent_tag_name, most_recent_tag_revision = sorted_tags[0]
+            most_recent_tag_id = most_recent_tag_revision[:most_recent_tag_revision.index(":")]
             most_recent_tag_version = most_recent_tag_name[len("graal-"):]
 
-            if current_revision == most_recent_tag_revision:
+            # tagged commit is one-off with commit that tags it
+            if int(current_id) - int(most_recent_tag_id) <= 1:
                 cached_graal_version = most_recent_tag_version
             else:
                 major, minor = map(int, most_recent_tag_version.split('.'))
@@ -771,7 +774,7 @@ def build(args, vm=None):
             if build is None or len(build) == 0:
                 continue
 
-        jdk = _jdk(build, create=True, installJars=not opts2.java)
+        jdk = _jdk(build, create=True, installJars=vm != 'original' and not opts2.java)
 
         if vm == 'original':
             if build != 'product':
@@ -986,6 +989,10 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
         ignoredArgs = args[args.index('-version') + 1:]
         if  len(ignoredArgs) > 0:
             mx.log("Warning: The following options will be ignored by the vm because they come after the '-version' argument: " + ' '.join(ignoredArgs))
+
+    if vm == 'original':
+        truffle_jar = mx.archive(['@TRUFFLE'])[0]
+        args = ['-Xbootclasspath/p:' + truffle_jar] + args
 
     args = mx.java().processArgs(args)
     return (pfx, exe, vm, args, cwd)

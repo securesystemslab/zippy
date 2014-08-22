@@ -4,9 +4,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -22,28 +20,18 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.instrument;
+package com.oracle.graal.truffle.substitutions;
 
-/**
- * Information about a guest language program element in a Truffle AST that can be marked as
- * belonging to 0 or more {@linkplain SyntaxTag tags}.
- * <p>
- * <strong>Disclaimer:</strong> experimental interface under development.
- *
- * @see Probe
- * @see Wrapper
- */
-public interface SyntaxTagged {
+import com.oracle.graal.api.replacements.*;
+import com.oracle.graal.truffle.*;
+import com.oracle.graal.truffle.nodes.frame.*;
+import com.oracle.truffle.api.frame.*;
 
-    /**
-     * Is this node tagged as belonging to a particular human-sensible category of language
-     * constructs?
-     */
-    boolean isTaggedAs(SyntaxTag tag);
+@ClassSubstitution(FrameWithoutBoxing.class)
+public class FrameWithoutBoxingSubstitutions {
 
-    /**
-     * In which user-sensible categories has this node been tagged (<em>empty set</em> if none).
-     */
-    Iterable<SyntaxTag> getSyntaxTags();
-
+    @MethodSubstitution(isStatic = false)
+    public static MaterializedFrame materialize(FrameWithoutBoxing frame) {
+        return MaterializeFrameNode.materialize(frame);
+    }
 }

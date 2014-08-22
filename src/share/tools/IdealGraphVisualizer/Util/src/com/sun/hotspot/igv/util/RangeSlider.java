@@ -283,8 +283,8 @@ public class RangeSlider extends JComponent implements ChangedListener<RangeSlid
 
     @Override
     public void mouseDragged(MouseEvent e) {
-        // Rectangle r = new Rectangle(e.getX(), e.getY(), 1, 1);
-        // scrollRectToVisible(r);
+        Rectangle r = new Rectangle(e.getX(), e.getY(), 1, 1);
+        scrollRectToVisible(r);
 
         if (state == State.DragBar) {
             float firstX = this.getStartXPosition(model.getFirstPosition());

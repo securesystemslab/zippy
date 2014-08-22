@@ -2516,9 +2516,10 @@ def build(args, parser=None):
                 log('Compiling {} failed'.format(t.proj.name))
             abort('{} Java compilation tasks failed'.format(len(failed)))
 
-    for dist in sorted_dists():
-        if dist not in updatedAnnotationProcessorDists:
-            archive(['@' + dist.name])
+    if args.java:
+        for dist in sorted_dists():
+            if dist not in updatedAnnotationProcessorDists:
+                archive(['@' + dist.name])
 
     if suppliedParser:
         return args

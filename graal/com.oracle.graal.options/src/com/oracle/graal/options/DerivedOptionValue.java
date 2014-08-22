@@ -4,9 +4,7 @@
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Oracle designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Oracle in the LICENSE file that accompanied this code.
+ * published by the Free Software Foundation.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -22,28 +20,36 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.api.instrument;
+package com.oracle.graal.options;
+
+import java.util.function.*;
+
+import com.oracle.graal.options.OptionValue.OverrideScope;
 
 /**
- * Information about a guest language program element in a Truffle AST that can be marked as
- * belonging to 0 or more {@linkplain SyntaxTag tags}.
- * <p>
- * <strong>Disclaimer:</strong> experimental interface under development.
- *
- * @see Probe
- * @see Wrapper
+ * A cached value that needs to be recomputed when an option changes.
  */
-public interface SyntaxTagged {
+public class DerivedOptionValue<T> {
 
-    /**
-     * Is this node tagged as belonging to a particular human-sensible category of language
-     * constructs?
-     */
-    boolean isTaggedAs(SyntaxTag tag);
+    private final T initialValue;
+    private final Supplier<T> supplier;
 
-    /**
-     * In which user-sensible categories has this node been tagged (<em>empty set</em> if none).
-     */
-    Iterable<SyntaxTag> getSyntaxTags();
+    public DerivedOptionValue(Supplier<T> supplier) {
+        this.supplier = supplier;
+        assert OptionValue.overrideScopes.get() == null : "derived option value should be initialized outside any override scope";
+        this.initialValue = createValue();
+    }
 
+    public T getValue() {
+        OverrideScope overrideScope = OptionValue.overrideScopes.get();
+        if (overrideScope != null) {
+            return overrideScope.getDerived(this);
+        } else {
+            return initialValue;
+        }
+    }
+
+    T createValue() {
+        return supplier.get();
+    }
 }
