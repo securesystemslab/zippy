@@ -127,7 +127,7 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
-    public static ProfilerInstrument createAttachProfilerInstrument(PythonWrapperNode wrapper) {
+    private static ProfilerInstrument createAttachProfilerInstrument(PythonWrapperNode wrapper) {
         ProfilerInstrument profilerInstrument = new ProfilerInstrument();
         wrapper.getProbe().addInstrument(profilerInstrument);
         return profilerInstrument;

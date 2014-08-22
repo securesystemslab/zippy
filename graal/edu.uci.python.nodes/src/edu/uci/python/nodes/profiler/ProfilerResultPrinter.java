@@ -199,6 +199,7 @@ public class ProfilerResultPrinter {
     }
 
     public void printNodeProfilerResults() {
+        long totalCount = 0;
         List<ProfilerInstrument> nodeInstruments;
         if (PythonOptions.SortProfilerResults) {
             nodeInstruments = sortProfilerResult(profilerProber.getNodeInstruments());
@@ -222,6 +223,7 @@ public class ProfilerResultPrinter {
                     Node node = instrument.getNode();
                     out.format("%-50s", node.getClass().getSimpleName());
                     out.format("%15s", instrument.getCounter());
+                    totalCount = totalCount + instrument.getCounter();
                     out.format("%9s", node.getSourceSection().getStartLine());
                     out.format("%11s", node.getSourceSection().getStartColumn());
                     out.format("%11s", node.getSourceSection().getCharLength());
@@ -230,10 +232,13 @@ public class ProfilerResultPrinter {
                     out.println();
                 }
             }
+            out.println("Total number of instruments : " + nodeInstruments.size());
+            out.println("Total number of executed instruments: " + totalCount);
         }
     }
 
     public void printNodeProfilerResultsWithoutInstruments() {
+        long totalCount = 0;
         List<ProfilerNode> nodes;
         if (PythonOptions.SortProfilerResults) {
             nodes = sortProfilerResult2(profiler.getNodes());
@@ -256,6 +261,7 @@ public class ProfilerResultPrinter {
                 if (node.getCounter() > 0) {
                     out.format("%-50s", node.getChild().getClass().getSimpleName());
                     out.format("%15s", node.getCounter());
+                    totalCount = totalCount + node.getCounter();
                     out.format("%9s", node.getChild().getSourceSection().getStartLine());
                     out.format("%11s", node.getChild().getSourceSection().getStartColumn());
                     out.format("%11s", node.getChild().getSourceSection().getCharLength());
@@ -264,6 +270,7 @@ public class ProfilerResultPrinter {
                     out.println();
                 }
             }
+            out.println("Total Count: " + totalCount);
         }
     }
 

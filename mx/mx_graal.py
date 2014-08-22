@@ -1558,7 +1558,7 @@ def bench(args):
         benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-ifs")   
         
     if 'python-profile-nodes' in args:
-        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-nodes -profiler-no-instrument")       
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-nodes")       
 
     if 'cpython2' in args:
         benchmarks += sanitycheck.getPython2Benchmarks(vm)

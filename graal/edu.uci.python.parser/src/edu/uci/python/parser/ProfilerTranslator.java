@@ -136,7 +136,7 @@ public class ProfilerTranslator implements NodeVisitor {
         }
     }
 
-    protected void profileNodes(Node node) {
+    private void profileNodes(Node node) {
         if (!(node.getParent() instanceof PythonCallNode)) {
             /**
              * PythonCallNode has primaryNode and calleeNode. primaryNode is extracted from
