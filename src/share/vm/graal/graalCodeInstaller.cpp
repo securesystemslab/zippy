@@ -231,6 +231,8 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
       Location::Type locationType;
       if (type == T_INT) {
         locationType = reference ? Location::narrowoop : Location::int_in_long;
+      } else if(type == T_SHORT || type == T_CHAR || type == T_BYTE || type == T_BOOLEAN) {
+        locationType = Location::int_in_long;
       } else if (type == T_FLOAT) {
         locationType = Location::int_in_long;
       } else if (type == T_LONG) {
@@ -264,7 +266,7 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
 #ifdef TARGET_ARCH_sparc
       ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_FloatRegister(encoding)->as_VMReg()));
       if (type == T_DOUBLE) {
-        second = new ConstantIntValue(0);
+        second = value;
       }
       return value;
 #else
@@ -278,6 +280,8 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
       locationType = reference ? Location::oop : Location::lng;
     } else if (type == T_INT) {
       locationType = reference ? Location::narrowoop : Location::normal;
+    } else if(type == T_SHORT || type == T_CHAR || type == T_BYTE || type == T_BOOLEAN) {
+      locationType = Location::normal;
     } else if (type == T_FLOAT) {
       assert(!reference, "unexpected type in stack slot");
       locationType = Location::normal;
@@ -289,6 +293,11 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
       locationType = Location::oop;
     }
     jint offset = StackSlot::offset(value);
+#ifdef TARGET_ARCH_sparc
+    if(offset >= 0) {
+      offset += 128;
+    }
+#endif
     if (StackSlot::addFrameSize(value)) {
       offset += total_frame_size;
     }
