@@ -757,6 +757,10 @@ def build(args, vm=None):
         for jdkDist in _jdkDeployedDists:
             dist = mx.distribution(jdkDist.name)
             defLine = 'EXPORT_LIST += $(EXPORT_JRE_LIB_DIR)/' + basename(dist.path)
+            if jdkDist.isExtension:
+                defLine = 'EXPORT_LIST += $(EXPORT_JRE_LIB_EXT_DIR)/' + basename(dist.path)
+            else:
+                defLine = 'EXPORT_LIST += $(EXPORT_JRE_LIB_DIR)/' + basename(dist.path)
             if defLine not in defs:
                 mx.abort('Missing following line in ' + defsPath + '\n' + defLine)
             shutil.copy(dist.path, opts2.export_dir)
