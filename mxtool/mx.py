@@ -2231,8 +2231,13 @@ class JavaCompileTask:
                 self.proj.definedAnnotationProcessorsDist.make_archive()
 
         finally:
-            for n in toBeDeleted:
-                os.remove(n)
+            # Do not clean up temp files if verbose as there's
+            # a good chance the user wants to copy and paste the
+            # Java compiler command directly
+            if not _opts.verbose:
+                for n in toBeDeleted:
+                    os.remove(n)
+
             self.done = True
 
 def build(args, parser=None):
