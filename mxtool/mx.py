@@ -2413,6 +2413,8 @@ def build(args, parser=None):
             logv('[no Java sources for {0} - skipping]'.format(p.name))
             continue
 
+        javafilelist = sorted(javafilelist)
+
         task = JavaCompileTask(args, p, buildReason, javafilelist, jdk, outputDir, jdtJar, taskDeps)
         if p.definedAnnotationProcessorsDist:
             updatedAnnotationProcessorDists.add(p.definedAnnotationProcessorsDist)
