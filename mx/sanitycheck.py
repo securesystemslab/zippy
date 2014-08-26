@@ -461,7 +461,7 @@ def getPythonBenchmarksProfiling(vm, profile_option):
     tests = []
     for benchmark, arg in benchmarks.iteritems():
         script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
-        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, profile_option]
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, profile_option, "-sort"]
         if profile_option == "-profile-nodes":
             cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, profile_option, "-profiler-no-instrument"]        
         vmOpts = ['-Xms2g', '-Xmx2g']
