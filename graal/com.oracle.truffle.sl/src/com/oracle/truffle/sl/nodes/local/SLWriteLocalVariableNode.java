@@ -52,13 +52,13 @@ public abstract class SLWriteLocalVariableNode extends SLExpressionNode {
      * {@link #isLongKind() custom guard} is specified.
      */
     @Specialization(guards = "isLongKind")
-    protected long write(VirtualFrame frame, long value) {
+    protected long writeLong(VirtualFrame frame, long value) {
         frame.setLong(getSlot(), value);
         return value;
     }
 
     @Specialization(guards = "isBooleanKind")
-    protected boolean write(VirtualFrame frame, boolean value) {
+    protected boolean writeBoolean(VirtualFrame frame, boolean value) {
         frame.setBoolean(getSlot(), value);
         return value;
     }
@@ -66,14 +66,14 @@ public abstract class SLWriteLocalVariableNode extends SLExpressionNode {
     /**
      * Generic write method that works for all possible types.
      * <p>
-     * Why is this method annotated with {@link Specialization} and not {@link Generic}? For a
-     * {@link Generic} method, the Truffle DSL generated code would try all other specializations
+     * Why is this method annotated with {@link Specialization} and not {@link Fallback}? For a
+     * {@link Fallback} method, the Truffle DSL generated code would try all other specializations
      * first before calling this method. We know that all these specializations would fail their
      * guards, so there is no point in calling them. Since this method takes a value of type
      * {@link Object}, it is guaranteed to never fail, i.e., once we are in this specialization the
      * node will never be re-specialized.
      */
-    @Specialization
+    @Specialization(contains = {"writeLong", "writeBoolean"})
     protected Object write(VirtualFrame frame, Object value) {
         if (getSlot().getKind() != FrameSlotKind.Object) {
             /*

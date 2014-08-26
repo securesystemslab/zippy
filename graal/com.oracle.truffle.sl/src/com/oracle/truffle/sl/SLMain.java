@@ -152,7 +152,7 @@ public class SLMain {
         if (sourceCallback != null) {
             sourceCallback.startLoading(source);
         }
-        Parser.parseSL(context, source, null);
+        Parser.parseSL(context, source);
         if (sourceCallback != null) {
             sourceCallback.endLoading(source);
         }
@@ -192,6 +192,7 @@ public class SLMain {
         } finally {
             printScript("after execution", context, logOutput, printASTToLog, printSourceAttributionToLog, dumpASTToIGV);
         }
+        return;
     }
 
     /**

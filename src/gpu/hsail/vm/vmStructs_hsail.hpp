@@ -58,8 +58,8 @@
   nonstatic_field(HSAILTlabInfo, _end,                                                     HeapWord*)                                 \
   nonstatic_field(HSAILTlabInfo, _last_good_top,                                           HeapWord*)                                 \
   nonstatic_field(HSAILTlabInfo, _original_top,                                            HeapWord*)                                 \
-  nonstatic_field(HSAILTlabInfo, _donor_thread,                                            JavaThread*)                               \
   nonstatic_field(HSAILTlabInfo, _alloc_info,                                              HSAILAllocationInfo*)                      \
+  nonstatic_field(HSAILTlabInfo, _tlab,                                                    ThreadLocalAllocBuffer*)                   \
 
 #define VM_TYPES_GPU_HSAIL(declare_type, declare_toplevel_type)      \
   declare_toplevel_type(HSAILFrame)                                  \

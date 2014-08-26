@@ -39,6 +39,7 @@
 
 address GraalRuntime::_external_deopt_i2c_entry = NULL;
 jobject GraalRuntime::_HotSpotGraalRuntime_instance = NULL;
+bool GraalRuntime::_HotSpotGraalRuntime_initialized = false;
 
 void GraalRuntime::initialize_natives(JNIEnv *env, jclass c2vmClass) {
   uintptr_t heap_end = (uintptr_t) Universe::heap()->reserved_region().end();
@@ -486,7 +487,7 @@ JRT_LEAF(void, GraalRuntime::monitorexit(JavaThread* thread, oopDesc* obj, Basic
   }
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::log_object(JavaThread* thread, oopDesc* obj, jint flags))
+JRT_LEAF(void, GraalRuntime::log_object(JavaThread* thread, oopDesc* obj, jint flags))
   bool string =  mask_bits_are_true(flags, LOG_OBJECT_STRING);
   bool addr = mask_bits_are_true(flags, LOG_OBJECT_ADDRESS);
   bool newline = mask_bits_are_true(flags, LOG_OBJECT_NEWLINE);
@@ -599,7 +600,7 @@ JRT_LEAF(void, GraalRuntime::vm_message(jboolean vmError, jlong format, jlong v1
   }
 JRT_END
 
-JRT_ENTRY(void, GraalRuntime::log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline))
+JRT_LEAF(void, GraalRuntime::log_primitive(JavaThread* thread, jchar typeChar, jlong value, jboolean newline))
   union {
       jlong l;
       jdouble d;
@@ -663,6 +664,28 @@ JVM_ENTRY(jobject, JVM_CreateTruffleRuntime(JNIEnv *env, jclass c))
   return JNIHandles::make_local((oop) result.get_jobject());
 JVM_END
 
+// private static NativeFunctionInterfaceRuntime.createInterface()
+JVM_ENTRY(jobject, JVM_CreateNativeFunctionInterface(JNIEnv *env, jclass c))
+  const char* backendName = NULL;
+  #ifdef TARGET_ARCH_x86
+  #ifdef _LP64
+    backendName = "com/oracle/graal/hotspot/amd64/AMD64HotSpotBackend";
+  #endif 
+  #endif
+
+  if (backendName == NULL) {
+    return NULL;
+  }
+  TempNewSymbol name = SymbolTable::new_symbol(backendName, CHECK_NULL);
+  KlassHandle klass = GraalRuntime::resolve_or_fail(name, CHECK_NULL);
+
+  TempNewSymbol makeInstance = SymbolTable::new_symbol("createNativeFunctionInterface", CHECK_NULL);
+  TempNewSymbol sig = SymbolTable::new_symbol("()Lcom/oracle/nfi/api/NativeFunctionInterface;", CHECK_NULL);
+  JavaValue result(T_OBJECT);
+  JavaCalls::call_static(&result, klass, makeInstance, sig, CHECK_NULL);
+  return JNIHandles::make_local((oop) result.get_jobject());
+JVM_END
+
 void GraalRuntime::check_generated_sources_sha1(TRAPS) {
   TempNewSymbol name = SymbolTable::new_symbol("GeneratedSourcesSha1", CHECK_ABORT);
   KlassHandle klass = load_required_class(name);
@@ -681,6 +704,7 @@ void GraalRuntime::check_generated_sources_sha1(TRAPS) {
 
 Handle GraalRuntime::get_HotSpotGraalRuntime() {
   if (JNIHandles::resolve(_HotSpotGraalRuntime_instance) == NULL) {
+    guarantee(!_HotSpotGraalRuntime_initialized, "cannot reinitialize HotSpotGraalRuntime");
     Thread* THREAD = Thread::current();
     check_generated_sources_sha1(CHECK_ABORT_(Handle()));
     TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/HotSpotGraalRuntime", CHECK_ABORT_(Handle()));
@@ -690,6 +714,7 @@ Handle GraalRuntime::get_HotSpotGraalRuntime() {
     JavaValue result(T_OBJECT);
     JavaCalls::call_static(&result, klass, runtime, sig, CHECK_ABORT_(Handle()));
     _HotSpotGraalRuntime_instance = JNIHandles::make_global((oop) result.get_jobject());
+    _HotSpotGraalRuntime_initialized = true;
   }
   return Handle(JNIHandles::resolve_non_null(_HotSpotGraalRuntime_instance));
 }
@@ -703,7 +728,8 @@ JVM_END
 JVM_ENTRY(jboolean, JVM_ParseGraalOptions(JNIEnv *env, jclass c))
   HandleMark hm;
   KlassHandle hotSpotOptionsClass(THREAD, java_lang_Class::as_Klass(JNIHandles::resolve_non_null(c)));
-  return GraalRuntime::parse_arguments(hotSpotOptionsClass, CHECK_false);
+  bool result = GraalRuntime::parse_arguments(hotSpotOptionsClass, CHECK_false);
+  return result;
 JVM_END
 
 jint GraalRuntime::check_arguments(TRAPS) {
@@ -749,7 +775,7 @@ bool GraalRuntime::parse_arguments(KlassHandle hotSpotOptionsClass, TRAPS) {
   return CITime || CITimeEach;
 }
 
-void GraalRuntime::check_required_value(const char* name, int name_len, const char* value, TRAPS) {
+void GraalRuntime::check_required_value(const char* name, size_t name_len, const char* value, TRAPS) {
   if (value == NULL) {
     char buf[200];
     jio_snprintf(buf, sizeof(buf), "Must use '-G:%.*s=<value>' format for %.*s option", name_len, name, name_len, name);
@@ -765,7 +791,7 @@ void GraalRuntime::parse_argument(KlassHandle hotSpotOptionsClass, char* arg, TR
   if (first == '+' || first == '-') {
     name = arg + 1;
     name_len = strlen(name);
-    recognized = set_option(hotSpotOptionsClass, name, (int)name_len, arg, CHECK);
+    recognized = set_option_bool(hotSpotOptionsClass, name, name_len, first, CHECK);
   } else {
     char* sep = strchr(arg, '=');
     name = arg;
@@ -776,13 +802,13 @@ void GraalRuntime::parse_argument(KlassHandle hotSpotOptionsClass, char* arg, TR
     } else {
       name_len = strlen(name);
     }
-    recognized = set_option(hotSpotOptionsClass, name, (int)name_len, value, CHECK);
+    recognized = set_option(hotSpotOptionsClass, name, name_len, value, CHECK);
   }
 
   if (!recognized) {
     bool throw_err = hotSpotOptionsClass.is_null();
     if (!hotSpotOptionsClass.is_null()) {
-      set_option_helper(hotSpotOptionsClass, name, (int)name_len, Handle(), ' ', Handle(), 0L);
+      set_option_helper(hotSpotOptionsClass, name, name_len, Handle(), ' ', Handle(), 0L);
       if (!HAS_PENDING_EXCEPTION) {
         throw_err = true;
       }
@@ -798,7 +824,7 @@ void GraalRuntime::parse_argument(KlassHandle hotSpotOptionsClass, char* arg, TR
 
 void GraalRuntime::parse_graal_options_file(KlassHandle hotSpotOptionsClass, TRAPS) {
   const char* home = Arguments::get_java_home();
-  int path_len = (int)strlen(home) + (int)strlen("/lib/graal.options") + 1;
+  size_t path_len = strlen(home) + strlen("/lib/graal.options") + 1;
   char* path = NEW_RESOURCE_ARRAY_IN_THREAD(THREAD, char, path_len);
   char sep = os::file_separator()[0];
   sprintf(path, "%s%clib%cgraal.options", home, sep, sep);
@@ -843,7 +869,7 @@ void GraalRuntime::parse_graal_options_file(KlassHandle hotSpotOptionsClass, TRA
   }
 }
 
-jlong GraalRuntime::parse_primitive_option_value(char spec, const char* name, int name_len, const char* value, TRAPS) {
+jlong GraalRuntime::parse_primitive_option_value(char spec, const char* name, size_t name_len, const char* value, TRAPS) {
   check_required_value(name, name_len, value, CHECK_(0L));
   union {
     jint i;
@@ -880,11 +906,11 @@ jlong GraalRuntime::parse_primitive_option_value(char spec, const char* name, in
   THROW_MSG_(vmSymbols::java_lang_InternalError(), buf, 0L);
 }
 
-void GraalRuntime::set_option_helper(KlassHandle hotSpotOptionsClass, char* name, int name_len, Handle option, jchar spec, Handle stringValue, jlong primitiveValue) {
+void GraalRuntime::set_option_helper(KlassHandle hotSpotOptionsClass, char* name, size_t name_len, Handle option, jchar spec, Handle stringValue, jlong primitiveValue) {
   Thread* THREAD = Thread::current();
   Handle name_handle;
   if (name != NULL) {
-    if ((int) strlen(name) > name_len) {
+    if (strlen(name) > name_len) {
       // Temporarily replace '=' with NULL to create the Java string for the option name
       char save = name[name_len];
       name[name_len] = '\0';
@@ -894,7 +920,7 @@ void GraalRuntime::set_option_helper(KlassHandle hotSpotOptionsClass, char* name
         return;
       }
     } else {
-      assert((int) strlen(name) == name_len, "must be");
+      assert(strlen(name) == name_len, "must be");
       name_handle = java_lang_String::create_from_str(name, CHECK);
     }
   }
@@ -990,6 +1016,12 @@ void GraalRuntime::abort_on_pending_exception(Handle exception, const char* mess
   CLEAR_PENDING_EXCEPTION;
   tty->print_cr(message);
   call_printStackTrace(exception, THREAD);
+
+  // Give other aborting threads to also print their stack traces.
+  // This can be very useful when debugging class initialization
+  // failures.
+  os::sleep(THREAD, 200, false);
+
   vm_abort(dump_core);
 }
 

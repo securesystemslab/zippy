@@ -30,7 +30,6 @@ import java.util.*;
 import com.oracle.truffle.api.source.*;
 import com.oracle.truffle.sl.*;
 import com.oracle.truffle.sl.nodes.*;
-import com.oracle.truffle.sl.nodes.instrument.*;
 import com.oracle.truffle.sl.runtime.*;
 
 // Checkstyle: stop
@@ -54,9 +53,9 @@ public class Parser {
     public final Errors errors;
     private final SLNodeFactory factory;
 
-    public Parser(SLContext context, Source source, SLNodeProber astProber) {
+    public Parser(SLContext context, Source source) {
         this.scanner = new Scanner(source.getInputStream());
-        this.factory = new SLNodeFactory(context, source, astProber);
+        this.factory = new SLNodeFactory(context, source);
         errors = new Errors();
     }
 
@@ -134,8 +133,10 @@ public class Parser {
 	void Function() {
 		Expect(4);
 		Expect(1);
-		factory.startFunction(t);
+		Token identifierToken = t;
 		Expect(5);
+		int bodyStartPos = t.charPos;
+		factory.startFunction(identifierToken, bodyStartPos);
 		if (la.kind == 1) {
 			Get();
 			factory.addFormalParameter(t);
@@ -155,14 +156,14 @@ public class Parser {
 		factory.startBlock();
 		List<SLStatementNode> body = new ArrayList<>();
 		Expect(8);
-		int lBracePos = t.charPos;
+		int start = t.charPos;
 		while (StartOf(1)) {
 			SLStatementNode s = Statement(inLoop);
 			body.add(s);
 		}
 		Expect(9);
-		int length = (t.charPos + t.val.length()) - lBracePos;
-		result = factory.finishBlock(body, lBracePos, length);
+		int length = (t.charPos + t.val.length()) - start;
+		result = factory.finishBlock(body, start, length);
 		return result;
 	}
 
@@ -207,8 +208,8 @@ public class Parser {
 	SLStatementNode  WhileStatement() {
 		SLStatementNode  result;
 		Expect(13);
-		Expect(5);
 		Token whileToken = t;
+		Expect(5);
 		SLExpressionNode condition = Expression();
 		Expect(7);
 		SLStatementNode body = Block(true);
@@ -219,8 +220,8 @@ public class Parser {
 	SLStatementNode  IfStatement(boolean inLoop) {
 		SLStatementNode  result;
 		Expect(14);
-		Expect(5);
 		Token ifToken = t;
+		Expect(5);
 		SLExpressionNode condition = Expression();
 		Expect(7);
 		SLStatementNode thenPart = Block(inLoop);
@@ -376,8 +377,12 @@ public class Parser {
 			result = factory.createNumericLiteral(t);
 		} else if (la.kind == 5) {
 			Get();
+			int start = t.charPos;
 			result = Expression();
+			SLExpressionNode expr = result;
 			Expect(7);
+			int length = (t.charPos + t.val.length()) - start;
+			result = factory.createParenExpression(expr, start, length);
 		} else SynErr(33);
 		return result;
 	}
@@ -402,8 +407,8 @@ public class Parser {
 
     };
 
-    public static void parseSL(SLContext context, Source source, SLNodeProber astProber) {
-        Parser parser = new Parser(context, source, astProber);
+    public static void parseSL(SLContext context, Source source) {
+        Parser parser = new Parser(context, source);
         parser.Parse();
         if (parser.errors.errors.size() > 0) {
             StringBuilder msg = new StringBuilder("Error(s) parsing script:\n");

@@ -197,7 +197,8 @@ public final class EditorTopComponent extends TopComponent implements PropertyCh
         rangeSliderModel = new DiagramViewModel(diagram.getGraph().getGroup(), filterChain, sequence);
         rangeSlider = new RangeSlider();
         rangeSlider.setModel(rangeSliderModel);
-        container.add(BorderLayout.CENTER, rangeSlider);
+        JScrollPane pane = new JScrollPane(rangeSlider, ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        container.add(BorderLayout.CENTER, pane);
 
         scene = new DiagramScene(actions, rangeSliderModel);
         content = new InstanceContent();

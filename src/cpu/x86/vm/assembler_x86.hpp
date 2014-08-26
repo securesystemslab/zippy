@@ -521,7 +521,8 @@ class Assembler : public AbstractAssembler  {
     VEX_OPCODE_NONE  = 0x0,
     VEX_OPCODE_0F    = 0x1,
     VEX_OPCODE_0F_38 = 0x2,
-    VEX_OPCODE_0F_3A = 0x3
+    VEX_OPCODE_0F_3A = 0x3,
+    VEX_OPCODE_MASK  = 0x1F
   };
 
   enum WhichOperand {

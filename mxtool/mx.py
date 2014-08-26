@@ -76,18 +76,39 @@ class Distribution:
         self.excludedDependencies = excludedDependencies
         self.distDependencies = distDependencies
 
-    def sorted_deps(self, includeLibs=False):
+    def sorted_deps(self, includeLibs=False, transitive=False):
+        deps = []
+        if transitive:
+            for depDist in [distribution(name) for name in self.distDependencies]:
+                for d in depDist.sorted_deps(includeLibs=includeLibs, transitive=True):
+                    if d not in deps:
+                        deps.append(d)
         try:
             excl = [dependency(d) for d in self.excludedDependencies]
         except SystemExit as e:
             abort('invalid excluded dependency for {} distribution: {}'.format(self.name, e))
-        return [d for d in sorted_deps(self.deps, includeLibs=includeLibs) if d not in excl]
+        return deps + [d for d in sorted_deps(self.deps, includeLibs=includeLibs) if d not in excl]
 
     def __str__(self):
         return self.name
 
     def add_update_listener(self, listener):
         self.update_listeners.add(listener)
+
+    """
+    Gets the directory in which the IDE project configuration
+    for this distribution is generated. If this is a distribution
+    derived from a project defining an annotation processor, then
+    None is return to indicate no IDE configuration should be
+    created for this distribution.
+    """
+    def get_ide_project_dir(self):
+        if hasattr(self, 'definingProject') and self.definingProject.definedAnnotationProcessorsDist == self:
+            return None
+        if hasattr(self, 'subDir'):
+            return join(self.suite.dir, self.subDir, self.name + '.dist')
+        else:
+            return join(self.suite.dir, self.name + '.dist')
 
     def make_archive(self):
         # are sources combined into main archive?
@@ -233,6 +254,11 @@ class Project(Dependency):
         self.native = False
         self.workingSets = workingSets
         self.dir = d
+
+        # The annotation processors defined by this project
+        self.definedAnnotationProcessors = None
+        self.definedAnnotationProcessorsDist = None
+
 
         # Verify that a JDK exists for this project if its compliance level is
         # less than the compliance level of the default JDK
@@ -435,19 +461,46 @@ class Project(Dependency):
         self._init_packages_and_imports()
         return self._imported_java_packages
 
+    """
+    Gets the list of projects defining the annotation processors that will be applied
+    when compiling this project. This includes the projects declared by the annotationProcessors property
+    of this project and any of its project dependencies. It also includes
+    any project dependencies that define an annotation processors.
+    """
     def annotation_processors(self):
         if not hasattr(self, '_annotationProcessors'):
-            ap = set()
+            aps = set()
             if hasattr(self, '_declaredAnnotationProcessors'):
-                ap = set(self._declaredAnnotationProcessors)
+                aps = set(self._declaredAnnotationProcessors)
+                for ap in aps:
+                    if project(ap).definedAnnotationProcessorsDist is None:
+                        config = join(project(ap).source_dirs()[0], 'META-INF', 'services', 'javax.annotation.processing.Processor')
+                        if not exists(config):
+                            TimeStampFile(config).touch()
+                        abort('Project ' + ap + ' declared in annotationProcessors property of ' + self.name + ' does not define any annotation processors.\n' +
+                              'Please specify the annotation processors in ' + config)
 
-            # find dependencies that auto-inject themselves as annotation processors to all dependents
             allDeps = self.all_deps([], includeLibs=False, includeSelf=False, includeAnnotationProcessors=False)
             for p in allDeps:
-                if hasattr(p, 'annotationProcessorForDependents') and p.annotationProcessorForDependents.lower() == 'true':
-                    ap.add(p.name)
-            self._annotationProcessors = list(ap)
+                # Add an annotation processor dependency
+                if p.definedAnnotationProcessorsDist is not None:
+                    aps.add(p.name)
+
+                # Inherit annotation processors from dependencies
+                aps.update(p.annotation_processors())
+
+            self._annotationProcessors = list(aps)
         return self._annotationProcessors
+
+    """
+    Gets the class path composed of the distribution jars containing the 
+    annotation processors that will be applied when compiling this project.
+    """
+    def annotation_processors_path(self):
+        aps = [project(ap) for ap in self.annotation_processors()]
+        if len(aps):
+            return os.pathsep.join([ap.definedAnnotationProcessorsDist.path for ap in aps if ap.definedAnnotationProcessorsDist])
+        return None
 
     def update_current_annotation_processors_file(self):
         aps = self.annotation_processors()
@@ -497,7 +550,7 @@ def sha1OfFile(path):
             d.update(buf)
         return d.hexdigest()
 
-def download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False):
+def download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False, canSymlink=True):
     def _download_lib():
         cacheDir = get_env('MX_CACHE_DIR', join(_opts.user_home, '.mx', 'cache'))
         if not exists(cacheDir):
@@ -514,7 +567,8 @@ def download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist
         d = dirname(path)
         if d != '' and not exists(d):
             os.makedirs(d)
-        if 'symlink' in dir(os):
+
+        if canSymlink and 'symlink' in dir(os):
             if exists(path):
                 os.unlink(path)
             os.symlink(cachePath, path)
@@ -557,16 +611,16 @@ class BaseLibrary(Dependency):
         return not result
 
 """
-A library that will be provided by the JDK but may be absent.
+A library that will be provided by the JRE but may be absent.
 Any project or normal library that depends on a missing library
 will be removed from the global project and library dictionaries
 (i.e., _projects and _libs).
 
 This mechanism exists primarily to be able to support code
-that may use functionality in one JDK (e.g., Oracle JDK)
-that is not present in another JDK (e.g., OpenJDK). A
+that may use functionality in one JRE (e.g., Oracle JRE)
+that is not present in another JRE (e.g., OpenJDK). A
 motivating example is the Java Flight Recorder library
-found in the Oracle JDK. 
+found in the Oracle JRE. 
 """
 class JreLibrary(BaseLibrary):
     def __init__(self, suite, name, jar, optional):
@@ -648,7 +702,9 @@ class Library(BaseLibrary):
         if includedInJDK and java().javaCompliance >= JavaCompliance(includedInJDK):
             return None
 
-        return download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, not self.optional)
+        bootClassPathAgent = getattr(self, 'bootClassPathAgent').lower() == 'true' if hasattr(self, 'bootClassPathAgent') else False
+
+        return download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, not self.optional, canSymlink=not bootClassPathAgent)
 
     def get_source_path(self, resolve):
         if self.sourcePath is None:
@@ -824,7 +880,6 @@ class Suite:
             srcDirs = pop_list(attrs, 'sourceDirs')
             deps = pop_list(attrs, 'dependencies')
             ap = pop_list(attrs, 'annotationProcessors')
-            # deps += ap
             javaCompliance = attrs.pop('javaCompliance', None)
             subDir = attrs.pop('subDir', None)
             if subDir is None:
@@ -873,6 +928,52 @@ class Suite:
             d = Distribution(self, name, path, sourcesPath, deps, mainClass, exclDeps, distDeps)
             d.__dict__.update(attrs)
             self.dists.append(d)
+
+        # Create a distribution for each project that defines annotation processors
+        for p in self.projects:
+            annotationProcessors = None
+            for srcDir in p.source_dirs():
+                configFile = join(srcDir, 'META-INF', 'services', 'javax.annotation.processing.Processor')
+                if exists(configFile):
+                    with open(configFile) as fp:
+                        annotationProcessors = [ap.strip() for ap in fp]
+                        if len(annotationProcessors) != 0:
+                            for ap in annotationProcessors:
+                                if not ap.startswith(p.name):
+                                    abort(ap + ' in ' + configFile + ' does not start with ' + p.name)
+            if annotationProcessors:
+                dname = p.name.replace('.', '_').upper()
+                apDir = join(p.dir, 'ap')
+                path = join(apDir, p.name + '.jar')
+                sourcesPath = None
+                deps = [p.name]
+                mainClass = None
+                exclDeps = []
+                distDeps = []
+                d = Distribution(self, dname, path, sourcesPath, deps, mainClass, exclDeps, distDeps)
+                d.subDir = os.path.relpath(os.path.dirname(p.dir), self.dir)
+                self.dists.append(d)
+                p.definedAnnotationProcessors = annotationProcessors
+                p.definedAnnotationProcessorsDist = d
+                d.definingProject = p
+
+                # Restrict exported annotation processors to those explicitly defined by the project
+                def _refineAnnotationProcessorServiceConfig(dist):
+                    aps = dist.definingProject.definedAnnotationProcessors
+                    apsJar = dist.path
+                    config = 'META-INF/services/javax.annotation.processing.Processor'
+                    with zipfile.ZipFile(apsJar, 'r') as zf:
+                        currentAps = zf.read(config).split()
+                    if currentAps != aps:
+                        logv('[updating ' + config + ' in ' + apsJar + ']')
+                        with Archiver(apsJar) as arc, zipfile.ZipFile(apsJar, 'r') as lp:
+                            for arcname in lp.namelist():
+                                if arcname == config:
+                                    arc.zf.writestr(arcname, '\n'.join(aps))
+                                else:
+                                    arc.zf.writestr(arcname, lp.read(arcname))
+                d.add_update_listener(_refineAnnotationProcessorServiceConfig)
+                self.dists.append(d)
 
         if self.name is None:
             abort('Missing "suite=<name>" in ' + projectsFile)
@@ -2044,9 +2145,8 @@ class JavaCompileTask:
 
         processorArgs = []
 
-        aps = self.proj.annotation_processors()
-        if len(aps) > 0:
-            processorPath = classpath(aps, resolve=True)
+        processorPath = self.proj.annotation_processors_path()
+        if processorPath:
             genDir = self.proj.source_gen_dir()
             if exists(genDir):
                 shutil.rmtree(genDir)
@@ -2125,6 +2225,11 @@ class JavaCompileTask:
                 jdtArgs.append('@' + argfile.name)
 
                 run_java(jdtVmArgs + jdtArgs)
+
+            # Create annotation processor jar for a project that defines annotation processors
+            if self.proj.definedAnnotationProcessorsDist:
+                self.proj.definedAnnotationProcessorsDist.make_archive()
+
         finally:
             for n in toBeDeleted:
                 os.remove(n)
@@ -2208,6 +2313,7 @@ def build(args, parser=None):
         return outputDir
 
     tasks = {}
+    updatedAnnotationProcessorDists = set()
     for p in sortedProjects:
         if p.native:
             if args.native:
@@ -2234,13 +2340,12 @@ def build(args, parser=None):
         sourceDirs = p.source_dirs()
         buildReason = 'forced build' if args.force else None
         taskDeps = []
-        if not buildReason:
-            for dep in p.all_deps([], includeLibs=False, includeAnnotationProcessors=True):
-                taskDep = tasks.get(dep.name)
-                if taskDep:
-                    if not buildReason:
-                        buildReason = dep.name + ' rebuilt'
-                    taskDeps.append(taskDep)
+        for dep in p.all_deps([], includeLibs=False, includeAnnotationProcessors=True):
+            taskDep = tasks.get(dep.name)
+            if taskDep:
+                if not buildReason:
+                    buildReason = dep.name + ' rebuilt'
+                taskDeps.append(taskDep)
 
         jasminAvailable = None
         javafilelist = []
@@ -2309,6 +2414,8 @@ def build(args, parser=None):
             continue
 
         task = JavaCompileTask(args, p, buildReason, javafilelist, jdk, outputDir, jdtJar, taskDeps)
+        if p.definedAnnotationProcessorsDist:
+            updatedAnnotationProcessorDists.add(p.definedAnnotationProcessorsDist)
 
         if args.parallelize:
             # Best to initialize class paths on main process
@@ -2409,8 +2516,10 @@ def build(args, parser=None):
                 log('Compiling {} failed'.format(t.proj.name))
             abort('{} Java compilation tasks failed'.format(len(failed)))
 
-    for dist in sorted_dists():
-        archive(['@' + dist.name])
+    if args.java:
+        for dist in sorted_dists():
+            if dist not in updatedAnnotationProcessorDists:
+                archive(['@' + dist.name])
 
     if suppliedParser:
         return args
@@ -2591,18 +2700,13 @@ def processorjars():
         _processorjars_suite(s)
 
 def _processorjars_suite(s):
-    projs = set()
-    candidates = sorted_project_deps(s.projects)
-    for p in candidates:
-        if _isAnnotationProcessorDependency(p):
-            projs.add(p)
-
+    projs = [p for p in s.projects if p.definedAnnotationProcessors is not None]
     if len(projs) <= 0:
         return []
 
     pnames = [p.name for p in projs]
     build(['--jdt-warning-as-error', '--projects', ",".join(pnames)])
-    return archive(pnames)
+    return [p.definedAnnotationProcessorsDist.path for p in s.projects if p.definedAnnotationProcessorsDist is not None]
 
 def pylint(args):
     """run pylint (if available) over Python source files (found by 'hg locate' or by tree walk with -walk)"""
@@ -2681,6 +2785,8 @@ class Archiver:
 
     def __enter__(self):
         if self.path:
+            if not isdir(dirname(self.path)):
+                os.makedirs(dirname(self.path))
             fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(self.path) + '.', dir=dirname(self.path))
             self.tmpFd = fd
             self.tmpPath = tmp
@@ -2947,7 +3053,7 @@ def clean(args, parser=None):
         shutil.rmtree(path)
 
     def _rmIfExists(name):
-        if os.path.isfile(name):
+        if name and os.path.isfile(name):
             os.unlink(name)
 
     for p in projects_opt_limit_to_suites():
@@ -3372,14 +3478,23 @@ def _eclipseinit_project(p, files=None, libFiles=None):
             out.element('arguments', data='')
             out.close('buildCommand')
 
-    # The path should always be p.name/dir. independent of where the workspace actually is.
-    # So we use the parent folder of the project, whatever that is, to generate such a relative path.
-    logicalWorkspaceRoot = os.path.dirname(p.dir)
-    binFolder = os.path.relpath(p.output_dir(), logicalWorkspaceRoot)
+    if p.definedAnnotationProcessorsDist:
+        # Create a launcher that will (re)build the annotation processor
+        # jar any time one of its sources is modified.
+        dist = p.definedAnnotationProcessorsDist
 
-    if _isAnnotationProcessorDependency(p):
-        refreshFile = os.path.relpath(join(p.dir, p.name + '.jar'), logicalWorkspaceRoot)
-        _genEclipseBuilder(out, p, 'Jar', 'archive ' + p.name, refresh=True, refreshFile=refreshFile, relevantResources=[binFolder], async=True, xmlIndent='', xmlStandalone='no')
+        distProjects = [d for d in dist.sorted_deps(transitive=True) if d.isProject()]
+        relevantResources = []
+        for p in distProjects:
+            for srcDir in p.source_dirs():
+                relevantResources.append(join(p.name, os.path.relpath(srcDir, p.dir)))
+            relevantResources.append(join(p.name, os.path.relpath(p.output_dir(), p.dir)))
+
+        # The path should always be p.name/dir independent of where the workspace actually is.
+        # So we use the parent folder of the project, whatever that is, to generate such a relative path.
+        logicalWorkspaceRoot = os.path.dirname(p.dir)
+        refreshFile = os.path.relpath(p.definedAnnotationProcessorsDist.path, logicalWorkspaceRoot)
+        _genEclipseBuilder(out, p, 'CreateAnnotationProcessorJar', 'archive @' + dist.name, refresh=True, refreshFile=refreshFile, relevantResources=relevantResources, async=True, xmlIndent='', xmlStandalone='no')
 
     out.close('buildSpec')
     out.open('natures')
@@ -3436,22 +3551,13 @@ def _eclipseinit_project(p, files=None, libFiles=None):
         if files:
             files.append(join(settingsDir, name))
 
-    if len(p.annotation_processors()) > 0:
+    processorPath = p.annotation_processors_path()
+    if processorPath:
         out = XMLDoc()
         out.open('factorypath')
         out.element('factorypathentry', {'kind' : 'PLUGIN', 'id' : 'org.eclipse.jst.ws.annotations.core', 'enabled' : 'true', 'runInBatchMode' : 'false'})
-        for ap in p.annotation_processors():
-            for dep in dependency(ap).all_deps([], True):
-                if dep.isLibrary():
-                    # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-                    # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-                    # safest to simply use absolute paths.
-                    path = _make_absolute(dep.get_path(resolve=True), p.suite.dir)
-                    out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
-                    if files:
-                        files.append(path)
-                elif dep.isProject():
-                    out.element('factorypathentry', {'kind' : 'WKSPJAR', 'id' : '/' + dep.name + '/' + dep.name + '.jar', 'enabled' : 'true', 'runInBatchMode' : 'false'})
+        for e in processorPath.split(os.pathsep):
+            out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : e, 'enabled' : 'true', 'runInBatchMode' : 'false'})
         out.close('factorypath')
         update_file(join(p.dir, '.factorypath'), out.xml(indent='\t', newl='\n'))
         if files:
@@ -3467,8 +3573,6 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         logv('[Eclipse configurations are up to date - skipping]')
         return
 
-
-
     files = []
     libFiles = []
     if buildProcessorJars:
@@ -3477,24 +3581,21 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     for p in suite.projects:
         if p.native:
             continue
-        _eclipseinit_project(p)
+        _eclipseinit_project(p, files, libFiles)
 
     _, launchFile = make_eclipse_attach(suite, 'localhost', '8000', deps=sorted_deps(projectNames=None, includeLibs=True))
     files.append(launchFile)
 
-    _zip_files(files, suite.dir, configZip.path)
-    _zip_files(libFiles, suite.dir, configLibsZip)
-
     # Create an Eclipse project for each distribution that will create/update the archive
-    # for the distribution whenever any project of the distribution is updated.
+    # for the distribution whenever any (transitively) dependent project of the
+    # distribution is updated.
     for dist in suite.dists:
-        if hasattr(dist, 'subDir'):
-            projectDir = join(suite.dir, dist.subDir, dist.name + '.dist')
-        else:
-            projectDir = join(suite.dir, dist.name + '.dist')
+        projectDir = dist.get_ide_project_dir()
+        if not projectDir:
+            continue
         if not exists(projectDir):
             os.makedirs(projectDir)
-        distProjects = [d for d in dist.sorted_deps() if d.isProject()]
+        distProjects = [d for d in dist.sorted_deps(transitive=True) if d.isProject()]
         relevantResources = []
         for p in distProjects:
             for srcDir in p.source_dirs():
@@ -3512,7 +3613,7 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         out.close('projects')
         out.open('buildSpec')
         dist.dir = projectDir
-        dist.javaCompliance = max([p.javaCompliance for p in distProjects] + [JavaCompliance('1.8')])
+        dist.javaCompliance = max([p.javaCompliance for p in distProjects])
         _genEclipseBuilder(out, dist, 'Create' + dist.name + 'Dist', 'archive @' + dist.name, relevantResources=relevantResources, logToFile=True, refresh=False, async=True)
         out.close('buildSpec')
         out.open('natures')
@@ -3522,6 +3623,9 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         projectFile = join(projectDir, '.project')
         update_file(projectFile, out.xml(indent='\t', newl='\n'))
         files.append(projectFile)
+
+    _zip_files(files, suite.dir, configZip.path)
+    _zip_files(libFiles, suite.dir, configLibsZip)
 
 def _zip_files(files, baseDir, zipPath):
     fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(zipPath), dir=baseDir)
@@ -3540,12 +3644,6 @@ def _zip_files(files, baseDir, zipPath):
     finally:
         if exists(tmp):
             os.remove(tmp)
-
-def _isAnnotationProcessorDependency(p):
-    """
-    Determines if a given project is part of an annotation processor.
-    """
-    return p in sorted_deps(annotation_processors())
 
 def _genEclipseBuilder(dotProjectDoc, p, name, mxCommand, refresh=True, refreshFile=None, relevantResources=None, async=False, logToConsole=False, logToFile=False, appendToLogFile=True, xmlIndent='\t', xmlStandalone=None):
     externalToolDir = join(p.dir, '.externalToolBuilders')
@@ -3922,8 +4020,8 @@ jar.compress=false
 # Space-separated list of extra javac options
 javac.compilerargs=
 javac.deprecation=false
-javac.source=1.7
-javac.target=1.7
+javac.source=""" + str(p.javaCompliance) + """
+javac.target=""" + str(p.javaCompliance) + """
 javac.test.classpath=\\
     ${javac.classpath}:\\
     ${build.classes.dir}
@@ -4242,6 +4340,9 @@ def ideclean(args):
         except:
             log("Error removing {0}".format(p.name + '.jar'))
 
+    for d in _dists.itervalues():
+        if d.get_ide_project_dir():
+            shutil.rmtree(d.get_ide_project_dir(), ignore_errors=True)
 
 def ideinit(args, refreshOnly=False, buildProcessorJars=True):
     """(re)generate Eclipse, NetBeans and Intellij project configurations"""

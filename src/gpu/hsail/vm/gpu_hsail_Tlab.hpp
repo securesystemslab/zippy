@@ -41,7 +41,7 @@ public:
   HeapWord* _end;
   HeapWord* _last_good_top;
   HeapWord* _original_top;
-  JavaThread* _donor_thread;         // donor thread associated with this tlabInfo
+  ThreadLocalAllocBuffer* _tlab;      // tlab associated with this tlabInfo
   HSAILAllocationInfo* _alloc_info;   // same as what is in HSAILDeoptimizationInfo
 
   // Accessors
@@ -50,11 +50,12 @@ public:
   HeapWord* end() { return _end; }
   HeapWord* last_good_top() { return _last_good_top; }
   HeapWord* original_top() { return _original_top; }
-  void initialize(HeapWord* start, HeapWord* top, HeapWord* end, JavaThread* donorThread, HSAILAllocationInfo* allocInfo) {
+  ThreadLocalAllocBuffer* tlab() { return _tlab; }
+  void initialize(HeapWord* start, HeapWord* top, HeapWord* end, ThreadLocalAllocBuffer* tlab, HSAILAllocationInfo* allocInfo) {
     _start = start;
     _top = _original_top = top;
     _end = end;
-    _donor_thread = donorThread;
+    _tlab = tlab;
     _alloc_info = allocInfo;
   }
 };
@@ -63,54 +64,56 @@ public:
 class HSAILAllocationInfo : public CHeapObj<mtInternal> {
   friend class VMStructs;
 private:
-  JavaThread** donorThreads;
-  jint _num_donor_threads;
-  size_t _tlab_align_reserve_bytes;    // filled in from ThreadLocalAllocBuffer::alignment_reserve_in_bytes()
-  HSAILTlabInfo** _cur_tlab_infos;    // array of current tlab info pointers, one per donor_thread
+  jint   _num_tlabs;
+  size_t _tlab_align_reserve_bytes;         // filled in from ThreadLocalAllocBuffer::alignment_reserve_in_bytes()
+  HSAILTlabInfo** _cur_tlab_infos;          // array of current tlab info pointers, one per num_tlabs
   HSAILTlabInfo* _tlab_infos_pool_start;    // pool for new tlab_infos
   HSAILTlabInfo* _tlab_infos_pool_next;     // where next will be allocated from
   HSAILTlabInfo* _tlab_infos_pool_end;      // where next will be allocated from
 
 public:
-  HSAILAllocationInfo(jobject donor_threads_jobj, int dimX, int allocBytesPerWorkitem) {
-    // fill in the donorThreads array
-    objArrayOop donorThreadObjects = (objArrayOop) JNIHandles::resolve(donor_threads_jobj);
-    _num_donor_threads = donorThreadObjects->length();
-    guarantee(_num_donor_threads > 0, "need at least one donor thread");
-    donorThreads = NEW_C_HEAP_ARRAY(JavaThread*, _num_donor_threads, mtInternal);
-    for (int i = 0; i < _num_donor_threads; i++) {
-      donorThreads[i] = java_lang_Thread::thread(donorThreadObjects->obj_at(i));
+  HSAILAllocationInfo(jint num_tlabs, int dimX, int allocBytesPerWorkitem) {
+    _num_tlabs = num_tlabs;
+    // if this thread doesn't have gpu_hsail_tlabs allocated yet, do so now
+    JavaThread* thread = JavaThread::current();
+    if (thread->get_gpu_hsail_tlabs_count() == 0) {
+      thread->initialize_gpu_hsail_tlabs(num_tlabs);
+      if (TraceGPUInteraction) {
+        for (int i = 0; i < num_tlabs; i++) {
+          ThreadLocalAllocBuffer* tlab = thread->get_gpu_hsail_tlab_at(i);
+          tty->print("initialized gpu_hsail_tlab %d at %p -> ", i, tlab);
+          printTlabInfoFromThread(tlab);
+        }
+      }
     }
-    
+
     // Compute max_tlab_infos based on amount of free heap space
     size_t max_tlab_infos;
     {
-      JavaThread* donorThread = donorThreads[0];
-      ThreadLocalAllocBuffer* tlab = &donorThread->tlab();
+      ThreadLocalAllocBuffer* tlab = &thread->tlab();
       size_t new_tlab_size = tlab->compute_size(0);
-      size_t heap_bytes_free = Universe::heap()->unsafe_max_tlab_alloc(donorThread);
+      size_t heap_bytes_free = Universe::heap()->unsafe_max_tlab_alloc(thread);
       if (new_tlab_size != 0) {
-        max_tlab_infos = MIN2(heap_bytes_free / new_tlab_size, (size_t)(64 * _num_donor_threads));
+        max_tlab_infos = MIN2(heap_bytes_free / new_tlab_size, (size_t)(64 * _num_tlabs));
       } else {
-        max_tlab_infos = 8 * _num_donor_threads;   // an arbitrary multiple
+        max_tlab_infos = 8 * _num_tlabs;   // an arbitrary multiple
       }
       if (TraceGPUInteraction) {
         tty->print_cr("heapFree = %ld, newTlabSize=%ld, tlabInfos allocated = %ld", heap_bytes_free, new_tlab_size, max_tlab_infos);
       }
     }
 
-    _cur_tlab_infos = NEW_C_HEAP_ARRAY(HSAILTlabInfo*, _num_donor_threads, mtInternal);
+    _cur_tlab_infos = NEW_C_HEAP_ARRAY(HSAILTlabInfo*, _num_tlabs, mtInternal);
     _tlab_infos_pool_start = NEW_C_HEAP_ARRAY(HSAILTlabInfo, max_tlab_infos, mtInternal);
-    _tlab_infos_pool_next = &_tlab_infos_pool_start[_num_donor_threads];
+    _tlab_infos_pool_next = &_tlab_infos_pool_start[_num_tlabs];
     _tlab_infos_pool_end = &_tlab_infos_pool_start[max_tlab_infos];
     _tlab_align_reserve_bytes = ThreadLocalAllocBuffer::alignment_reserve_in_bytes();
       
-    // we will fill the first N tlabInfos from the donor threads
-    for (int i = 0; i < _num_donor_threads; i++) {
-      JavaThread* donorThread = donorThreads[i];
-      ThreadLocalAllocBuffer* tlab = &donorThread->tlab();
+    // we will fill the first N tlabInfos from the gpu_hsail_tlabs
+    for (int i = 0; i < _num_tlabs; i++) {
+      ThreadLocalAllocBuffer* tlab = thread->get_gpu_hsail_tlab_at(i);
       if (TraceGPUInteraction) {
-        tty->print("donorThread %d, is %p, tlab at %p -> ", i, donorThread, tlab);
+        tty->print("gpu_hsail_tlab %d at %p -> ", i, tlab);
         printTlabInfoFromThread(tlab);
       }
       
@@ -122,13 +125,13 @@ public:
       // here, it might make sense to do a gc now rather than to start
       // the kernel and have it deoptimize.  How to do that?
       if (tlab->end() == NULL) {
-        bool success = getNewTlabForDonorThread(tlab, i);
+        bool success = getNewGpuHsailTlab(tlab);
         if (TraceGPUInteraction) {
           if (success) {
-            tty->print("donorThread %d, refilled tlab, -> ", i);
+            tty->print("gpu_hsail_tlab %d, refilled tlab, -> ", i);
             printTlabInfoFromThread(tlab);
           } else {
-            tty->print("donorThread %d, could not refill tlab, left as ", i);
+            tty->print("gpu_hsail_tlab %d, could not refill tlab, left as ", i);
             printTlabInfoFromThread(tlab);
           }
         }
@@ -137,20 +140,19 @@ public:
       // extract the necessary tlab fields into a TlabInfo record
       HSAILTlabInfo* pTlabInfo = &_tlab_infos_pool_start[i];
       _cur_tlab_infos[i] = pTlabInfo;
-      pTlabInfo->initialize(tlab->start(), tlab->top(), tlab->end(), donorThread, this);
+      pTlabInfo->initialize(tlab->start(), tlab->top(), tlab->end(), tlab, this);
     }
   }
 
   ~HSAILAllocationInfo() {
     FREE_C_HEAP_ARRAY(HSAILTlabInfo*, _cur_tlab_infos, mtInternal);
     FREE_C_HEAP_ARRAY(HSAILTlabInfo, _tlab_infos_pool_start, mtInternal);
-    FREE_C_HEAP_ARRAY(JavaThread*, donorThreads, mtInternal);
   }
 
   void postKernelCleanup() {
     // go thru all the tlabInfos, fix up any tlab tops that overflowed
     // complete the tlabs if they overflowed
-    // update the donor threads tlabs when appropriate
+    // update the gpu_hsail_tlabs when appropriate
     bool anyOverflows = false;
     size_t bytesAllocated = 0;
     // if there was an overflow in allocating tlabInfos, correct it here
@@ -166,8 +168,7 @@ public:
         tty->print_cr("postprocess tlabInfo %p, start=%p, top=%p, end=%p, last_good_top=%p", tlabInfo, 
                       tlabInfo->start(), tlabInfo->top(), tlabInfo->end(), tlabInfo->last_good_top());
       }
-      JavaThread* donorThread = tlabInfo->_donor_thread;
-      ThreadLocalAllocBuffer* tlab = &donorThread->tlab();
+      ThreadLocalAllocBuffer* tlab = tlabInfo->tlab();
       bool overflowed = false;
       // if a tlabInfo has NULL fields, i.e. we could not prime it on entry,
       // or we could not get a tlab from the gpu, so ignore tlabInfo here
@@ -177,14 +178,14 @@ public:
           overflowed = true;
           if (TraceGPUInteraction) {
             long overflowAmount = (long) tlabInfo->top() - (long) tlabInfo->last_good_top(); 
-            tty->print_cr("tlabInfo %p (donorThread = %p) overflowed by %ld bytes, setting last good top to %p", tlabInfo, donorThread, overflowAmount, tlabInfo->last_good_top());
+            tty->print_cr("tlabInfo %p (tlab = %p) overflowed by %ld bytes, setting last good top to %p", tlabInfo, tlab, overflowAmount, tlabInfo->last_good_top());
           }
           tlabInfo->_top = tlabInfo->last_good_top();
         }
 
-        // fill the donor thread tlab with the tlabInfo information
+        // fill the gpu_hsail_tlab with the tlabInfo information
         // we do this even if it will get overwritten by a later tlabinfo
-        // because it helps with tlab statistics for that donor thread
+        // because it helps with tlab statistics for that tlab
         tlab->fill(tlabInfo->start(), tlabInfo->top(), (tlabInfo->end() - tlabInfo->start()) + tlab->alignment_reserve());
 
         // if there was an overflow, make it parsable with retire = true
@@ -215,7 +216,7 @@ public:
 private:
   // fill and retire old tlab and get a new one
   // if we can't get one, no problem someone will eventually do a gc
-  bool getNewTlabForDonorThread(ThreadLocalAllocBuffer* tlab, int idx) {
+  bool getNewGpuHsailTlab(ThreadLocalAllocBuffer* tlab) {
 
     tlab->clear_before_allocation();    // fill and retire old tlab (will also check for null)
     

@@ -22,6 +22,8 @@
  */
 package com.oracle.truffle.api.dsl.test;
 
+import java.math.*;
+
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
@@ -29,7 +31,8 @@ import com.oracle.truffle.api.nodes.*;
 
 public class TypeSystemTest {
 
-    @TypeSystem({int.class, boolean.class, String.class, CallTarget.class, BExtendsAbstract.class, CExtendsAbstract.class, Abstract.class, Object[].class})
+    @TypeSystem({int.class, double.class, boolean.class, BigInteger.class, String.class, CallTarget.class, BExtendsAbstract.class, CExtendsAbstract.class, Abstract.class, Interface.class,
+                    Object[].class})
     static class SimpleTypes {
 
         static int intCheck;
@@ -47,10 +50,20 @@ public class TypeSystemTest {
             return (int) value;
         }
 
+        @ImplicitCast
+        public double castDouble(int value) {
+            return value;
+        }
+
+        @ImplicitCast
+        public BigInteger castBigInteger(int value) {
+            return BigInteger.valueOf(value);
+        }
+
     }
 
     @TypeSystemReference(SimpleTypes.class)
-    public abstract static class ValueNode extends Node {
+    public static class ValueNode extends Node {
 
         public ValueNode() {
             super(null);
@@ -72,6 +85,10 @@ public class TypeSystemTest {
             return SimpleTypesGen.SIMPLETYPES.expectObjectArray(execute(frame));
         }
 
+        public BigInteger executeBigInteger(VirtualFrame frame) throws UnexpectedResultException {
+            return SimpleTypesGen.SIMPLETYPES.expectBigInteger(execute(frame));
+        }
+
         public BExtendsAbstract executeBExtendsAbstract(VirtualFrame frame) throws UnexpectedResultException {
             return SimpleTypesGen.SIMPLETYPES.expectBExtendsAbstract(execute(frame));
         }
@@ -80,7 +97,21 @@ public class TypeSystemTest {
             return SimpleTypesGen.SIMPLETYPES.expectCExtendsAbstract(execute(frame));
         }
 
-        public abstract Object execute(VirtualFrame frame);
+        public Abstract executeAbstract(VirtualFrame frame) throws UnexpectedResultException {
+            return SimpleTypesGen.SIMPLETYPES.expectAbstract(execute(frame));
+        }
+
+        public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
+            return SimpleTypesGen.SIMPLETYPES.expectDouble(execute(frame));
+        }
+
+        public Interface executeInterface(VirtualFrame frame) throws UnexpectedResultException {
+            return SimpleTypesGen.SIMPLETYPES.expectInterface(execute(frame));
+        }
+
+        public Object execute(@SuppressWarnings("unused") VirtualFrame frame) {
+            throw new UnsupportedOperationException();
+        }
 
         @Override
         public ValueNode copy() {
@@ -158,4 +189,6 @@ public class TypeSystemTest {
         static final CExtendsAbstract INSTANCE = new CExtendsAbstract();
     }
 
+    interface Interface {
+    }
 }

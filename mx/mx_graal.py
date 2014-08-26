@@ -83,8 +83,21 @@ _make_eclipse_launch = False
 
 _minVersion = mx.VersionSpec('1.8')
 
+class JDKDeployedDist:
+    def __init__(self, name, isExtension):
+        self.name = name
+        self.isExtension = isExtension
+
+_jdkDeployedDists = [
+    JDKDeployedDist('TRUFFLE', isExtension=False),
+    JDKDeployedDist('GRAAL_LOADER', isExtension=False),
+    JDKDeployedDist('GRAAL', isExtension=False),
+    JDKDeployedDist('GRAAL_TRUFFLE', isExtension=False)
+]
+
 JDK_UNIX_PERMISSIONS_DIR = 0755
 JDK_UNIX_PERMISSIONS_FILE = 0644
+JDK_UNIX_PERMISSIONS_EXEC = 0755
 
 def isVMSupported(vm):
     if 'client' in vm and len(platform.mac_ver()[0]) != 0:
@@ -458,10 +471,10 @@ def _jdk(build='product', vmToCheck=None, create=False, installJars=True):
             _handle_missing_VM(build, vmToCheck if vmToCheck else 'graal')
 
     if installJars:
-        _installDistInJdks(mx.distribution('GRAAL'))
-        _installDistInJdks(mx.distribution('GRAAL_LOADER'))
-        _installDistInJdks(mx.distribution('TRUFFLE'))
-        _installDistInJdks(mx.distribution('GRAAL_TRUFFLE'))
+        for jdkDist in _jdkDeployedDists:
+            dist = mx.distribution(jdkDist.name)
+            if exists(dist.path):
+                _installDistInJdks(dist, jdkDist.isExtension)
 
     if vmToCheck is not None:
         jvmCfg = _vmCfgInJdk(jdk)
@@ -545,7 +558,29 @@ def _update_graalRuntime_inline_hpp(dist):
         os.unlink(javaSource)
         os.unlink(javaClass)
 
-def _installDistInJdks(dist):
+def _copyToJdk(src, dst, permissions=JDK_UNIX_PERMISSIONS_FILE):
+    name = os.path.basename(src)
+    dstLib = join(dst, name)
+    if mx.get_env('SYMLINK_GRAAL_JAR', None) == 'true':
+        # Using symlinks is much faster than copying but may
+        # cause issues if the lib is being updated while
+        # the VM is running.
+        if not os.path.islink(dstLib) or not os.path.realpath(dstLib) == src:
+            if exists(dstLib):
+                os.remove(dstLib)
+            os.symlink(src, dstLib)
+    else:
+        # do a copy and then a move to get atomic updating (on Unix)
+        fd, tmp = tempfile.mkstemp(suffix='', prefix=name, dir=dst)
+        shutil.copyfile(src, tmp)
+        os.close(fd)
+        shutil.move(tmp, dstLib)
+        os.chmod(dstLib, permissions)
+
+def _installDistInJdksExt(dist):
+    _installDistInJdks(dist, True)
+
+def _installDistInJdks(dist, ext=False):
     """
     Installs the jar(s) for a given Distribution into all existing Graal JDKs
     """
@@ -557,29 +592,12 @@ def _installDistInJdks(dist):
     if exists(jdks):
         for e in os.listdir(jdks):
             jreLibDir = join(jdks, e, 'jre', 'lib')
+            if ext:
+                jreLibDir = join(jreLibDir, 'ext')
             if exists(jreLibDir):
-                def install(srcJar, dstDir):
-                    name = os.path.basename(srcJar)
-                    dstJar = join(dstDir, name)
-                    if mx.get_env('SYMLINK_GRAAL_JAR', None) == 'true':
-                        # Using symlinks is much faster than copying but may
-                        # cause issues if the jar is being updated while
-                        # the VM is running.
-                        if not os.path.islink(dstJar) or not os.path.realpath(dstJar) == srcJar:
-                            if exists(dstJar):
-                                os.remove(dstJar)
-                            os.symlink(srcJar, dstJar)
-                    else:
-                        # do a copy and then a move to get atomic updating (on Unix)
-                        fd, tmp = tempfile.mkstemp(suffix='', prefix=name, dir=dstDir)
-                        shutil.copyfile(srcJar, tmp)
-                        os.close(fd)
-                        shutil.move(tmp, dstJar)
-                        os.chmod(dstJar, JDK_UNIX_PERMISSIONS_FILE)
-
-                install(dist.path, jreLibDir)
+                _copyToJdk(dist.path, jreLibDir)
                 if dist.sourcesPath:
-                    install(dist.sourcesPath, join(jdks, e))
+                    _copyToJdk(dist.sourcesPath, join(jdks, e))
 
 # run a command in the windows SDK Debug Shell
 def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo=None):
@@ -679,17 +697,19 @@ def graal_version(dev_suffix='dev'):
         # extract latest release tag for graal
         try:
             tags = [x.split() for x in subprocess.check_output(['hg', '-R', _graal_home, 'tags']).split('\n') if x.startswith("graal-")]
-            current_revision = subprocess.check_output(['hg', '-R', _graal_home, 'id', '-i']).strip()
+            current_id = subprocess.check_output(['hg', '-R', _graal_home, 'log', '--template', '{rev}\n', '--rev', 'tip']).strip()
         except:
             # not a mercurial repository or hg commands are not available.
             tags = None
 
-        if tags and current_revision:
+        if tags and current_id:
             sorted_tags = sorted(tags, key=lambda e: [int(x) for x in e[0][len("graal-"):].split('.')], reverse=True)
             most_recent_tag_name, most_recent_tag_revision = sorted_tags[0]
+            most_recent_tag_id = most_recent_tag_revision[:most_recent_tag_revision.index(":")]
             most_recent_tag_version = most_recent_tag_name[len("graal-"):]
 
-            if current_revision == most_recent_tag_revision:
+            # tagged commit is one-off with commit that tags it
+            if int(current_id) - int(most_recent_tag_id) <= 1:
                 cached_graal_version = most_recent_tag_version
             else:
                 major, minor = map(int, most_recent_tag_version.split('.'))
@@ -731,8 +751,19 @@ def build(args, vm=None):
         else:
             assert os.path.isdir(opts2.export_dir), '{} is not a directory'.format(opts2.export_dir)
 
-        shutil.copy(mx.distribution('GRAAL').path, opts2.export_dir)
-        shutil.copy(mx.distribution('GRAAL_LOADER').path, opts2.export_dir)
+        defsPath = join(_graal_home, 'make', 'defs.make')
+        with open(defsPath) as fp:
+            defs = fp.read()
+        for jdkDist in _jdkDeployedDists:
+            dist = mx.distribution(jdkDist.name)
+            defLine = 'EXPORT_LIST += $(EXPORT_JRE_LIB_DIR)/' + basename(dist.path)
+            if jdkDist.isExtension:
+                defLine = 'EXPORT_LIST += $(EXPORT_JRE_LIB_EXT_DIR)/' + basename(dist.path)
+            else:
+                defLine = 'EXPORT_LIST += $(EXPORT_JRE_LIB_DIR)/' + basename(dist.path)
+            if defLine not in defs:
+                mx.abort('Missing following line in ' + defsPath + '\n' + defLine)
+            shutil.copy(dist.path, opts2.export_dir)
         graalOptions = join(_graal_home, 'graal.options')
         if exists(graalOptions):
             shutil.copy(graalOptions, opts2.export_dir)
@@ -765,7 +796,7 @@ def build(args, vm=None):
             if build is None or len(build) == 0:
                 continue
 
-        jdk = _jdk(build, create=True)
+        jdk = _jdk(build, create=True, installJars=vm != 'original' and not opts2.java)
 
         if vm == 'original':
             if build != 'product':
@@ -981,6 +1012,10 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
         if  len(ignoredArgs) > 0:
             mx.log("Warning: The following options will be ignored by the vm because they come after the '-version' argument: " + ' '.join(ignoredArgs))
 
+    if vm == 'original':
+        truffle_jar = mx.archive(['@TRUFFLE'])[0]
+        args = ['-Xbootclasspath/p:' + truffle_jar] + args
+
     args = mx.java().processArgs(args)
     return (pfx, exe, vm, args, cwd)
 
@@ -1119,9 +1154,11 @@ def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, ena
         # access core Graal classes.
         cp = prefixCp + coreCp + os.pathsep + projectsCp
         if isGraalEnabled(_get_vm()):
-            graalDist = mx.distribution('GRAAL')
-            graalJarCp = set([d.output_dir() for d in graalDist.sorted_deps()])
-            cp = os.pathsep.join([e for e in cp.split(os.pathsep) if e not in graalJarCp])
+            excluded = set()
+            for jdkDist in _jdkDeployedDists:
+                dist = mx.distribution(jdkDist.name)
+                excluded.update([d.output_dir() for d in dist.sorted_deps()])
+            cp = os.pathsep.join([e for e in cp.split(os.pathsep) if e not in excluded])
             vmArgs = ['-XX:-UseGraalClassLoader'] + vmArgs
 
         if len(testclasses) == 1:
@@ -1541,11 +1578,12 @@ def igv(args):
             mx.logv('[This execution may take a while as the NetBeans platform needs to be downloaded]')
         mx.run(['ant', '-f', join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'), '-l', fp.name, 'run'], env=env)
 
-def install(args):
+def maven_install_truffle(args):
     """install Truffle into your local Maven repository"""
-    mx.archive(["@TRUFFLE"])
-    mx.run(['mvn', 'install:install-file', '-DgroupId=com.oracle', '-DartifactId=truffle', '-Dversion=' + graal_version('SNAPSHOT'), '-Dpackaging=jar', '-Dfile=truffle.jar'])
-    mx.run(['mvn', 'install:install-file', '-DgroupId=com.oracle', '-DartifactId=truffle-dsl-processor', '-Dversion=' + graal_version('SNAPSHOT'), '-Dpackaging=jar', '-Dfile=truffle-dsl-processor.jar'])
+    for name in ['TRUFFLE', 'TRUFFLE-DSL-PROCESSOR']:
+        mx.archive(["@" + name])
+        path = mx._dists[name].path
+        mx.run(['mvn', 'install:install-file', '-DgroupId=com.oracle', '-DartifactId=' + name.lower(), '-Dversion=' + graal_version('SNAPSHOT'), '-Dpackaging=jar', '-Dfile=' + path])
 
 def c1visualizer(args):
     """run the Cl Compiler Visualizer"""
@@ -1878,7 +1916,7 @@ def specjvm2008(args):
     _run_benchmark(args, sorted(availableBenchmarks), launcher)
 
 def specjbb2013(args):
-    """runs the composite SPECjbb2013 benchmark"""
+    """run the composite SPECjbb2013 benchmark"""
 
     def launcher(bm, harnessArgs, extraVmOpts):
         assert bm is None
@@ -1887,7 +1925,7 @@ def specjbb2013(args):
     _run_benchmark(args, None, launcher)
 
 def specjbb2005(args):
-    """runs the composite SPECjbb2005 benchmark"""
+    """run the composite SPECjbb2005 benchmark"""
 
     def launcher(bm, harnessArgs, extraVmOpts):
         assert bm is None
@@ -2156,7 +2194,7 @@ def findbugs(args):
     cmd = ['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15']
     if sys.stdout.isatty():
         cmd.append('-progress')
-    cmd = cmd + ['-auxclasspath', mx.classpath(['GRAAL'] + [p.name for p in nonTestProjects]), '-output', findbugsResults, '-exitcode'] + args + outputDirs
+    cmd = cmd + ['-auxclasspath', mx.classpath([d.name for d in _jdkDeployedDists] + [p.name for p in nonTestProjects]), '-output', findbugsResults, '-exitcode'] + args + outputDirs
     exitcode = mx.run_java(cmd, nonZeroIsFatal=False)
     if exitcode != 0:
         with open(findbugsResults) as fp:
@@ -2206,7 +2244,7 @@ def mx_init(suite):
         'hsdis': [hsdis, '[att]'],
         'hcfdis': [hcfdis, ''],
         'igv' : [igv, ''],
-        'install' : [install, ''],
+        'maven-install-truffle' : [maven_install_truffle, ''],
         'jdkhome': [print_jdkhome, ''],
         'jmh': [jmh, '[VM options] [filters|JMH-args-as-json...]'],
         'dacapo': [dacapo, '[VM options] benchmarks...|"all" [DaCapo options]'],
@@ -2272,7 +2310,8 @@ def mx_post_parse_cmd_line(opts):  #
     global _vm_prefix
     _vm_prefix = opts.vm_prefix
 
-    mx.distribution('GRAAL').add_update_listener(_installDistInJdks)
-    mx.distribution('GRAAL_LOADER').add_update_listener(_installDistInJdks)
-    mx.distribution('TRUFFLE').add_update_listener(_installDistInJdks)
-    mx.distribution('GRAAL_TRUFFLE').add_update_listener(_installDistInJdks)
+    for jdkDist in _jdkDeployedDists:
+        if jdkDist.isExtension:
+            mx.distribution(jdkDist.name).add_update_listener(_installDistInJdksExt)
+        else:
+            mx.distribution(jdkDist.name).add_update_listener(_installDistInJdks)

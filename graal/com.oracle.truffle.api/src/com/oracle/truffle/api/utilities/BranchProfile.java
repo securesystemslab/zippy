@@ -32,6 +32,9 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
  * invoked first the optimized code is invalidated and the branch where {@link #enter()} is invoked
  * is enabled for compilation. Otherwise if the {@link #enter()} method was never invoked the branch
  * will not get compiled.
+ *
+ * All {@code BranchProfile} instances must be held in {@code final} fields for compiler
+ * optimizations to take effect.
  */
 public final class BranchProfile {
 
@@ -42,6 +45,10 @@ public final class BranchProfile {
             CompilerDirectives.transferToInterpreterAndInvalidate();
             visited = true;
         }
+    }
+
+    public boolean isVisited() {
+        return visited;
     }
 
     @Override
