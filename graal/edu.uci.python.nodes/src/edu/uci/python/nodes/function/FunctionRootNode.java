@@ -33,7 +33,6 @@ import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.NodeUtil.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.profiler.*;
 import edu.uci.python.nodes.subscript.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.call.*;
@@ -301,14 +300,6 @@ public final class FunctionRootNode extends RootNode {
         FrameSlot yieldToSlotInCallerFrame;
         PNode target = loop.getTarget();
 
-        /**
-         * PythonWrapperNode check is added for profiling.
-         */
-        if (target instanceof PythonWrapperNode) {
-            PythonWrapperNode wrapper = (PythonWrapperNode) target;
-            target = wrapper.getChild();
-        }
-
         yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
 
         for (YieldNode yield : NodeUtil.findAllNodeInstances(peeled.getGeneratorRoot(), YieldNode.class)) {
@@ -360,14 +351,6 @@ public final class FunctionRootNode extends RootNode {
         PNode loopBody = loop.getBody();
         FrameSlot yieldToSlotInCallerFrame;
         PNode target = loop.getTarget();
-
-        /**
-         * PythonWrapperNode check is added for profiling.
-         */
-        if (target instanceof PythonWrapperNode) {
-            PythonWrapperNode wrapper = (PythonWrapperNode) target;
-            target = wrapper.getChild();
-        }
 
         yieldToSlotInCallerFrame = ((FrameSlotNode) target).getSlot();
 

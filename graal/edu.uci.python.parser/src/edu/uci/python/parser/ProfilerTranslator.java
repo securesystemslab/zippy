@@ -36,7 +36,7 @@ import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.object.*;
-import edu.uci.python.nodes.profiler.*;
+import edu.uci.python.profiler.*;
 import edu.uci.python.nodes.subscript.*;
 import edu.uci.python.runtime.*;
 
