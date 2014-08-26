@@ -84,6 +84,18 @@ public class ProfilerTranslator implements NodeVisitor {
             profileIfs(node);
         }
 
+        if (PythonOptions.ProfileReadsWrites) {
+            profileReadsWrites(node);
+        }
+
+        if (PythonOptions.ProfileOperations) {
+            profileOperations(node);
+        }
+
+        if (PythonOptions.ProfileContainerOperations) {
+            profileContainerOperations(node);
+        }
+
         if (PythonOptions.ProfileNodes) {
             if (PythonOptions.ProfileWithoutInstruments) {
                 profileNodesWithoutInstruments(node);
@@ -136,6 +148,60 @@ public class ProfilerTranslator implements NodeVisitor {
         }
     }
 
+    private void profileReadsWrites(Node node) {
+        if (!(node.getParent() instanceof PythonCallNode)) {
+            if (node instanceof WriteLocalVariableNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof ReadLocalVariableNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof ReadLevelVariableNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof ReadGlobalNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof SetAttributeNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof GetAttributeNode) {
+                createWrapper((PNode) node);
+            }
+        }
+    }
+
+    private void profileOperations(Node node) {
+        if (!(node.getParent() instanceof PythonCallNode)) {
+            if (node instanceof BinaryArithmeticNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof BinaryBitwiseNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof BinaryBooleanNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof BinaryComparisonNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof UnaryArithmeticNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof BreakNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof ContinueNode) {
+                createWrapper((PNode) node);
+            }
+        }
+    }
+
+    private void profileContainerOperations(Node node) {
+        if (!(node.getParent() instanceof PythonCallNode)) {
+            if (node instanceof SubscriptLoadIndexNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof SubscriptLoadSliceNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof SubscriptDeleteNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof SubscriptStoreIndexNode) {
+                createWrapper((PNode) node);
+            } else if (node instanceof SubscriptStoreSliceNode) {
+                createWrapper((PNode) node);
+            }
+        }
+    }
+
     private void profileNodes(Node node) {
         if (!(node.getParent() instanceof PythonCallNode)) {
             /**
@@ -184,8 +250,6 @@ public class ProfilerTranslator implements NodeVisitor {
             } else if (node instanceof BreakNode) {
                 createWrapper((PNode) node);
             } else if (node instanceof ContinueNode) {
-                createWrapper((PNode) node);
-            } else if (node instanceof PythonCallNode) {
                 createWrapper((PNode) node);
             }
         }

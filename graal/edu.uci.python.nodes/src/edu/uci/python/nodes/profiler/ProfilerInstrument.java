@@ -41,16 +41,9 @@ public final class ProfilerInstrument extends Instrument {
         counter = 0;
     }
 
-// @Override
-// public void enter(Node astNode, VirtualFrame frame) {
-// counter++;
-// this.node = astNode;
-// }
-//
-
     @Override
     public void leave(Node astNode, VirtualFrame frame) {
-        counter++;
+        this.counter++;
         this.node = astNode;
     }
 

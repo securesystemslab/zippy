@@ -68,6 +68,7 @@ public class ProfilerResultPrinter {
     }
 
     public void printCallProfilerResults() {
+        long totalCount = 0;
         List<ProfilerInstrument> callInstruments;
         if (PythonOptions.SortProfilerResults) {
             callInstruments = sortProfilerResult(profilerProber.getCallInstruments());
@@ -95,16 +96,21 @@ public class ProfilerResultPrinter {
                     Node node = instrument.getNode();
                     out.format("%-50s", ((FunctionRootNode) node.getRootNode()).getFunctionName());
                     out.format("%15s", instrument.getCounter());
+                    totalCount = totalCount + instrument.getCounter();
                     out.format("%9s", node.getSourceSection().getStartLine());
                     out.format("%11s", node.getSourceSection().getStartColumn());
                     out.format("%11s", node.getSourceSection().getCharLength());
                     out.println();
                 }
             }
+
+            out.println("Total number of instruments : " + callInstruments.size());
+            out.println("Total number of executed instruments: " + totalCount);
         }
     }
 
     public void printLoopProfilerResults() {
+        long totalCount = 0;
         List<ProfilerInstrument> loopInstruments;
         if (PythonOptions.SortProfilerResults) {
             loopInstruments = sortProfilerResult(profilerProber.getLoopInstruments());
@@ -137,6 +143,7 @@ public class ProfilerResultPrinter {
                          */
                         out.format("%-50s", loopNode.getClass().getSimpleName());
                         out.format("%15s", instrument.getCounter());
+                        totalCount = totalCount + instrument.getCounter();
                         out.format("%9s", node.getSourceSection().getStartLine());
                         out.format("%11s", node.getSourceSection().getStartColumn());
                         out.format("%11s", node.getSourceSection().getCharLength());
@@ -147,6 +154,9 @@ public class ProfilerResultPrinter {
                 }
             }
         }
+
+        out.println("Total number of instruments : " + loopInstruments.size());
+        out.println("Total number of executed instruments: " + totalCount);
     }
 
     public void printIfProfilerResults() {
