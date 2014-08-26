@@ -1247,11 +1247,11 @@ def projects(opt_limit_to_suite=False):
     """
     Get the list of all loaded projects limited by --suite option if opt_limit_to_suite == True
     """
-
+    sortedProjects = sorted(_projects.values(), key=lambda p: p.name)
     if opt_limit_to_suite:
-        return _projects_opt_limit_to_suites(_projects.values())
+        return _projects_opt_limit_to_suites(sortedProjects)
     else:
-        return _projects.values()
+        return sortedProjects
 
 def projects_opt_limit_to_suites():
     """
