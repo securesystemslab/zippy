@@ -1,3 +1,4 @@
+package edu.uci.python.profiler;
 /*
  * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
@@ -22,7 +23,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.profiler;
+
 
 import java.io.*;
 import java.util.*;

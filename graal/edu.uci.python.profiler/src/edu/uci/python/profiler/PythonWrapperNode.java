@@ -1,3 +1,5 @@
+package edu.uci.python.profiler;
+
 /*
  * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
@@ -22,7 +24,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.profiler;
 
 import java.math.*;
 
@@ -836,19 +837,5 @@ public class PythonWrapperNode extends PNode implements Wrapper {
     public Iterable<PhylumTag> getPhylumTags() {
         return probe.getPhylumTags();
     }
-
-// public Probe getProbe() {
-// return null;
-// }
-//
-// @SlowPath
-// public boolean isTaggedAs(PhylumTag tag) {
-// return false;
-// }
-//
-// @SlowPath
-// public Iterable<PhylumTag> getPhylumTags() {
-// return null;
-// }
 
 }
