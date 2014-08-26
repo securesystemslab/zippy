@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,47 +20,26 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.amd64.test;
+package com.oracle.graal.compiler.common.cfg;
 
-import org.junit.*;
+import java.util.*;
+import java.util.function.*;
 
-import com.oracle.graal.compiler.test.backend.*;
+/**
+ * Represents a control-flow graph where each node can be annotated with arbitrary property pairs of
+ * the form ({@linkplain String name}, {@linkplain String value}).
+ */
+public interface PrintableCFG {
 
-import static org.junit.Assume.*;
+    List<? extends AbstractBlock<?>> getBlocks();
 
-public class AMD64AllocatorTest extends AllocatorTest {
-
-    @Before
-    public void setUp() {
-        assumeTrue(isArchitecture("x86_64"));
+    /**
+     * Applies {@code action} to all extra property pairs (name, value) of {@code block}.
+     *
+     * @param block a block from {@link #getBlocks()}.
+     * @param action a {@link BiConsumer consumer}.
+     */
+    default void forEachPropertyPair(AbstractBlock<?> block, BiConsumer<String, String> action) {
+        // no extra properties per default
     }
-
-    @Test
-    public void test1() {
-        test("test1snippet", 3, 1, 0);
-    }
-
-    public static long test1snippet(long x) {
-        return x + 5;
-    }
-
-    @Test
-    public void test2() {
-        test("test2snippet", 3, 0, 0);
-    }
-
-    public static long test2snippet(long x) {
-        return x * 5;
-    }
-
-    @Ignore
-    @Test
-    public void test3() {
-        test("test3snippet", 4, 1, 0);
-    }
-
-    public static long test3snippet(long x) {
-        return x / 3 + x % 3;
-    }
-
 }

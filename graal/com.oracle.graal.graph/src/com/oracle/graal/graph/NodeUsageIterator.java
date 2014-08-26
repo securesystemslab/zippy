@@ -20,34 +20,50 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.hotspot.sparc;
+package com.oracle.graal.graph;
 
-import static com.oracle.graal.sparc.SPARC.*;
+import java.util.*;
 
-import com.oracle.graal.asm.sparc.*;
-import com.oracle.graal.asm.sparc.SPARCMacroAssembler.*;
-import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.asm.*;
-import com.oracle.graal.lir.sparc.*;
+class NodeUsageIterator implements Iterator<Node> {
 
-/**
- * Pops the current frame off the stack.
- */
-@Opcode("LEAVE_CURRENT_STACK_FRAME")
-final class SPARCHotSpotLeaveCurrentStackFrameOp extends SPARCLIRInstruction {
+    final Node node;
+    int index = -1;
+    Node current;
 
-    public SPARCHotSpotLeaveCurrentStackFrameOp() {
+    void advance() {
+        current = null;
+        index++;
+        if (index == 0) {
+            current = node.usage0;
+        } else if (index == 1) {
+            current = node.usage1;
+        } else {
+            if (index - Node.INLINE_USAGE_COUNT < node.extraUsages.length) {
+                current = node.extraUsages[index - Node.INLINE_USAGE_COUNT];
+            }
+        }
+    }
+
+    public NodeUsageIterator(Node node) {
+        this.node = node;
+        advance();
+    }
+
+    public boolean hasNext() {
+        return current != null;
+    }
+
+    public Node next() {
+        Node result = current;
+        if (result == null) {
+            throw new NoSuchElementException();
+        }
+        advance();
+        return result;
     }
 
     @Override
-    public void emitCode(CompilationResultBuilder crb, SPARCMacroAssembler masm) {
-        // Save O registers over restore.
-        new Mov(o0, i0).emit(masm);
-        new Mov(o1, i1).emit(masm);
-        new Mov(o2, i2).emit(masm);
-        new Mov(o3, i3).emit(masm);
-        new Mov(o4, i4).emit(masm);
-
-        crb.frameContext.leave(crb);
+    public void remove() {
+        throw new UnsupportedOperationException();
     }
 }

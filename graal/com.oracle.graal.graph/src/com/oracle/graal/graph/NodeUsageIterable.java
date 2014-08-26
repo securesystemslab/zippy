@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,47 +20,40 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.amd64.test;
+package com.oracle.graal.graph;
 
-import org.junit.*;
+import static com.oracle.graal.graph.Graph.*;
 
-import com.oracle.graal.compiler.test.backend.*;
+import com.oracle.graal.graph.iterators.*;
 
-import static org.junit.Assume.*;
+class NodeUsageIterable implements NodeIterable<Node> {
 
-public class AMD64AllocatorTest extends AllocatorTest {
+    final Node node;
 
-    @Before
-    public void setUp() {
-        assumeTrue(isArchitecture("x86_64"));
+    NodeUsageIterable(Node node) {
+        this.node = node;
     }
 
-    @Test
-    public void test1() {
-        test("test1snippet", 3, 1, 0);
+    public NodeUsageIterator iterator() {
+        if (MODIFICATION_COUNTS_ENABLED) {
+            return new NodeUsageWithModCountIterator(node);
+        } else {
+            return new NodeUsageIterator(node);
+        }
     }
 
-    public static long test1snippet(long x) {
-        return x + 5;
+    @Override
+    public boolean isEmpty() {
+        return node.usage0 == null;
     }
 
-    @Test
-    public void test2() {
-        test("test2snippet", 3, 0, 0);
+    @Override
+    public boolean isNotEmpty() {
+        return node.usage0 != null;
     }
 
-    public static long test2snippet(long x) {
-        return x * 5;
+    @Override
+    public int count() {
+        return node.usageCount();
     }
-
-    @Ignore
-    @Test
-    public void test3() {
-        test("test3snippet", 4, 1, 0);
-    }
-
-    public static long test3snippet(long x) {
-        return x / 3 + x % 3;
-    }
-
 }

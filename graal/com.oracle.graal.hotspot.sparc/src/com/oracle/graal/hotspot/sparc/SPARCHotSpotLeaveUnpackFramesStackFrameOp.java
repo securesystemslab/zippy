@@ -63,5 +63,7 @@ final class SPARCHotSpotLeaveUnpackFramesStackFrameOp extends SPARCLIRInstructio
         new Stx(g0, new SPARCAddress(thread, threadLastJavaSpOffset)).emit(masm);
         new Stx(g0, new SPARCAddress(thread, threadLastJavaPcOffset)).emit(masm);
         new Stw(g0, new SPARCAddress(thread, threadJavaFrameAnchorFlagsOffset)).emit(masm);
+
+        new Movdtox(f31, i0).emit(masm);
     }
 }

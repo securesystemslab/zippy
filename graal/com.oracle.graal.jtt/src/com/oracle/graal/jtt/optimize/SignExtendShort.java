@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,47 +20,46 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.amd64.test;
+package com.oracle.graal.jtt.optimize;
 
 import org.junit.*;
 
-import com.oracle.graal.compiler.test.backend.*;
+import com.oracle.graal.jtt.*;
 
-import static org.junit.Assume.*;
+/*
+ */
+public class SignExtendShort extends JTTTest {
 
-public class AMD64AllocatorTest extends AllocatorTest {
+    public static int val;
 
-    @Before
-    public void setUp() {
-        assumeTrue(isArchitecture("x86_64"));
+    public static boolean test(short[] b) {
+        val = b[2];
+        int x = 0;
+        return val >= x;
     }
 
     @Test
-    public void test1() {
-        test("test1snippet", 3, 1, 0);
-    }
-
-    public static long test1snippet(long x) {
-        return x + 5;
+    public void run0() throws Throwable {
+        runTest("test", new short[]{0, 0, 0});
     }
 
     @Test
-    public void test2() {
-        test("test2snippet", 3, 0, 0);
+    public void run1() throws Throwable {
+        runTest("test", new short[]{0, 0, 1});
     }
 
-    public static long test2snippet(long x) {
-        return x * 5;
-    }
-
-    @Ignore
     @Test
-    public void test3() {
-        test("test3snippet", 4, 1, 0);
+    public void run2() throws Throwable {
+        runTest("test", new short[]{0, 0, -1});
     }
 
-    public static long test3snippet(long x) {
-        return x / 3 + x % 3;
+    @Test
+    public void run3() throws Throwable {
+        runTest("test", new short[]{0, 0, Short.MAX_VALUE});
     }
 
+    @Test
+    public void run4() throws Throwable {
+        runTest("test", new short[]{0, 0, Short.MIN_VALUE});
+    }
 }

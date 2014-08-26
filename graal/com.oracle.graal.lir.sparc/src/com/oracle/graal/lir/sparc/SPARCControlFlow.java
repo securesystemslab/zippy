@@ -25,12 +25,12 @@ package com.oracle.graal.lir.sparc;
 import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.lir.LIRInstruction.OperandFlag.*;
 import static com.oracle.graal.sparc.SPARC.*;
+import static com.oracle.graal.asm.sparc.SPARCAssembler.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.sparc.*;
-import com.oracle.graal.asm.sparc.SPARCAssembler.*;
 import com.oracle.graal.asm.sparc.SPARCMacroAssembler.*;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.calc.*;
@@ -62,30 +62,44 @@ public class SPARCControlFlow {
     }
 
     public static class BranchOp extends SPARCLIRInstruction implements StandardOp.BranchOp {
-
+        // TODO: Conditioncode/flag handling needs to be improved;
         protected final Condition condition;
+        protected final ConditionFlag conditionFlag;
         protected final LabelRef trueDestination;
         protected final LabelRef falseDestination;
         protected final Kind kind;
+
+        public BranchOp(ConditionFlag condition, LabelRef trueDestination, LabelRef falseDestination, Kind kind) {
+            this.conditionFlag = condition;
+            this.trueDestination = trueDestination;
+            this.falseDestination = falseDestination;
+            this.kind = kind;
+            this.condition = null;
+        }
 
         public BranchOp(Condition condition, LabelRef trueDestination, LabelRef falseDestination, Kind kind) {
             this.condition = condition;
             this.trueDestination = trueDestination;
             this.falseDestination = falseDestination;
             this.kind = kind;
+            this.conditionFlag = null;
         }
 
         @Override
         public void emitCode(CompilationResultBuilder crb, SPARCMacroAssembler masm) {
+            assert condition == null && conditionFlag != null || condition != null && conditionFlag == null;
             Label actualTarget;
             Condition actualCondition;
+            ConditionFlag actualConditionFlag;
             boolean needJump;
             if (crb.isSuccessorEdge(trueDestination)) {
-                actualCondition = condition.negate();
+                actualCondition = condition != null ? condition.negate() : null;
+                actualConditionFlag = conditionFlag != null ? conditionFlag.negate() : null;
                 actualTarget = falseDestination.label();
                 needJump = false;
             } else {
                 actualCondition = condition;
+                actualConditionFlag = conditionFlag;
                 actualTarget = trueDestination.label();
                 needJump = !crb.isSuccessorEdge(falseDestination);
             }
@@ -94,7 +108,13 @@ public class SPARCControlFlow {
                 emitFloatCompare(masm, actualTarget, actualCondition);
             } else {
                 CC cc = kind == Kind.Int ? CC.Icc : CC.Xcc;
-                emitCompare(masm, actualTarget, actualCondition, cc);
+                if (actualCondition != null) {
+                    emitCompare(masm, actualTarget, actualCondition, cc);
+                } else if (actualConditionFlag != null) {
+                    emitCompare(masm, actualTarget, actualConditionFlag);
+                } else {
+                    GraalInternalError.shouldNotReachHere();
+                }
                 new Nop().emit(masm);  // delay slot
             }
             if (needJump) {
@@ -104,7 +124,7 @@ public class SPARCControlFlow {
     }
 
     private static void emitFloatCompare(SPARCMacroAssembler masm, Label target, Condition actualCondition) {
-        switch (actualCondition.mirror()) {
+        switch (actualCondition) {
             case EQ:
                 new Fbe(false, target).emit(masm);
                 break;
@@ -132,6 +152,10 @@ public class SPARCControlFlow {
                 throw GraalInternalError.shouldNotReachHere();
         }
         new Nop().emit(masm);
+    }
+
+    private static void emitCompare(SPARCMacroAssembler masm, Label target, ConditionFlag actualCondition) {
+        new Fmt00b(false, actualCondition, Op2s.Br, target).emit(masm);
     }
 
     private static void emitCompare(SPARCMacroAssembler masm, Label target, Condition actualCondition, CC cc) {
@@ -176,7 +200,7 @@ public class SPARCControlFlow {
         private final LabelRef[] keyTargets;
         private LabelRef defaultTarget;
         @Alive({REG}) protected Value key;
-        @Temp({REG, ILLEGAL}) protected Value scratch;
+        @Temp({REG}) protected Value scratch;
         private final SwitchStrategy strategy;
 
         public StrategySwitchOp(SwitchStrategy strategy, LabelRef[] keyTargets, LabelRef defaultTarget, Value key, Value scratch) {
@@ -188,7 +212,6 @@ public class SPARCControlFlow {
             this.scratch = scratch;
             assert keyConstants.length == keyTargets.length;
             assert keyConstants.length == strategy.keyProbabilities.length;
-            assert (scratch.getKind() == Kind.Illegal) == (key.getKind() == Kind.Int);
         }
 
         @Override
@@ -204,8 +227,13 @@ public class SPARCControlFlow {
                                 crb.recordInlineDataInCode(keyConstants[index]);
                             }
                             long lc = keyConstants[index].asLong();
-                            assert NumUtil.isInt(lc);
-                            new Cmp(keyRegister, (int) lc).emit(masm);
+                            if (SPARCAssembler.isSimm13(lc)) {
+                                assert NumUtil.isInt(lc);
+                                new Cmp(keyRegister, (int) lc).emit(masm);
+                            } else {
+                                new Setx(lc, asIntReg(scratch)).emit(masm);
+                                new Cmp(keyRegister, asIntReg(scratch)).emit(masm);
+                            }
                             emitCompare(masm, target, condition, CC.Icc);
                             break;
                         case Long: {
@@ -253,12 +281,20 @@ public class SPARCControlFlow {
 
             // Compare index against jump table bounds
             int highKey = lowKey + targets.length - 1;
-            if (lowKey != 0) {
-                // subtract the low value from the switch value
-                new Sub(value, lowKey, value).emit(masm);
-                new Cmp(value, highKey - lowKey).emit(masm);
+
+            // subtract the low value from the switch value
+            if (isSimm13(lowKey)) {
+                new Sub(value, lowKey, scratchReg).emit(masm);
             } else {
-                new Cmp(value, highKey).emit(masm);
+                new Setx(lowKey, g3).emit(masm);
+                new Sub(value, g3, scratchReg).emit(masm);
+            }
+            int upperLimit = highKey - lowKey;
+            if (isSimm13(upperLimit)) {
+                new Cmp(scratchReg, upperLimit).emit(masm);
+            } else {
+                new Setx(upperLimit, g3).emit(masm);
+                new Cmp(scratchReg, upperLimit).emit(masm);
             }
 
             // Jump to default target if index is not within the jump table
@@ -268,19 +304,20 @@ public class SPARCControlFlow {
             }
 
             // Load jump table entry into scratch and jump to it
-            new Sll(value, 3, value).emit(masm); // Multiply by 8
-            new Rdpc(scratchReg).emit(masm);
+            new Sll(scratchReg, 3, scratchReg).emit(masm); // Multiply by 8
+            // Zero the left bits sll with shcnt>0 does not mask upper 32 bits
+            new Srl(scratchReg, 0, scratchReg).emit(masm);
+            new Rdpc(g3).emit(masm);
 
             // The jump table follows four instructions after rdpc
             new Add(scratchReg, 4 * 4, scratchReg).emit(masm);
-            new Jmpl(value, scratchReg, g0).emit(masm);
-            new Sra(value, 3, value).emit(masm); // delay slot, correct the value (division by 8)
+            new Jmpl(g3, scratchReg, g0).emit(masm);
+            new Nop().emit(masm);
+            // new Sra(value, 3, value).emit(masm); // delay slot, correct the value (division by 8)
 
             // Emit jump table entries
             for (LabelRef target : targets) {
-                Label label = target.label();
-                label.addPatchAt(masm.position());
-                new Bpa(0).emit(masm);
+                new Bpa(target.label()).emit(masm);
                 new Nop().emit(masm); // delay slot
             }
         }

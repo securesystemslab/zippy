@@ -77,6 +77,7 @@ public abstract class SPARCAssembler extends Assembler {
             final int inst = masm.getInt(pos);
             Op2s op2 = Op2s.byValue((inst&OP2_MASK) >> OP2_SHIFT);
             switch(op2) {
+                case Br:
                 case Fb:
                     return Fmt00b.read(masm, op2, pos);
                 case Sethi:
@@ -212,6 +213,10 @@ public abstract class SPARCAssembler extends Assembler {
         private static final int COND_MASK   = 0b00011110000000000000000000000000;
         private static final int DISP22_MASK = 0b00000000001111111111111111111111;
         // @formatter:on
+
+        public Fmt00b(boolean annul, ConditionFlag cond, Op2s op2, Label label) {
+            this(annul ? 1 : 0, cond.getValue(), op2.getValue(), 0, label);
+        }
 
         public Fmt00b(boolean annul, FCond cond, Op2s op2, Label label) {
             this(annul ? 1 : 0, cond.getValue(), op2.getValue(), 0, label);
@@ -810,14 +815,19 @@ public abstract class SPARCAssembler extends Assembler {
         }
 
         public void verify() {
-            assert ((rd << RD_SHIFT) & RD_MASK) == (rd << RD_SHIFT);
-            assert ((op3 << OP3_SHIFT) & OP3_MASK) == (op3 << OP3_SHIFT);
-            assert ((rs1 << RS1_SHIFT) & RS1_MASK) == (rs1 << RS1_SHIFT);
-            assert ((i << I_SHIFT) & I_MASK) == (i << I_SHIFT);
-            assert ((x << X_SHIFT) & X_MASK) == (x << X_SHIFT);
-            assert ((immAsi << IMM_ASI_SHIFT) & IMM_ASI_MASK) == (immAsi << IMM_ASI_SHIFT);
-            assert ((rs2 << RS2_SHIFT) & RS2_MASK) == (rs2 << RS2_SHIFT);
-            assert isSimm13(simm13);
+            assert ((rd << RD_SHIFT) & RD_MASK) == (rd << RD_SHIFT) : this;
+            assert ((op3 << OP3_SHIFT) & OP3_MASK) == (op3 << OP3_SHIFT) : this;
+            assert ((rs1 << RS1_SHIFT) & RS1_MASK) == (rs1 << RS1_SHIFT) : this;
+            assert ((i << I_SHIFT) & I_MASK) == (i << I_SHIFT) : this;
+            assert ((x << X_SHIFT) & X_MASK) == (x << X_SHIFT) : this;
+            assert ((immAsi << IMM_ASI_SHIFT) & IMM_ASI_MASK) == (immAsi << IMM_ASI_SHIFT) : this;
+            assert ((rs2 << RS2_SHIFT) & RS2_MASK) == (rs2 << RS2_SHIFT) : this;
+            assert isSimm13(simm13) : this;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("%s: [rd: 0x%x, op3: 0x%x, rs1: 0x%x, i: 0x%x, x: 0x%x, immAsi: 0x%x, rs2: 0x%x, simm13: 0x%x", getClass().getName(), rd, op3, rs1, i, x, immAsi, rs2, simm13);
         }
     }
 
@@ -1432,7 +1442,8 @@ public abstract class SPARCAssembler extends Assembler {
         Movstouw(0x111, "movstouw"),
         Movstosw(0x113, "movstosw"),
         Movxtod(0x118, "movxtod"),
-        Movwtos(0x119, "movwtos"),
+        Movwtos(0b1_0001_1001, "movwtos"),
+        UMulxhi(0b0_0001_0110, "umulxhi"),
         // end VIS3
 
         // start CAMMELLIA
@@ -1681,6 +1692,18 @@ public abstract class SPARCAssembler extends Assembler {
 
         public String getOperator() {
             return operator;
+        }
+
+        public ConditionFlag negate() {
+            switch (this) {
+                case CarrySet:
+                    return CarryClear;
+                case CarryClear:
+                    return CarrySet;
+                default:
+                    GraalInternalError.unimplemented();
+            }
+            return null;
         }
     }
 
@@ -1975,6 +1998,13 @@ public abstract class SPARCAssembler extends Assembler {
         public Movwtos(Register src, Register dst) {
             /* VIS3 only */
             super(Ops.ArithOp, Op3s.Impdep1, Opfs.Movwtos, g0, src, dst);
+        }
+    }
+
+    public static class Umulxhi extends Fmt3p {
+        public Umulxhi(Register src1, Register src2, Register dst) {
+            /* VIS3 only */
+            super(Ops.ArithOp, Op3s.Impdep1, Opfs.UMulxhi, src1, src2, dst);
         }
     }
 
@@ -2809,6 +2839,13 @@ public abstract class SPARCAssembler extends Assembler {
 
         public Fmuld(Register src1, Register src2, Register dst) {
             super(Ops.ArithOp, Op3s.Fpop1, Opfs.Fmuld, src1, src2, dst);
+        }
+    }
+
+    public static class Fsmuld extends Fmt3p {
+
+        public Fsmuld(Register src1, Register src2, Register dst) {
+            super(Ops.ArithOp, Op3s.Fpop1, Opfs.Fsmuld, src1, src2, dst);
         }
     }
 

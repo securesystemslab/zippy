@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,47 +20,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.compiler.amd64.test;
+package com.oracle.graal.compiler.common.cfg;
 
-import org.junit.*;
+import java.util.function.*;
 
-import com.oracle.graal.compiler.test.backend.*;
+public interface PropertyConsumable {
 
-import static org.junit.Assume.*;
-
-public class AMD64AllocatorTest extends AllocatorTest {
-
-    @Before
-    public void setUp() {
-        assumeTrue(isArchitecture("x86_64"));
-    }
-
-    @Test
-    public void test1() {
-        test("test1snippet", 3, 1, 0);
-    }
-
-    public static long test1snippet(long x) {
-        return x + 5;
-    }
-
-    @Test
-    public void test2() {
-        test("test2snippet", 3, 0, 0);
-    }
-
-    public static long test2snippet(long x) {
-        return x * 5;
-    }
-
-    @Ignore
-    @Test
-    public void test3() {
-        test("test3snippet", 4, 1, 0);
-    }
-
-    public static long test3snippet(long x) {
-        return x / 3 + x % 3;
-    }
-
+    void forEachProperty(BiConsumer<String, String> action);
 }
