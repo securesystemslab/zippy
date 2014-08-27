@@ -1059,7 +1059,7 @@ def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False, defaultAll
     else:
         return [], args
 
-def _run_tests(args, harness, annotations, testfile, whitelist, regex):
+def _run_tests(args, harness, annotations, testfile, blacklist, whitelist, regex):
 
 
     vmArgs, tests = _extract_VM_args(args)
@@ -1106,6 +1106,9 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
                     mx.log('warning: no tests matched by substring "' + t)
         projectsCp = mx.classpath(projs)
 
+    if blacklist:
+        classes = [c for c in classes if not any((glob.match(c) for glob in blacklist))]
+
     if whitelist:
         classes = [c for c in classes if any((glob.match(c) for glob in whitelist))]
 
@@ -1119,7 +1122,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
         f_testfile.close()
         harness(projectsCp, vmArgs)
 
-def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, enable_timing=False, regex=None, color=False, eager_stacktrace=False, gc_after_test=False):
+def _unittest(args, annotations, prefixCp="", blacklist=None, whitelist=None, verbose=False, enable_timing=False, regex=None, color=False, eager_stacktrace=False, gc_after_test=False):
     testfile = os.environ.get('MX_TESTFILE', None)
     if testfile is None:
         (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
@@ -1169,7 +1172,7 @@ def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, ena
             vm(prefixArgs + vmArgs + ['-cp', cp, 'com.oracle.graal.test.GraalJUnitCore'] + coreArgs + ['@' + testfile])
 
     try:
-        _run_tests(args, harness, annotations, testfile, whitelist, regex)
+        _run_tests(args, harness, annotations, testfile, blacklist, whitelist, regex)
     finally:
         if os.environ.get('MX_TESTFILE') is None:
             os.remove(testfile)
@@ -1177,6 +1180,7 @@ def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, ena
 _unittestHelpSuffix = """
     Unittest options:
 
+      --blacklist <file>     run all testcases not specified in the blacklist
       --whitelist <file>     run only testcases which are included
                              in the given whitelist
       --verbose              enable verbose JUnit output
@@ -1221,6 +1225,7 @@ def unittest(args):
           formatter_class=RawDescriptionHelpFormatter,
           epilog=_unittestHelpSuffix,
         )
+    parser.add_argument('--blacklist', help='run all testcases not specified in the blacklist', metavar='<path>')
     parser.add_argument('--whitelist', help='run testcases specified in whitelist only', metavar='<path>')
     parser.add_argument('--verbose', help='enable verbose JUnit output', action='store_true')
     parser.add_argument('--enable-timing', help='enable JUnit test timing', action='store_true')
@@ -1252,6 +1257,12 @@ def unittest(args):
                 parsed_args.whitelist = [re.compile(fnmatch.translate(l.rstrip())) for l in fp.readlines() if not l.startswith('#')]
         except IOError:
             mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
+    if parsed_args.blacklist:
+        try:
+            with open(join(_graal_home, parsed_args.blacklist)) as fp:
+                parsed_args.blacklist = [re.compile(fnmatch.translate(l.rstrip())) for l in fp.readlines() if not l.startswith('#')]
+        except IOError:
+            mx.log('warning: could not read blacklist: ' + parsed_args.blacklist)
 
     _unittest(args, ['@Test', '@Parameters'], **parsed_args.__dict__)
 
