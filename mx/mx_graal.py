@@ -1952,8 +1952,12 @@ def hsdis(args, copyToDir=None):
         'intel/hsdis-amd64.dylib' : 'fdb13ef0d7d23d93dacaae9c98837bea0d4fc5a2',
     }
 
+    flavoredLib = flavor + "/" + lib
+    if flavoredLib not in sha1s:
+        mx.logv("hsdis not supported on this plattform or architecture")
+        return
+
     if not exists(path):
-        flavoredLib = flavor + "/" + lib
         sha1 = sha1s[flavoredLib]
         sha1path = path + '.sha1'
         mx.download_file_with_sha1('hsdis', path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavoredLib], sha1, sha1path, True, True, sources=False)
