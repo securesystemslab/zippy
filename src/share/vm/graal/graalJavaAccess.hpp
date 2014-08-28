@@ -237,9 +237,15 @@ void graal_compute_offsets();
   start_class(RegisterValue)                                                                                                                                   \
     oop_field(RegisterValue, reg, "Lcom/oracle/graal/api/code/Register;")                                                                                      \
   end_class                                                                                                                                                    \
+  start_class(RegisterCategory)                                                                                                                                \
+    oop_field(RegisterCategory, name, "Ljava/lang/String;")                                                                                                    \
+    int_field(RegisterCategory, referenceMapOffset)                                                                                                            \
+    int_field(RegisterCategory, referenceMapShift)                                                                                                             \
+  end_class                                                                                                                                                    \
   start_class(code_Register)                                                                                                                                   \
     int_field(code_Register, number)                                                                                                                           \
     int_field(code_Register, encoding)                                                                                                                         \
+    oop_field(code_Register, registerCategory, "Lcom/oracle/graal/api/code/Register$RegisterCategory;")                                                        \
   end_class                                                                                                                                                    \
   start_class(StackSlot)                                                                                                                                       \
     int_field(StackSlot, offset)                                                                                                                               \

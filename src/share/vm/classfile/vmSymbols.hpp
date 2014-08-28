@@ -345,6 +345,7 @@
   GRAAL_ONLY(template(com_oracle_graal_api_code_DebugInfo,                      "com/oracle/graal/api/code/DebugInfo"))                           \
   GRAAL_ONLY(template(com_oracle_graal_api_code_Register,                       "com/oracle/graal/api/code/Register"))                            \
   GRAAL_ONLY(template(com_oracle_graal_api_code_RegisterValue,                  "com/oracle/graal/api/code/RegisterValue"))                       \
+  GRAAL_ONLY(template(com_oracle_graal_api_code_Register_RegisterCategory,      "com/oracle/graal/api/code/Register$RegisterCategory"))           \
   GRAAL_ONLY(template(com_oracle_graal_api_code_StackSlot,                      "com/oracle/graal/api/code/StackSlot"))                           \
   GRAAL_ONLY(template(com_oracle_graal_api_code_VirtualObject,                  "com/oracle/graal/api/code/VirtualObject"))                       \
   GRAAL_ONLY(template(com_oracle_graal_api_code_RegisterSaveLayout,             "com/oracle/graal/api/code/RegisterSaveLayout"))                  \

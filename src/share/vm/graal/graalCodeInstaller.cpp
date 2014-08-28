@@ -225,8 +225,11 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
   BasicType type = GraalRuntime::kindToBasicType(Kind::typeChar(platformKind));
 
   if (value->is_a(RegisterValue::klass())) {
-    jint number = code_Register::number(RegisterValue::reg(value));
-    jint encoding = code_Register::encoding(RegisterValue::reg(value));
+    oop reg = RegisterValue::reg(value);
+    jint number = code_Register::number(reg);
+    jint encoding = code_Register::encoding(reg);
+    oop registerCategory = code_Register::registerCategory(reg);
+    jint referenceMapOffset = RegisterCategory::referenceMapOffset(registerCategory);
     if (number < RegisterImpl::number_of_registers) {
       Location::Type locationType;
       if (type == T_INT) {
@@ -256,15 +259,17 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
         locationType = Location::dbl;
       }
       assert(!reference, "unexpected type in floating point register");
+      jint floatRegisterNumber = number - referenceMapOffset;
 #ifdef TARGET_ARCH_x86
-      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_XMMRegister(number - 16)->as_VMReg()));
+      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_XMMRegister(floatRegisterNumber)->as_VMReg()));
       if (type == T_DOUBLE) {
         second = value;
       }
       return value;
 #else
 #ifdef TARGET_ARCH_sparc
-      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_FloatRegister(encoding)->as_VMReg()));
+      floatRegisterNumber += MAX2(0, floatRegisterNumber-32); // Beginning with f32, only every second register is going to be addressed
+      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_FloatRegister(floatRegisterNumber)->as_VMReg()));
       if (type == T_DOUBLE) {
         second = value;
       }
