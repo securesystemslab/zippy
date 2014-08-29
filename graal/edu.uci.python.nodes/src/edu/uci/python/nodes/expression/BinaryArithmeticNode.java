@@ -35,6 +35,7 @@ import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
@@ -44,6 +45,7 @@ import edu.uci.python.runtime.sequence.storage.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
+    @NodeInfo(shortName = "+")
     public abstract static class AddNode extends BinaryArithmeticNode {
 
         @Specialization(order = 0)
@@ -201,6 +203,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "-")
     public abstract static class SubNode extends BinaryArithmeticNode {
 
         @Specialization(rewriteOn = ArithmeticException.class, order = 0)
@@ -256,6 +259,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "*")
     public abstract static class MulNode extends BinaryArithmeticNode {
 
         @Specialization(rewriteOn = ArithmeticException.class, order = 0)
@@ -365,6 +369,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "/")
     public abstract static class DivNode extends BinaryArithmeticNode {
 
         /*
@@ -434,6 +439,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "//")
     public abstract static class FloorDivNode extends BinaryArithmeticNode {
 
         @Specialization
@@ -462,6 +468,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "%")
     public abstract static class ModuloNode extends BinaryArithmeticNode {
 
         @Specialization(order = 0, guards = "isLeftPositive")
@@ -516,6 +523,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "**")
     public abstract static class PowerNode extends BinaryArithmeticNode {
 
         @Specialization

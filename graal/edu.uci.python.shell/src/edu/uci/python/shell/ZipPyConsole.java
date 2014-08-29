@@ -82,8 +82,8 @@ public class ZipPyConsole extends InteractiveConsole {
          */
 
         ProfilerTranslator profilerTranslator = null;
-        if (PythonOptions.ProfileCalls || PythonOptions.ProfileLoops || PythonOptions.ProfileIfs || PythonOptions.ProfileReadsWrites || PythonOptions.ProfileOperations ||
-                        PythonOptions.ProfileContainerOperations || PythonOptions.ProfileNodes) {
+
+        if (PythonOptions.ProfileCalls || PythonOptions.ProfileControlFlow || PythonOptions.ProfileReadsWrites || PythonOptions.ProfileOperations || PythonOptions.ProfileAttributesElements) {
             profilerTranslator = new ProfilerTranslator(result.getContext());
 
             profilerTranslator.translate(result);
@@ -111,20 +111,20 @@ public class ZipPyConsole extends InteractiveConsole {
             profilerTranslator.getProfilerResultPrinter().printCallProfilerResults();
         }
 
-        if (PythonOptions.ProfileLoops) {
-            profilerTranslator.getProfilerResultPrinter().printLoopProfilerResults();
+        if (PythonOptions.ProfileControlFlow) {
+            profilerTranslator.getProfilerResultPrinter().printControlFlowProfilerResults();
         }
 
-        if (PythonOptions.ProfileIfs) {
-            profilerTranslator.getProfilerResultPrinter().printIfProfilerResults();
+        if (PythonOptions.ProfileReadsWrites) {
+            profilerTranslator.getProfilerResultPrinter().printReadWriteProfilerResults();
         }
 
-        if (PythonOptions.ProfileReadsWrites || PythonOptions.ProfileOperations || PythonOptions.ProfileContainerOperations || PythonOptions.ProfileNodes) {
-            if (PythonOptions.ProfileWithoutInstruments) {
-                profilerTranslator.getProfilerResultPrinter().printNodeProfilerResultsWithoutInstruments();
-            } else {
-                profilerTranslator.getProfilerResultPrinter().printNodeProfilerResults();
-            }
+        if (PythonOptions.ProfileOperations) {
+            profilerTranslator.getProfilerResultPrinter().printOperationProfilerResults();
+        }
+
+        if (PythonOptions.ProfileAttributesElements) {
+            profilerTranslator.getProfilerResultPrinter().printAttributesElemenetsProfilerResults();
         }
 
         if (PythonOptions.TraceNodesWithoutSourceSection) {

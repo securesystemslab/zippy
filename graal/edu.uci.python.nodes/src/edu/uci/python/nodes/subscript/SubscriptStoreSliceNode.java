@@ -32,7 +32,7 @@ import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
 
-@NodeInfo(shortName = "subscript_store_index")
+@NodeInfo(shortName = "subscript_store_slice")
 public abstract class SubscriptStoreSliceNode extends SubscriptStoreNode {
 
     @Override

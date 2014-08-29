@@ -65,21 +65,17 @@ public class PythonOptions {
     public static boolean TraceGeneratorInlining = false;
 
     // Profiling
-    public static boolean ProfileWithoutInstruments = false;
-
     public static boolean ProfileCalls = false;
 
-    public static boolean ProfileLoops = false;
-
-    public static boolean ProfileIfs = false;
+    public static boolean ProfileControlFlow = false;
 
     public static boolean ProfileReadsWrites = false;
 
     public static boolean ProfileOperations = false;
 
-    public static boolean ProfileContainerOperations = false;
+    public static boolean ProfileAttributesElements = false;
 
-    public static boolean ProfileNodes = false;
+    public static boolean ProfileTypeDistribution = false;
 
     public static boolean SortProfilerResults = false;
 

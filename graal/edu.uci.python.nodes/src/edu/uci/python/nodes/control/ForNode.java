@@ -27,6 +27,7 @@ package edu.uci.python.nodes.control;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
@@ -36,6 +37,7 @@ import edu.uci.python.runtime.iterator.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
+@NodeInfo(shortName = "for")
 @NodeChild(value = "iterator", type = GetIteratorNode.class)
 public abstract class ForNode extends LoopNode {
 

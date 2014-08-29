@@ -1,4 +1,5 @@
 package edu.uci.python.profiler;
+
 /*
  * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
@@ -24,7 +25,6 @@ package edu.uci.python.profiler;
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 import java.util.*;
 
 import com.oracle.truffle.api.instrument.*;
@@ -43,6 +43,14 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
     private List<ProfilerInstrument> nodeInstruments;
     private List<ProfilerInstrument> callInstruments;
     private List<ProfilerInstrument> loopInstruments;
+    private List<ProfilerInstrument> breakContinueInstruments;
+    private List<ProfilerInstrument> readWriteInstruments;
+    private List<ProfilerInstrument> operationInstruments;
+    private List<ProfilerInstrument> containerInstruments;
+
+    private List<ProfilerTypeDistributionInstrument> readWriteTypeDistributionInstruments;
+    private List<ProfilerTypeDistributionInstrument> operationTypeDistributionInstruments;
+    private List<ProfilerTypeDistributionInstrument> containerTypeDistributionInstruments;
     private Map<ProfilerInstrument, List<ProfilerInstrument>> ifInstruments;
 
     public PythonProfilerNodeProber(PythonContext context) {
@@ -50,18 +58,18 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         nodeInstruments = new ArrayList<>();
         callInstruments = new ArrayList<>();
         loopInstruments = new ArrayList<>();
+        breakContinueInstruments = new ArrayList<>();
+        readWriteInstruments = new ArrayList<>();
+        operationInstruments = new ArrayList<>();
+        containerInstruments = new ArrayList<>();
+        readWriteTypeDistributionInstruments = new ArrayList<>();
+        operationTypeDistributionInstruments = new ArrayList<>();
+        containerTypeDistributionInstruments = new ArrayList<>();
         ifInstruments = new LinkedHashMap<>();
     }
 
     public Node probeAs(Node astNode, PhylumTag tag, Object... args) {
         return astNode;
-    }
-
-    public PythonWrapperNode probeAsNode(PNode node) {
-        PythonWrapperNode wrapper = createWrapper(node);
-        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-        nodeInstruments.add(profilerInstrument);
-        return wrapper;
     }
 
     public PythonWrapperNode probeAsCall(PNode node) {
@@ -114,6 +122,62 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return wrappers;
     }
 
+    public PythonWrapperNode probeAsBreakContinue(PNode node) {
+        PythonWrapperNode wrapper = createWrapper(node);
+        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
+        breakContinueInstruments.add(profilerInstrument);
+        return wrapper;
+    }
+
+    public PythonWrapperNode probeAsReadWrite(PNode node) {
+        PythonWrapperNode wrapper = createWrapper(node);
+
+        if (PythonOptions.ProfileTypeDistribution) {
+            ProfilerTypeDistributionInstrument profilerInstrument = createAttachProfilerTypeDistributionInstrument(wrapper);
+            readWriteTypeDistributionInstruments.add(profilerInstrument);
+        } else {
+            ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
+            readWriteInstruments.add(profilerInstrument);
+        }
+
+        return wrapper;
+    }
+
+    public PythonWrapperNode probeAsOperation(PNode node) {
+        PythonWrapperNode wrapper = createWrapper(node);
+
+        if (PythonOptions.ProfileTypeDistribution) {
+            ProfilerTypeDistributionInstrument profilerInstrument = createAttachProfilerTypeDistributionInstrument(wrapper);
+            operationTypeDistributionInstruments.add(profilerInstrument);
+        } else {
+            ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
+            operationInstruments.add(profilerInstrument);
+        }
+
+        return wrapper;
+    }
+
+    public PythonWrapperNode probeAsAttributeElement(PNode node) {
+        PythonWrapperNode wrapper = createWrapper(node);
+
+        if (PythonOptions.ProfileTypeDistribution) {
+            ProfilerTypeDistributionInstrument profilerInstrument = createAttachProfilerTypeDistributionInstrument(wrapper);
+            containerTypeDistributionInstruments.add(profilerInstrument);
+        } else {
+            ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
+            containerInstruments.add(profilerInstrument);
+        }
+
+        return wrapper;
+    }
+
+    public PythonWrapperNode probeAsNode(PNode node) {
+        PythonWrapperNode wrapper = createWrapper(node);
+        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
+        nodeInstruments.add(profilerInstrument);
+        return wrapper;
+    }
+
     private PythonWrapperNode createWrapper(PNode node) {
         PythonWrapperNode wrapper;
         if (node instanceof PythonWrapperNode) {
@@ -129,7 +193,13 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
     }
 
     private static ProfilerInstrument createAttachProfilerInstrument(PythonWrapperNode wrapper) {
-        ProfilerInstrument profilerInstrument = new ProfilerInstrument();
+        ProfilerInstrument profilerInstrument = new ProfilerInstrument(wrapper.getChild());
+        wrapper.getProbe().addInstrument(profilerInstrument);
+        return profilerInstrument;
+    }
+
+    private static ProfilerTypeDistributionInstrument createAttachProfilerTypeDistributionInstrument(PythonWrapperNode wrapper) {
+        ProfilerTypeDistributionInstrument profilerInstrument = new ProfilerTypeDistributionInstrument();
         wrapper.getProbe().addInstrument(profilerInstrument);
         return profilerInstrument;
     }
@@ -148,6 +218,34 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
 
     public Map<ProfilerInstrument, List<ProfilerInstrument>> getIfInstruments() {
         return ifInstruments;
+    }
+
+    public List<ProfilerInstrument> getBreakContinueInstruments() {
+        return breakContinueInstruments;
+    }
+
+    public List<ProfilerInstrument> getReadWriteInstruments() {
+        return readWriteInstruments;
+    }
+
+    public List<ProfilerInstrument> getOperationInstruments() {
+        return operationInstruments;
+    }
+
+    public List<ProfilerInstrument> getContainerInstruments() {
+        return containerInstruments;
+    }
+
+    public List<ProfilerTypeDistributionInstrument> getReadWriteTypeDistributionInstruments() {
+        return readWriteTypeDistributionInstruments;
+    }
+
+    public List<ProfilerTypeDistributionInstrument> getOperationTypeDistributionInstruments() {
+        return operationTypeDistributionInstruments;
+    }
+
+    public List<ProfilerTypeDistributionInstrument> getContainerTypeDistributionInstruments() {
+        return containerTypeDistributionInstruments;
     }
 
     public PythonContext getContext() {

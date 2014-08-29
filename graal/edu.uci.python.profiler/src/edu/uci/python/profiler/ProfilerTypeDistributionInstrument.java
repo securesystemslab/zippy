@@ -1,4 +1,5 @@
 package edu.uci.python.profiler;
+
 /*
  * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
@@ -24,52 +25,36 @@ package edu.uci.python.profiler;
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 import java.util.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.*;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.instrument.*;
+import com.oracle.truffle.api.nodes.*;
 
 /**
  * @author Gulfem
  */
 
-public class PythonProfiler {
+public final class ProfilerTypeDistributionInstrument extends Instrument {
 
-    private final PythonContext context;
-    private List<ProfilerNode> nodes;
+    private Map<Node, Long> types;
 
-    public PythonProfiler(PythonContext context) {
-        this.context = context;
-        nodes = new ArrayList<>();
-
+    public ProfilerTypeDistributionInstrument() {
+        types = new HashMap<>();
     }
 
-    public ProfilerNode probeAsNode(PNode node) {
-        ProfilerNode wrapper = createWrapper(node);
-        nodes.add(wrapper);
-        return wrapper;
-    }
-
-    private ProfilerNode createWrapper(PNode node) {
-        ProfilerNode wrapper;
-        if (node instanceof ProfilerNode) {
-            wrapper = (ProfilerNode) node;
-        } else if (node.getParent() != null && node.getParent() instanceof PythonWrapperNode) {
-            wrapper = (ProfilerNode) node.getParent();
+    @Override
+    public void enter(Node astNode, VirtualFrame frame) {
+        if (types.containsKey(astNode)) {
+            long counter = types.get(astNode);
+            types.put(astNode, counter + 1);
         } else {
-            wrapper = new ProfilerNode(node);
-            wrapper.assignSourceSection(node.getSourceSection());
+            types.put(astNode, 1L);
         }
-
-        return wrapper;
     }
 
-    public List<ProfilerNode> getNodes() {
-        return nodes;
+    public Map<Node, Long> getTypes() {
+        return types;
     }
 
-    public PythonContext getContext() {
-        return context;
-    }
 }

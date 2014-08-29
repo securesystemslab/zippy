@@ -69,16 +69,12 @@ public class CommandLineParser {
                 continue;
             }
 
-            if (arg.equals("-profiler-no-instrument")) {
-                PythonOptions.ProfileWithoutInstruments = true;
-                continue;
-            }
-
             if (arg.equals("-profile")) {
                 PythonOptions.ProfileCalls = true;
-                PythonOptions.ProfileLoops = true;
-                PythonOptions.ProfileIfs = true;
-                PythonOptions.ProfileNodes = true;
+                PythonOptions.ProfileControlFlow = true;
+                PythonOptions.ProfileReadsWrites = true;
+                PythonOptions.ProfileOperations = true;
+                PythonOptions.ProfileAttributesElements = true;
                 PythonOptions.SortProfilerResults = true;
                 continue;
             }
@@ -88,18 +84,31 @@ public class CommandLineParser {
                 continue;
             }
 
-            if (arg.equals("-profile-loops")) {
-                PythonOptions.ProfileLoops = true;
+            if (arg.equals("-profile-control-flow")) {
+                PythonOptions.ProfileControlFlow = true;
                 continue;
             }
 
-            if (arg.equals("-profile-ifs")) {
-                PythonOptions.ProfileIfs = true;
+            if (arg.equals("-profile-reads-writes")) {
+                PythonOptions.ProfileReadsWrites = true;
                 continue;
             }
 
-            if (arg.equals("-profile-nodes")) {
-                PythonOptions.ProfileNodes = true;
+            if (arg.equals("-profile-operations")) {
+                PythonOptions.ProfileOperations = true;
+                continue;
+            }
+
+            if (arg.equals("-profile-attributes-elements")) {
+                PythonOptions.ProfileAttributesElements = true;
+                continue;
+            }
+
+            if (arg.equals("-profile-type-distribution")) {
+                PythonOptions.ProfileTypeDistribution = true;
+                PythonOptions.ProfileReadsWrites = true;
+                PythonOptions.ProfileOperations = true;
+                PythonOptions.ProfileAttributesElements = true;
                 continue;
             }
 
@@ -112,5 +121,4 @@ public class CommandLineParser {
         }
 
     }
-
 }

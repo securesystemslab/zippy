@@ -1,4 +1,5 @@
 package edu.uci.python.profiler;
+
 /*
  * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
@@ -24,7 +25,6 @@ package edu.uci.python.profiler;
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 import java.io.*;
 import java.util.*;
 import java.util.Map.Entry;
@@ -45,7 +45,6 @@ public class ProfilerResultPrinter {
     private PrintStream out = System.out;
 
     private PythonProfilerNodeProber profilerProber;
-    private PythonProfiler profiler;
 
     private List<PNode> nodesEmptySourceSections = new ArrayList<>();
 
@@ -53,11 +52,6 @@ public class ProfilerResultPrinter {
 
     public ProfilerResultPrinter(PythonProfilerNodeProber profilerProber) {
         this.profilerProber = profilerProber;
-    }
-
-    public ProfilerResultPrinter(PythonProfilerNodeProber profilerProber, PythonProfiler profiler) {
-        this.profilerProber = profilerProber;
-        this.profiler = profiler;
     }
 
     public void addNodeEmptySourceSection(PNode node) {
@@ -70,12 +64,7 @@ public class ProfilerResultPrinter {
 
     public void printCallProfilerResults() {
         long totalCount = 0;
-        List<ProfilerInstrument> callInstruments;
-        if (PythonOptions.SortProfilerResults) {
-            callInstruments = sortProfilerResult(profilerProber.getCallInstruments());
-        } else {
-            callInstruments = profilerProber.getCallInstruments();
-        }
+        List<ProfilerInstrument> callInstruments = getInstruments(profilerProber.getCallInstruments());
 
         if (callInstruments.size() > 0) {
             printBanner("Call Profiling Results", 72);
@@ -84,18 +73,18 @@ public class ProfilerResultPrinter {
              * added to the beginning of the string, minus sign adds padding to the right
              */
 
-            out.format("%-50s", "Function Name");
+            out.format("%-40s", "Function Name");
             out.format("%-20s", "Number of Calls");
             out.format("%-9s", "Line");
             out.format("%-11s", "Column");
             out.format("%-11s", "Length");
             out.println();
-            out.println("===============                                   ===============     ====     ======     ======");
+            out.println("===============                         ===============     ====     ======     ======");
 
             for (ProfilerInstrument instrument : callInstruments) {
                 if (instrument.getCounter() > 0) {
                     Node node = instrument.getNode();
-                    out.format("%-50s", ((FunctionRootNode) node.getRootNode()).getFunctionName());
+                    out.format("%-40s", ((FunctionRootNode) node.getRootNode()).getFunctionName());
                     out.format("%15s", instrument.getCounter());
                     totalCount = totalCount + instrument.getCounter();
                     out.format("%9s", node.getSourceSection().getStartLine());
@@ -105,31 +94,22 @@ public class ProfilerResultPrinter {
                 }
             }
 
-            out.println("Total number of instruments : " + callInstruments.size());
             out.println("Total number of executed instruments: " + totalCount);
         }
     }
 
-    public void printLoopProfilerResults() {
+    public void printControlFlowProfilerResults() {
+        printLoopProfilerResults();
+        printIfProfilerResults();
+        printBreakContinueProfilerResults();
+    }
+
+    private void printLoopProfilerResults() {
         long totalCount = 0;
-        List<ProfilerInstrument> loopInstruments;
-        if (PythonOptions.SortProfilerResults) {
-            loopInstruments = sortProfilerResult(profilerProber.getLoopInstruments());
-        } else {
-            loopInstruments = profilerProber.getLoopInstruments();
-        }
+        List<ProfilerInstrument> loopInstruments = getInstruments(profilerProber.getLoopInstruments());
 
         if (loopInstruments.size() > 0) {
-            printBanner("Loop Profiling Results", 132);
-
-            out.format("%-50s", "Node");
-            out.format("%-20s", "Counter");
-            out.format("%-9s", "Line");
-            out.format("%-11s", "Column");
-            out.format("%-11s", "Length");
-            out.format("%-70s", "In Method");
-            out.println();
-            out.println("=============                                     ===============     ====     ======     ======     =======================================================");
+            printCaption("Loop Profiling Results");
 
             for (ProfilerInstrument instrument : loopInstruments) {
                 if (instrument.getCounter() > 0) {
@@ -141,26 +121,20 @@ public class ProfilerResultPrinter {
                          * During generator optimizations for node is replaced with
                          * PeeledGeneratorLoopNode. Since the for loop is replaced, it's better not
                          * to print the result of this specific for profiling.
+                         *
                          */
-                        out.format("%-50s", loopNode.getClass().getSimpleName());
-                        out.format("%15s", instrument.getCounter());
+                        printProfilerResult(loopNode, instrument.getCounter());
                         totalCount = totalCount + instrument.getCounter();
-                        out.format("%9s", node.getSourceSection().getStartLine());
-                        out.format("%11s", node.getSourceSection().getStartColumn());
-                        out.format("%11s", node.getSourceSection().getCharLength());
-                        out.format("%5s", "");
-                        out.format("%-70s", node.getRootNode());
-                        out.println();
                     }
                 }
             }
-        }
 
-        out.println("Total number of instruments : " + loopInstruments.size());
-        out.println("Total number of executed instruments: " + totalCount);
+            out.println("Total number of executed instruments: " + totalCount);
+        }
     }
 
-    public void printIfProfilerResults() {
+    private void printIfProfilerResults() {
+        long totalCount = 0;
         Map<ProfilerInstrument, List<ProfilerInstrument>> ifInstruments;
         if (PythonOptions.SortProfilerResults) {
             ifInstruments = sortIfProfilerResults(profilerProber.getIfInstruments());
@@ -171,14 +145,14 @@ public class ProfilerResultPrinter {
         if (ifInstruments.size() > 0) {
             printBanner("If Node Profiling Results", 120);
             out.format("%-20s", "If Counter");
-            out.format("%15s", "Then Counter");
-            out.format("%20s", "Else Counter");
-            out.format("%9s", "Line");
-            out.format("%11s", "Column");
-            out.format("%11s", "Length");
+            out.format("%-18s", "Then Counter");
+            out.format("%-18s", "Else Counter");
+            out.format("%-9s", "Line");
+            out.format("%-11s", "Column");
+            out.format("%-11s", "Length");
             out.format("%-70s", "In Method");
             out.println();
-            out.println("===========            ============        ============     ====     ======     ======     =======================================================");
+            out.println("===========         ============      =============     ====     ======     ======     ===============================================");
 
             Iterator<Map.Entry<ProfilerInstrument, List<ProfilerInstrument>>> it = ifInstruments.entrySet().iterator();
             while (it.hasNext()) {
@@ -188,13 +162,17 @@ public class ProfilerResultPrinter {
                     List<ProfilerInstrument> instruments = entry.getValue();
                     ProfilerInstrument thenInstrument = instruments.get(0);
                     out.format("%11s", ifInstrument.getCounter());
-                    out.format("%24s", thenInstrument.getCounter());
+                    out.format("%21s", thenInstrument.getCounter());
+
+                    totalCount = totalCount + ifInstrument.getCounter();
+                    totalCount = totalCount + thenInstrument.getCounter();
 
                     if (instruments.size() == 1) {
-                        out.format("%20s", "-");
+                        out.format("%19s", "-");
                     } else if (instruments.size() == 2) {
                         ProfilerInstrument elseInstrument = instruments.get(1);
-                        out.format("%20s", elseInstrument.getCounter());
+                        out.format("%19s", elseInstrument.getCounter());
+                        totalCount = totalCount + elseInstrument.getCounter();
                     }
 
                     Node ifNode = ifInstrument.getNode();
@@ -206,20 +184,70 @@ public class ProfilerResultPrinter {
                     out.println();
                 }
             }
+
+            out.println("Total number of executed instruments: " + totalCount);
         }
     }
 
-    public void printNodeProfilerResults() {
-        long totalCount = 0;
-        List<ProfilerInstrument> nodeInstruments;
-        if (PythonOptions.SortProfilerResults) {
-            nodeInstruments = sortProfilerResult(profilerProber.getNodeInstruments());
+    private void printBreakContinueProfilerResults() {
+        printProfilerResults("Break Continue Profiling Results", getInstruments(profilerProber.getBreakContinueInstruments()));
+    }
+
+    public void printReadWriteProfilerResults() {
+        if (PythonOptions.ProfileTypeDistribution) {
+            printProfilerTypeDistributionResults("Read Write Profiling Results", profilerProber.getReadWriteTypeDistributionInstruments());
         } else {
-            nodeInstruments = profilerProber.getNodeInstruments();
+            printProfilerResults("Read Write Profiling Results", getInstruments(profilerProber.getReadWriteInstruments()));
+        }
+    }
+
+    public void printOperationProfilerResults() {
+        if (PythonOptions.ProfileTypeDistribution) {
+            printProfilerTypeDistributionResults("Operation Profiling Results", profilerProber.getOperationTypeDistributionInstruments());
+        } else {
+            printProfilerResults("Operation Profiling Results", getInstruments(profilerProber.getOperationInstruments()));
+        }
+    }
+
+    public void printAttributesElemenetsProfilerResults() {
+        if (PythonOptions.ProfileTypeDistribution) {
+            printProfilerTypeDistributionResults("Attributes/Elements Profiling Results", profilerProber.getContainerTypeDistributionInstruments());
+        } else {
+            printProfilerResults("Attributes/Elements Profiling Results", getInstruments(profilerProber.getContainerInstruments()));
+        }
+    }
+
+    private static List<ProfilerInstrument> getInstruments(List<ProfilerInstrument> instruments) {
+        if (PythonOptions.SortProfilerResults) {
+            List<ProfilerInstrument> sortedInstruments = sortProfilerResult(instruments);
+            return sortedInstruments;
         }
 
-        if (nodeInstruments.size() > 0) {
-            printBanner("Node Profiling Results", 132);
+        return instruments;
+    }
+
+    private void printProfilerResults(String caption, List<ProfilerInstrument> instruments) {
+        long totalCount = 0;
+
+        if (instruments.size() > 0) {
+            printCaption(caption);
+
+            for (ProfilerInstrument instrument : instruments) {
+                if (instrument.getCounter() > 0) {
+                    Node node = instrument.getNode();
+                    printProfilerResult(node, instrument.getCounter());
+                    totalCount = totalCount + instrument.getCounter();
+                }
+            }
+            out.println("Total number of executed instruments: " + totalCount);
+        }
+    }
+
+    private void printProfilerTypeDistributionResults(String caption, List<ProfilerTypeDistributionInstrument> instruments) {
+        long totalCount = 0;
+
+        if (instruments.size() > 0) {
+            printBanner(caption, 140);
             out.format("%-50s", "Node");
             out.format("%-20s", "Counter");
             out.format("%-9s", "Line");
@@ -228,13 +256,17 @@ public class ProfilerResultPrinter {
             out.format("%-70s", "In Method");
             out.println();
             out.println("=============                                     ===============     ====     ======     ======     =======================================================");
+            for (ProfilerTypeDistributionInstrument profilerInstrument : instruments) {
+                Map<Node, Long> types = profilerInstrument.getTypes();
+                Iterator<Map.Entry<Node, Long>> it = types.entrySet().iterator();
 
-            for (ProfilerInstrument instrument : nodeInstruments) {
-                if (instrument.getCounter() > 0) {
-                    Node node = instrument.getNode();
+                while (it.hasNext()) {
+                    Entry<Node, Long> entry = it.next();
+                    Node node = entry.getKey();
+                    Long counter = entry.getValue();
+                    totalCount = totalCount + counter;
                     out.format("%-50s", node.getClass().getSimpleName());
-                    out.format("%15s", instrument.getCounter());
-                    totalCount = totalCount + instrument.getCounter();
+                    out.format("%15s", counter);
                     out.format("%9s", node.getSourceSection().getStartLine());
                     out.format("%11s", node.getSourceSection().getStartColumn());
                     out.format("%11s", node.getSourceSection().getCharLength());
@@ -242,58 +274,51 @@ public class ProfilerResultPrinter {
                     out.format("%-70s", node.getRootNode());
                     out.println();
                 }
+
+                out.println();
             }
-            out.println("Total number of instruments : " + nodeInstruments.size());
             out.println("Total number of executed instruments: " + totalCount);
         }
     }
 
-    public void printNodeProfilerResultsWithoutInstruments() {
-        long totalCount = 0;
-        List<ProfilerNode> nodes;
-        if (PythonOptions.SortProfilerResults) {
-            nodes = sortProfilerResult2(profiler.getNodes());
-        } else {
-            nodes = profiler.getNodes();
-        }
-
-        if (nodes.size() > 0) {
-            printBanner("Node Profiling Results Without Instruments", 132);
-            out.format("%-50s", "Node");
-            out.format("%-20s", "Counter");
-            out.format("%-9s", "Line");
-            out.format("%-11s", "Column");
-            out.format("%-11s", "Length");
-            out.format("%-70s", "In Method");
-            out.println();
-            out.println("=============                                     ===============     ====     ======     ======     =======================================================");
-
-            for (ProfilerNode node : nodes) {
-                if (node.getCounter() > 0) {
-                    out.format("%-50s", node.getChild().getClass().getSimpleName());
-                    out.format("%15s", node.getCounter());
-                    totalCount = totalCount + node.getCounter();
-                    out.format("%9s", node.getChild().getSourceSection().getStartLine());
-                    out.format("%11s", node.getChild().getSourceSection().getStartColumn());
-                    out.format("%11s", node.getChild().getSourceSection().getCharLength());
-                    out.format("%5s", "");
-                    out.format("%-70s", node.getChild().getRootNode());
-                    out.println();
-                }
-            }
-            out.println("Total Count: " + totalCount);
-        }
+    private void printCaption(String caption) {
+        printBanner(caption, 116);
+        out.format("%-25s", "Node");
+        out.format("%-20s", "Counter");
+        out.format("%-9s", "Line");
+        out.format("%-11s", "Column");
+        out.format("%-11s", "Length");
+        out.format("%-70s", "In Method");
+        out.println();
+        out.println("=============            ===============     ====     ======     ======     =======================================================");
     }
 
-    private static List<ProfilerNode> sortProfilerResult2(List<ProfilerNode> list) {
-        Collections.sort(list, new Comparator<ProfilerNode>() {
-            @Override
-            public int compare(final ProfilerNode profiler1, final ProfilerNode profiler2) {
-                return Long.compare(profiler2.getCounter(), profiler1.getCounter());
-            }
-        });
+    private void printProfilerResult(Node node, long counter) {
+        String nodeName = getShortName(node);
+        out.format("%-25s", nodeName);
+        out.format("%15s", counter);
+        out.format("%9s", node.getSourceSection().getStartLine());
+        out.format("%11s", node.getSourceSection().getStartColumn());
+        out.format("%11s", node.getSourceSection().getCharLength());
+        out.format("%5s", "");
+        out.format("%-70s", node.getRootNode());
+        out.println();
+    }
 
-        return list;
+    private static String getShortName(Node node) {
+        NodeInfo nodeInfo = node.getClass().getAnnotation(NodeInfo.class);
+
+        if (nodeInfo == null) {
+            nodeInfo = node.getClass().getSuperclass().getAnnotation(NodeInfo.class);
+        } else if (nodeInfo.shortName().equals("")) {
+            nodeInfo = node.getClass().getSuperclass().getAnnotation(NodeInfo.class);
+        }
+
+        if (nodeInfo != null) {
+            return nodeInfo.shortName();
+        } else {
+            throw new RuntimeException("Short name is missing in " + node);
+        }
     }
 
     private static List<ProfilerInstrument> sortProfilerResult(List<ProfilerInstrument> list) {
@@ -345,7 +370,9 @@ public class ProfilerResultPrinter {
 
     private static void printBanner(String caption, int size) {
         // CheckStyle: stop system..print check
-        for (int i = 0; i < size / 2; i++) {
+        // for (int i = 0; i < size / 2; i++) {
+        int captionSize = size - caption.length();
+        for (int i = 0; i < captionSize / 2; i++) {
             System.out.print("=");
         }
 

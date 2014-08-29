@@ -461,9 +461,7 @@ def getPythonBenchmarksProfiling(vm, profile_option):
     tests = []
     for benchmark, arg in benchmarks.iteritems():
         script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
-        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, profile_option, "-sort"]
-        if profile_option == "-profile-nodes":
-            cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, profile_option, "-profiler-no-instrument"]        
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, profile_option, "-sort"]      
         vmOpts = ['-Xms2g', '-Xmx2g']
         tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
 
@@ -644,6 +642,8 @@ class Test:
                 result = mx.run(['python'] + self.cmd[-2:], out=tee.eat)
             elif vm == 'cpython':
                 result = mx.run(['python3'] + self.cmd[-2:], out=tee.eat)
+            elif vm == 'cpython-profile':
+                result = mx.run(['python3'] + ['-m' ,'cProfile', '-s' 'calls'] + self.cmd[-2:], out=tee.eat)
             elif vm == 'jython':
                 result = mx_graal.vm(self.vmOpts + ['-jar', mx.library('JYTHON').path] + self.cmd[-2:], vm = 'original', out=tee.eat)
             elif vm == 'pypy':

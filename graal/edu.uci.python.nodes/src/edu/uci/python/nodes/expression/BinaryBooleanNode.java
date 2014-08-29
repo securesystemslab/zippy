@@ -28,6 +28,7 @@ import java.math.BigInteger;
 
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.CastToBooleanNode.YesNode;
@@ -38,6 +39,7 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
 
     @Child protected YesNode booleanCast;
 
+    @NodeInfo(shortName = "and")
     public abstract static class AndNode extends BinaryBooleanNode {
 
         public AndNode() {
@@ -95,6 +97,7 @@ public abstract class BinaryBooleanNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "or")
     public abstract static class OrNode extends BinaryBooleanNode {
 
         public OrNode() {

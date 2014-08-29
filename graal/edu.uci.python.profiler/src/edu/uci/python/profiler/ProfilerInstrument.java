@@ -1,4 +1,5 @@
 package edu.uci.python.profiler;
+
 /*
  * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
@@ -24,7 +25,6 @@ package edu.uci.python.profiler;
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
@@ -35,42 +35,17 @@ import com.oracle.truffle.api.nodes.*;
 
 public final class ProfilerInstrument extends Instrument {
 
-    private Node node;
+    private final Node node;
     private long counter;
 
-    public ProfilerInstrument() {
-        counter = 0;
+    public ProfilerInstrument(Node node) {
+        this.node = node;
+        this.counter = 0;
     }
 
     @Override
-    public void leave(Node astNode, VirtualFrame frame) {
+    public void enter(Node astNode, VirtualFrame frame) {
         this.counter++;
-        this.node = astNode;
-    }
-
-    @Override
-    public void leave(Node astNode, VirtualFrame frame, boolean result) {
-        leave(astNode, frame);
-    }
-
-    @Override
-    public void leave(Node astNode, VirtualFrame frame, int result) {
-        leave(astNode, frame);
-    }
-
-    @Override
-    public void leave(Node astNode, VirtualFrame frame, double result) {
-        leave(astNode, frame);
-    }
-
-    @Override
-    public void leave(Node astNode, VirtualFrame frame, Object result) {
-        leave(astNode, frame);
-    }
-
-    @Override
-    public void leaveExceptional(Node astNode, VirtualFrame frame, Exception e) {
-        leave(astNode, frame);
     }
 
     public Node getNode() {

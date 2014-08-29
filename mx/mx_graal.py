@@ -1545,20 +1545,26 @@ def bench(args):
     if 'python-nopeeling' in args:
         benchmarks += sanitycheck.getPythonBenchmarksNoPeeling(vm)
 
-    if 'python-profiler' in args:
+    if 'python-profile' in args:
         benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm)
         
     if 'python-profile-calls' in args:
         benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-calls")    
 
-    if 'python-profile-loops' in args:
-        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-loops")   
+    if 'python-profile-control-flow' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-control-flow")   
         
-    if 'python-profile-ifs' in args:
-        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-ifs")   
+    if 'python-profile-reads-writes' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-reads-writes")   
         
-    if 'python-profile-nodes' in args:
-        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-nodes")       
+    if 'python-profile-operations' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-operations")       
+
+    if 'python-profile-attributes-elements' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-attributes-elements")   
+
+    if 'python-profile-type-distribution' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-type-distribution")   
 
     if 'cpython2' in args:
         benchmarks += sanitycheck.getPython2Benchmarks(vm)
@@ -1567,6 +1573,10 @@ def bench(args):
     if 'cpython' in args:
         benchmarks += sanitycheck.getPythonBenchmarks(vm)
         vm = 'cpython'
+        
+    if 'cpython-profile' in args:
+        benchmarks += sanitycheck.getPythonBenchmarks(vm)
+        vm = 'cpython-profile'
 
     if 'jython' in args:
         benchmarks += sanitycheck.getPython2Benchmarks(vm)
