@@ -1247,11 +1247,11 @@ def projects(opt_limit_to_suite=False):
     """
     Get the list of all loaded projects limited by --suite option if opt_limit_to_suite == True
     """
-
+    sortedProjects = sorted(_projects.values(), key=lambda p: p.name)
     if opt_limit_to_suite:
-        return _projects_opt_limit_to_suites(_projects.values())
+        return _projects_opt_limit_to_suites(sortedProjects)
     else:
-        return _projects.values()
+        return sortedProjects
 
 def projects_opt_limit_to_suites():
     """
@@ -2231,8 +2231,13 @@ class JavaCompileTask:
                 self.proj.definedAnnotationProcessorsDist.make_archive()
 
         finally:
-            for n in toBeDeleted:
-                os.remove(n)
+            # Do not clean up temp files if verbose as there's
+            # a good chance the user wants to copy and paste the
+            # Java compiler command directly
+            if not _opts.verbose:
+                for n in toBeDeleted:
+                    os.remove(n)
+
             self.done = True
 
 def build(args, parser=None):
@@ -2412,6 +2417,8 @@ def build(args, parser=None):
         if len(javafilelist) == 0:
             logv('[no Java sources for {0} - skipping]'.format(p.name))
             continue
+
+        javafilelist = sorted(javafilelist)
 
         task = JavaCompileTask(args, p, buildReason, javafilelist, jdk, outputDir, jdtJar, taskDeps)
         if p.definedAnnotationProcessorsDist:

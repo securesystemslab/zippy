@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,16 +20,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.sl.nodes.instrument;
+package com.oracle.graal.compiler.common.cfg;
 
-import com.oracle.truffle.api.instrument.*;
-import com.oracle.truffle.sl.nodes.*;
+import java.util.function.*;
 
-public interface SLNodeProber extends ASTNodeProber {
+public interface PropertyConsumable {
 
-    SLStatementNode probeAsStatement(SLStatementNode result);
-
-    SLExpressionNode probeAsCall(SLExpressionNode node, String callName);
-
-    SLExpressionNode probeAsLocalAssignment(SLExpressionNode node, String localName);
+    void forEachProperty(BiConsumer<String, String> action);
 }
