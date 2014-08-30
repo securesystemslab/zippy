@@ -83,7 +83,7 @@ public class ZipPyConsole extends InteractiveConsole {
 
         ProfilerTranslator profilerTranslator = null;
 
-        if (PythonOptions.ProfileCalls || PythonOptions.ProfileControlFlow || PythonOptions.ProfileReadsWrites || PythonOptions.ProfileOperations || PythonOptions.ProfileAttributesElements) {
+        if (PythonOptions.ProfileCalls || PythonOptions.ProfileControlFlow || PythonOptions.ProfileVariableAccesses || PythonOptions.ProfileOperations || PythonOptions.ProfileAttributesElements) {
             profilerTranslator = new ProfilerTranslator(result.getContext());
 
             profilerTranslator.translate(result);
@@ -115,8 +115,8 @@ public class ZipPyConsole extends InteractiveConsole {
             profilerTranslator.getProfilerResultPrinter().printControlFlowProfilerResults();
         }
 
-        if (PythonOptions.ProfileReadsWrites) {
-            profilerTranslator.getProfilerResultPrinter().printReadWriteProfilerResults();
+        if (PythonOptions.ProfileVariableAccesses) {
+            profilerTranslator.getProfilerResultPrinter().printVariableAccessProfilerResults();
         }
 
         if (PythonOptions.ProfileOperations) {

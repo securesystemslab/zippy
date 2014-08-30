@@ -44,11 +44,11 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
     private List<ProfilerInstrument> callInstruments;
     private List<ProfilerInstrument> loopInstruments;
     private List<ProfilerInstrument> breakContinueInstruments;
-    private List<ProfilerInstrument> readWriteInstruments;
+    private List<ProfilerInstrument> variableAccessInstruments;
     private List<ProfilerInstrument> operationInstruments;
-    private List<ProfilerInstrument> containerInstruments;
+    private List<ProfilerInstrument> attributeElementInstruments;
 
-    private List<ProfilerTypeDistributionInstrument> readWriteTypeDistributionInstruments;
+    private List<ProfilerTypeDistributionInstrument> variableAccessTypeDistributionInstruments;
     private List<ProfilerTypeDistributionInstrument> operationTypeDistributionInstruments;
     private List<ProfilerTypeDistributionInstrument> containerTypeDistributionInstruments;
     private Map<ProfilerInstrument, List<ProfilerInstrument>> ifInstruments;
@@ -59,10 +59,10 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         callInstruments = new ArrayList<>();
         loopInstruments = new ArrayList<>();
         breakContinueInstruments = new ArrayList<>();
-        readWriteInstruments = new ArrayList<>();
+        variableAccessInstruments = new ArrayList<>();
         operationInstruments = new ArrayList<>();
-        containerInstruments = new ArrayList<>();
-        readWriteTypeDistributionInstruments = new ArrayList<>();
+        attributeElementInstruments = new ArrayList<>();
+        variableAccessTypeDistributionInstruments = new ArrayList<>();
         operationTypeDistributionInstruments = new ArrayList<>();
         containerTypeDistributionInstruments = new ArrayList<>();
         ifInstruments = new LinkedHashMap<>();
@@ -129,15 +129,15 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
-    public PythonWrapperNode probeAsReadWrite(PNode node) {
+    public PythonWrapperNode probeAsVariableAccess(PNode node) {
         PythonWrapperNode wrapper = createWrapper(node);
 
         if (PythonOptions.ProfileTypeDistribution) {
             ProfilerTypeDistributionInstrument profilerInstrument = createAttachProfilerTypeDistributionInstrument(wrapper);
-            readWriteTypeDistributionInstruments.add(profilerInstrument);
+            variableAccessTypeDistributionInstruments.add(profilerInstrument);
         } else {
             ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-            readWriteInstruments.add(profilerInstrument);
+            variableAccessInstruments.add(profilerInstrument);
         }
 
         return wrapper;
@@ -165,7 +165,7 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
             containerTypeDistributionInstruments.add(profilerInstrument);
         } else {
             ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-            containerInstruments.add(profilerInstrument);
+            attributeElementInstruments.add(profilerInstrument);
         }
 
         return wrapper;
@@ -224,20 +224,20 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return breakContinueInstruments;
     }
 
-    public List<ProfilerInstrument> getReadWriteInstruments() {
-        return readWriteInstruments;
+    public List<ProfilerInstrument> getVariableAccessInstruments() {
+        return variableAccessInstruments;
     }
 
     public List<ProfilerInstrument> getOperationInstruments() {
         return operationInstruments;
     }
 
-    public List<ProfilerInstrument> getContainerInstruments() {
-        return containerInstruments;
+    public List<ProfilerInstrument> getAttributeElementInstruments() {
+        return attributeElementInstruments;
     }
 
-    public List<ProfilerTypeDistributionInstrument> getReadWriteTypeDistributionInstruments() {
-        return readWriteTypeDistributionInstruments;
+    public List<ProfilerTypeDistributionInstrument> getVariableAccessTypeDistributionInstruments() {
+        return variableAccessTypeDistributionInstruments;
     }
 
     public List<ProfilerTypeDistributionInstrument> getOperationTypeDistributionInstruments() {

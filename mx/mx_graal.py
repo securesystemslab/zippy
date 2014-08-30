@@ -1554,8 +1554,8 @@ def bench(args):
     if 'python-profile-control-flow' in args:
         benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-control-flow")   
         
-    if 'python-profile-reads-writes' in args:
-        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-reads-writes")   
+    if 'python-profile-variable-accesses' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-variable-acceses")   
         
     if 'python-profile-operations' in args:
         benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-operations")       

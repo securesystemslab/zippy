@@ -73,8 +73,8 @@ public class ProfilerTranslator implements NodeVisitor {
             profileControlFlow(node);
         }
 
-        if (PythonOptions.ProfileReadsWrites) {
-            profileReadsWrites(node);
+        if (PythonOptions.ProfileVariableAccesses) {
+            profileVariables(node);
         }
 
         if (PythonOptions.ProfileOperations) {
@@ -94,6 +94,10 @@ public class ProfilerTranslator implements NodeVisitor {
             PNode body = rootNode.getBody();
             createCallWrapper(body);
         }
+
+// else if (node instanceof PythonCallNode) {
+// createCallWrapper((PNode) node);
+// }
     }
 
     private void profileControlFlow(Node node) {
@@ -141,7 +145,7 @@ public class ProfilerTranslator implements NodeVisitor {
         }
     }
 
-    private void profileReadsWrites(Node node) {
+    private void profileVariables(Node node) {
         if (!(node.getParent() instanceof PythonCallNode)) {
             if (node instanceof WriteLocalVariableNode) {
                 createReadWriteWrapper((PNode) node);
@@ -240,7 +244,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createReadWriteWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsReadWrite(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsVariableAccess(node);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }

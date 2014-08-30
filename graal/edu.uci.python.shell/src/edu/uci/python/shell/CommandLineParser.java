@@ -72,7 +72,7 @@ public class CommandLineParser {
             if (arg.equals("-profile")) {
                 PythonOptions.ProfileCalls = true;
                 PythonOptions.ProfileControlFlow = true;
-                PythonOptions.ProfileReadsWrites = true;
+                PythonOptions.ProfileVariableAccesses = true;
                 PythonOptions.ProfileOperations = true;
                 PythonOptions.ProfileAttributesElements = true;
                 PythonOptions.SortProfilerResults = true;
@@ -89,8 +89,8 @@ public class CommandLineParser {
                 continue;
             }
 
-            if (arg.equals("-profile-reads-writes")) {
-                PythonOptions.ProfileReadsWrites = true;
+            if (arg.equals("-profile-variable-accesses")) {
+                PythonOptions.ProfileVariableAccesses = true;
                 continue;
             }
 
@@ -106,7 +106,7 @@ public class CommandLineParser {
 
             if (arg.equals("-profile-type-distribution")) {
                 PythonOptions.ProfileTypeDistribution = true;
-                PythonOptions.ProfileReadsWrites = true;
+                PythonOptions.ProfileVariableAccesses = true;
                 PythonOptions.ProfileOperations = true;
                 PythonOptions.ProfileAttributesElements = true;
                 continue;

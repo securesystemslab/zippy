@@ -69,7 +69,7 @@ public class PythonOptions {
 
     public static boolean ProfileControlFlow = false;
 
-    public static boolean ProfileReadsWrites = false;
+    public static boolean ProfileVariableAccesses = false;
 
     public static boolean ProfileOperations = false;
 

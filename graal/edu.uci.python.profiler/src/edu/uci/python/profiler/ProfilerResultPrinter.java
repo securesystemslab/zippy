@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.*;
@@ -52,14 +53,6 @@ public class ProfilerResultPrinter {
 
     public ProfilerResultPrinter(PythonProfilerNodeProber profilerProber) {
         this.profilerProber = profilerProber;
-    }
-
-    public void addNodeEmptySourceSection(PNode node) {
-        nodesEmptySourceSections.add(node);
-    }
-
-    public void addNodeUsingExistingProbe(PNode node) {
-        nodesUsingExistingProbes.add(node);
     }
 
     public void printCallProfilerResults() {
@@ -84,7 +77,11 @@ public class ProfilerResultPrinter {
             for (ProfilerInstrument instrument : callInstruments) {
                 if (instrument.getCounter() > 0) {
                     Node node = instrument.getNode();
-                    out.format("%-40s", ((FunctionRootNode) node.getRootNode()).getFunctionName());
+                    if (node instanceof ReturnTargetNode) {
+                        out.format("%-40s", ((FunctionRootNode) node.getRootNode()).getFunctionName());
+                    } else if (node instanceof PythonCallNode) {
+                        out.format("%-40s", (((PythonCallNode) node)));
+                    }
                     out.format("%15s", instrument.getCounter());
                     totalCount = totalCount + instrument.getCounter();
                     out.format("%9s", node.getSourceSection().getStartLine());
@@ -193,11 +190,11 @@ public class ProfilerResultPrinter {
         printProfilerResults("Break Continue Profiling Results", getInstruments(profilerProber.getBreakContinueInstruments()));
     }
 
-    public void printReadWriteProfilerResults() {
+    public void printVariableAccessProfilerResults() {
         if (PythonOptions.ProfileTypeDistribution) {
-            printProfilerTypeDistributionResults("Read Write Profiling Results", profilerProber.getReadWriteTypeDistributionInstruments());
+            printProfilerTypeDistributionResults("Variable Access Profiling Results", profilerProber.getVariableAccessTypeDistributionInstruments());
         } else {
-            printProfilerResults("Read Write Profiling Results", getInstruments(profilerProber.getReadWriteInstruments()));
+            printProfilerResults("Variable Access Profiling Results", getInstruments(profilerProber.getVariableAccessInstruments()));
         }
     }
 
@@ -213,7 +210,7 @@ public class ProfilerResultPrinter {
         if (PythonOptions.ProfileTypeDistribution) {
             printProfilerTypeDistributionResults("Attributes/Elements Profiling Results", profilerProber.getContainerTypeDistributionInstruments());
         } else {
-            printProfilerResults("Attributes/Elements Profiling Results", getInstruments(profilerProber.getContainerInstruments()));
+            printProfilerResults("Attributes/Elements Profiling Results", getInstruments(profilerProber.getAttributeElementInstruments()));
         }
     }
 
@@ -348,6 +345,14 @@ public class ProfilerResultPrinter {
         }
         return result;
 
+    }
+
+    public void addNodeEmptySourceSection(PNode node) {
+        nodesEmptySourceSections.add(node);
+    }
+
+    public void addNodeUsingExistingProbe(PNode node) {
+        nodesUsingExistingProbes.add(node);
     }
 
     public void printNodesEmptySourceSections() {
