@@ -843,7 +843,7 @@ project@com.oracle.graal.truffle@workingSets=Graal,Truffle
 # graal.truffle.test
 project@com.oracle.graal.truffle.test@subDir=graal
 project@com.oracle.graal.truffle.test@sourceDirs=src
-project@com.oracle.graal.truffle.test@dependencies=com.oracle.graal.truffle,com.oracle.graal.compiler.test
+project@com.oracle.graal.truffle.test@dependencies=com.oracle.graal.truffle,com.oracle.graal.compiler.test,com.oracle.truffle.sl.test
 project@com.oracle.graal.truffle.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.truffle.test@javaCompliance=1.8
 project@com.oracle.graal.truffle.test@workingSets=Graal,Truffle,Test
