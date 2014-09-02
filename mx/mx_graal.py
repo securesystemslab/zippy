@@ -357,6 +357,16 @@ def _vmLibDirInJdk(jdk):
         return join(jdk, 'jre', 'bin')
     return join(jdk, 'jre', 'lib', mx.get_arch())
 
+def _vmJliLibDirs(jdk):
+    """
+    Get the directories within a JDK where the jli library designates to.
+    """
+    if platform.system() == 'Darwin':
+        return [join(jdk, 'jre', 'lib', 'jli')]
+    if platform.system() == 'Windows':
+        return [join(jdk, 'jre', 'bin'), join(jdk, 'bin')]
+    return [join(jdk, 'jre', 'lib', mx.get_arch(), 'jli'), join(jdk, 'lib', mx.get_arch(), 'jli')]
+
 def _vmCfgInJdk(jdk):
     """
     Get the jvm.cfg file.
