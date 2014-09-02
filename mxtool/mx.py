@@ -905,6 +905,11 @@ class Suite:
             self.jreLibs.append(l)
 
         for name, attrs in libsMap.iteritems():
+            if "|" in name:
+                assert name.count("|") == 2, "syntax: libname|os-platform|architecture"
+                name, platform, architecture = name.split("|")
+                if platform != get_os() or architecture != get_arch():
+                    continue
             path = attrs.pop('path')
             urls = pop_list(attrs, 'urls')
             sha1 = attrs.pop('sha1', None)
