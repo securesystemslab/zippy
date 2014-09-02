@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,26 +20,23 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.truffle;
+package com.oracle.truffle.sl;
 
-import java.util.concurrent.*;
+/**
+ * An implementation of an {@link AssertionError} also containing the guest language stack trace.
+ */
+public class SLAssertionError extends AssertionError {
 
-import com.oracle.graal.nodes.spi.*;
-import com.oracle.truffle.api.*;
+    private static final long serialVersionUID = -9138475336963945873L;
 
-public interface GraalTruffleRuntime extends TruffleRuntime {
+    public SLAssertionError(String message) {
+        super(message);
+        initCause(new AssertionError("Java stack trace"));
+    }
 
-    Replacements getReplacements();
+    @Override
+    public synchronized Throwable fillInStackTrace() {
+        return SLException.fillInSLStackTrace(this);
+    }
 
-    void compile(OptimizedCallTarget optimizedCallTarget, boolean mayBeAsynchronous);
-
-    boolean cancelInstalledTask(OptimizedCallTarget optimizedCallTarget);
-
-    void waitForCompilation(OptimizedCallTarget optimizedCallTarget, long timeout) throws ExecutionException, TimeoutException;
-
-    boolean isCompiling(OptimizedCallTarget optimizedCallTarget);
-
-    void invalidateInstalledCode(OptimizedCallTarget optimizedCallTarget);
-
-    void reinstallStubs();
 }
