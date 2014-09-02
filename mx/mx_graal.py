@@ -367,13 +367,13 @@ def _vmJliLibDirs(jdk):
         return [join(jdk, 'jre', 'bin'), join(jdk, 'bin')]
     return [join(jdk, 'jre', 'lib', mx.get_arch(), 'jli'), join(jdk, 'lib', mx.get_arch(), 'jli')]
 
-def _vmCfgInJdk(jdk):
+def _vmCfgInJdk(jdk, jvmCfgFile='jvm.cfg'):
     """
     Get the jvm.cfg file.
     """
     if platform.system() == 'Windows':
-        return join(jdk, 'jre', 'lib', mx.get_arch(), 'jvm.cfg')
-    return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
+        return join(jdk, 'jre', 'lib', mx.get_arch(), jvmCfgFile)
+    return join(_vmLibDirInJdk(jdk), jvmCfgFile)
 
 def _jdksDir():
     return os.path.abspath(join(_installed_jdks if _installed_jdks else _graal_home, 'jdk' + str(mx.java().version)))
