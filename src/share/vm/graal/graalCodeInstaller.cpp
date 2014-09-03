@@ -57,27 +57,6 @@ Method* getMethodFromHotSpotMethod(oop hotspot_method) {
   return asMethod(HotSpotResolvedJavaMethod::metaspaceMethod(hotspot_method));
 }
 
-// convert Graal register indices (as used in oop maps) to HotSpot registers
-VMReg get_hotspot_reg(jint graal_reg) {
-  if (graal_reg < RegisterImpl::number_of_registers) {
-    return as_Register(graal_reg)->as_VMReg();
-  } else {
-    int remainder = graal_reg - RegisterImpl::number_of_registers;
-#ifdef TARGET_ARCH_x86
-    if (remainder < XMMRegisterImpl::number_of_registers) {
-      return as_XMMRegister(remainder)->as_VMReg();
-    }
-#endif
-#ifdef TARGET_ARCH_sparc
-    if (remainder < FloatRegisterImpl::number_of_registers) {
-      return as_FloatRegister(remainder)->as_VMReg();
-    }
-#endif
-    ShouldNotReachHere();
-    return NULL;
-  }
-}
-
 const int MapWordBits = 64;
 
 static bool is_bit_set(oop bitset, int i) {
@@ -155,7 +134,7 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
     for (jint i = 0; i < slots->length(); i++) {
       oop graal_reg = registers->obj_at(i);
       jint graal_reg_number = code_Register::number(graal_reg);
-      VMReg hotspot_reg = get_hotspot_reg(graal_reg_number);
+      VMReg hotspot_reg = CodeInstaller::get_hotspot_reg(graal_reg_number);
       // HotSpot stack slots are 4 bytes
       jint graal_slot = ((jint*) slots->base(T_INT))[i];
       jint hotspot_slot = graal_slot * VMRegImpl::slots_per_word;
@@ -227,10 +206,8 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
   if (value->is_a(RegisterValue::klass())) {
     oop reg = RegisterValue::reg(value);
     jint number = code_Register::number(reg);
-    jint encoding = code_Register::encoding(reg);
-    oop registerCategory = code_Register::registerCategory(reg);
-    jint referenceMapOffset = RegisterCategory::referenceMapOffset(registerCategory);
-    if (number < RegisterImpl::number_of_registers) {
+    VMReg hotspotRegister = get_hotspot_reg(number);
+    if (is_general_purpose_reg(hotspotRegister)) {
       Location::Type locationType;
       if (type == T_INT) {
         locationType = reference ? Location::narrowoop : Location::int_in_long;
@@ -244,7 +221,7 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
         assert(type == T_OBJECT && reference, "unexpected type in cpu register");
         locationType = Location::oop;
       }
-      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_Register(number)->as_VMReg()));
+      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, hotspotRegister));
       if (type == T_LONG && !reference) {
         second = value;
       }
@@ -259,25 +236,11 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
         locationType = Location::dbl;
       }
       assert(!reference, "unexpected type in floating point register");
-      jint floatRegisterNumber = number - referenceMapOffset;
-#ifdef TARGET_ARCH_x86
-      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_XMMRegister(floatRegisterNumber)->as_VMReg()));
+      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, hotspotRegister));
       if (type == T_DOUBLE) {
         second = value;
       }
       return value;
-#else
-#ifdef TARGET_ARCH_sparc
-      floatRegisterNumber += MAX2(0, floatRegisterNumber-32); // Beginning with f32, only every second register is going to be addressed
-      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_FloatRegister(floatRegisterNumber)->as_VMReg()));
-      if (type == T_DOUBLE) {
-        second = value;
-      }
-      return value;
-#else
-      ShouldNotReachHere("Platform currently does not support floating point values.");
-#endif
-#endif
     }
   } else if (value->is_a(StackSlot::klass())) {
       Location::Type locationType;

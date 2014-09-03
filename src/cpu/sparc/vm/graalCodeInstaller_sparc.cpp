@@ -25,6 +25,7 @@
 #include "graal/graalRuntime.hpp"
 #include "graal/graalCompilerToVM.hpp"
 #include "graal/graalJavaAccess.hpp"
+#include "vmreg_sparc.inline.hpp"
 
 jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offset, oop method) {
   if (inst->is_call() || inst->is_jump()) {
@@ -145,4 +146,23 @@ void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
       fatal("invalid mark value");
       break;
   }
+}
+
+// convert Graal register indices (as used in oop maps) to HotSpot registers
+VMReg CodeInstaller::get_hotspot_reg(jint graal_reg) {
+  if (graal_reg < RegisterImpl::number_of_registers) {
+    return as_Register(graal_reg)->as_VMReg();
+  } else {
+    jint floatRegisterNumber = graal_reg - RegisterImpl::number_of_registers;
+    floatRegisterNumber += MAX2(0, floatRegisterNumber-32); // Beginning with f32, only every second register is going to be addressed
+    if (floatRegisterNumber < FloatRegisterImpl::number_of_registers) {
+      return as_FloatRegister(floatRegisterNumber)->as_VMReg();
+    }
+    ShouldNotReachHere();
+    return NULL;
+  }
+}
+
+bool CodeInstaller::is_general_purpose_reg(VMReg hotspotRegister) {
+  return !hotspotRegister->is_FloatRegister();
 }
