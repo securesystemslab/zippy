@@ -24,6 +24,7 @@
 #include "precompiled.hpp"
 #include "asm/codeBuffer.hpp"
 #include "compiler/compileBroker.hpp"
+#include "compiler/disassembler.hpp"
 #include "graal/graalRuntime.hpp"
 #include "graal/graalCompilerToVM.hpp"
 #include "graal/graalCompiler.hpp"
@@ -56,7 +57,12 @@ void GraalRuntime::initialize_natives(JNIEnv *env, jclass c2vmClass) {
 
     graal_compute_offsets();
 
+#ifdef TARGET_ARCH_x86
+#ifdef _LP64
+    // Only supported on x86_64 for now
     _external_deopt_i2c_entry = create_external_deopt_i2c();
+#endif
+#endif
 
     // Ensure _non_oop_bits is initialized
     Universe::non_oop_word();
@@ -88,7 +94,7 @@ address GraalRuntime::create_external_deopt_i2c() {
   cb.insts()->initialize_shared_locs((relocInfo*)buffer_locs, sizeof(buffer_locs)/sizeof(relocInfo));
   MacroAssembler masm(&cb);
 
-  int total_args_passed = 5;
+  int total_args_passed = 6;
 
   BasicType* sig_bt = NEW_RESOURCE_ARRAY(BasicType, total_args_passed);
   VMRegPair* regs   = NEW_RESOURCE_ARRAY(VMRegPair, total_args_passed);
@@ -98,13 +104,19 @@ address GraalRuntime::create_external_deopt_i2c() {
   sig_bt[i++] = T_VOID; // long stakes 2 slots
   sig_bt[i++] = T_INT;
   sig_bt[i++] = T_OBJECT;
+  sig_bt[i++] = T_INT; // The number of actual arguments pass to the method.
 
   int comp_args_on_stack = SharedRuntime::java_calling_convention(sig_bt, regs, total_args_passed, false);
 
-  SharedRuntime::gen_i2c_adapter(&masm, total_args_passed, comp_args_on_stack, sig_bt, regs);
+  SharedRuntime::gen_i2c_adapter(&masm, total_args_passed, comp_args_on_stack, sig_bt, regs, total_args_passed - 1);
   masm.flush();
 
-  return AdapterBlob::create(&cb)->content_begin();
+  AdapterBlob* adapter = AdapterBlob::create(&cb);
+  if (PrintAdapterHandlers) {
+    tty->print_cr("Decoding external_deopt_i2c");
+    Disassembler::decode(adapter->code_begin(), adapter->code_end());
+  }
+  return adapter->code_begin();
 }
 
 BasicType GraalRuntime::kindToBasicType(jchar ch) {

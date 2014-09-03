@@ -405,7 +405,8 @@ class SharedRuntime: AllStatic {
                               int total_args_passed,
                               int comp_args_on_stack,
                               const BasicType *sig_bt,
-                              const VMRegPair *regs);
+                              const VMRegPair *regs,
+                              int frame_extension_argument = -1);
 
   // OSR support
 
