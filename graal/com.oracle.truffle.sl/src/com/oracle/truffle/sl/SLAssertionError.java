@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -20,35 +20,23 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.graal.graph;
-
-import com.oracle.graal.graph.iterators.*;
+package com.oracle.truffle.sl;
 
 /**
- * The iterator returned by this iterable can be used to access {@link Position Positions} during
- * iteration using {@link NodePosIterator#nextPosition()}.
+ * An implementation of an {@link AssertionError} also containing the guest language stack trace.
  */
-public interface NodeClassIterable extends NodeIterable<Node> {
+public class SLAssertionError extends AssertionError {
 
-    /**
-     * Returns an iterator that produces all non-null values.
-     */
+    private static final long serialVersionUID = -9138475336963945873L;
+
+    public SLAssertionError(String message) {
+        super(message);
+        initCause(new AssertionError("Java stack trace"));
+    }
+
     @Override
-    NodePosIterator iterator();
+    public synchronized Throwable fillInStackTrace() {
+        return SLException.fillInSLStackTrace(this);
+    }
 
-    /**
-     * Returns an iterator that produces all values, including null values.
-     */
-    NodePosIterator withNullIterator();
-
-    NodeClassIterable Empty = new NodeClassIterable() {
-
-        public NodeRefIterator withNullIterator() {
-            return NodeRefIterator.Empty;
-        }
-
-        public NodeRefIterator iterator() {
-            return NodeRefIterator.Empty;
-        }
-    };
 }

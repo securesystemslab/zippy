@@ -199,7 +199,7 @@ def export(args):
 
     infos['jdkversion'] = str(mx.java().version)
 
-    infos['architecture'] = _arch()
+    infos['architecture'] = mx.get_arch()
     infos['platform'] = mx.get_os()
 
     if mx.get_os != 'windows':
@@ -346,22 +346,6 @@ def scaladacapo(args):
 
     _run_benchmark(args, sanitycheck.dacapoScalaSanityWarmup.keys(), launcher)
 
-def _arch():
-    machine = platform.uname()[4]
-    if machine in ['amd64', 'AMD64', 'x86_64', 'i86pc']:
-        return 'amd64'
-    if machine in ['sun4v', 'sun4u']:
-        return 'sparcv9'
-    if machine == 'i386' and mx.get_os() == 'darwin':
-        try:
-            # Support for Snow Leopard and earlier version of MacOSX
-            if subprocess.check_output(['sysctl', '-n', 'hw.cpu64bit_capable']).strip() == '1':
-                return 'amd64'
-        except OSError:
-            # sysctl is not available
-            pass
-    mx.abort('unknown or unsupported architecture: os=' + mx.get_os() + ', machine=' + machine)
-
 def _vmLibDirInJdk(jdk):
     """
     Get the directory within a JDK where the server and client
@@ -371,15 +355,25 @@ def _vmLibDirInJdk(jdk):
         return join(jdk, 'jre', 'lib')
     if platform.system() == 'Windows':
         return join(jdk, 'jre', 'bin')
-    return join(jdk, 'jre', 'lib', _arch())
+    return join(jdk, 'jre', 'lib', mx.get_arch())
 
-def _vmCfgInJdk(jdk):
+def _vmJliLibDirs(jdk):
+    """
+    Get the directories within a JDK where the jli library designates to.
+    """
+    if platform.system() == 'Darwin':
+        return [join(jdk, 'jre', 'lib', 'jli')]
+    if platform.system() == 'Windows':
+        return [join(jdk, 'jre', 'bin'), join(jdk, 'bin')]
+    return [join(jdk, 'jre', 'lib', mx.get_arch(), 'jli'), join(jdk, 'lib', mx.get_arch(), 'jli')]
+
+def _vmCfgInJdk(jdk, jvmCfgFile='jvm.cfg'):
     """
     Get the jvm.cfg file.
     """
     if platform.system() == 'Windows':
-        return join(jdk, 'jre', 'lib', _arch(), 'jvm.cfg')
-    return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
+        return join(jdk, 'jre', 'lib', mx.get_arch(), jvmCfgFile)
+    return join(_vmLibDirInJdk(jdk), jvmCfgFile)
 
 def _jdksDir():
     return os.path.abspath(join(_installed_jdks if _installed_jdks else _graal_home, 'jdk' + str(mx.java().version)))
@@ -1952,7 +1946,7 @@ def hsdis(args, copyToDir=None):
     flavor = 'intel'
     if 'att' in args:
         flavor = 'att'
-    lib = mx.add_lib_suffix('hsdis-' + _arch())
+    lib = mx.add_lib_suffix('hsdis-' + mx.get_arch())
     path = join(_graal_home, 'lib', lib)
 
     sha1s = {
