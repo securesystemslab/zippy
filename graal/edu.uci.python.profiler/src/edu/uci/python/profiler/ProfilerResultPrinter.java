@@ -208,7 +208,7 @@ public class ProfilerResultPrinter {
 
     public void printAttributesElemenetsProfilerResults() {
         if (PythonOptions.ProfileTypeDistribution) {
-            printProfilerTypeDistributionResults("Attributes/Elements Profiling Results", profilerProber.getContainerTypeDistributionInstruments());
+            printProfilerTypeDistributionResults("Attributes/Elements Profiling Results", profilerProber.getAttributeElementTypeDistributionInstruments());
         } else {
             printProfilerResults("Attributes/Elements Profiling Results", getInstruments(profilerProber.getAttributeElementInstruments()));
         }
@@ -240,7 +240,7 @@ public class ProfilerResultPrinter {
         }
     }
 
-    private void printProfilerTypeDistributionResults(String caption, List<ProfilerTypeDistributionInstrument> instruments) {
+    private void printProfilerTypeDistributionResults(String caption, List<TypeDistributionProfilerInstrument> instruments) {
         long totalCount = 0;
 
         if (instruments.size() > 0) {
@@ -253,26 +253,29 @@ public class ProfilerResultPrinter {
             out.format("%-70s", "In Method");
             out.println();
             out.println("=============                                     ===============     ====     ======     ======     =======================================================");
-            for (ProfilerTypeDistributionInstrument profilerInstrument : instruments) {
-                Map<Node, Long> types = profilerInstrument.getTypes();
-                Iterator<Map.Entry<Node, Long>> it = types.entrySet().iterator();
+            for (TypeDistributionProfilerInstrument profilerInstrument : instruments) {
+                Map<Class, Long> types = profilerInstrument.getTypes();
+                if (types.size() > 2) {
+                    Iterator<Map.Entry<Class, Long>> it = types.entrySet().iterator();
 
-                while (it.hasNext()) {
-                    Entry<Node, Long> entry = it.next();
-                    Node node = entry.getKey();
-                    Long counter = entry.getValue();
-                    totalCount = totalCount + counter;
-                    out.format("%-50s", node.getClass().getSimpleName());
-                    out.format("%15s", counter);
-                    out.format("%9s", node.getSourceSection().getStartLine());
-                    out.format("%11s", node.getSourceSection().getStartColumn());
-                    out.format("%11s", node.getSourceSection().getCharLength());
-                    out.format("%5s", "");
-                    out.format("%-70s", node.getRootNode());
+                    while (it.hasNext()) {
+                        Entry<Class, Long> entry = it.next();
+                        Class nodeClass = entry.getKey();
+                        Node initialNode = profilerInstrument.getInitialNode();
+                        Long counter = entry.getValue();
+                        totalCount = totalCount + counter;
+                        out.format("%-50s", nodeClass.getSimpleName());
+                        out.format("%15s", counter);
+                        out.format("%9s", initialNode.getSourceSection().getStartLine());
+                        out.format("%11s", initialNode.getSourceSection().getStartColumn());
+                        out.format("%11s", initialNode.getSourceSection().getCharLength());
+                        out.format("%5s", "");
+                        out.format("%-70s", initialNode.getRootNode());
+                        out.println();
+                    }
+
                     out.println();
                 }
-
-                out.println();
             }
             out.println("Total number of executed instruments: " + totalCount);
         }

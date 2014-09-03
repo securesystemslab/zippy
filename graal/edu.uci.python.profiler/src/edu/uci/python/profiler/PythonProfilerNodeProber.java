@@ -48,9 +48,10 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
     private List<ProfilerInstrument> operationInstruments;
     private List<ProfilerInstrument> attributeElementInstruments;
 
-    private List<ProfilerTypeDistributionInstrument> variableAccessTypeDistributionInstruments;
-    private List<ProfilerTypeDistributionInstrument> operationTypeDistributionInstruments;
-    private List<ProfilerTypeDistributionInstrument> containerTypeDistributionInstruments;
+    private List<TypeDistributionProfilerInstrument> variableAccessTypeDistributionInstruments;
+    private List<TypeDistributionProfilerInstrument> operationTypeDistributionInstruments;
+    private List<TypeDistributionProfilerInstrument> attributeElementTypeDistributionInstruments;
+
     private Map<ProfilerInstrument, List<ProfilerInstrument>> ifInstruments;
 
     public PythonProfilerNodeProber(PythonContext context) {
@@ -64,7 +65,7 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         attributeElementInstruments = new ArrayList<>();
         variableAccessTypeDistributionInstruments = new ArrayList<>();
         operationTypeDistributionInstruments = new ArrayList<>();
-        containerTypeDistributionInstruments = new ArrayList<>();
+        attributeElementTypeDistributionInstruments = new ArrayList<>();
         ifInstruments = new LinkedHashMap<>();
     }
 
@@ -133,7 +134,7 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         PythonWrapperNode wrapper = createWrapper(node);
 
         if (PythonOptions.ProfileTypeDistribution) {
-            ProfilerTypeDistributionInstrument profilerInstrument = createAttachProfilerTypeDistributionInstrument(wrapper);
+            TypeDistributionProfilerInstrument profilerInstrument = createAttachTypeDistributionProfilerInstrument(wrapper);
             variableAccessTypeDistributionInstruments.add(profilerInstrument);
         } else {
             ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
@@ -147,7 +148,7 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         PythonWrapperNode wrapper = createWrapper(node);
 
         if (PythonOptions.ProfileTypeDistribution) {
-            ProfilerTypeDistributionInstrument profilerInstrument = createAttachProfilerTypeDistributionInstrument(wrapper);
+            TypeDistributionProfilerInstrument profilerInstrument = createAttachTypeDistributionProfilerInstrument(wrapper);
             operationTypeDistributionInstruments.add(profilerInstrument);
         } else {
             ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
@@ -161,8 +162,8 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         PythonWrapperNode wrapper = createWrapper(node);
 
         if (PythonOptions.ProfileTypeDistribution) {
-            ProfilerTypeDistributionInstrument profilerInstrument = createAttachProfilerTypeDistributionInstrument(wrapper);
-            containerTypeDistributionInstruments.add(profilerInstrument);
+            TypeDistributionProfilerInstrument profilerInstrument = createAttachTypeDistributionProfilerInstrument(wrapper);
+            attributeElementTypeDistributionInstruments.add(profilerInstrument);
         } else {
             ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
             attributeElementInstruments.add(profilerInstrument);
@@ -194,12 +195,14 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
 
     private static ProfilerInstrument createAttachProfilerInstrument(PythonWrapperNode wrapper) {
         ProfilerInstrument profilerInstrument = new ProfilerInstrument(wrapper.getChild());
+        profilerInstrument.assignSourceSection(wrapper.getChild().getSourceSection());
         wrapper.getProbe().addInstrument(profilerInstrument);
         return profilerInstrument;
     }
 
-    private static ProfilerTypeDistributionInstrument createAttachProfilerTypeDistributionInstrument(PythonWrapperNode wrapper) {
-        ProfilerTypeDistributionInstrument profilerInstrument = new ProfilerTypeDistributionInstrument();
+    private static TypeDistributionProfilerInstrument createAttachTypeDistributionProfilerInstrument(PythonWrapperNode wrapper) {
+        TypeDistributionProfilerInstrument profilerInstrument = new TypeDistributionProfilerInstrument(wrapper.getChild());
+        profilerInstrument.assignSourceSection(wrapper.getChild().getSourceSection());
         wrapper.getProbe().addInstrument(profilerInstrument);
         return profilerInstrument;
     }
@@ -236,16 +239,16 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return attributeElementInstruments;
     }
 
-    public List<ProfilerTypeDistributionInstrument> getVariableAccessTypeDistributionInstruments() {
+    public List<TypeDistributionProfilerInstrument> getVariableAccessTypeDistributionInstruments() {
         return variableAccessTypeDistributionInstruments;
     }
 
-    public List<ProfilerTypeDistributionInstrument> getOperationTypeDistributionInstruments() {
+    public List<TypeDistributionProfilerInstrument> getOperationTypeDistributionInstruments() {
         return operationTypeDistributionInstruments;
     }
 
-    public List<ProfilerTypeDistributionInstrument> getContainerTypeDistributionInstruments() {
-        return containerTypeDistributionInstruments;
+    public List<TypeDistributionProfilerInstrument> getAttributeElementTypeDistributionInstruments() {
+        return attributeElementTypeDistributionInstruments;
     }
 
     public PythonContext getContext() {

@@ -35,11 +35,13 @@ import com.oracle.truffle.api.nodes.*;
  * @author Gulfem
  */
 
-public final class ProfilerTypeDistributionInstrument extends Instrument {
+public final class TypeDistributionProfilerInstrument extends Instrument {
 
-    private Map<Node, Long> types;
+    private final Node initialNode;
+    @SuppressWarnings("rawtypes") private Map<Class, Long> types;
 
-    public ProfilerTypeDistributionInstrument() {
+    public TypeDistributionProfilerInstrument(Node initialNode) {
+        this.initialNode = initialNode;
         types = new HashMap<>();
     }
 
@@ -47,13 +49,18 @@ public final class ProfilerTypeDistributionInstrument extends Instrument {
     public void enter(Node astNode, VirtualFrame frame) {
         if (types.containsKey(astNode)) {
             long counter = types.get(astNode);
-            types.put(astNode, counter + 1);
+            types.put(astNode.getClass(), counter + 1);
         } else {
-            types.put(astNode, 1L);
+            types.put(astNode.getClass(), 1L);
         }
     }
 
-    public Map<Node, Long> getTypes() {
+    public Node getInitialNode() {
+        return initialNode;
+    }
+
+    @SuppressWarnings("rawtypes")
+    public Map<Class, Long> getTypes() {
         return types;
     }
 
