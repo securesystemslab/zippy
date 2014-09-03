@@ -188,6 +188,18 @@ pythonBenchmarks = {
     'sympy-bench'     : '20000',
 }
 
+pythonProfilerBenchmarks = {
+    'binarytrees3t'   : '19',
+    'fannkuchredux3t' : '11',
+    'fasta3t'         : '25000000',
+    'mandelbrot3t'    : '4000',
+    'meteor3t'        : '2098',
+    'nbody3t'         : '5000000',
+    'spectralnorm3t'  : '5500',
+    'pidigits-timed'  : '0',
+    'richards3-timed' : '200'
+}
+
 python2Benchmarks = {
     'binarytrees2t'   : '19',
     'fannkuchredux2t' : '11',
@@ -457,7 +469,7 @@ def getPythonBenchmarksNoPeeling(vm):
 
 def getPythonBenchmarksProfiling(vm, profile_option):
     success, error, matcher = getSuccessErrorMatcher()
-    benchmarks = pythonBenchmarks
+    benchmarks = pythonProfilerBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
         script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"

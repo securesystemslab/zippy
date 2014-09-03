@@ -254,14 +254,14 @@ public class ProfilerResultPrinter {
             out.println();
             out.println("=============                                     ===============     ====     ======     ======     =======================================================");
             for (TypeDistributionProfilerInstrument profilerInstrument : instruments) {
-                Map<Class, Long> types = profilerInstrument.getTypes();
+                Map<Class<? extends Node>, Long> types = profilerInstrument.getTypes();
                 if (types.size() > 2) {
-                    Iterator<Map.Entry<Class, Long>> it = types.entrySet().iterator();
+                    Iterator<Map.Entry<Class<? extends Node>, Long>> it = types.entrySet().iterator();
 
                     while (it.hasNext()) {
-                        Entry<Class, Long> entry = it.next();
-                        Class nodeClass = entry.getKey();
+                        Entry<Class<? extends Node>, Long> entry = it.next();
                         Node initialNode = profilerInstrument.getInitialNode();
+                        Class<? extends Node> nodeClass = entry.getKey();
                         Long counter = entry.getValue();
                         totalCount = totalCount + counter;
                         out.format("%-50s", nodeClass.getSimpleName());
