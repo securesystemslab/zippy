@@ -1549,7 +1549,8 @@ def bench(args):
         benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm)
         
     if 'python-profile-calls' in args:
-        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-calls")    
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-calls")   
+        print("benchmarks", benchmarks) 
 
     if 'python-profile-control-flow' in args:
         benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-control-flow")   
@@ -1575,7 +1576,7 @@ def bench(args):
         vm = 'cpython'
         
     if 'cpython-profile' in args:
-        benchmarks += sanitycheck.getPythonBenchmarks(vm)
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm)
         vm = 'cpython-profile'
 
     if 'jython' in args:

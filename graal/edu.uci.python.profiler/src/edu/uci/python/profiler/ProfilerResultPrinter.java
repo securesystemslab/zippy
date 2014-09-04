@@ -255,27 +255,24 @@ public class ProfilerResultPrinter {
             out.println("=============                                     ===============     ====     ======     ======     =======================================================");
             for (TypeDistributionProfilerInstrument profilerInstrument : instruments) {
                 Map<Class<? extends Node>, Long> types = profilerInstrument.getTypes();
-                if (types.size() > 2) {
-                    Iterator<Map.Entry<Class<? extends Node>, Long>> it = types.entrySet().iterator();
+                Iterator<Map.Entry<Class<? extends Node>, Long>> it = types.entrySet().iterator();
 
-                    while (it.hasNext()) {
-                        Entry<Class<? extends Node>, Long> entry = it.next();
-                        Node initialNode = profilerInstrument.getInitialNode();
-                        Class<? extends Node> nodeClass = entry.getKey();
-                        Long counter = entry.getValue();
-                        totalCount = totalCount + counter;
-                        out.format("%-50s", nodeClass.getSimpleName());
-                        out.format("%15s", counter);
-                        out.format("%9s", initialNode.getSourceSection().getStartLine());
-                        out.format("%11s", initialNode.getSourceSection().getStartColumn());
-                        out.format("%11s", initialNode.getSourceSection().getCharLength());
-                        out.format("%5s", "");
-                        out.format("%-70s", initialNode.getRootNode());
-                        out.println();
-                    }
-
+                while (it.hasNext()) {
+                    Entry<Class<? extends Node>, Long> entry = it.next();
+                    Node initialNode = profilerInstrument.getInitialNode();
+                    Class<? extends Node> nodeClass = entry.getKey();
+                    Long counter = entry.getValue();
+                    totalCount = totalCount + counter;
+                    out.format("%-50s", nodeClass.getSimpleName());
+                    out.format("%15s", counter);
+                    out.format("%9s", initialNode.getSourceSection().getStartLine());
+                    out.format("%11s", initialNode.getSourceSection().getStartColumn());
+                    out.format("%11s", initialNode.getSourceSection().getCharLength());
+                    out.format("%5s", "");
+                    out.format("%-70s", initialNode.getRootNode());
                     out.println();
                 }
+                out.println();
             }
             out.println("Total number of executed instruments: " + totalCount);
         }

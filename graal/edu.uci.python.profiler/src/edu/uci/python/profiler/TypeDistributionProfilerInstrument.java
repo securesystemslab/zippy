@@ -38,11 +38,11 @@ import com.oracle.truffle.api.nodes.*;
 public final class TypeDistributionProfilerInstrument extends Instrument {
 
     private final Node initialNode;
-    private final Map<Class<? extends Node>, Long> types;
+    private Map<Class<? extends Node>, Long> types;
 
     public TypeDistributionProfilerInstrument(Node initialNode) {
         this.initialNode = initialNode;
-        this.types = new TreeMap<>(order);
+        this.types = new HashMap<>();
     }
 
     @Override
@@ -62,15 +62,5 @@ public final class TypeDistributionProfilerInstrument extends Instrument {
     public Map<Class<? extends Node>, Long> getTypes() {
         return types;
     }
-
-    Comparator<Class<? extends Node>> order = new Comparator<Class<? extends Node>>() {
-        public int compare(Class<? extends Node> class1, Class<? extends Node> class2) {
-            if (class1.equals(class2)) {
-                return 0;
-            } else {
-                return 1;
-            }
-        }
-    };
 
 }
