@@ -2445,11 +2445,11 @@ def build(args, parser=None):
         if p.definedAnnotationProcessorsDist:
             updatedAnnotationProcessorDists.add(p.definedAnnotationProcessorsDist)
 
+        tasks[p.name] = task
         if args.parallelize:
             # Best to initialize class paths on main process
             jdk.bootclasspath()
             task.proc = None
-            tasks[p.name] = task
         else:
             task.execute()
 
