@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.parser;
+package edu.uci.python.profiler;
 
 import java.util.*;
 
@@ -48,9 +48,13 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private final PythonProfilerNodeProber profilerProber;
     private final ProfilerResultPrinter resultPrinter;
+    private final PythonContext context;
 
     public ProfilerTranslator(PythonContext context) {
-        this.profilerProber = new PythonProfilerNodeProber(context);
+        this.context = context;
+        // this.profilerProber = new PythonProfilerNodeProber(context);
+        // this.profilerProber = new PythonProfilerNodeProber();
+        this.profilerProber = PythonProfilerNodeProber.getInstance();
         this.resultPrinter = new ProfilerResultPrinter(this.profilerProber);
     }
 
@@ -94,10 +98,6 @@ public class ProfilerTranslator implements NodeVisitor {
             PNode body = rootNode.getBody();
             createCallWrapper(body);
         }
-
-// else if (node instanceof PythonCallNode) {
-// createCallWrapper((PNode) node);
-// }
     }
 
     private void profileControlFlow(Node node) {
@@ -201,7 +201,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createCallWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsCall(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsCall(node, context);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -211,7 +211,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createLoopBodyWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsLoop(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsLoop(node, context);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -220,21 +220,21 @@ public class ProfilerTranslator implements NodeVisitor {
     }
 
     private void createIfWrappers(IfNode ifNode, PNode thenNode, PNode elseNode) {
-        List<PythonWrapperNode> wrappers = profilerProber.probeAsIf(ifNode, thenNode, elseNode);
+        List<PythonWrapperNode> wrappers = profilerProber.probeAsIf(ifNode, thenNode, elseNode, context);
         replaceNodeWithWrapper(ifNode, wrappers.get(0));
         replaceNodeWithWrapper(thenNode, wrappers.get(1));
         replaceNodeWithWrapper(elseNode, wrappers.get(2));
     }
 
     private void createIfWithoutElseWrappers(PNode ifNode, PNode thenNode) {
-        List<PythonWrapperNode> wrappers = profilerProber.probeAsIfWithoutElse(ifNode, thenNode);
+        List<PythonWrapperNode> wrappers = profilerProber.probeAsIfWithoutElse(ifNode, thenNode, context);
         replaceNodeWithWrapper(ifNode, wrappers.get(0));
         replaceNodeWithWrapper(thenNode, wrappers.get(1));
     }
 
     private PythonWrapperNode createBreakContinueWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsBreakContinue(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsBreakContinue(node, context);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -244,7 +244,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createReadWriteWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsVariableAccess(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsVariableAccess(node, context);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -254,7 +254,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createOperationWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsOperation(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsOperation(node, context);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -264,7 +264,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createAttributeElementWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsAttributeElement(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsAttributeElement(node, context);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -274,7 +274,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsNode(node);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsNode(node, context);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -296,7 +296,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private boolean checkSourceSection(PNode node) {
         if (hasSourceSection(node)) {
-            if (profilerProber.getContext().hasProbe(node.getSourceSection())) {
+            if (context.hasProbe(node.getSourceSection())) {
                 resultPrinter.addNodeUsingExistingProbe(node);
             }
 

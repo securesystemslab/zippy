@@ -27,6 +27,8 @@ package edu.uci.python.nodes.function;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
+
 /**
  * @author Gulfem
  * @author zwei
@@ -56,6 +58,10 @@ public class BuiltinFunctionRootNode extends RootNode {
 
     public String getFunctionName() {
         return functionName;
+    }
+
+    public PNode getBody() {
+        return body;
     }
 
     @Override

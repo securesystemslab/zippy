@@ -844,10 +844,9 @@ project@edu.uci.python.nodes@workingSets=Truffle,Python
 # python.profiler
 project@edu.uci.python.profiler@subDir=graal
 project@edu.uci.python.profiler@sourceDirs=src
-project@edu.uci.python.profiler@dependencies=edu.uci.python.nodes,com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
+project@edu.uci.python.profiler@dependencies=edu.uci.python.nodes,JYTHON
 project@edu.uci.python.profiler@checkstyle=edu.uci.python.runtime
 project@edu.uci.python.profiler@javaCompliance=1.8
-project@edu.uci.python.profiler@annotationProcessors=com.oracle.truffle.dsl.processor
 project@edu.uci.python.profiler@workingSets=Truffle,Python
 
 # python.parser
@@ -885,7 +884,7 @@ project@edu.uci.python.test@workingSets=Truffle,Python
 # python.builtins
 project@edu.uci.python.builtins@subDir=graal
 project@edu.uci.python.builtins@sourceDirs=src
-project@edu.uci.python.builtins@dependencies=edu.uci.python.nodes,edu.uci.python.runtime,com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
+project@edu.uci.python.builtins@dependencies=edu.uci.python.nodes,edu.uci.python.runtime,edu.uci.python.profiler,com.oracle.truffle.api,com.oracle.truffle.api.dsl,JYTHON
 project@edu.uci.python.builtins@checkstyle=edu.uci.python.runtime
 project@edu.uci.python.builtins@javaCompliance=1.8
 project@edu.uci.python.builtins@annotationProcessors=com.oracle.truffle.dsl.processor

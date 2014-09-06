@@ -1550,7 +1550,6 @@ def bench(args):
         
     if 'python-profile-calls' in args:
         benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-calls")   
-        print("benchmarks", benchmarks) 
 
     if 'python-profile-control-flow' in args:
         benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-control-flow")   

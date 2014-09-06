@@ -39,9 +39,12 @@ import edu.uci.python.runtime.*;
 
 public class PythonProfilerNodeProber implements ASTNodeProber {
 
-    private final PythonContext context;
+    private final static PythonProfilerNodeProber INSTANCE = new PythonProfilerNodeProber();
+
+    // private final PythonContext context;
     private List<ProfilerInstrument> nodeInstruments;
     private List<ProfilerInstrument> callInstruments;
+    private List<TimeProfilerInstrument> timeInstruments;
     private List<ProfilerInstrument> loopInstruments;
     private List<ProfilerInstrument> breakContinueInstruments;
     private List<ProfilerInstrument> variableAccessInstruments;
@@ -54,10 +57,12 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
 
     private Map<ProfilerInstrument, List<ProfilerInstrument>> ifInstruments;
 
-    public PythonProfilerNodeProber(PythonContext context) {
-        this.context = context;
+    // public PythonProfilerNodeProber(PythonContext context) {
+    private PythonProfilerNodeProber() {
+        // this.context = context;
         nodeInstruments = new ArrayList<>();
         callInstruments = new ArrayList<>();
+        timeInstruments = new ArrayList<>();
         loopInstruments = new ArrayList<>();
         breakContinueInstruments = new ArrayList<>();
         variableAccessInstruments = new ArrayList<>();
@@ -69,30 +74,40 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         ifInstruments = new LinkedHashMap<>();
     }
 
+    public static PythonProfilerNodeProber getInstance() {
+        return INSTANCE;
+    }
+
     public Node probeAs(Node astNode, PhylumTag tag, Object... args) {
         return astNode;
     }
 
-    public PythonWrapperNode probeAsCall(PNode node) {
-        PythonWrapperNode wrapper = createWrapper(node);
+    public PythonWrapperNode probeAsCall(PNode node, PythonContext context) {
+        PythonWrapperNode wrapper = createWrapper(node, context);
         wrapper.getProbe().tagAs(StandardTag.CALL);
-        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-        callInstruments.add(profilerInstrument);
+        if (PythonOptions.ProfileTime) {
+            TimeProfilerInstrument profilerInstrument = createAttachTimeProfilerInstrument(wrapper);
+            timeInstruments.add(profilerInstrument);
+        } else {
+            ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
+            callInstruments.add(profilerInstrument);
+        }
+
         return wrapper;
     }
 
-    public PythonWrapperNode probeAsLoop(PNode node) {
-        PythonWrapperNode wrapper = createWrapper(node);
+    public PythonWrapperNode probeAsLoop(PNode node, PythonContext context) {
+        PythonWrapperNode wrapper = createWrapper(node, context);
         ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
         loopInstruments.add(profilerInstrument);
         return wrapper;
     }
 
-    public List<PythonWrapperNode> probeAsIf(PNode ifNode, PNode thenNode, PNode elseNode) {
+    public List<PythonWrapperNode> probeAsIf(PNode ifNode, PNode thenNode, PNode elseNode, PythonContext context) {
         List<PythonWrapperNode> wrappers = new ArrayList<>();
-        PythonWrapperNode ifWrapper = createWrapper(ifNode);
-        PythonWrapperNode thenWrapper = createWrapper(thenNode);
-        PythonWrapperNode elseWrapper = createWrapper(elseNode);
+        PythonWrapperNode ifWrapper = createWrapper(ifNode, context);
+        PythonWrapperNode thenWrapper = createWrapper(thenNode, context);
+        PythonWrapperNode elseWrapper = createWrapper(elseNode, context);
         wrappers.add(ifWrapper);
         wrappers.add(thenWrapper);
         wrappers.add(elseWrapper);
@@ -108,10 +123,10 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return wrappers;
     }
 
-    public List<PythonWrapperNode> probeAsIfWithoutElse(PNode ifNode, PNode thenNode) {
+    public List<PythonWrapperNode> probeAsIfWithoutElse(PNode ifNode, PNode thenNode, PythonContext context) {
         List<PythonWrapperNode> wrappers = new ArrayList<>();
-        PythonWrapperNode ifWrapper = createWrapper(ifNode);
-        PythonWrapperNode thenWrapper = createWrapper(thenNode);
+        PythonWrapperNode ifWrapper = createWrapper(ifNode, context);
+        PythonWrapperNode thenWrapper = createWrapper(thenNode, context);
         wrappers.add(ifWrapper);
         wrappers.add(thenWrapper);
 
@@ -123,15 +138,15 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return wrappers;
     }
 
-    public PythonWrapperNode probeAsBreakContinue(PNode node) {
-        PythonWrapperNode wrapper = createWrapper(node);
+    public PythonWrapperNode probeAsBreakContinue(PNode node, PythonContext context) {
+        PythonWrapperNode wrapper = createWrapper(node, context);
         ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
         breakContinueInstruments.add(profilerInstrument);
         return wrapper;
     }
 
-    public PythonWrapperNode probeAsVariableAccess(PNode node) {
-        PythonWrapperNode wrapper = createWrapper(node);
+    public PythonWrapperNode probeAsVariableAccess(PNode node, PythonContext context) {
+        PythonWrapperNode wrapper = createWrapper(node, context);
 
         if (PythonOptions.ProfileTypeDistribution) {
             TypeDistributionProfilerInstrument profilerInstrument = createAttachTypeDistributionProfilerInstrument(wrapper);
@@ -144,8 +159,8 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
-    public PythonWrapperNode probeAsOperation(PNode node) {
-        PythonWrapperNode wrapper = createWrapper(node);
+    public PythonWrapperNode probeAsOperation(PNode node, PythonContext context) {
+        PythonWrapperNode wrapper = createWrapper(node, context);
 
         if (PythonOptions.ProfileTypeDistribution) {
             TypeDistributionProfilerInstrument profilerInstrument = createAttachTypeDistributionProfilerInstrument(wrapper);
@@ -158,8 +173,8 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
-    public PythonWrapperNode probeAsAttributeElement(PNode node) {
-        PythonWrapperNode wrapper = createWrapper(node);
+    public PythonWrapperNode probeAsAttributeElement(PNode node, PythonContext context) {
+        PythonWrapperNode wrapper = createWrapper(node, context);
 
         if (PythonOptions.ProfileTypeDistribution) {
             TypeDistributionProfilerInstrument profilerInstrument = createAttachTypeDistributionProfilerInstrument(wrapper);
@@ -172,14 +187,14 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
-    public PythonWrapperNode probeAsNode(PNode node) {
-        PythonWrapperNode wrapper = createWrapper(node);
+    public PythonWrapperNode probeAsNode(PNode node, PythonContext context) {
+        PythonWrapperNode wrapper = createWrapper(node, context);
         ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
         nodeInstruments.add(profilerInstrument);
         return wrapper;
     }
 
-    private PythonWrapperNode createWrapper(PNode node) {
+    private static PythonWrapperNode createWrapper(PNode node, PythonContext context) {
         PythonWrapperNode wrapper;
         if (node instanceof PythonWrapperNode) {
             wrapper = (PythonWrapperNode) node;
@@ -207,12 +222,23 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return profilerInstrument;
     }
 
+    private static TimeProfilerInstrument createAttachTimeProfilerInstrument(PythonWrapperNode wrapper) {
+        TimeProfilerInstrument profilerInstrument = new TimeProfilerInstrument(wrapper.getChild());
+        profilerInstrument.assignSourceSection(wrapper.getChild().getSourceSection());
+        wrapper.getProbe().addInstrument(profilerInstrument);
+        return profilerInstrument;
+    }
+
     public List<ProfilerInstrument> getNodeInstruments() {
         return nodeInstruments;
     }
 
     public List<ProfilerInstrument> getCallInstruments() {
         return callInstruments;
+    }
+
+    public List<TimeProfilerInstrument> getTimeInstruments() {
+        return timeInstruments;
     }
 
     public List<ProfilerInstrument> getLoopInstruments() {
@@ -251,7 +277,4 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return attributeElementTypeDistributionInstruments;
     }
 
-    public PythonContext getContext() {
-        return context;
-    }
 }

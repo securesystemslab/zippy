@@ -79,7 +79,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.execute(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);

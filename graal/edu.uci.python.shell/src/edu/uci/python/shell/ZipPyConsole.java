@@ -35,6 +35,7 @@ import com.oracle.truffle.api.source.*;
 import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.parser.*;
+import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -44,15 +45,14 @@ public class ZipPyConsole extends InteractiveConsole {
     @Override
     public void execfile(java.io.InputStream s, String name) {
         PythonParser parser = new PythonParserImpl();
-        PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser);
+        PythonContext context = null;
 
         try {
             Source source = Source.fromFileName(name);
+            context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser, source);
             execfile(context, source);
         } catch (IOException e) {
             throw new IllegalStateException();
-        } finally {
-            context.shutdown();
         }
     }
 
