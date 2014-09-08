@@ -3114,11 +3114,12 @@ def clean(args, parser=None):
                 if config.exists():
                     os.unlink(config.path)
 
-    if args.dist:
-        for d in _dists.keys():
-            log('Removing distribution {0}...'.format(d))
-            _rmIfExists(distribution(d).path)
-            _rmIfExists(distribution(d).sourcesPath)
+    if args.java:
+        if args.dist:
+            for d in _dists.keys():
+                log('Removing distribution {0}...'.format(d))
+                _rmIfExists(distribution(d).path)
+                _rmIfExists(distribution(d).sourcesPath)
 
     if suppliedParser:
         return args
