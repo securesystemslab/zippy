@@ -97,7 +97,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executeInt(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -113,7 +115,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executeDouble(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -129,7 +133,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executeCharacter(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -145,7 +151,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executeBoolean(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -161,7 +169,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executeBigInteger(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -177,7 +187,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executeString(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -193,7 +205,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePString(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -209,7 +223,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePComplex(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -225,7 +241,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executeBytes(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -241,7 +259,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePDictionary(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -257,7 +277,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePList(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -273,7 +295,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePTuple(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -289,7 +313,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePRange(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -305,7 +331,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePSequence(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -321,7 +349,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePSet(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -337,7 +367,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePFrozenSet(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -353,7 +385,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePBaseSet(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -369,7 +403,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePIntArray(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -385,7 +421,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePDoubleArray(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -401,7 +439,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePCharArray(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -417,7 +457,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePArray(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -434,6 +476,7 @@ public class PythonWrapperNode extends PNode implements Wrapper {
         try {
             result = child.executePEnumerate(frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -449,7 +492,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePZip(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -465,7 +510,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePStartSlice(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -481,7 +528,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePStopSlice(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -497,7 +546,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePSlice(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -513,7 +564,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePGenerator(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -529,7 +582,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePDoubleIterator(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -545,7 +600,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePIntegerIterator(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -561,7 +618,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePIterator(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -577,7 +636,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePIterable(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -593,7 +654,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePNone(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -609,7 +672,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePythonBuiltinClass(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -625,7 +690,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePythonBuiltinObject(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -641,7 +708,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePythonModule(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -657,7 +726,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePythonClass(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -673,7 +744,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePythonObject(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -689,7 +762,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePyObject(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -705,7 +780,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executeObjectArray(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -721,7 +798,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePRangeIterator(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -737,7 +816,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePIntegerSequenceIterator(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -753,7 +834,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePSequenceIterator(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);
@@ -769,7 +852,9 @@ public class PythonWrapperNode extends PNode implements Wrapper {
 
         try {
             result = child.executePythonCallable(frame);
+            probe.leave(child, frame);
         } catch (KillException e) {
+            probe.leaveExceptional(child, frame, e);
             throw (e);
         } catch (Exception e) {
             throw (e);

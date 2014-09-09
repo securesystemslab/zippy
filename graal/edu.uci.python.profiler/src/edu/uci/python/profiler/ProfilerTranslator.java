@@ -36,7 +36,6 @@ import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.object.*;
-import edu.uci.python.profiler.*;
 import edu.uci.python.nodes.subscript.*;
 import edu.uci.python.runtime.*;
 
@@ -52,8 +51,6 @@ public class ProfilerTranslator implements NodeVisitor {
 
     public ProfilerTranslator(PythonContext context) {
         this.context = context;
-        // this.profilerProber = new PythonProfilerNodeProber(context);
-        // this.profilerProber = new PythonProfilerNodeProber();
         this.profilerProber = PythonProfilerNodeProber.getInstance();
         this.resultPrinter = new ProfilerResultPrinter(this.profilerProber);
     }
@@ -85,8 +82,8 @@ public class ProfilerTranslator implements NodeVisitor {
             profileOperations(node);
         }
 
-        if (PythonOptions.ProfileAttributesElements) {
-            profileAttributesElements(node);
+        if (PythonOptions.ProfileCollectionOperations) {
+            profileCollectionOperations(node);
         }
 
         return true;
@@ -155,6 +152,10 @@ public class ProfilerTranslator implements NodeVisitor {
                 createReadWriteWrapper((PNode) node);
             } else if (node instanceof ReadGlobalNode) {
                 createReadWriteWrapper((PNode) node);
+            } else if (node instanceof SetAttributeNode) {
+                createCollectionOperationWrapper((PNode) node);
+            } else if (node instanceof GetAttributeNode) {
+                createCollectionOperationWrapper((PNode) node);
             }
         }
     }
@@ -179,22 +180,18 @@ public class ProfilerTranslator implements NodeVisitor {
         }
     }
 
-    private void profileAttributesElements(Node node) {
+    private void profileCollectionOperations(Node node) {
         if (!(node.getParent() instanceof PythonCallNode)) {
-            if (node instanceof SetAttributeNode) {
-                createAttributeElementWrapper((PNode) node);
-            } else if (node instanceof GetAttributeNode) {
-                createAttributeElementWrapper((PNode) node);
-            } else if (node instanceof SubscriptLoadIndexNode) {
-                createAttributeElementWrapper((PNode) node);
+            if (node instanceof SubscriptLoadIndexNode) {
+                createCollectionOperationWrapper((PNode) node);
             } else if (node instanceof SubscriptLoadSliceNode) {
-                createAttributeElementWrapper((PNode) node);
+                createCollectionOperationWrapper((PNode) node);
             } else if (node instanceof SubscriptDeleteNode) {
-                createAttributeElementWrapper((PNode) node);
+                createCollectionOperationWrapper((PNode) node);
             } else if (node instanceof SubscriptStoreIndexNode) {
-                createAttributeElementWrapper((PNode) node);
+                createCollectionOperationWrapper((PNode) node);
             } else if (node instanceof SubscriptStoreSliceNode) {
-                createAttributeElementWrapper((PNode) node);
+                createCollectionOperationWrapper((PNode) node);
             }
         }
     }
@@ -262,9 +259,9 @@ public class ProfilerTranslator implements NodeVisitor {
         return null;
     }
 
-    private PythonWrapperNode createAttributeElementWrapper(PNode node) {
+    private PythonWrapperNode createCollectionOperationWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsAttributeElement(node, context);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsCollectionOperation(node, context);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }

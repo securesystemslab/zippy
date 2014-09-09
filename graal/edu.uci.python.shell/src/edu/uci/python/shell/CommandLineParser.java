@@ -74,7 +74,7 @@ public class CommandLineParser {
                 PythonOptions.ProfileControlFlow = true;
                 PythonOptions.ProfileVariableAccesses = true;
                 PythonOptions.ProfileOperations = true;
-                PythonOptions.ProfileAttributesElements = true;
+                PythonOptions.ProfileCollectionOperations = true;
                 PythonOptions.SortProfilerResults = true;
                 continue;
             }
@@ -100,7 +100,7 @@ public class CommandLineParser {
             }
 
             if (arg.equals("-profile-attributes-elements")) {
-                PythonOptions.ProfileAttributesElements = true;
+                PythonOptions.ProfileCollectionOperations = true;
                 continue;
             }
 
@@ -108,7 +108,7 @@ public class CommandLineParser {
                 PythonOptions.ProfileTypeDistribution = true;
                 PythonOptions.ProfileVariableAccesses = true;
                 PythonOptions.ProfileOperations = true;
-                PythonOptions.ProfileAttributesElements = true;
+                PythonOptions.ProfileCollectionOperations = true;
                 continue;
             }
 

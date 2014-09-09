@@ -75,7 +75,7 @@ public class PythonOptions {
 
     public static boolean ProfileOperations = false;
 
-    public static boolean ProfileAttributesElements = false;
+    public static boolean ProfileCollectionOperations = false;
 
     public static boolean ProfileTypeDistribution = false;
 

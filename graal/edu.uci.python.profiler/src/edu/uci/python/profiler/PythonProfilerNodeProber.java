@@ -41,7 +41,6 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
 
     private final static PythonProfilerNodeProber INSTANCE = new PythonProfilerNodeProber();
 
-    // private final PythonContext context;
     private List<ProfilerInstrument> nodeInstruments;
     private List<ProfilerInstrument> callInstruments;
     private List<TimeProfilerInstrument> timeInstruments;
@@ -49,17 +48,15 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
     private List<ProfilerInstrument> breakContinueInstruments;
     private List<ProfilerInstrument> variableAccessInstruments;
     private List<ProfilerInstrument> operationInstruments;
-    private List<ProfilerInstrument> attributeElementInstruments;
+    private List<ProfilerInstrument> collectionOperationsInstruments;
 
     private List<TypeDistributionProfilerInstrument> variableAccessTypeDistributionInstruments;
     private List<TypeDistributionProfilerInstrument> operationTypeDistributionInstruments;
-    private List<TypeDistributionProfilerInstrument> attributeElementTypeDistributionInstruments;
+    private List<TypeDistributionProfilerInstrument> collectionOperationTypeDistributionInstruments;
 
     private Map<ProfilerInstrument, List<ProfilerInstrument>> ifInstruments;
 
-    // public PythonProfilerNodeProber(PythonContext context) {
     private PythonProfilerNodeProber() {
-        // this.context = context;
         nodeInstruments = new ArrayList<>();
         callInstruments = new ArrayList<>();
         timeInstruments = new ArrayList<>();
@@ -67,10 +64,10 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         breakContinueInstruments = new ArrayList<>();
         variableAccessInstruments = new ArrayList<>();
         operationInstruments = new ArrayList<>();
-        attributeElementInstruments = new ArrayList<>();
+        collectionOperationsInstruments = new ArrayList<>();
         variableAccessTypeDistributionInstruments = new ArrayList<>();
         operationTypeDistributionInstruments = new ArrayList<>();
-        attributeElementTypeDistributionInstruments = new ArrayList<>();
+        collectionOperationTypeDistributionInstruments = new ArrayList<>();
         ifInstruments = new LinkedHashMap<>();
     }
 
@@ -173,15 +170,15 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
-    public PythonWrapperNode probeAsAttributeElement(PNode node, PythonContext context) {
+    public PythonWrapperNode probeAsCollectionOperation(PNode node, PythonContext context) {
         PythonWrapperNode wrapper = createWrapper(node, context);
 
         if (PythonOptions.ProfileTypeDistribution) {
             TypeDistributionProfilerInstrument profilerInstrument = createAttachTypeDistributionProfilerInstrument(wrapper);
-            attributeElementTypeDistributionInstruments.add(profilerInstrument);
+            collectionOperationTypeDistributionInstruments.add(profilerInstrument);
         } else {
             ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-            attributeElementInstruments.add(profilerInstrument);
+            collectionOperationsInstruments.add(profilerInstrument);
         }
 
         return wrapper;
@@ -261,8 +258,8 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return operationInstruments;
     }
 
-    public List<ProfilerInstrument> getAttributeElementInstruments() {
-        return attributeElementInstruments;
+    public List<ProfilerInstrument> getCollectionOperationsInstruments() {
+        return collectionOperationsInstruments;
     }
 
     public List<TypeDistributionProfilerInstrument> getVariableAccessTypeDistributionInstruments() {
@@ -273,8 +270,8 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return operationTypeDistributionInstruments;
     }
 
-    public List<TypeDistributionProfilerInstrument> getAttributeElementTypeDistributionInstruments() {
-        return attributeElementTypeDistributionInstruments;
+    public List<TypeDistributionProfilerInstrument> getCollectionOperationsTypeDistributionInstruments() {
+        return collectionOperationTypeDistributionInstruments;
     }
 
 }
