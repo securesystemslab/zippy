@@ -217,7 +217,10 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
 
   static BasicType kindToBasicType(jchar ch);
   static address create_external_deopt_i2c();
-  static address get_external_deopt_i2c_entry() {return _external_deopt_i2c_entry;}
+  static address get_external_deopt_i2c_entry() {
+    guarantee(_external_deopt_i2c_entry != NULL, "unsupported");
+    return _external_deopt_i2c_entry;
+  }
 
   // The following routines are all called from compiled Graal code
 

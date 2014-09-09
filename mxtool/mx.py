@@ -64,7 +64,7 @@ _warn = False
 A distribution is a jar or zip file containing the output from one or more Java projects.
 """
 class Distribution:
-    def __init__(self, suite, name, path, sourcesPath, deps, mainClass, excludedDependencies, distDependencies):
+    def __init__(self, suite, name, path, sourcesPath, deps, mainClass, excludedDependencies, distDependencies, javaCompliance):
         self.suite = suite
         self.name = name
         self.path = path.replace('/', os.sep)
@@ -75,6 +75,7 @@ class Distribution:
         self.mainClass = mainClass
         self.excludedDependencies = excludedDependencies
         self.distDependencies = distDependencies
+        self.javaCompliance = JavaCompliance(javaCompliance) if javaCompliance else None
 
     def sorted_deps(self, includeLibs=False, transitive=False):
         deps = []
@@ -168,6 +169,10 @@ class Distribution:
 
                     if isCoveredByDependecy:
                         continue
+
+                    if self.javaCompliance:
+                        if p.javaCompliance > self.javaCompliance:
+                            abort("Compliance level doesn't match: Distribution {0} requires {1}, but {2} is {3}.".format(self.name, self.javaCompliance, p.name, p.javaCompliance))
 
                     # skip a  Java project if its Java compliance level is "higher" than the configured JDK
                     jdk = java(p.javaCompliance)
@@ -930,7 +935,8 @@ class Suite:
             mainClass = attrs.pop('mainClass', None)
             exclDeps = pop_list(attrs, 'exclude')
             distDeps = pop_list(attrs, 'distDependencies')
-            d = Distribution(self, name, path, sourcesPath, deps, mainClass, exclDeps, distDeps)
+            javaCompliance = attrs.pop('javaCompliance', None)
+            d = Distribution(self, name, path, sourcesPath, deps, mainClass, exclDeps, distDeps, javaCompliance)
             d.__dict__.update(attrs)
             self.dists.append(d)
 
@@ -955,7 +961,8 @@ class Suite:
                 mainClass = None
                 exclDeps = []
                 distDeps = []
-                d = Distribution(self, dname, path, sourcesPath, deps, mainClass, exclDeps, distDeps)
+                javaCompliance = None
+                d = Distribution(self, dname, path, sourcesPath, deps, mainClass, exclDeps, distDeps, javaCompliance)
                 d.subDir = os.path.relpath(os.path.dirname(p.dir), self.dir)
                 self.dists.append(d)
                 p.definedAnnotationProcessors = annotationProcessors
@@ -2445,11 +2452,11 @@ def build(args, parser=None):
         if p.definedAnnotationProcessorsDist:
             updatedAnnotationProcessorDists.add(p.definedAnnotationProcessorsDist)
 
+        tasks[p.name] = task
         if args.parallelize:
             # Best to initialize class paths on main process
             jdk.bootclasspath()
             task.proc = None
-            tasks[p.name] = task
         else:
             task.execute()
 
@@ -3107,11 +3114,12 @@ def clean(args, parser=None):
                 if config.exists():
                     os.unlink(config.path)
 
-    if args.dist:
-        for d in _dists.keys():
-            log('Removing distribution {0}...'.format(d))
-            _rmIfExists(distribution(d).path)
-            _rmIfExists(distribution(d).sourcesPath)
+    if args.java:
+        if args.dist:
+            for d in _dists.keys():
+                log('Removing distribution {0}...'.format(d))
+                _rmIfExists(distribution(d).path)
+                _rmIfExists(distribution(d).sourcesPath)
 
     if suppliedParser:
         return args
@@ -3970,14 +3978,14 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
         out.open('source-roots')
         out.element('root', {'id' : 'src.dir'})
         if len(p.annotation_processors()) > 0:
-            out.element('root', {'id' : 'src.ap-source-output.dir'})
+            out.element('root', {'id' : 'src.ap-source-output.dir', 'name' : 'Generated Packages'})
         out.close('source-roots')
         out.open('test-roots')
         out.close('test-roots')
         out.close('data')
 
         firstDep = True
-        for dep in p.all_deps([], True):
+        for dep in p.all_deps([], includeLibs=False, includeAnnotationProcessors=True):
             if dep == p:
                 continue
 
@@ -4012,7 +4020,10 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
         annotationProcessorSrcFolder = ""
         if len(p.annotation_processors()) > 0:
             annotationProcessorEnabled = "true"
-            annotationProcessorSrcFolder = "src.ap-source-output.dir=${build.generated.sources.dir}/ap-source-output"
+            genSrcDir = p.source_gen_dir()
+            if not exists(genSrcDir):
+                os.makedirs(genSrcDir)
+            annotationProcessorSrcFolder = "src.ap-source-output.dir=" + genSrcDir
 
         content = """
 annotation.processing.enabled=""" + annotationProcessorEnabled + """
@@ -4025,7 +4036,6 @@ build.classes.dir=${build.dir}
 build.classes.excludes=**/*.java,**/*.form
 # This directory is removed when the project is cleaned:
 build.dir=bin
-build.generated.dir=${build.dir}/generated
 build.generated.sources.dir=${build.dir}/generated-sources
 # Only compile against the classpath explicitly listed here:
 build.sysclasspath=ignore
@@ -4046,7 +4056,7 @@ excludes=
 includes=**
 jar.compress=false
 # Space-separated list of extra javac options
-javac.compilerargs=
+javac.compilerargs=-XDignore.symbol.file
 javac.deprecation=false
 javac.source=""" + str(p.javaCompliance) + """
 javac.target=""" + str(p.javaCompliance) + """
@@ -4090,13 +4100,11 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
             srcDir = join(p.dir, src)
             if not exists(srcDir):
                 os.mkdir(srcDir)
-            ref = 'file.reference.' + p.name + '-' + src
-            print >> out, ref + '=' + src
             if mainSrc:
-                print >> out, 'src.dir=${' + ref + '}'
+                print >> out, 'src.dir=' + srcDir
                 mainSrc = False
             else:
-                print >> out, 'src.' + src + '.dir=${' + ref + '}'
+                print >> out, 'src.' + src + '.dir=' + srcDir
 
         javacClasspath = []
 
@@ -4117,24 +4125,19 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
 
             if dep.isLibrary():
                 path = dep.get_path(resolve=True)
-                if path:
-                    if os.sep == '\\':
-                        path = path.replace('\\', '\\\\')
-                    ref = 'file.reference.' + dep.name + '-bin'
-                    print >> out, ref + '=' + path
-                    libFiles.append(path)
+                libFiles.append(path)
 
             elif dep.isProject():
-                n = dep.name.replace('.', '_')
-                relDepPath = os.path.relpath(dep.dir, p.dir).replace(os.sep, '/')
-                ref = 'reference.' + n + '.jar'
-                print >> out, 'project.' + n + '=' + relDepPath
-                print >> out, ref + '=${project.' + n + '}/dist/' + dep.name + '.jar'
+                path = join(dep.dir, 'dist', dep.name + '.jar')
 
-            if not dep in annotationProcessorOnlyDeps:
-                javacClasspath.append('${' + ref + '}')
-            else:
-                annotationProcessorReferences.append('${' + ref + '}')
+            if path:
+                if os.sep == '\\':
+                    path = path.replace('\\', '\\\\')
+
+                if not dep in annotationProcessorOnlyDeps:
+                    javacClasspath.append(path)
+                else:
+                    annotationProcessorReferences.append(path)
 
         print >> out, 'javac.classpath=\\\n    ' + (os.pathsep + '\\\n    ').join(javacClasspath)
         print >> out, 'javac.processorpath=' + (os.pathsep + '\\\n    ').join(['${javac.classpath}'] + annotationProcessorReferences)
@@ -4146,10 +4149,12 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
 
     if updated:
         log('If using NetBeans:')
-        log('  1. Ensure that the following platform(s) are defined (Tools -> Java Platforms):')
+        # http://stackoverflow.com/questions/24720665/cant-resolve-jdk-internal-package
+        log('  1. Edit etc/netbeans.conf in your NetBeans installation and modify netbeans_default_options variable to include "-J-DCachingArchiveProvider.disableCtSym=true"')
+        log('  2. Ensure that the following platform(s) are defined (Tools -> Java Platforms):')
         for jdk in jdks:
             log('        JDK_' + str(jdk.version))
-        log('  2. Open/create a Project Group for the directory containing the projects (File -> Project Group -> New Group... -> Folder of Projects)')
+        log('  3. Open/create a Project Group for the directory containing the projects (File -> Project Group -> New Group... -> Folder of Projects)')
 
     _zip_files(files, suite.dir, configZip.path)
     _zip_files(libFiles, suite.dir, configLibsZip)

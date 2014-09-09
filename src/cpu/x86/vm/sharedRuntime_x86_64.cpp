@@ -643,10 +643,11 @@ static void range_check(MacroAssembler* masm, Register pc_reg, Register temp_reg
 }
 
 void SharedRuntime::gen_i2c_adapter(MacroAssembler *masm,
-                            int total_args_passed,
-                            int comp_args_on_stack,
-                            const BasicType *sig_bt,
-                            const VMRegPair *regs) {
+                                    int total_args_passed,
+                                    int comp_args_on_stack,
+                                    const BasicType *sig_bt,
+                                    const VMRegPair *regs,
+                                    int frame_extension_argument) {
 
   // Note: r13 contains the senderSP on entry. We must preserve it since
   // we may do a i2c -> c2i transition if we lose a race where compiled
@@ -703,6 +704,42 @@ void SharedRuntime::gen_i2c_adapter(MacroAssembler *masm,
     __ bind(L_ok);
     __ block_comment("} verify_i2ce ");
   }
+
+#ifdef GRAAL
+  if (frame_extension_argument != -1) {
+    // The frame_extension_argument is an int that describes the
+    // expected amount of argument space in the caller frame.  If that
+    // is greater than total_args_passed then enlarge the caller frame
+    // by that amount to ensure deopt works correctly.
+    assert(frame_extension_argument < total_args_passed, "out of range");
+    assert(sig_bt[frame_extension_argument] == T_INT, "wrong signature");
+
+    Label done;
+    int i = frame_extension_argument;
+    int ld_off = (total_args_passed - i)*Interpreter::stackElementSize;
+    // Check if anything needs to be done.  Too much space is ok.
+    __ movl(r13, Address(rsp, ld_off));
+    __ cmpl(r13, total_args_passed);
+    __ jcc(Assembler::lessEqual, done);
+    // Save the old rsp for the copy code
+    __ movptr(r11, rsp);
+    // Enlarge the frame
+    __ subl(r13, total_args_passed);
+    __ shlq(r13, 3);
+    __ subptr(rsp, r13);
+
+    // Now copy the arguments in reverse order so they don't get
+    // overwritten during the copy.
+    for (int i = total_args_passed - 1; i >= 0; i--) {
+      int ld_off = (total_args_passed - i) * Interpreter::stackElementSize;
+      __ movptr(r13, Address(r11, ld_off));
+      __ movptr(Address(rsp, ld_off), r13);
+    }
+    __ bind(done);
+  }
+#else
+  assert(frame_extension_argument == -1, "unsupported");
+#endif
 
   // Must preserve original SP for loading incoming arguments because
   // we need to align the outgoing SP for compiled code.

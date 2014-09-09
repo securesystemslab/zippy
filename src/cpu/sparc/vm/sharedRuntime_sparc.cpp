@@ -516,10 +516,11 @@ class AdapterGenerator {
                               const VMRegPair *regs,
                               Label& skip_fixup);
   void gen_i2c_adapter(int total_args_passed,
-                              // VMReg max_arg,
-                              int comp_args_on_stack, // VMRegStackSlots
-                              const BasicType *sig_bt,
-                              const VMRegPair *regs);
+                       // VMReg max_arg,
+                       int comp_args_on_stack, // VMRegStackSlots
+                       const BasicType *sig_bt,
+                       const VMRegPair *regs,
+                       int frame_extension_argument = -1);
 
   AdapterGenerator(MacroAssembler *_masm) : masm(_masm) {}
 };
@@ -763,12 +764,13 @@ static void range_check(MacroAssembler* masm, Register pc_reg, Register temp_reg
   __ bind(L_fail);
 }
 
-void AdapterGenerator::gen_i2c_adapter(
-                            int total_args_passed,
-                            // VMReg max_arg,
-                            int comp_args_on_stack, // VMRegStackSlots
-                            const BasicType *sig_bt,
-                            const VMRegPair *regs) {
+void AdapterGenerator::gen_i2c_adapter(int total_args_passed,
+                                       // VMReg max_arg,
+                                       int comp_args_on_stack, // VMRegStackSlots
+                                       const BasicType *sig_bt,
+                                       const VMRegPair *regs,
+                                       int frame_extension_argument) {
+  assert(frame_extension_argument == -1, "unsupported");
 
   // Generate an I2C adapter: adjust the I-frame to make space for the C-frame
   // layout.  Lesp was saved by the calling I-frame and will be restored on
@@ -1026,9 +1028,10 @@ void SharedRuntime::gen_i2c_adapter(MacroAssembler *masm,
                                     int total_args_passed,
                                     int comp_args_on_stack,
                                     const BasicType *sig_bt,
-                                    const VMRegPair *regs) {
+                                    const VMRegPair *regs,
+                                    int frame_extension_arguments) {
   AdapterGenerator agen(masm);
-  agen.gen_i2c_adapter(total_args_passed, comp_args_on_stack, sig_bt, regs);
+  agen.gen_i2c_adapter(total_args_passed, comp_args_on_stack, sig_bt, regs, frame_extension_arguments);
 }
 
 // ---------------------------------------------------------------

@@ -249,6 +249,7 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
             int myActionReason = Deoptimization::make_trap_request(Deoptimization::trap_request_reason(pdeopt->reason()), Deoptimization::Action_none);
             javaArgs.push_int(myActionReason);
             javaArgs.push_oop((oop) NULL);
+            javaArgs.push_int(mh->size_of_parameters());
             if (TraceGPUInteraction) {
               tty->print_cr("[HSAIL] Deoptimizing to host for workitem=%d (slot=%d) with deoptId=%d, frame=" INTPTR_FORMAT ", actionAndReason=%d", workitem, k, deoptId, hsailFrame, myActionReason);
               // show the $d registers or stack slots containing references

@@ -378,7 +378,9 @@ def _vmCfgInJdk(jdk, jvmCfgFile='jvm.cfg'):
 def _jdksDir():
     return os.path.abspath(join(_installed_jdks if _installed_jdks else _graal_home, 'jdk' + str(mx.java().version)))
 
-def _handle_missing_VM(bld, vm):
+def _handle_missing_VM(bld, vm=None):
+    if not vm:
+        vm = _get_vm()
     mx.log('The ' + bld + ' ' + vm + ' VM has not been created')
     if sys.stdout.isatty():
         if mx.ask_yes_no('Build it now', 'y'):
@@ -387,10 +389,12 @@ def _handle_missing_VM(bld, vm):
             return
     mx.abort('You need to run "mx --vm ' + vm + ' --vmbuild ' + bld + ' build" to build the selected VM')
 
-def _jdk(build='product', vmToCheck=None, create=False, installJars=True):
+def _jdk(build=None, vmToCheck=None, create=False, installJars=True):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
+    if not build:
+        build = _vmbuild if _vmSourcesAvailable else 'product'
     jdk = join(_jdksDir(), build)
     if create:
         srcJdk = mx.java().jdk
@@ -462,7 +466,7 @@ def _jdk(build='product', vmToCheck=None, create=False, installJars=True):
         if not exists(jdk):
             if _installed_jdks:
                 mx.log("The selected JDK directory does not (yet) exist: " + jdk)
-            _handle_missing_VM(build, vmToCheck if vmToCheck else 'graal')
+            _handle_missing_VM(build, vmToCheck)
 
     if installJars:
         for jdkDist in _jdkDeployedDists:
@@ -655,8 +659,7 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
 
 def jdkhome(vm=None):
     """return the JDK directory selected for the 'vm' command"""
-    build = _vmbuild if _vmSourcesAvailable else 'product'
-    return _jdk(build, installJars=False)
+    return _jdk(installJars=False)
 
 def print_jdkhome(args, vm=None):
     """print the JDK directory selected for the 'vm' command"""
@@ -975,7 +978,7 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
     elif _vm_cwd is not None and _vm_cwd != cwd:
         mx.abort("conflicting working directories: do not set --vmcwd for this command")
 
-    build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
+    build = vmbuild if vmbuild else _vmbuild if _vmSourcesAvailable else 'product'
     jdk = _jdk(build, vmToCheck=vm, installJars=False)
     _updateInstalledGraalOptionsFile(jdk)
     mx.expand_project_in_args(args)
@@ -1330,6 +1333,41 @@ class Task:
         mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: ABORT: ') + self.title + ' [' + str(self.duration) + ']')
         mx.abort(codeOrMessage)
         return self
+
+def ctw(args):
+    """run CompileTheWorld"""
+    from sanitycheck import CTWMode
+    modes = {
+             'noinline' : CTWMode.NoInline,
+             'nocomplex' : CTWMode.NoComplex,
+             'full' : CTWMode.Full
+             }
+    mode = sanitycheck.CTWMode.NoInline
+    vmargs = []
+    for a in args:
+        m = modes.get(a, None)
+        if m:
+            mode = m
+        else:
+            vmargs.append(a)
+
+    jdk = _jdk(installJars=False)
+    rtjar = join(jdk, 'jre', 'lib', 'rt.jar')
+
+    vm_ = _get_vm()
+
+    args = vmargs + ['-XX:+CompileTheWorld', '-Xbootclasspath/p:' + rtjar]
+    if vm_ == 'graal':
+        args += ['-XX:+BootstrapGraal']
+    if mode >= CTWMode.NoInline:
+        if not isGraalEnabled(vm_):
+            args.append('-XX:-Inline')
+        else:
+            args.append('-G:-Inline')
+    if mode >= CTWMode.NoComplex:
+        if isGraalEnabled(vm_):
+            args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-NewMemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
+    vm(args)
 
 def _basic_gate_body(args, tasks):
     t = Task('BuildHotSpotGraal: fastdebug,product')
@@ -2248,6 +2286,7 @@ def mx_init(suite):
         'c1visualizer' : [c1visualizer, ''],
         'checkheaders': [checkheaders, ''],
         'clean': [clean, ''],
+        'ctw': [ctw, '[-vmoptions|noinline|nocomplex|full]'],
         'findbugs': [findbugs, ''],
         'generateZshCompletion' : [generateZshCompletion, ''],
         'hsdis': [hsdis, '[att]'],
