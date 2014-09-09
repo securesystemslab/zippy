@@ -3978,14 +3978,14 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
         out.open('source-roots')
         out.element('root', {'id' : 'src.dir'})
         if len(p.annotation_processors()) > 0:
-            out.element('root', {'id' : 'src.ap-source-output.dir'})
+            out.element('root', {'id' : 'src.ap-source-output.dir', 'name' : 'Generated Packages'})
         out.close('source-roots')
         out.open('test-roots')
         out.close('test-roots')
         out.close('data')
 
         firstDep = True
-        for dep in p.all_deps([], True):
+        for dep in p.all_deps([], includeLibs=False, includeAnnotationProcessors=True):
             if dep == p:
                 continue
 
@@ -4020,7 +4020,10 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
         annotationProcessorSrcFolder = ""
         if len(p.annotation_processors()) > 0:
             annotationProcessorEnabled = "true"
-            annotationProcessorSrcFolder = "src.ap-source-output.dir=${build.generated.sources.dir}/ap-source-output"
+            genSrcDir = p.source_gen_dir()
+            if not exists(genSrcDir):
+                os.makedirs(genSrcDir)
+            annotationProcessorSrcFolder = "src.ap-source-output.dir=" + genSrcDir
 
         content = """
 annotation.processing.enabled=""" + annotationProcessorEnabled + """
@@ -4033,7 +4036,6 @@ build.classes.dir=${build.dir}
 build.classes.excludes=**/*.java,**/*.form
 # This directory is removed when the project is cleaned:
 build.dir=bin
-build.generated.dir=${build.dir}/generated
 build.generated.sources.dir=${build.dir}/generated-sources
 # Only compile against the classpath explicitly listed here:
 build.sysclasspath=ignore
@@ -4054,7 +4056,7 @@ excludes=
 includes=**
 jar.compress=false
 # Space-separated list of extra javac options
-javac.compilerargs=
+javac.compilerargs=-XDignore.symbol.file
 javac.deprecation=false
 javac.source=""" + str(p.javaCompliance) + """
 javac.target=""" + str(p.javaCompliance) + """
@@ -4154,10 +4156,12 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
 
     if updated:
         log('If using NetBeans:')
-        log('  1. Ensure that the following platform(s) are defined (Tools -> Java Platforms):')
+        # http://stackoverflow.com/questions/24720665/cant-resolve-jdk-internal-package
+        log('  1. Edit etc/netbeans.conf in your NetBeans installation and modify netbeans_default_options variable to include "-J-DCachingArchiveProvider.disableCtSym=true"')
+        log('  2. Ensure that the following platform(s) are defined (Tools -> Java Platforms):')
         for jdk in jdks:
             log('        JDK_' + str(jdk.version))
-        log('  2. Open/create a Project Group for the directory containing the projects (File -> Project Group -> New Group... -> Folder of Projects)')
+        log('  3. Open/create a Project Group for the directory containing the projects (File -> Project Group -> New Group... -> Folder of Projects)')
 
     _zip_files(files, suite.dir, configZip.path)
     _zip_files(libFiles, suite.dir, configLibsZip)
