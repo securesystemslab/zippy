@@ -4100,13 +4100,11 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
             srcDir = join(p.dir, src)
             if not exists(srcDir):
                 os.mkdir(srcDir)
-            ref = 'file.reference.' + p.name + '-' + src
-            print >> out, ref + '=' + src
             if mainSrc:
-                print >> out, 'src.dir=${' + ref + '}'
+                print >> out, 'src.dir=' + srcDir
                 mainSrc = False
             else:
-                print >> out, 'src.' + src + '.dir=${' + ref + '}'
+                print >> out, 'src.' + src + '.dir=' + srcDir
 
         javacClasspath = []
 
@@ -4127,24 +4125,19 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
 
             if dep.isLibrary():
                 path = dep.get_path(resolve=True)
-                if path:
-                    if os.sep == '\\':
-                        path = path.replace('\\', '\\\\')
-                    ref = 'file.reference.' + dep.name + '-bin'
-                    print >> out, ref + '=' + path
-                    libFiles.append(path)
+                libFiles.append(path)
 
             elif dep.isProject():
-                n = dep.name.replace('.', '_')
-                relDepPath = os.path.relpath(dep.dir, p.dir).replace(os.sep, '/')
-                ref = 'reference.' + n + '.jar'
-                print >> out, 'project.' + n + '=' + relDepPath
-                print >> out, ref + '=${project.' + n + '}/dist/' + dep.name + '.jar'
+                path = join(dep.dir, 'dist', dep.name + '.jar')
 
-            if not dep in annotationProcessorOnlyDeps:
-                javacClasspath.append('${' + ref + '}')
-            else:
-                annotationProcessorReferences.append('${' + ref + '}')
+            if path:
+                if os.sep == '\\':
+                    path = path.replace('\\', '\\\\')
+
+                if not dep in annotationProcessorOnlyDeps:
+                    javacClasspath.append(path)
+                else:
+                    annotationProcessorReferences.append(path)
 
         print >> out, 'javac.classpath=\\\n    ' + (os.pathsep + '\\\n    ').join(javacClasspath)
         print >> out, 'javac.processorpath=' + (os.pathsep + '\\\n    ').join(['${javac.classpath}'] + annotationProcessorReferences)
