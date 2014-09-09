@@ -278,7 +278,10 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
     record_metadata_in_constant(value, oop_recorder);
     if (value->is_a(PrimitiveConstant::klass())) {
       assert(!reference, "unexpected primitive constant type");
-      if (type == T_INT || type == T_FLOAT) {
+      if(value->is_a(RawConstant::klass())) {
+        jlong prim = PrimitiveConstant::primitive(value);
+        return new ConstantLongValue(prim);
+      } else if (type == T_INT || type == T_FLOAT) {
         jint prim = (jint)PrimitiveConstant::primitive(value);
         return new ConstantIntValue(prim);
       } else {

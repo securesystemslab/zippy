@@ -205,6 +205,9 @@ void graal_compute_offsets();
   start_class(PrimitiveConstant)                                                                                                                               \
     long_field(PrimitiveConstant, primitive)                                                                                                                   \
   end_class                                                                                                                                                    \
+  start_class(RawConstant)                                                                                                                                     \
+    long_field(RawConstant, primitive)                                                                                                                         \
+  end_class                                                                                                                                                    \
   start_class(NullConstant)                                                                                                                                    \
   end_class                                                                                                                                                    \
   start_class(HotSpotCompressedNullConstant)                                                                                                                                    \

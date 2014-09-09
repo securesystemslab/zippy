@@ -318,6 +318,7 @@
   GRAAL_ONLY(template(com_oracle_graal_hotspot_CompilationTask,                 "com/oracle/graal/hotspot/CompilationTask"))                      \
   GRAAL_ONLY(template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant"))                            \
   GRAAL_ONLY(template(com_oracle_graal_api_meta_PrimitiveConstant,              "com/oracle/graal/api/meta/PrimitiveConstant"))                   \
+  GRAAL_ONLY(template(com_oracle_graal_api_meta_RawConstant,                    "com/oracle/graal/api/meta/RawConstant"))                         \
   GRAAL_ONLY(template(com_oracle_graal_api_meta_NullConstant,                   "com/oracle/graal/api/meta/NullConstant"))                        \
   GRAAL_ONLY(template(com_oracle_graal_api_meta_ExceptionHandler,               "com/oracle/graal/api/meta/ExceptionHandler"))                    \
   GRAAL_ONLY(template(com_oracle_graal_api_meta_JavaMethod,                     "com/oracle/graal/api/meta/JavaMethod"))                          \
