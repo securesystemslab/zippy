@@ -1029,9 +1029,9 @@ void SharedRuntime::gen_i2c_adapter(MacroAssembler *masm,
                                     int comp_args_on_stack,
                                     const BasicType *sig_bt,
                                     const VMRegPair *regs,
-                                    int frame_extension_arguments) {
+                                    int frame_extension_argument) {
   AdapterGenerator agen(masm);
-  agen.gen_i2c_adapter(total_args_passed, comp_args_on_stack, sig_bt, regs, frame_extension_arguments);
+  agen.gen_i2c_adapter(total_args_passed, comp_args_on_stack, sig_bt, regs, frame_extension_argument);
 }
 
 // ---------------------------------------------------------------
