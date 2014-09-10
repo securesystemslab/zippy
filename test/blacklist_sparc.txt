@@ -3,3 +3,4 @@ com.oracle.graal.replacements.test.StringSubstitutionsTest
 com.oracle.graal.hotspot.amd64.test.CompressedNullCheckTest
 com.oracle.graal.replacements.test.ArraysSubstitutionsTest
 com.oracle.graal.compiler.test.CheckGraalInvariants
+com.oracle.graal.truffle.test.SLTruffleGraalTestSuite
