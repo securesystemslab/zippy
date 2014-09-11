@@ -67,8 +67,6 @@ public class PythonOptions {
     // Profiling
     public static boolean ProfileCalls = false;
 
-    public static boolean ProfileTime = false;
-
     public static boolean ProfileControlFlow = false;
 
     public static boolean ProfileVariableAccesses = false;

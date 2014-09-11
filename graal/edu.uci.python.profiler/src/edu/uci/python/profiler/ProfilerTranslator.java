@@ -93,7 +93,10 @@ public class ProfilerTranslator implements NodeVisitor {
         if (node instanceof FunctionRootNode) {
             FunctionRootNode rootNode = (FunctionRootNode) node;
             PNode body = rootNode.getBody();
-            createCallWrapper(body);
+            createMethodBodyWrapper(body);
+        } else if (node instanceof PythonCallNode) {
+            PythonCallNode callNode = (PythonCallNode) node;
+            createCallWrapper(callNode);
         }
     }
 
@@ -196,9 +199,19 @@ public class ProfilerTranslator implements NodeVisitor {
         }
     }
 
+    private PythonWrapperNode createMethodBodyWrapper(PNode node) {
+        if (checkSourceSection(node)) {
+            PythonWrapperNode wrapperNode = profilerProber.probeAsMethodBody(node, context);
+            replaceNodeWithWrapper(node, wrapperNode);
+            return wrapperNode;
+        }
+
+        return null;
+    }
+
     private PythonWrapperNode createCallWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsCall(node, context);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsPythonCall(node, context);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -262,16 +275,6 @@ public class ProfilerTranslator implements NodeVisitor {
     private PythonWrapperNode createCollectionOperationWrapper(PNode node) {
         if (checkSourceSection(node)) {
             PythonWrapperNode wrapperNode = profilerProber.probeAsCollectionOperation(node, context);
-            replaceNodeWithWrapper(node, wrapperNode);
-            return wrapperNode;
-        }
-
-        return null;
-    }
-
-    private PythonWrapperNode createWrapper(PNode node) {
-        if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsNode(node, context);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }

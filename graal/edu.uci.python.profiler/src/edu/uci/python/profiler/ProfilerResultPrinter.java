@@ -33,6 +33,10 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.argument.*;
+import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
+import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.*;
@@ -56,87 +60,44 @@ public class ProfilerResultPrinter {
     }
 
     public void printCallProfilerResults() {
-        if (PythonOptions.ProfileTime) {
-            printTimeProfilerResults();
-        } else {
-            long totalCount = 0;
-            List<ProfilerInstrument> callInstruments = getInstruments(profilerProber.getCallInstruments());
-
-            if (callInstruments.size() > 0) {
-                printBanner("Call Profiling Results", 72);
-                /**
-                 * 50 is the length of the text by default padding left padding is added, so space
-                 * is added to the beginning of the string, minus sign adds padding to the right
-                 */
-
-                out.format("%-40s", "Function Name");
-                out.format("%-20s", "Number of Calls");
-                out.format("%-9s", "Line");
-                out.format("%-11s", "Column");
-                out.format("%-11s", "Length");
-                out.println();
-                out.println("===============                         ===============     ====     ======     ======");
-
-                for (ProfilerInstrument instrument : callInstruments) {
-                    if (instrument.getCounter() > 0) {
-                        Node node = instrument.getNode();
-                        if (node instanceof ReturnTargetNode) {
-                            out.format("%-40s", ((FunctionRootNode) node.getRootNode()).getFunctionName());
-                            out.format("%15s", instrument.getCounter());
-                            out.format("%9s", node.getSourceSection().getStartLine());
-                            out.format("%11s", node.getSourceSection().getStartColumn());
-                            out.format("%11s", node.getSourceSection().getCharLength());
-                        } else if (node instanceof PythonBuiltinNode) {
-                            out.format("%-40s", (((BuiltinFunctionRootNode) node.getRootNode()).getFunctionName()));
-                            out.format("%15s", instrument.getCounter());
-                            out.format("%9s", "-");
-                            out.format("%11s", "-");
-                            out.format("%11s", "-");
-                        }
-
-                        totalCount = totalCount + instrument.getCounter();
-                        out.println();
-                    }
-                }
-
-                out.println("Total number of executed instruments: " + totalCount);
-            }
-        }
-    }
-
-    public void printTimeProfilerResults() {
         long totalCount = 0;
-        List<TimeProfilerInstrument> callInstruments = profilerProber.getTimeInstruments();
+        List<TimeProfilerInstrument> callInstruments = profilerProber.getCallInstruments();
 
         if (callInstruments.size() > 0) {
-            printBanner("Time Profiling Results", 72);
+            printBanner("Call Time Profiling Results", 72);
             /**
              * 50 is the length of the text by default padding left padding is added, so space is
              * added to the beginning of the string, minus sign adds padding to the right
              */
 
             out.format("%-40s", "Function Name");
+            out.format("%-20s", "Counter");
             out.format("%-20s", "Total Time");
+            out.format("%-20s", "Cumulative Time");
             out.format("%-9s", "Line");
             out.format("%-11s", "Column");
             out.format("%-11s", "Length");
             out.println();
-            out.println("===============                         ===============     ====     ======     ======");
+            out.println("===============                         ===============     ===============     ===============     ====     ======     ======");
 
             for (TimeProfilerInstrument instrument : callInstruments) {
                 if (instrument.getCounter() > 0) {
+                    Node node = instrument.getNode();
                     excludeSubFunctionTime(instrument);
 
-// if (node instanceof ReturnTargetNode) {
-// out.format("%-40s", ((FunctionRootNode) node.getRootNode()).getFunctionName());
-// } else if (node instanceof PythonCallNode) {
-// out.format("%-40s", (((PythonCallNode) node)));
-// }
-// out.format("%15s", instrument.getTime());
-// totalCount = totalCount + instrument.getCounter();
-// out.format("%9s", node.getSourceSection().getStartLine());
-// out.format("%11s", node.getSourceSection().getStartColumn());
-// out.format("%11s", node.getSourceSection().getCharLength());
+                    if (node instanceof ReturnTargetNode) {
+                        out.format("%-40s", ((FunctionRootNode) node.getRootNode()).getFunctionName());
+                    } else if (node instanceof PythonBuiltinNode) {
+                        out.format("%-40s", (((BuiltinFunctionRootNode) node.getRootNode()).getFunctionName()));
+                    }
+
+                    out.format("%15s", instrument.getCounter());
+                    out.format("%20s", excludedTime);
+                    totalCount = totalCount + instrument.getCounter();
+                    out.format("%20s", instrument.getTime());
+                    out.format("%9s", node.getSourceSection().getStartLine());
+                    out.format("%11s", node.getSourceSection().getStartColumn());
+                    out.format("%11s", node.getSourceSection().getCharLength());
                     out.println();
                 }
             }
@@ -145,62 +106,44 @@ public class ProfilerResultPrinter {
         }
     }
 
-    private void excludeSubFunctionTime(TimeProfilerInstrument instrument) {
-        if (instrument.getCounter() > 0) {
-            Node node = instrument.getNode();
-            if (node instanceof ReturnTargetNode) {
-                System.out.println(((FunctionRootNode) node.getRootNode()).getFunctionName() + " time " + instrument.getTime());
-            } else if (node instanceof PythonBuiltinNode) {
-                System.out.println(((BuiltinFunctionRootNode) node.getRootNode()).getFunctionName() + " time " + instrument.getTime());
-            }
+    private static long excludedTime = 0;
 
-            for (Node child : node.getChildren()) {
-                child.accept(new NodeVisitor() {
-                    public boolean visit(Node childNode) {
-                        if (childNode instanceof DirectCallNode) {
-                            DirectCallNode callNode = (DirectCallNode) childNode;
-                            RootCallTarget callTarget = (RootCallTarget) callNode.getCallTarget();
-                            RootNode childRootNode = callTarget.getRootNode();
+    private static void excludeSubFunctionTime(TimeProfilerInstrument instrument) {
+        excludedTime = instrument.getTime();
+        Node functionBody = instrument.getNode();
 
-                            if (childRootNode instanceof FunctionRootNode || childRootNode instanceof BuiltinFunctionRootNode) {
-                                Node body = null;
+        functionBody.accept(new NodeVisitor() {
+            public boolean visit(Node node) {
+                if (node instanceof PythonCallNode) {
+                    if (node.getParent() instanceof PythonWrapperNode && (node.getParent().getParent() instanceof ArgumentsNode)) {
+                        PythonWrapperNode wrapper = (PythonWrapperNode) node.getParent();
+                        Node probe = (Node) wrapper.getProbe();
+                        TimeProfilerInstrument subCallInstrument = (TimeProfilerInstrument) probe.getChildren().iterator().next();
+
+                        if (node instanceof BoxedCallNode) {
+                            BoxedCallNode boxedCallNode = (BoxedCallNode) node;
+                            CallDispatchNode callDispatchNode = boxedCallNode.getDispatchNode();
+                            if (callDispatchNode instanceof LinkedDispatchBoxedNode) {
+                                LinkedDispatchBoxedNode linkDispatchNode = (LinkedDispatchBoxedNode) callDispatchNode;
+                                DirectCallNode callNode = linkDispatchNode.getInvokeNode().getDirectCallNode();
+                                RootCallTarget callTarget = (RootCallTarget) callNode.getCallTarget();
+                                RootNode childRootNode = callTarget.getRootNode();
+
                                 if (childRootNode instanceof FunctionRootNode) {
-                                    body = ((FunctionRootNode) childRootNode).getBody();
-                                } else if (childRootNode instanceof BuiltinFunctionRootNode) {
-                                    body = ((BuiltinFunctionRootNode) childRootNode).getBody();
-                                }
-
-                                if (body != null && body instanceof PythonWrapperNode) {
-                                    PythonWrapperNode wrapper = (PythonWrapperNode) body;
-                                    Node probe = (Node) wrapper.getProbe();
-                                    TimeProfilerInstrument subCallInstrument = (TimeProfilerInstrument) probe.getChildren().iterator().next();
-                                    if (!subCallInstrument.isVisited()) {
-                                        excludeSubFunctionTime(subCallInstrument);
-                                        subCallInstrument.setVisited();
-                                        if (node instanceof ReturnTargetNode) {
-                                            System.out.println(((FunctionRootNode) node.getRootNode()).getFunctionName() + " setting visited");
-                                        } else if (node instanceof PythonBuiltinNode) {
-                                            System.out.println(((BuiltinFunctionRootNode) node.getRootNode()).getFunctionName() + " setting visited");
-                                        }
-
+                                    if (node.getRootNode().equals(childRootNode)) {
+                                        return true;
                                     }
-
-                                    instrument.subtractSubFunctionTime(subCallInstrument.getExcludedTime());
                                 }
                             }
-
                         }
-                        return true;
-                    }
-                });
-            }
 
-            if (node instanceof ReturnTargetNode) {
-                System.out.println(((FunctionRootNode) node.getRootNode()).getFunctionName() + " excluded time " + instrument.getExcludedTime());
-            } else if (node instanceof PythonBuiltinNode) {
-                System.out.println(((BuiltinFunctionRootNode) node.getRootNode()).getFunctionName() + " excluded time " + instrument.getExcludedTime());
+                        excludedTime = excludedTime - subCallInstrument.getTime();
+                    }
+                }
+
+                return true;
             }
-        }
+        });
     }
 
     public void printControlFlowProfilerResults() {

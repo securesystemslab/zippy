@@ -42,8 +42,8 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
     private final static PythonProfilerNodeProber INSTANCE = new PythonProfilerNodeProber();
 
     private List<ProfilerInstrument> nodeInstruments;
-    private List<ProfilerInstrument> callInstruments;
-    private List<TimeProfilerInstrument> timeInstruments;
+    private List<TimeProfilerInstrument> callInstruments;
+    private List<TimeProfilerInstrument> pythonCallTimeInstruments;
     private List<ProfilerInstrument> loopInstruments;
     private List<ProfilerInstrument> breakContinueInstruments;
     private List<ProfilerInstrument> variableAccessInstruments;
@@ -59,7 +59,7 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
     private PythonProfilerNodeProber() {
         nodeInstruments = new ArrayList<>();
         callInstruments = new ArrayList<>();
-        timeInstruments = new ArrayList<>();
+        pythonCallTimeInstruments = new ArrayList<>();
         loopInstruments = new ArrayList<>();
         breakContinueInstruments = new ArrayList<>();
         variableAccessInstruments = new ArrayList<>();
@@ -79,17 +79,19 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return astNode;
     }
 
-    public PythonWrapperNode probeAsCall(PNode node, PythonContext context) {
+    public PythonWrapperNode probeAsMethodBody(PNode node, PythonContext context) {
         PythonWrapperNode wrapper = createWrapper(node, context);
         wrapper.getProbe().tagAs(StandardTag.CALL);
-        if (PythonOptions.ProfileTime) {
-            TimeProfilerInstrument profilerInstrument = createAttachTimeProfilerInstrument(wrapper);
-            timeInstruments.add(profilerInstrument);
-        } else {
-            ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-            callInstruments.add(profilerInstrument);
-        }
+        TimeProfilerInstrument profilerInstrument = createAttachTimeProfilerInstrument(wrapper);
+        callInstruments.add(profilerInstrument);
+        return wrapper;
+    }
 
+    public PythonWrapperNode probeAsPythonCall(PNode node, PythonContext context) {
+        PythonWrapperNode wrapper = createWrapper(node, context);
+        wrapper.getProbe().tagAs(StandardTag.CALL);
+        TimeProfilerInstrument profilerInstrument = createAttachTimeProfilerInstrument(wrapper);
+        pythonCallTimeInstruments.add(profilerInstrument);
         return wrapper;
     }
 
@@ -230,12 +232,12 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return nodeInstruments;
     }
 
-    public List<ProfilerInstrument> getCallInstruments() {
+    public List<TimeProfilerInstrument> getCallInstruments() {
         return callInstruments;
     }
 
-    public List<TimeProfilerInstrument> getTimeInstruments() {
-        return timeInstruments;
+    public List<TimeProfilerInstrument> getPythonCallTimeInstruments() {
+        return pythonCallTimeInstruments;
     }
 
     public List<ProfilerInstrument> getLoopInstruments() {

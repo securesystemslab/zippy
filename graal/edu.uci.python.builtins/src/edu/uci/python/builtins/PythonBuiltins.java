@@ -97,7 +97,10 @@ public abstract class PythonBuiltins {
             PNode body = rootNode.getBody();
             SourceSection sourceSection = source.createSection("builtin-in", index);
             body.assignSourceSection(sourceSection);
-            PythonWrapperNode wrapperNode = PythonProfilerNodeProber.getInstance().probeAsCall(body, context);
+
+            PythonWrapperNode wrapperNode = null;
+            wrapperNode = PythonProfilerNodeProber.getInstance().probeAsMethodBody(body, context);
+
             body.replace(wrapperNode);
             index++;
         }

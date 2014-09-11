@@ -37,18 +37,14 @@ public final class TimeProfilerInstrument extends Instrument {
 
     private final Node node;
     private long counter;
-    private long time;
     private long startTime;
-    private long excludedTime;
-    private boolean isVisited;
+    private long totalElapsedTime;
 
     public TimeProfilerInstrument(Node node) {
         this.node = node;
         this.counter = 0;
-        this.time = 0;
         this.startTime = 0;
-        this.excludedTime = 0;
-        isVisited = false;
+        this.totalElapsedTime = 0;
     }
 
     @Override
@@ -61,7 +57,7 @@ public final class TimeProfilerInstrument extends Instrument {
     public void leave(Node astNode, VirtualFrame frame) {
         long endTime = System.currentTimeMillis();
         long elapsedTime = endTime - startTime;
-        this.time = this.time + elapsedTime;
+        this.totalElapsedTime = this.totalElapsedTime + elapsedTime;
     }
 
     @Override
@@ -98,30 +94,7 @@ public final class TimeProfilerInstrument extends Instrument {
     }
 
     public long getTime() {
-        return time;
+        return totalElapsedTime;
     }
 
-    public void subtractSubFunctionTime(long subFunctiontime) {
-        if (this.excludedTime == 0) {
-            this.excludedTime = this.time;
-        }
-
-        this.excludedTime = this.excludedTime - subFunctiontime;
-    }
-
-    public long getExcludedTime() {
-        assert (excludedTime >= 0);
-        if (excludedTime == 0) {
-            return time;
-        }
-        return excludedTime;
-    }
-
-    public void setVisited() {
-        isVisited = true;
-    }
-
-    public boolean isVisited() {
-        return isVisited;
-    }
 }
