@@ -304,15 +304,16 @@ public class ProfilerResultPrinter {
             out.format("%-70s", "In Method");
             out.println();
             out.println("=============                                     ===============     ====     ======     ======     =======================================================");
+
             for (TypeDistributionProfilerInstrument profilerInstrument : instruments) {
-                Map<Class<? extends Node>, Long> types = profilerInstrument.getTypes();
-                Iterator<Map.Entry<Class<? extends Node>, Long>> it = types.entrySet().iterator();
+                Map<Class<? extends Node>, Counter> types = profilerInstrument.getTypes();
+                Iterator<Map.Entry<Class<? extends Node>, Counter>> it = types.entrySet().iterator();
 
                 while (it.hasNext()) {
-                    Entry<Class<? extends Node>, Long> entry = it.next();
+                    Entry<Class<? extends Node>, Counter> entry = it.next();
                     Node initialNode = profilerInstrument.getInitialNode();
                     Class<? extends Node> nodeClass = entry.getKey();
-                    Long counter = entry.getValue();
+                    long counter = entry.getValue().getCounter();
                     totalCount = totalCount + counter;
                     out.format("%-50s", nodeClass.getSimpleName());
                     out.format("%15s", counter);
@@ -325,6 +326,7 @@ public class ProfilerResultPrinter {
                 }
                 out.println();
             }
+
             out.println("Total number of executed instruments: " + totalCount);
         }
     }

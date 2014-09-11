@@ -27,6 +27,7 @@ package edu.uci.python.profiler;
 
 import java.util.*;
 
+import com.oracle.truffle.api.CompilerDirectives.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
@@ -38,7 +39,7 @@ import com.oracle.truffle.api.nodes.*;
 public final class TypeDistributionProfilerInstrument extends Instrument {
 
     private final Node initialNode;
-    private Map<Class<? extends Node>, Long> types;
+    private final Map<Class<? extends Node>, Counter> types;
 
     public TypeDistributionProfilerInstrument(Node initialNode) {
         this.initialNode = initialNode;
@@ -46,12 +47,41 @@ public final class TypeDistributionProfilerInstrument extends Instrument {
     }
 
     @Override
-    public void enter(Node astNode, VirtualFrame frame) {
+    public void leave(Node astNode, VirtualFrame frame) {
+        addNewNodeOrIncrement(astNode);
+    }
+
+    @Override
+    public void leave(Node astNode, VirtualFrame frame, boolean result) {
+        leave(astNode, frame);
+    }
+
+    @Override
+    public void leave(Node astNode, VirtualFrame frame, int result) {
+        leave(astNode, frame);
+    }
+
+    @Override
+    public void leave(Node astNode, VirtualFrame frame, double result) {
+        leave(astNode, frame);
+    }
+
+    @Override
+    public void leave(Node astNode, VirtualFrame frame, Object result) {
+        leave(astNode, frame);
+    }
+
+    @Override
+    public void leaveExceptional(Node astNode, VirtualFrame frame, Exception e) {
+        leave(astNode, frame);
+    }
+
+    @SlowPath
+    private void addNewNodeOrIncrement(Node astNode) {
         if (types.containsKey(astNode.getClass())) {
-            long counter = types.get(astNode.getClass());
-            types.put(astNode.getClass(), counter + 1);
+            types.get(astNode.getClass()).increment();
         } else {
-            types.put(astNode.getClass(), 1L);
+            types.put(astNode.getClass(), new Counter());
         }
     }
 
@@ -59,7 +89,7 @@ public final class TypeDistributionProfilerInstrument extends Instrument {
         return initialNode;
     }
 
-    public Map<Class<? extends Node>, Long> getTypes() {
+    public Map<Class<? extends Node>, Counter> getTypes() {
         return types;
     }
 
