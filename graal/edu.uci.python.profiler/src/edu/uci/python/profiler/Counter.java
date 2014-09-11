@@ -8,6 +8,10 @@ public class Counter {
         counter = 0;
     }
 
+    public Counter(long counter) {
+        this.counter = counter;
+    }
+
     public void increment() {
         counter++;
     }
