@@ -92,9 +92,9 @@ public class ProfilerResultPrinter {
                     }
 
                     out.format("%15s", instrument.getCounter());
-                    out.format("%20s", excludedTime);
+                    out.format("%20s", (excludedTime / 1000000000));
                     totalCount = totalCount + instrument.getCounter();
-                    out.format("%20s", instrument.getTime());
+                    out.format("%20s", (instrument.getTime() / 1000000000));
                     out.format("%9s", node.getSourceSection().getStartLine());
                     out.format("%11s", node.getSourceSection().getStartColumn());
                     out.format("%11s", node.getSourceSection().getCharLength());

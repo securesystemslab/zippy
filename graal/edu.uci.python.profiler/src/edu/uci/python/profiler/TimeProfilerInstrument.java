@@ -50,12 +50,12 @@ public final class TimeProfilerInstrument extends Instrument {
     @Override
     public void enter(Node astNode, VirtualFrame frame) {
         this.counter++;
-        this.startTime = System.currentTimeMillis();
+        this.startTime = System.nanoTime();
     }
 
     @Override
     public void leave(Node astNode, VirtualFrame frame) {
-        long endTime = System.currentTimeMillis();
+        long endTime = System.nanoTime();
         long elapsedTime = endTime - startTime;
         this.totalElapsedTime = this.totalElapsedTime + elapsedTime;
     }
