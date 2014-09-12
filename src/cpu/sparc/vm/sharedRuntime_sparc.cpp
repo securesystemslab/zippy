@@ -3437,10 +3437,10 @@ void SharedRuntime::generate_deopt_blob() {
     pad += StackShadowPages*16 + 32;
   }
 #ifdef GRAAL
-  pad += 32; // Increase the buffer size when compiling for GRAAL
+  pad += 1000; // Increase the buffer size when compiling for GRAAL
 #endif
 #ifdef _LP64
-  CodeBuffer buffer("deopt_blob", 2100+pad, 512);
+  CodeBuffer buffer("deopt_blob", 2100+pad+1000, 512);
 #else
   // Measured 8/7/03 at 1212 in 32bit debug build (no VerifyThread)
   // Measured 8/7/03 at 1396 in 32bit debug build (VerifyThread)
