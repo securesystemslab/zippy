@@ -37,6 +37,7 @@ import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
 import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
+import edu.uci.python.nodes.call.PythonCallNode.ConstructorCallNode;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.*;
@@ -48,22 +49,25 @@ import edu.uci.python.runtime.*;
 public class ProfilerResultPrinter {
 
     private PrintStream out = System.out;
-
     private PythonProfilerNodeProber profilerProber;
-
     private List<PNode> nodesEmptySourceSections = new ArrayList<>();
-
     private List<PNode> nodesUsingExistingProbes = new ArrayList<>();
+    private final PythonParseResult parseResult;
 
-    public ProfilerResultPrinter(PythonProfilerNodeProber profilerProber) {
+    public ProfilerResultPrinter(PythonProfilerNodeProber profilerProber, PythonParseResult parseResult) {
         this.profilerProber = profilerProber;
+        this.parseResult = parseResult;
     }
 
+    static long excludedTime = 0;
+    static long totalCounter = 0;
+    static long cumulativeTime = 0;
+
     public void printCallProfilerResults() {
-        long totalCount = 0;
+        List<MethodBodyInstrument> methodBodyInstruments = profilerProber.getMethodBodyInstruments();
         List<TimeProfilerInstrument> callInstruments = profilerProber.getCallInstruments();
 
-        if (callInstruments.size() > 0) {
+        if (methodBodyInstruments.size() > 0) {
             printBanner("Call Time Profiling Results", 72);
             /**
              * 50 is the length of the text by default padding left padding is added, so space is
@@ -72,7 +76,7 @@ public class ProfilerResultPrinter {
 
             out.format("%-40s", "Function Name");
             out.format("%-20s", "Counter");
-            out.format("%-20s", "Total Time");
+            out.format("%-20s", "Excluded Time");
             out.format("%-20s", "Cumulative Time");
             out.format("%-9s", "Line");
             out.format("%-11s", "Column");
@@ -80,67 +84,133 @@ public class ProfilerResultPrinter {
             out.println();
             out.println("===============                         ===============     ===============     ===============     ====     ======     ======");
 
-            for (TimeProfilerInstrument instrument : callInstruments) {
-                if (instrument.getCounter() > 0) {
-                    Node node = instrument.getNode();
-                    excludeSubFunctionTime(instrument);
+            excludedTime = 0;
 
-                    if (node instanceof ReturnTargetNode) {
-                        out.format("%-40s", ((FunctionRootNode) node.getRootNode()).getFunctionName());
-                    } else if (node instanceof PythonBuiltinNode) {
-                        out.format("%-40s", (((BuiltinFunctionRootNode) node.getRootNode()).getFunctionName()));
+            for (MethodBodyInstrument methodBodyInstrument : methodBodyInstruments) {
+                Node methodBody = methodBodyInstrument.getNode();
+                String methodName = null;
+                if (methodBody instanceof ReturnTargetNode) {
+                    methodName = ((FunctionRootNode) methodBody.getRootNode()).getFunctionName();
+                } else if (methodBody instanceof PythonBuiltinNode) {
+                    methodName = ((BuiltinFunctionRootNode) methodBody.getRootNode()).getFunctionName();
+                }
+
+                totalCounter = 0;
+                cumulativeTime = 0;
+
+                getCumulativeCounterTime(methodBodyInstrument);
+
+                if (totalCounter > 0) {
+                    if (methodBody instanceof ReturnTargetNode) {
+                        getExcludedTime(methodBody, methodBodyInstrument);
                     }
-
-                    out.format("%15s", instrument.getCounter());
+                    out.format("%-40s", methodName);
+                    out.format("%15s", totalCounter);
                     out.format("%20s", (excludedTime / 1000000000));
-                    totalCount = totalCount + instrument.getCounter();
-                    out.format("%20s", (instrument.getTime() / 1000000000));
-                    out.format("%9s", node.getSourceSection().getStartLine());
-                    out.format("%11s", node.getSourceSection().getStartColumn());
-                    out.format("%11s", node.getSourceSection().getCharLength());
+                    out.format("%20s", (cumulativeTime / 1000000000));
+                    out.format("%9s", methodBody.getSourceSection().getStartLine());
+                    out.format("%11s", methodBody.getSourceSection().getStartColumn());
+                    out.format("%11s", methodBody.getSourceSection().getCharLength());
                     out.println();
                 }
-            }
 
-            out.println("Total number of executed instruments: " + totalCount);
+            }
+            out.println("Total number of executed instruments: " + callInstruments.size());
         }
     }
 
-    private static long excludedTime = 0;
+    private void getCumulativeCounterTime(MethodBodyInstrument methodBodyInstrument) {
+        ModuleNode moduleNode = (ModuleNode) parseResult.getModuleRoot();
+        Node moduleBody = moduleNode.getBody();
+        traverseBody(moduleBody, methodBodyInstrument);
 
-    private static void excludeSubFunctionTime(TimeProfilerInstrument instrument) {
-        excludedTime = instrument.getTime();
-        Node functionBody = instrument.getNode();
+        for (RootNode functionRoot : parseResult.getFunctionRoots()) {
+            if (functionRoot instanceof FunctionRootNode) {
+                Node methodBody = ((FunctionRootNode) functionRoot).getBody();
+                traverseBody(methodBody, methodBodyInstrument);
+            }
+        }
+    }
 
-        functionBody.accept(new NodeVisitor() {
+    private static void traverseBody(Node methodBody, MethodBodyInstrument methodBodyInstrument) {
+        methodBody.accept(new NodeVisitor() {
             public boolean visit(Node node) {
-                if (node instanceof PythonCallNode) {
-                    if (node.getParent() instanceof PythonWrapperNode && (node.getParent().getParent() instanceof ArgumentsNode)) {
-                        PythonWrapperNode wrapper = (PythonWrapperNode) node.getParent();
-                        Node probe = (Node) wrapper.getProbe();
-                        TimeProfilerInstrument subCallInstrument = (TimeProfilerInstrument) probe.getChildren().iterator().next();
+                if (node instanceof BoxedCallNode || node instanceof ConstructorCallNode) {
+                    CallDispatchNode callDispatchNode = null;
+                    if (node instanceof BoxedCallNode) {
+                        callDispatchNode = ((BoxedCallNode) node).getDispatchNode();
+                    } else if (node instanceof ConstructorCallNode) {
+                        callDispatchNode = ((ConstructorCallNode) node).getDispatchNode();
+                    }
+                    if (node.getParent() instanceof PythonWrapperNode) {
+                        PythonWrapperNode callWrapper = (PythonWrapperNode) node.getParent();
+                        Node callProbe = (Node) callWrapper.getProbe();
+                        TimeProfilerInstrument subCallInstrument = (TimeProfilerInstrument) callProbe.getChildren().iterator().next();
+                        if (callDispatchNode instanceof LinkedDispatchBoxedNode) {
+                            LinkedDispatchBoxedNode linkDispatchNode = (LinkedDispatchBoxedNode) callDispatchNode;
+                            DirectCallNode callNode = linkDispatchNode.getInvokeNode().getDirectCallNode();
+                            RootCallTarget callTarget = (RootCallTarget) callNode.getCallTarget();
 
-                        if (node instanceof BoxedCallNode) {
-                            BoxedCallNode boxedCallNode = (BoxedCallNode) node;
-                            CallDispatchNode callDispatchNode = boxedCallNode.getDispatchNode();
-                            if (callDispatchNode instanceof LinkedDispatchBoxedNode) {
-                                LinkedDispatchBoxedNode linkDispatchNode = (LinkedDispatchBoxedNode) callDispatchNode;
-                                DirectCallNode callNode = linkDispatchNode.getInvokeNode().getDirectCallNode();
-                                RootCallTarget callTarget = (RootCallTarget) callNode.getCallTarget();
-                                RootNode childRootNode = callTarget.getRootNode();
+                            PythonWrapperNode wrapper = null;
+                            if (callTarget.getRootNode() instanceof FunctionRootNode) {
+                                FunctionRootNode childRootNode = (FunctionRootNode) callTarget.getRootNode();
+                                wrapper = (PythonWrapperNode) childRootNode.getBody();
+                            } else if (callTarget.getRootNode() instanceof BuiltinFunctionRootNode) {
+                                BuiltinFunctionRootNode childRootNode = (BuiltinFunctionRootNode) callTarget.getRootNode();
+                                wrapper = (PythonWrapperNode) childRootNode.getBody();
+                            }
+                            Node probe = (Node) wrapper.getProbe();
+                            MethodBodyInstrument currentMethodBodyInstrument = (MethodBodyInstrument) probe.getChildren().iterator().next();
 
-                                if (childRootNode instanceof FunctionRootNode) {
-                                    if (node.getRootNode().equals(childRootNode)) {
-                                        return true;
-                                    }
-                                }
+                            if (currentMethodBodyInstrument.equals(methodBodyInstrument)) {
+                                totalCounter = totalCounter + subCallInstrument.getCounter();
+                                cumulativeTime = cumulativeTime + subCallInstrument.getTime();
                             }
                         }
-
-                        excludedTime = excludedTime - subCallInstrument.getTime();
                     }
                 }
+                return true;
+            }
+        });
+    }
 
+    public void getExcludedTime(Node methodBody, MethodBodyInstrument methodBodyInstrument) {
+        excludedTime = cumulativeTime;
+
+        methodBody.accept(new NodeVisitor() {
+            public boolean visit(Node node) {
+                if (node instanceof BoxedCallNode) {
+                    PythonWrapperNode callWrapper = (PythonWrapperNode) node.getParent();
+                    if (!(callWrapper.getParent() instanceof ArgumentsNode)) {
+                        Node callProbe = (Node) callWrapper.getProbe();
+                        TimeProfilerInstrument subCallInstrument = (TimeProfilerInstrument) callProbe.getChildren().iterator().next();
+                        BoxedCallNode boxedCallNode = (BoxedCallNode) node;
+                        CallDispatchNode callDispatchNode = boxedCallNode.getDispatchNode();
+                        if (callDispatchNode instanceof LinkedDispatchBoxedNode) {
+                            LinkedDispatchBoxedNode linkDispatchNode = (LinkedDispatchBoxedNode) callDispatchNode;
+                            DirectCallNode callNode = linkDispatchNode.getInvokeNode().getDirectCallNode();
+                            RootCallTarget callTarget = (RootCallTarget) callNode.getCallTarget();
+
+                            PythonWrapperNode wrapper = null;
+                            if (callTarget.getRootNode() instanceof FunctionRootNode) {
+                                FunctionRootNode childRootNode = (FunctionRootNode) callTarget.getRootNode();
+                                wrapper = (PythonWrapperNode) childRootNode.getBody();
+                            } else if (callTarget.getRootNode() instanceof BuiltinFunctionRootNode) {
+                                BuiltinFunctionRootNode childRootNode = (BuiltinFunctionRootNode) callTarget.getRootNode();
+                                wrapper = (PythonWrapperNode) childRootNode.getBody();
+                            }
+
+                            Node probe = (Node) wrapper.getProbe();
+                            MethodBodyInstrument currentMethodBodyInstrument = (MethodBodyInstrument) probe.getChildren().iterator().next();
+                            /**
+                             * Do not exclude recursive calls
+                             */
+                            if (!methodBodyInstrument.equals(currentMethodBodyInstrument)) {
+                                excludedTime = excludedTime - subCallInstrument.getTime();
+                            }
+                        }
+                    }
+                }
                 return true;
             }
         });

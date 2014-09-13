@@ -84,9 +84,9 @@ public class ZipPyConsole extends InteractiveConsole {
         ProfilerTranslator profilerTranslator = null;
 
         if (PythonOptions.ProfileCalls || PythonOptions.ProfileControlFlow || PythonOptions.ProfileVariableAccesses || PythonOptions.ProfileOperations || PythonOptions.ProfileCollectionOperations) {
-            profilerTranslator = new ProfilerTranslator(result.getContext());
+            profilerTranslator = new ProfilerTranslator(result, result.getContext());
 
-            profilerTranslator.translate(result);
+            profilerTranslator.translate();
 
             if (PythonOptions.PrintAST) {
                 // CheckStyle: stop system..print check

@@ -1,5 +1,7 @@
+package edu.uci.python.profiler;
+
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,34 +24,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes;
 
-import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
 
-public class ModuleNode extends RootNode {
+/**
+ * @author Gulfem
+ */
 
-    private final String name;
-    @Child protected PNode body;
+public final class MethodBodyInstrument extends Instrument {
 
-    public ModuleNode(String name, PNode body, FrameDescriptor descriptor) {
-        super(null, descriptor);
-        this.name = name;
-        this.body = body;
+    private final Node node;
+
+    public MethodBodyInstrument(Node node) {
+        this.node = node;
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return body.execute(frame);
-    }
-
-    public PNode getBody() {
-        return body;
-    }
-
-    @Override
-    public String toString() {
-        return "<module '" + name + "'>";
+    public Node getNode() {
+        return node;
     }
 
 }

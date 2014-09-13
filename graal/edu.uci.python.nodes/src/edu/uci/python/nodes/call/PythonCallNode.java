@@ -355,6 +355,10 @@ public abstract class PythonCallNode extends PNode {
             instanceNode = new NewInstanceNode(pythonClass);
         }
 
+        public CallDispatchNode getDispatchNode() {
+            return dispatchNode;
+        }
+
         @Override
         public boolean isInlined() {
             return dispatchNode.isInlined();

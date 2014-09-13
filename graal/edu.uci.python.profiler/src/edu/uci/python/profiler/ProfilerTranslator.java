@@ -48,14 +48,16 @@ public class ProfilerTranslator implements NodeVisitor {
     private final PythonProfilerNodeProber profilerProber;
     private final ProfilerResultPrinter resultPrinter;
     private final PythonContext context;
+    private final PythonParseResult parseResult;
 
-    public ProfilerTranslator(PythonContext context) {
+    public ProfilerTranslator(PythonParseResult parseResult, PythonContext context) {
         this.context = context;
+        this.parseResult = parseResult;
         this.profilerProber = PythonProfilerNodeProber.getInstance();
-        this.resultPrinter = new ProfilerResultPrinter(this.profilerProber);
+        this.resultPrinter = new ProfilerResultPrinter(this.profilerProber, parseResult);
     }
 
-    public void translate(PythonParseResult parseResult) {
+    public void translate() {
         RootNode root = parseResult.getModuleRoot();
         root.accept(this);
 
@@ -211,7 +213,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private PythonWrapperNode createCallWrapper(PNode node) {
         if (checkSourceSection(node)) {
-            PythonWrapperNode wrapperNode = profilerProber.probeAsPythonCall(node, context);
+            PythonWrapperNode wrapperNode = profilerProber.probeAsCall(node, context);
             replaceNodeWithWrapper(node, wrapperNode);
             return wrapperNode;
         }
@@ -317,5 +319,9 @@ public class ProfilerTranslator implements NodeVisitor {
 
     public ProfilerResultPrinter getProfilerResultPrinter() {
         return resultPrinter;
+    }
+
+    public PythonParseResult getParseResult() {
+        return parseResult;
     }
 }
