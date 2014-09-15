@@ -25,10 +25,12 @@
 package edu.uci.python.nodes.control;
 
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
 
+@NodeInfo(shortName = "continue")
 public class ContinueNode extends StatementNode {
 
     @Override

@@ -67,11 +67,15 @@ public class PythonOptions {
     // Profiling
     public static boolean ProfileCalls = false;
 
-    public static boolean ProfileLoops = false;
+    public static boolean ProfileControlFlow = false;
 
-    public static boolean ProfileIfs = false;
+    public static boolean ProfileVariableAccesses = false;
 
-    public static boolean ProfileNodes = false;
+    public static boolean ProfileOperations = false;
+
+    public static boolean ProfileCollectionOperations = false;
+
+    public static boolean ProfileTypeDistribution = false;
 
     public static boolean SortProfilerResults = false;
 

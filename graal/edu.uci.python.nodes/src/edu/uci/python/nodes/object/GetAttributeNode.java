@@ -66,6 +66,7 @@ import edu.uci.python.runtime.standardtype.*;
  *               |--- next : UninitializedDispatchNode
  *
  */
+@NodeInfo(shortName = "get_attribute")
 public abstract class GetAttributeNode extends PNode implements ReadNode, HasPrimaryNode {
 
     protected final String attributeId;

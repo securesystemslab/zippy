@@ -29,6 +29,7 @@ import org.python.core.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
@@ -38,6 +39,7 @@ import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
+@NodeInfo(shortName = "subscript_load_index")
 public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
 
     public PNode makeWriteNode(PNode rhs) {

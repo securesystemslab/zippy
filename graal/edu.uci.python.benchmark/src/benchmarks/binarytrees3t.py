@@ -41,7 +41,6 @@ def main(n):
 
     print("long lived tree of depth %d\t check:" % max_depth, check_tree(long_lived_tree))
 
-
 def measure():
     print("Start timing...")
     start = time.time()

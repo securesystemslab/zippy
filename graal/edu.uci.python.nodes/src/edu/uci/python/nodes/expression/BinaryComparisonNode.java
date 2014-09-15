@@ -29,6 +29,7 @@ import java.math.*;
 import com.oracle.truffle.api.dsl.Generic;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.object.*;
@@ -38,6 +39,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public abstract class BinaryComparisonNode extends BinaryOpNode {
 
+    @NodeInfo(shortName = "==")
     public abstract static class EqualNode extends BinaryComparisonNode {
 
         @Specialization(order = 0)
@@ -147,6 +149,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "!=")
     public abstract static class NotEqualNode extends BinaryComparisonNode {
 
         @Specialization
@@ -201,6 +204,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "<")
     public abstract static class LessThanNode extends BinaryComparisonNode {
 
         @Specialization
@@ -234,6 +238,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "<=")
     public abstract static class LessThanEqualNode extends BinaryComparisonNode {
 
         @Specialization
@@ -268,6 +273,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     }
 
+    @NodeInfo(shortName = ">")
     public abstract static class GreaterThanNode extends BinaryComparisonNode {
 
         @Specialization(order = 1)
@@ -306,6 +312,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = ">=")
     public abstract static class GreaterThanEqualNode extends BinaryComparisonNode {
 
         @Specialization(order = 1)
@@ -344,6 +351,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "is")
     public abstract static class IsNode extends BinaryComparisonNode {
 
         @SuppressWarnings("unused")
@@ -391,6 +399,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "is not")
     public abstract static class IsNotNode extends BinaryComparisonNode {
 
         @Specialization(order = 1)
@@ -426,6 +435,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "in")
     public abstract static class InNode extends BinaryComparisonNode {
 
         @Specialization
@@ -449,16 +459,17 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
             return false;
         }
 
-        protected static boolean isEmptyDict(@SuppressWarnings("unused") Object first, PDict dict) {
-            return dict.len() == 0;
-        }
-
         @Specialization(order = 11)
         public boolean doPDictionary(Object left, PDict right) {
             return right.hasKey(left);
         }
+
+        protected static boolean isEmptyDict(@SuppressWarnings("unused") Object first, PDict dict) {
+            return dict.len() == 0;
+        }
     }
 
+    @NodeInfo(shortName = "not in")
     public abstract static class NotInNode extends BinaryComparisonNode {
 
         @Specialization(order = 5)

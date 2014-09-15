@@ -188,6 +188,16 @@ pythonBenchmarks = {
     'sympy-bench'     : '20000',
 }
 
+pythonProfilerBenchmarks = {
+    'binarytrees3t'   : '19',
+    'fannkuchredux3t' : '11',
+    'mandelbrot3t'    : '4000',
+    'nbody3t'         : '5000000',
+    'spectralnorm3t'  : '5500',
+    'pidigits-timed'  : '0',
+    'richards3-timed' : '200'
+}
+
 python2Benchmarks = {
     'binarytrees2t'   : '19',
     'fannkuchredux2t' : '11',
@@ -455,6 +465,21 @@ def getPythonBenchmarksNoPeeling(vm):
 
     return tests
 
+def getPythonBenchmarksProfiling(vm, profile_option=None):
+    success, error, matcher = getSuccessErrorMatcher()
+    benchmarks = pythonProfilerBenchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "graal/edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        if (profile_option is not None):
+            cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, profile_option, "-sort"]      
+        else :
+            cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]      
+        vmOpts = ['-Xms2g', '-Xmx2g']
+        tests.append(Test("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+    
+    return tests
+
 def getPython2Benchmarks(vm):
     success, error, matcher = getSuccessErrorMatcher()
     benchmarks = python2Benchmarks
@@ -630,6 +655,8 @@ class Test:
                 result = mx.run(['python'] + self.cmd[-2:], out=tee.eat)
             elif vm == 'cpython':
                 result = mx.run(['python3'] + self.cmd[-2:], out=tee.eat)
+            elif vm == 'cpython-profile':
+                result = mx.run(['python3'] + ['-m' ,'cProfile', '-s' 'calls'] + self.cmd[-2:], out=tee.eat)
             elif vm == 'jython':
                 result = mx_graal.vm(self.vmOpts + ['-jar', mx.library('JYTHON').path] + self.cmd[-2:], vm = 'original', out=tee.eat)
             elif vm == 'pypy':

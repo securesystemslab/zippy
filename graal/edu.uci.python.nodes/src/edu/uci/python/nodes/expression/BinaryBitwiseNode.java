@@ -27,12 +27,14 @@ package edu.uci.python.nodes.expression;
 import java.math.BigInteger;
 
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.sequence.*;
 
 public abstract class BinaryBitwiseNode extends BinaryOpNode {
 
+    @NodeInfo(shortName = "<<")
     public abstract static class LeftShiftNode extends BinaryBitwiseNode {
 
         @Specialization(rewriteOn = ArithmeticException.class)
@@ -54,6 +56,7 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = ">>")
     public abstract static class RightShiftNode extends BinaryBitwiseNode {
 
         @Specialization
@@ -75,6 +78,7 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "&")
     public abstract static class BitAndNode extends BinaryBitwiseNode {
 
         @Specialization
@@ -93,6 +97,7 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "^")
     public abstract static class BitXorNode extends BinaryBitwiseNode {
 
         @Specialization
@@ -106,6 +111,7 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
         }
     }
 
+    @NodeInfo(shortName = "|")
     public abstract static class BitOrNode extends BinaryBitwiseNode {
 
         @Specialization

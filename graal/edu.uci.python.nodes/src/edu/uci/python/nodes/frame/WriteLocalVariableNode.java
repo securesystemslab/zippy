@@ -29,10 +29,12 @@ import java.math.*;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatype.*;
 
+@NodeInfo(shortName = "write_local")
 @NodeChild(value = "rightNode", type = PNode.class)
 public abstract class WriteLocalVariableNode extends FrameSlotNode implements WriteNode {
 

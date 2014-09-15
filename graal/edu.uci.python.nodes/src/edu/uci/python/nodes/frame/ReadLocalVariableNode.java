@@ -30,6 +30,7 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
 
+@NodeInfo(shortName = "read_local")
 public abstract class ReadLocalVariableNode extends ReadVariableNode {
 
     public ReadLocalVariableNode(FrameSlot frameSlot) {

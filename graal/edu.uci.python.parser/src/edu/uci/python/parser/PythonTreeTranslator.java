@@ -902,6 +902,12 @@ public class PythonTreeTranslator extends Visitor {
             assignSourceToBlockNode(elsePart, orElseStmt);
         }
 
+        /**
+         * The information got from Jython if node is correct for creating source sections. But when
+         * there is an elif statement, then the information wrong.To avoid this problem, we assign
+         * source from its children.
+         */
+
         CastToBooleanNode castToBooleanNode = factory.toBooleanCastNode(test);
         PNode ifNode = factory.createIf(castToBooleanNode, thenPart, elsePart);
         if (!(elsePart instanceof EmptyNode)) {

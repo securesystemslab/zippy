@@ -69,23 +69,46 @@ public class CommandLineParser {
                 continue;
             }
 
+            if (arg.equals("-profile")) {
+                PythonOptions.ProfileCalls = true;
+                PythonOptions.ProfileControlFlow = true;
+                PythonOptions.ProfileVariableAccesses = true;
+                PythonOptions.ProfileOperations = true;
+                PythonOptions.ProfileCollectionOperations = true;
+                PythonOptions.SortProfilerResults = true;
+                continue;
+            }
+
             if (arg.equals("-profile-calls")) {
                 PythonOptions.ProfileCalls = true;
                 continue;
             }
 
-            if (arg.equals("-profile-loops")) {
-                PythonOptions.ProfileLoops = true;
+            if (arg.equals("-profile-control-flow")) {
+                PythonOptions.ProfileControlFlow = true;
                 continue;
             }
 
-            if (arg.equals("-profile-ifs")) {
-                PythonOptions.ProfileIfs = true;
+            if (arg.equals("-profile-variable-accesses")) {
+                PythonOptions.ProfileVariableAccesses = true;
                 continue;
             }
 
-            if (arg.equals("-profile-nodes")) {
-                PythonOptions.ProfileNodes = true;
+            if (arg.equals("-profile-operations")) {
+                PythonOptions.ProfileOperations = true;
+                continue;
+            }
+
+            if (arg.equals("-profile-attributes-elements")) {
+                PythonOptions.ProfileCollectionOperations = true;
+                continue;
+            }
+
+            if (arg.equals("-profile-type-distribution")) {
+                PythonOptions.ProfileTypeDistribution = true;
+                PythonOptions.ProfileVariableAccesses = true;
+                PythonOptions.ProfileOperations = true;
+                PythonOptions.ProfileCollectionOperations = true;
                 continue;
             }
 
@@ -98,5 +121,4 @@ public class CommandLineParser {
         }
 
     }
-
 }

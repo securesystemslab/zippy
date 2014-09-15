@@ -1,3 +1,5 @@
+package edu.uci.python.profiler;
+
 /*
  * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
@@ -22,7 +24,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.profiler;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.instrument.*;
@@ -34,15 +35,21 @@ import com.oracle.truffle.api.nodes.*;
 
 public final class ProfilerInstrument extends Instrument {
 
+    private final Node node;
     private long counter;
 
-    public ProfilerInstrument() {
-        counter = 0;
+    public ProfilerInstrument(Node node) {
+        this.node = node;
+        this.counter = 0;
     }
 
     @Override
     public void enter(Node astNode, VirtualFrame frame) {
-        counter++;
+        this.counter++;
+    }
+
+    public Node getNode() {
+        return node;
     }
 
     public long getCounter() {

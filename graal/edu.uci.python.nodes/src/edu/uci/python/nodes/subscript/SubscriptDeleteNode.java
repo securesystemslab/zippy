@@ -25,12 +25,14 @@
 package edu.uci.python.nodes.subscript;
 
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
 
+@NodeInfo(shortName = "subscript_delete")
 public abstract class SubscriptDeleteNode extends BinaryOpNode {
 
     public PNode getPrimary() {

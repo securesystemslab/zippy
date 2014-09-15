@@ -35,6 +35,7 @@ import com.oracle.truffle.api.source.*;
 import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.parser.*;
+import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -44,15 +45,14 @@ public class ZipPyConsole extends InteractiveConsole {
     @Override
     public void execfile(java.io.InputStream s, String name) {
         PythonParser parser = new PythonParserImpl();
-        PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser);
+        PythonContext context = null;
 
         try {
             Source source = Source.fromFileName(name);
+            context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser, source);
             execfile(context, source);
         } catch (IOException e) {
             throw new IllegalStateException();
-        } finally {
-            context.shutdown();
         }
     }
 
@@ -82,9 +82,11 @@ public class ZipPyConsole extends InteractiveConsole {
          */
 
         ProfilerTranslator profilerTranslator = null;
-        if (PythonOptions.ProfileCalls || PythonOptions.ProfileLoops || PythonOptions.ProfileIfs || PythonOptions.ProfileNodes) {
-            profilerTranslator = new ProfilerTranslator(result.getContext());
-            profilerTranslator.translate(result);
+
+        if (PythonOptions.ProfileCalls || PythonOptions.ProfileControlFlow || PythonOptions.ProfileVariableAccesses || PythonOptions.ProfileOperations || PythonOptions.ProfileCollectionOperations) {
+            profilerTranslator = new ProfilerTranslator(result, result.getContext());
+
+            profilerTranslator.translate();
 
             if (PythonOptions.PrintAST) {
                 // CheckStyle: stop system..print check
@@ -109,16 +111,20 @@ public class ZipPyConsole extends InteractiveConsole {
             profilerTranslator.getProfilerResultPrinter().printCallProfilerResults();
         }
 
-        if (PythonOptions.ProfileLoops) {
-            profilerTranslator.getProfilerResultPrinter().printLoopProfilerResults();
+        if (PythonOptions.ProfileControlFlow) {
+            profilerTranslator.getProfilerResultPrinter().printControlFlowProfilerResults();
         }
 
-        if (PythonOptions.ProfileIfs) {
-            profilerTranslator.getProfilerResultPrinter().printIfProfilerResults();
+        if (PythonOptions.ProfileVariableAccesses) {
+            profilerTranslator.getProfilerResultPrinter().printVariableAccessProfilerResults();
         }
 
-        if (PythonOptions.ProfileNodes) {
-            profilerTranslator.getProfilerResultPrinter().printNodeProfilerResults();
+        if (PythonOptions.ProfileOperations) {
+            profilerTranslator.getProfilerResultPrinter().printOperationProfilerResults();
+        }
+
+        if (PythonOptions.ProfileCollectionOperations) {
+            profilerTranslator.getProfilerResultPrinter().printCollectionOperationsProfilerResults();
         }
 
         if (PythonOptions.TraceNodesWithoutSourceSection) {

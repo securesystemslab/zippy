@@ -29,6 +29,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 
+@NodeInfo(shortName = "read_level")
 public abstract class ReadLevelVariableNode extends ReadVariableNode {
 
     protected final int level;

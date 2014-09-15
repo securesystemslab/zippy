@@ -1,5 +1,7 @@
+package edu.uci.python.profiler;
+
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,51 +24,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.function;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
-
-import edu.uci.python.nodes.*;
 
 /**
  * @author Gulfem
- * @author zwei
  */
-public class BuiltinFunctionRootNode extends RootNode {
 
-    private final String functionName;
+public final class MethodBodyInstrument extends Instrument {
 
-    @Child protected PythonBuiltinNode body;
-    private final PythonBuiltinNode uninitialized;
+    private final Node node;
 
-    public BuiltinFunctionRootNode(String functionName, PythonBuiltinNode builtinNode) {
-        this.functionName = functionName;
-        this.body = builtinNode;
-        this.uninitialized = NodeUtil.cloneNode(builtinNode);
+    public MethodBodyInstrument(Node node) {
+        this.node = node;
     }
 
-    @Override
-    public RootNode split() {
-        return new BuiltinFunctionRootNode(functionName, NodeUtil.cloneNode(uninitialized));
-    }
-
-    @Override
-    public Object execute(VirtualFrame frame) {
-        return body.execute(frame);
-    }
-
-    public String getFunctionName() {
-        return functionName;
-    }
-
-    public PNode getBody() {
-        return body;
-    }
-
-    @Override
-    public String toString() {
-        return "<builtin function " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
+    public Node getNode() {
+        return node;
     }
 
 }

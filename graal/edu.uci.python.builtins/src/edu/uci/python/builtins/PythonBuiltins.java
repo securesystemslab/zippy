@@ -24,10 +24,12 @@
  */
 package edu.uci.python.builtins;
 
+import java.io.*;
 import java.util.*;
 
 import com.oracle.truffle.api.*;
 
+import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
@@ -36,6 +38,7 @@ import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.function.*;
 
 import com.oracle.truffle.api.dsl.NodeFactory;
+import com.oracle.truffle.api.source.*;
 
 /**
  * @author Gulfem
@@ -50,12 +53,19 @@ public abstract class PythonBuiltins {
 
     @SuppressWarnings("unchecked")
     public void initialize(PythonContext context) {
+        Source source = null;
+        try {
+            source = Source.fromFileName("graal/edu.uci.python.test/src/tests/builtins.py");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         List<NodeFactory<PythonBuiltinNode>> factories = (List<NodeFactory<PythonBuiltinNode>>) getNodeFactories();
         assert factories != null : "No factories found. Override getFactories() to resolve this.";
 
         for (NodeFactory<PythonBuiltinNode> factory : factories) {
             Builtin builtin = factory.getNodeClass().getAnnotation(Builtin.class);
-            RootCallTarget callTarget = createBuiltinCallTarget(factory, builtin.name(), createArgumentsList(builtin), context);
+            RootCallTarget callTarget = createBuiltinCallTarget(factory, builtin.name(), createArgumentsList(builtin), context, source);
             PBuiltinFunction function = new PBuiltinFunction(builtin.name(), createArity(builtin), callTarget);
 
             if (builtin.isConstructor()) {
@@ -76,10 +86,26 @@ public abstract class PythonBuiltins {
         }
     }
 
-    private static RootCallTarget createBuiltinCallTarget(NodeFactory<PythonBuiltinNode> factory, String name, PNode[] argsKeywords, PythonContext context) {
+    static int index = 1;
+
+    private static RootCallTarget createBuiltinCallTarget(NodeFactory<PythonBuiltinNode> factory, String name, PNode[] argsKeywords, PythonContext context, Source source) {
         PythonBuiltinNode builtinNode = factory.createNode(argsKeywords, context);
         BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(name, builtinNode);
-        return Truffle.getRuntime().createCallTarget(rootNode);
+        RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
+
+        if (PythonOptions.ProfileCalls) {
+            PNode body = rootNode.getBody();
+            SourceSection sourceSection = source.createSection("builtin-in", index);
+            body.assignSourceSection(sourceSection);
+
+            PythonWrapperNode wrapperNode = null;
+            wrapperNode = PythonProfilerNodeProber.getInstance().probeAsMethodBody(body, context);
+
+            body.replace(wrapperNode);
+            index++;
+        }
+
+        return callTarget;
     }
 
     private static Arity createArity(Builtin builtin) {

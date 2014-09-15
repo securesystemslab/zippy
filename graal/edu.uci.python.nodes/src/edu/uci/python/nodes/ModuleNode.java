@@ -43,6 +43,10 @@ public class ModuleNode extends RootNode {
         return body.execute(frame);
     }
 
+    public PNode getBody() {
+        return body;
+    }
+
     @Override
     public String toString() {
         return "<module '" + name + "'>";

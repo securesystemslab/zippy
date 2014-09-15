@@ -1,3 +1,4 @@
+package edu.uci.python.profiler;
 /*
  * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
@@ -22,52 +23,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.profiler;
 
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.instrument.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.*;
 
 /**
  * @author Gulfem
  */
 
-public class PythonWrapperNode extends PNode implements Wrapper {
+public class ProfilerNode extends PNode {
 
     @Child protected PNode child;
-    protected final Probe probe;
+    long counter;
 
-    public PythonWrapperNode(PythonContext context, PNode child) {
-        /**
-         * Don't insert the child here, because child node will be replaced with the wrapper node.
-         * If child node is inserted here, it's parent (which will be wrapper's parent after
-         * replacement) will be lost. Instead, wrapper is created, and the child is replaced with
-         * its wrapper, and then wrapper's child is adopted by calling adoptChildren() in
-         * {@link ProfilerTranslator}.
-         */
+    public ProfilerNode(PNode child) {
         this.child = child;
-        /**
-         * context.getProbe will either generate a probe for this source section, or return the
-         * existing probe for this section. There can be only one probe for the same source section.
-         */
-        this.probe = context.getProbe(child.getSourceSection());
+        counter++;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        probe.enter(child, frame);
+        counter++;
         Object result;
 
         try {
             result = child.execute(frame);
-            probe.leave(child, frame, result);
         } catch (KillException e) {
             throw (e);
         } catch (Exception e) {
-            probe.leaveExceptional(child, frame, e);
             throw (e);
         }
 
@@ -78,18 +64,7 @@ public class PythonWrapperNode extends PNode implements Wrapper {
         return child;
     }
 
-    public Probe getProbe() {
-        return probe;
+    public long getCounter() {
+        return counter;
     }
-
-    @SlowPath
-    public boolean isTaggedAs(PhylumTag tag) {
-        return probe.isTaggedAs(tag);
-    }
-
-    @SlowPath
-    public Iterable<PhylumTag> getPhylumTags() {
-        return probe.getPhylumTags();
-    }
-
 }

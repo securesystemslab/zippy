@@ -39,6 +39,7 @@ import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.standardtype.*;
 
+@NodeInfo(shortName = "read_global")
 public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrimaryNode {
 
     protected final String attributeId;

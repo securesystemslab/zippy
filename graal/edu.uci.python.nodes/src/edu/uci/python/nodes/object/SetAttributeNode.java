@@ -59,6 +59,7 @@ import edu.uci.python.runtime.object.*;
  *               |--- next : UninitializedSetDispatchNode
  *
  */
+@NodeInfo(shortName = "set_attribute")
 public abstract class SetAttributeNode extends PNode implements WriteNode {
 
     @Child protected PNode primaryNode;
