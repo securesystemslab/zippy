@@ -69,7 +69,7 @@ public class PythonOptions {
 
     public static boolean ProfileLoops = false;
 
-    public static boolean ProfileIfNodes = false;
+    public static boolean ProfileIfs = false;
 
     public static boolean ProfileNodes = false;
 

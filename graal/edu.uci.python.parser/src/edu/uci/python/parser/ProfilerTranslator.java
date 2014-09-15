@@ -48,7 +48,7 @@ public class ProfilerTranslator implements NodeVisitor {
 
     public ProfilerTranslator(PythonContext context) {
         this.profilerProber = new PythonProfilerNodeProber(context);
-        resultPrinter = new ProfilerResultPrinter(this.profilerProber);
+        this.resultPrinter = new ProfilerResultPrinter(this.profilerProber);
     }
 
     public void translate(PythonParseResult parseResult) {
@@ -70,8 +70,8 @@ public class ProfilerTranslator implements NodeVisitor {
             profileLoops(node);
         }
 
-        if (PythonOptions.ProfileIfNodes) {
-            profileIfNodes(node);
+        if (PythonOptions.ProfileIfs) {
+            profileIfs(node);
         }
 
         if (PythonOptions.ProfileNodes) {
@@ -97,7 +97,7 @@ public class ProfilerTranslator implements NodeVisitor {
         }
     }
 
-    private void profileIfNodes(Node node) {
+    private void profileIfs(Node node) {
         if (node instanceof IfNode) {
             IfNode ifNode = (IfNode) node;
             if (hasSourceSection(ifNode)) {
@@ -111,7 +111,6 @@ public class ProfilerTranslator implements NodeVisitor {
                 if (!(elseNode instanceof EmptyNode)) {
                     createElseWrapper(elseNode);
                 }
-
             }
         }
     }
