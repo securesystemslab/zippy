@@ -85,6 +85,7 @@ public class ProfilerResultPrinter {
             out.println("===============                         ===============     ===============     ===============     ====     ======     ======");
 
             excludedTime = 0;
+            long totalCalls = 0;
 
             for (MethodBodyInstrument methodBodyInstrument : methodBodyInstruments) {
                 Node methodBody = methodBodyInstrument.getNode();
@@ -106,6 +107,7 @@ public class ProfilerResultPrinter {
                     }
                     out.format("%-40s", methodName);
                     out.format("%15s", totalCounter);
+                    totalCalls = totalCalls + totalCounter;
                     out.format("%20s", (excludedTime / 1000000000));
                     out.format("%20s", (cumulativeTime / 1000000000));
                     out.format("%9s", methodBody.getSourceSection().getStartLine());
@@ -115,7 +117,7 @@ public class ProfilerResultPrinter {
                 }
 
             }
-            out.println("Total number of executed instruments: " + callInstruments.size());
+            out.println("Total number of executed calls: " + totalCalls);
         }
     }
 
@@ -142,10 +144,12 @@ public class ProfilerResultPrinter {
                     } else if (node instanceof ConstructorCallNode) {
                         callDispatchNode = ((ConstructorCallNode) node).getDispatchNode();
                     }
+
                     if (node.getParent() instanceof PythonWrapperNode) {
                         PythonWrapperNode callWrapper = (PythonWrapperNode) node.getParent();
                         Node callProbe = (Node) callWrapper.getProbe();
                         TimeProfilerInstrument subCallInstrument = (TimeProfilerInstrument) callProbe.getChildren().iterator().next();
+
                         if (callDispatchNode instanceof LinkedDispatchBoxedNode) {
                             LinkedDispatchBoxedNode linkDispatchNode = (LinkedDispatchBoxedNode) callDispatchNode;
                             DirectCallNode callNode = linkDispatchNode.getInvokeNode().getDirectCallNode();

@@ -51,6 +51,6 @@ def measure():
 # warm up
 num =  int(sys.argv[1])
 for run in range(1):
-    main(15)
+    main(16)
 
 measure()
