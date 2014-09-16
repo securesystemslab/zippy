@@ -41,7 +41,6 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
 
     private final static PythonProfilerNodeProber INSTANCE = new PythonProfilerNodeProber();
 
-    private List<ProfilerInstrument> nodeInstruments;
     private List<MethodBodyInstrument> methodBodyInstruments;
     private List<TimeProfilerInstrument> callInstruments;
     private List<ProfilerInstrument> loopInstruments;
@@ -57,7 +56,6 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
     private Map<ProfilerInstrument, List<ProfilerInstrument>> ifInstruments;
 
     private PythonProfilerNodeProber() {
-        nodeInstruments = new ArrayList<>();
         methodBodyInstruments = new ArrayList<>();
         callInstruments = new ArrayList<>();
         loopInstruments = new ArrayList<>();
@@ -81,7 +79,6 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
 
     public PythonWrapperNode probeAsMethodBody(PNode node, PythonContext context) {
         PythonWrapperNode wrapper = createWrapper(node, context);
-        wrapper.getProbe().tagAs(StandardTag.CALL);
         MethodBodyInstrument profilerInstrument = createAttachMethodBodyInstrument(wrapper);
         methodBodyInstruments.add(profilerInstrument);
         return wrapper;
@@ -186,13 +183,6 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return wrapper;
     }
 
-    public PythonWrapperNode probeAsNode(PNode node, PythonContext context) {
-        PythonWrapperNode wrapper = createWrapper(node, context);
-        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-        nodeInstruments.add(profilerInstrument);
-        return wrapper;
-    }
-
     private static PythonWrapperNode createWrapper(PNode node, PythonContext context) {
         PythonWrapperNode wrapper;
         if (node instanceof PythonWrapperNode) {
@@ -233,10 +223,6 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         profilerInstrument.assignSourceSection(wrapper.getChild().getSourceSection());
         wrapper.getProbe().addInstrument(profilerInstrument);
         return profilerInstrument;
-    }
-
-    public List<ProfilerInstrument> getNodeInstruments() {
-        return nodeInstruments;
     }
 
     public List<MethodBodyInstrument> getMethodBodyInstruments() {
