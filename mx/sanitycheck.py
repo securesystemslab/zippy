@@ -162,7 +162,7 @@ pythonMicroBenchmarks = {
 }
 
 pythonBenchmarks = {
-    'binarytrees3t'   : '19',
+    'binarytrees3t'   : '18',
     'fannkuchredux3t' : '11',
     'fasta3t'         : '25000000',
     'mandelbrot3t'    : '4000',
@@ -189,7 +189,7 @@ pythonBenchmarks = {
 }
 
 pythonProfilerBenchmarks = {
-    'binarytrees3t'   : '19',
+    'binarytrees3t'   : '18',
     'fannkuchredux3t' : '11',
     'mandelbrot3t'    : '4000',
     'nbody3t'         : '5000000',
@@ -199,7 +199,7 @@ pythonProfilerBenchmarks = {
 }
 
 python2Benchmarks = {
-    'binarytrees2t'   : '19',
+    'binarytrees2t'   : '18',
     'fannkuchredux2t' : '11',
     'fasta3t'         : '25000000',
     'mandelbrot2t'    : '4000',
