@@ -99,7 +99,7 @@ public class CommandLineParser {
                 continue;
             }
 
-            if (arg.equals("-profile-attributes-elements")) {
+            if (arg.equals("-profile-collection-operations")) {
                 PythonOptions.ProfileCollectionOperations = true;
                 continue;
             }

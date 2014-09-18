@@ -1560,8 +1560,8 @@ def bench(args):
     if 'python-profile-operations' in args:
         benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-operations")       
 
-    if 'python-profile-attributes-elements' in args:
-        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-attributes-elements")   
+    if 'python-profile-collection-operations' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-collection-operations")   
 
     if 'python-profile-type-distribution' in args:
         benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-type-distribution")   
