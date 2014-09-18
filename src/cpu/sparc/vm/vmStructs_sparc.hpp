@@ -82,7 +82,8 @@
   declare_c2_constant(R_G7_num)                                           \
   declare_constant(VM_Version::vis1_instructions_m)                       \
   declare_constant(VM_Version::vis2_instructions_m)                       \
-  declare_constant(VM_Version::vis3_instructions_m)
+  declare_constant(VM_Version::vis3_instructions_m)                       \
+  declare_constant(VM_Version::cbcond_instructions_m)
 
 #define VM_LONG_CONSTANTS_CPU(declare_constant, declare_preprocessor_constant, declare_c1_constant, declare_c2_constant, declare_c2_preprocessor_constant)
 
