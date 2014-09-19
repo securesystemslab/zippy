@@ -812,7 +812,7 @@ void CompileBroker::compilation_init() {
   if (FLAG_IS_DEFAULT(GraalThreads)) {
     if (!TieredCompilation && FLAG_IS_DEFAULT(BootstrapGraal) || BootstrapGraal) {
       // Graal will bootstrap so give it more threads
-      c2_count = os::active_processor_count();
+      c2_count = MIN2(32, os::active_processor_count());
     }
   } else {
     c2_count = GraalThreads;
