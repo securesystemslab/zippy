@@ -871,22 +871,28 @@ def convertprojects(args, verbose=True):
         def dec(self):
             self.prefix = ''.rjust(len(self.prefix) - self.indent)
 
+    list_attrs = ['urls', 'dependencies', 'sourceUrls', 'sourceDirs', 'annotationProcessors', 'exclude', 'distDependencies']
+
     for projectsFile in args:
         suite = _read_projects_file(projectsFile)
-        def print_attrs(p, name, attrs, listKeys, is_last=False):
+        def print_attrs(p, name, attrs, is_last=False):
             p.println('"' + name + '" : {')
             p.inc()
             for n, v in attrs.iteritems():
-                if n in listKeys:
+                if n in list_attrs:
                     if len(v) == 0:
                         p.println('"{}" : [],'.format(n))
                     else:
-                        p.println('"{}" : ['.format(n))
-                        p.inc()
-                        for e in v.split(','):
-                            p.println('"' + e.strip() + '",')
-                        p.dec()
-                        p.println('],')
+                        v = [e.strip() for e in v.split(',')]
+                        if len(v) == 1:
+                            p.println('"{}" : ["{}"],'.format(n, v[0]))
+                        else:
+                            p.println('"{}" : ['.format(n))
+                            p.inc()
+                            for e in v:
+                                p.println('"' + e + '",')
+                            p.dec()
+                            p.println('],')
                 else:
                     p.println('"{}" : "{}",'.format(n, v))
             p.dec()
@@ -904,7 +910,7 @@ def convertprojects(args, verbose=True):
                 i = 0
                 for name, attrs in section.iteritems():
                     i = i + 1
-                    print_attrs(p, name, attrs, ['urls', 'dependencies', 'sourceUrls'], i == len(section))
+                    print_attrs(p, name, attrs, i == len(section))
 
                 p.dec()
                 if is_last:
@@ -918,9 +924,16 @@ def convertprojects(args, verbose=True):
             assert existing['name'] == suite.pop('name')
             assert existing['mxversion'] == suite.pop('mxversion')
             for s in ['projects', 'libraries', 'jrelibraries', 'distributions']:
+                section = suite[s]
                 for k in existing[s].iterkeys():
-                    suite[s].pop(k)
-                if len(suite[s]) == 0:
+                    duplicate = section.pop(k)
+                    if duplicate and s == 'distributions':
+                        original = existing[s][k]
+                        extensions = [d for d in duplicate['dependencies'].split(',') if d not in original['dependencies']]
+                        if len(extensions):
+                            extensions = ','.join(extensions)
+                            suite.setdefault('distribution_extensions', {})[k] = {'dependencies' : extensions}
+                if len(section) == 0:
                     suite.pop(s)
 
         if len(suite):
@@ -934,7 +947,10 @@ def convertprojects(args, verbose=True):
             print_section(p, 'libraries', suite)
             print_section(p, 'jrelibraries', suite)
             print_section(p, 'projects', suite)
-            print_section(p, 'distributions', suite, is_last=True)
+            print_section(p, 'distributions', suite)
+            if existing and suite.has_key('distribution_extensions'):
+                print_section(p, 'distribution_extensions', suite, is_last=True)
+
             p.dec()
             p.println('}')
 
@@ -981,7 +997,7 @@ def _load_suite_dict(mxDir):
         if not hasattr(module, dictName):
             abort(modulePath + ' must define a variable named "' + dictName + '"')
         d = getattr(module, dictName)
-        sections = ['projects', 'libraries', 'jrelibraries', 'distributions'] + ([] if suite else ['name', 'mxversion'])
+        sections = ['projects', 'libraries', 'jrelibraries', 'distributions'] + (['distribution_extensions'] if suite else ['name', 'mxversion'])
         unknown = d.viewkeys() - sections
         if unknown:
             abort(modulePath + ' defines unsupported suite sections: ' + ', '.join(unknown))
@@ -1000,6 +1016,19 @@ def _load_suite_dict(mxDir):
                         if conflicting:
                             abort(modulePath + ' redefines: ' + ', '.join(conflicting))
                         existing.update(additional)
+            distExtensions = d.get('distribution_extensions')
+            if distExtensions:
+                existing = suite['distributions']
+                for n, attrs in distExtensions.iteritems():
+                    original = existing.get(n)
+                    if not original:
+                        abort('cannot extend non-existing distribution ' + n)
+                    for k, v in attrs.iteritems():
+                        if k != 'dependencies':
+                            abort('Only the dependencies of distribution ' + n + ' can be extended')
+                        if not isinstance(v, types.ListType):
+                            abort('distribution_extensions.' + n + '.dependencies must be a list')
+                        original['dependencies'] += v
 
         dictName = 'extra'
         moduleName = 'projects' + str(suffix)
@@ -1056,18 +1085,19 @@ class Suite:
         projsMap = suiteDict['projects']
         distsMap = suiteDict['distributions']
 
-        def pop_list(attrs, name):
+        def pop_list(attrs, name, context):
             v = attrs.pop(name, None)
-            if isinstance(v, list):
-                return v
-            if v is None or len(v.strip()) == 0:
+            if not v:
                 return []
-            return [n.strip() for n in v.split(',')]
+            if not isinstance(v, list):
+                abort('Attribute "' + name + '" for ' + context + ' must be a list')
+            return v
 
         for name, attrs in projsMap.iteritems():
-            srcDirs = pop_list(attrs, 'sourceDirs')
-            deps = pop_list(attrs, 'dependencies')
-            ap = pop_list(attrs, 'annotationProcessors')
+            context = 'project ' + name
+            srcDirs = pop_list(attrs, 'sourceDirs', context)
+            deps = pop_list(attrs, 'dependencies', context)
+            ap = pop_list(attrs, 'annotationProcessors', context)
             javaCompliance = attrs.pop('javaCompliance', None)
             subDir = attrs.pop('subDir', None)
             if subDir is None:
@@ -1093,6 +1123,7 @@ class Suite:
             self.jreLibs.append(l)
 
         for name, attrs in libsMap.iteritems():
+            context = 'library ' + name
             if "|" in name:
                 if name.count('|') != 2:
                     abort("Format error in library name: " + name + "\nsyntax: libname|os-platform|architecture")
@@ -1100,12 +1131,12 @@ class Suite:
                 if platform != get_os() or architecture != get_arch():
                     continue
             path = attrs.pop('path')
-            urls = pop_list(attrs, 'urls')
+            urls = pop_list(attrs, 'urls', context)
             sha1 = attrs.pop('sha1', None)
             sourcePath = attrs.pop('sourcePath', None)
-            sourceUrls = pop_list(attrs, 'sourceUrls')
+            sourceUrls = pop_list(attrs, 'sourceUrls', context)
             sourceSha1 = attrs.pop('sourceSha1', None)
-            deps = pop_list(attrs, 'dependencies')
+            deps = pop_list(attrs, 'dependencies', context)
             # Add support optional libraries once we have a good use case
             optional = False
             l = Library(self, name, path, optional, urls, sha1, sourcePath, sourceUrls, sourceSha1, deps)
@@ -1113,12 +1144,13 @@ class Suite:
             self.libs.append(l)
 
         for name, attrs in distsMap.iteritems():
+            context = 'distribution ' + name
             path = attrs.pop('path')
             sourcesPath = attrs.pop('sourcesPath', None)
-            deps = pop_list(attrs, 'dependencies')
+            deps = pop_list(attrs, 'dependencies', context)
             mainClass = attrs.pop('mainClass', None)
-            exclDeps = pop_list(attrs, 'exclude')
-            distDeps = pop_list(attrs, 'distDependencies')
+            exclDeps = pop_list(attrs, 'exclude', context)
+            distDeps = pop_list(attrs, 'distDependencies', context)
             javaCompliance = attrs.pop('javaCompliance', None)
             d = Distribution(self, name, path, sourcesPath, deps, mainClass, exclDeps, distDeps, javaCompliance)
             d.__dict__.update(attrs)
@@ -1172,7 +1204,7 @@ class Suite:
                 self.dists.append(d)
 
         if self.name is None:
-            abort('Missing "suite=<name>" in ' + projectsFile)
+            abort('Missing "suite=<name>" in ' + projectsPyFile)
 
     def _commands_name(self):
         return 'mx_' + self.name.replace('-', '_')
@@ -3056,10 +3088,6 @@ def canonicalizeprojects(args):
 
     nonCanonical = []
     for s in suites(True):
-        projectsPyFile = join(s.mxDir, 'projects')
-        if not exists(projectsPyFile):
-            continue
-
         for p in s.projects:
             for pkg in p.defined_java_packages():
                 if not pkg.startswith(p.name):
@@ -3543,8 +3571,8 @@ def eclipseinit(args, buildProcessorJars=True, refreshOnly=False):
 
 def _check_ide_timestamp(suite, configZip, ide):
     """return True if and only if the projects file, eclipse-settings files, and mx itself are all older than configZip"""
-    projectsFile = join(suite.mxDir, 'projects')
-    if configZip.isOlderThan(projectsFile):
+    projectsPyFiles = [join(suite.mxDir, e) for e in os.listdir(suite.mxDir) if e.startswith('projects') and e.endswith('.py')]
+    if configZip.isOlderThan(projectsPyFiles):
         return False
     # Assume that any mx change might imply changes to the generated IDE files
     if configZip.isOlderThan(__file__):
@@ -5087,9 +5115,8 @@ def javap(args):
 def show_projects(args):
     """show all loaded projects"""
     for s in suites():
-        projectsFile = join(s.mxDir, 'projects')
-        if exists(projectsFile):
-            log(projectsFile)
+        if len(s.projects) != 0:
+            log(join(s.mxDir, 'projects*.py'))
             for p in s.projects:
                 log('\t' + p.name)
 
@@ -5177,7 +5204,7 @@ def _is_suite_dir(d, mxDirName=None):
         for f in os.listdir(d):
             if (mxDirName == None and (f == 'mx' or fnmatch.fnmatch(f, 'mx.*'))) or f == mxDirName:
                 mxDir = join(d, f)
-                if exists(mxDir) and isdir(mxDir) and exists(join(mxDir, 'projects')):
+                if exists(mxDir) and isdir(mxDir) and (exists(join(mxDir, 'projects.py')) or exists(join(mxDir, 'projects'))):
                     return mxDir
 
 def _check_primary_suite():
