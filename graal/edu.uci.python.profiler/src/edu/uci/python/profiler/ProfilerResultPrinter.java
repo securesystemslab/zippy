@@ -511,20 +511,20 @@ public class ProfilerResultPrinter {
         }
     }
 
-    private static void printBanner(String caption, int size) {
+    private void printBanner(String caption, int size) {
         // CheckStyle: stop system..print check
         int bannerSize = size - caption.length() - 2;
         for (int i = 0; i < bannerSize / 2; i++) {
-            System.err.print("=");
+            out.println();
         }
 
         System.err.print(" " + caption + " ");
 
         for (int i = 0; i < (bannerSize - (bannerSize / 2)); i++) {
-            System.err.print("=");
+            out.println();
         }
 
-        System.err.println();
+        out.println();
         // CheckStyle: resume system..print check
     }
 }
