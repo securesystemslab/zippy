@@ -104,7 +104,7 @@ address GraalRuntime::create_external_deopt_i2c() {
   sig_bt[i++] = T_VOID; // long stakes 2 slots
   sig_bt[i++] = T_INT;
   sig_bt[i++] = T_OBJECT;
-  sig_bt[i++] = T_INT; // The number of actual arguments pass to the method.
+  sig_bt[i++] = T_INT; // The number of actual arguments passed to the method.
 
   int comp_args_on_stack = SharedRuntime::java_calling_convention(sig_bt, regs, total_args_passed, false);
 

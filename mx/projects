@@ -73,6 +73,13 @@ library@OKRA_WITH_SIM@sourcePath=lib/okra-1.10-with-sim-src.jar
 library@OKRA_WITH_SIM@sourceSha1=7eefd94f16a3e3fd3b8f470cf91e265c6f5e7767
 library@OKRA_WITH_SIM@sourceUrls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/okra-1.10-with-sim-src.jar,http://cr.openjdk.java.net/~tdeneau/okra-1.10-with-sim-src.jar
 
+library@ASM@path=lib/asm-5.0.3.jar
+library@ASM@urls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/asm-5.0.3.jar,http://central.maven.org/maven2/org/ow2/asm/asm/5.0.3/asm-5.0.3.jar
+library@ASM@sha1=dcc2193db20e19e1feca8b1240dbbc4e190824fa
+library@ASM@sourcePath=lib/asm-5.0.3-sources.jar
+library@ASM@sourceSha1=f0f24f6666c1a15c7e202e91610476bd4ce59368
+library@ASM@sourceUrls=http://lafo.ssw.uni-linz.ac.at/graal-external-deps/asm-5.0.3-sources.jar,http://central.maven.org/maven2/org/ow2/asm/asm/5.0.3/asm-5.0.3-sources.jar
+
 library@JAVA_ALLOCATION_INSTRUMENTER@path=lib/java-allocation-instrumenter.jar
 library@JAVA_ALLOCATION_INSTRUMENTER@sourcePath=lib/java-allocation-instrumenter.jar
 library@JAVA_ALLOCATION_INSTRUMENTER@urls=http://lafo.ssw.uni-linz.ac.at/java-allocation-instrumenter/java-allocation-instrumenter-8f0db117e64e.jar
@@ -675,7 +682,7 @@ project@com.oracle.graal.compiler.test@workingSets=Graal,Test
 # graal.jtt
 project@com.oracle.graal.jtt@subDir=graal
 project@com.oracle.graal.jtt@sourceDirs=src
-project@com.oracle.graal.jtt@dependencies=com.oracle.graal.compiler.test
+project@com.oracle.graal.jtt@dependencies=com.oracle.graal.compiler.test,ASM
 project@com.oracle.graal.jtt@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.jtt@javaCompliance=1.8
 project@com.oracle.graal.jtt@workingSets=Graal,Test
