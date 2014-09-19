@@ -900,7 +900,7 @@ jlong GraalRuntime::parse_primitive_option_value(char spec, const char* name, si
     }
     case 'i': {
       if (sscanf(value, "%d%c", &uu.i, &dummy) == 1) {
-        return uu.l;
+        return (jlong)uu.i;
       }
       break;
     }
