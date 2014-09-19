@@ -219,12 +219,14 @@ public class ProfilerResultPrinter {
     }
 
     public void printControlFlowProfilerResults() {
-        printLoopProfilerResults();
-        printIfProfilerResults();
-        printBreakContinueProfilerResults();
+        long totalCount = 0;
+        totalCount += printLoopProfilerResults();
+        totalCount += printIfProfilerResults();
+        totalCount += printBreakContinueProfilerResults();
+        out.println("Total number of executed control flow instruments: " + totalCount);
     }
 
-    private void printLoopProfilerResults() {
+    private long printLoopProfilerResults() {
         long totalCount = 0;
         List<ProfilerInstrument> loopInstruments = getInstruments(profilerProber.getLoopInstruments());
 
@@ -251,9 +253,11 @@ public class ProfilerResultPrinter {
 
             out.println("Total number of executed instruments: " + totalCount);
         }
+
+        return totalCount;
     }
 
-    private void printIfProfilerResults() {
+    private long printIfProfilerResults() {
         long totalCount = 0;
         Map<ProfilerInstrument, List<ProfilerInstrument>> ifInstruments;
         if (PythonOptions.SortProfilerResults) {
@@ -305,10 +309,12 @@ public class ProfilerResultPrinter {
 
             out.println("Total number of executed instruments: " + totalCount);
         }
+
+        return totalCount;
     }
 
-    private void printBreakContinueProfilerResults() {
-        printProfilerResults("Break Continue Profiling Results", getInstruments(profilerProber.getBreakContinueInstruments()));
+    private long printBreakContinueProfilerResults() {
+        return printProfilerResults("Break Continue Profiling Results", getInstruments(profilerProber.getBreakContinueInstruments()));
     }
 
     public void printVariableAccessProfilerResults() {
@@ -344,7 +350,7 @@ public class ProfilerResultPrinter {
         return instruments;
     }
 
-    private void printProfilerResults(String caption, List<ProfilerInstrument> instruments) {
+    private long printProfilerResults(String caption, List<ProfilerInstrument> instruments) {
         long totalCount = 0;
 
         if (instruments.size() > 0) {
@@ -359,6 +365,8 @@ public class ProfilerResultPrinter {
             }
             out.println("Total number of executed instruments: " + totalCount);
         }
+
+        return totalCount;
     }
 
     private void printProfilerTypeDistributionResults(String caption, List<TypeDistributionProfilerInstrument> instruments) {
@@ -515,13 +523,13 @@ public class ProfilerResultPrinter {
         // CheckStyle: stop system..print check
         int bannerSize = size - caption.length() - 2;
         for (int i = 0; i < bannerSize / 2; i++) {
-            out.println();
+            out.print("=");
         }
 
-        System.err.print(" " + caption + " ");
+        out.print(" " + caption + " ");
 
         for (int i = 0; i < (bannerSize - (bannerSize / 2)); i++) {
-            out.println();
+            out.print("=");
         }
 
         out.println();
