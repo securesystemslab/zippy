@@ -86,6 +86,10 @@ public abstract class CallDispatchUnboxedNode extends CallDispatchNode {
 
             return next.executeCall(frame, primaryObj, arguments, keywords);
         }
+
+        public InvokeNode getInvokeNode() {
+            return invoke;
+        }
     }
 
     @NodeInfo(cost = NodeCost.MEGAMORPHIC)

@@ -36,8 +36,10 @@ import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
+import edu.uci.python.nodes.call.CallDispatchUnboxedNode.LinkedDispatchUnboxedNode;
 import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
 import edu.uci.python.nodes.call.PythonCallNode.ConstructorCallNode;
+import edu.uci.python.nodes.call.PythonCallNode.UnboxedCallNode;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.*;
@@ -135,12 +137,14 @@ public class ProfilerResultPrinter {
     private static void traverseBody(Node methodBody, MethodBodyInstrument methodBodyInstrument) {
         methodBody.accept(new NodeVisitor() {
             public boolean visit(Node node) {
-                if (node instanceof BoxedCallNode || node instanceof ConstructorCallNode) {
+                if (node instanceof BoxedCallNode || node instanceof ConstructorCallNode || node instanceof UnboxedCallNode) {
                     CallDispatchNode callDispatchNode = null;
                     if (node instanceof BoxedCallNode) {
                         callDispatchNode = ((BoxedCallNode) node).getDispatchNode();
                     } else if (node instanceof ConstructorCallNode) {
                         callDispatchNode = ((ConstructorCallNode) node).getDispatchNode();
+                    } else if (node instanceof UnboxedCallNode) {
+                        callDispatchNode = ((UnboxedCallNode) node).getDispatchNode();
                     }
 
                     if (node.getParent() instanceof PythonWrapperNode) {
@@ -148,9 +152,16 @@ public class ProfilerResultPrinter {
                         Node callProbe = (Node) callWrapper.getProbe();
                         TimeProfilerInstrument subCallInstrument = (TimeProfilerInstrument) callProbe.getChildren().iterator().next();
 
+                        DirectCallNode callNode = null;
                         if (callDispatchNode instanceof LinkedDispatchBoxedNode) {
                             LinkedDispatchBoxedNode linkDispatchNode = (LinkedDispatchBoxedNode) callDispatchNode;
-                            DirectCallNode callNode = linkDispatchNode.getInvokeNode().getDirectCallNode();
+                            callNode = linkDispatchNode.getInvokeNode().getDirectCallNode();
+                        } else if (callDispatchNode instanceof LinkedDispatchUnboxedNode) {
+                            LinkedDispatchUnboxedNode linkUnboxedDispatchNode = (LinkedDispatchUnboxedNode) callDispatchNode;
+                            callNode = linkUnboxedDispatchNode.getInvokeNode().getDirectCallNode();
+                        }
+
+                        if (callNode != null) {
                             RootCallTarget callTarget = (RootCallTarget) callNode.getCallTarget();
 
                             PythonWrapperNode wrapper = null;
@@ -161,6 +172,7 @@ public class ProfilerResultPrinter {
                                 BuiltinFunctionRootNode childRootNode = (BuiltinFunctionRootNode) callTarget.getRootNode();
                                 wrapper = (PythonWrapperNode) childRootNode.getBody();
                             }
+
                             Node probe = (Node) wrapper.getProbe();
                             MethodBodyInstrument currentMethodBodyInstrument = (MethodBodyInstrument) probe.getChildren().iterator().next();
 
