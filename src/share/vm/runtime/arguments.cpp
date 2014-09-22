@@ -1448,7 +1448,10 @@ void Arguments::set_use_compressed_oops() {
   // the only value that can override MaxHeapSize if we are
   // to use UseCompressedOops is InitialHeapSize.
   size_t max_heap_size = MAX2(MaxHeapSize, InitialHeapSize);
-
+  // Set default on graal with sparc to not use compressed oops as long they are not implemented
+#if defined(GRAAL) && defined(TARGET_ARCH_sparc)
+  FLAG_SET_DEFAULT(UseCompressedOops, false);
+#else // if !(GRAAL && SOLARIS)
   if (max_heap_size <= max_heap_for_compressed_oops()) {
 #if !defined(COMPILER1) || defined(TIERED)
     if (FLAG_IS_DEFAULT(UseCompressedOops)) {
@@ -1473,6 +1476,7 @@ void Arguments::set_use_compressed_oops() {
   }
 #endif // _LP64
 #endif // ZERO
+#endif // !(GRAAL && SOLARIS)
 }
 
 
