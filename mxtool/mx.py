@@ -847,7 +847,6 @@ def _read_projects_file(projectsFile):
                 if attrs is None:
                     attrs = OrderedDict()
                     m[name] = attrs
-                value = expandvars_in_property(value)
                 attrs[attr] = value
     return suite
 
@@ -965,6 +964,22 @@ def _load_suite_dict(mxDir):
     suite = None
     dictName = 'suite'
 
+    def expand(value, context):
+        if isinstance(value, types.DictionaryType):
+            for n, v in value.iteritems():
+                value[n] = expand(v, context + [n])
+        elif isinstance(value, types.ListType):
+            for i in range(len(value)):
+                value[i] = expand(value[i], context + [str(i)])
+        else:
+            if not isinstance(value, types.StringTypes):
+                abort('value of ' + '.'.join(context) + ' is of unexpected type ' + str(type(value)))
+            value = expandvars(value)
+            if '$' in value or '%' in value:
+                abort('value of ' + '.'.join(context) + ' contains an undefined environment variable: ' + value)
+
+        return value
+
     moduleName = 'projects'
     modulePath = join(mxDir, moduleName + '.py')
     while exists(modulePath):
@@ -996,7 +1011,7 @@ def _load_suite_dict(mxDir):
 
         if not hasattr(module, dictName):
             abort(modulePath + ' must define a variable named "' + dictName + '"')
-        d = getattr(module, dictName)
+        d = expand(getattr(module, dictName), [dictName])
         sections = ['projects', 'libraries', 'jrelibraries', 'distributions'] + (['distribution_extensions'] if suite else ['name', 'mxversion'])
         unknown = d.viewkeys() - sections
         if unknown:
