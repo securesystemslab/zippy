@@ -918,7 +918,7 @@ def convertprojects(args, verbose=True):
                     p.println('},')
                     p.println('')
 
-        existing, projectsPyFile = _load_suite_dict(dirname(projectsFile))
+        existing, suitePyFile = _load_suite_dict(dirname(projectsFile))
         if existing:
             assert existing['name'] == suite.pop('name')
             assert existing['mxversion'] == suite.pop('mxversion')
@@ -953,10 +953,10 @@ def convertprojects(args, verbose=True):
             p.dec()
             p.println('}')
 
-            with open(projectsPyFile, 'w') as fp:
+            with open(suitePyFile, 'w') as fp:
                 fp.write(out.getvalue())
                 if verbose:
-                    print 'created: ' + projectsPyFile
+                    print 'created: ' + suitePyFile
 
 def _load_suite_dict(mxDir):
 
@@ -980,7 +980,7 @@ def _load_suite_dict(mxDir):
 
         return value
 
-    moduleName = 'projects'
+    moduleName = 'suite'
     modulePath = join(mxDir, moduleName + '.py')
     while exists(modulePath):
 
@@ -1046,8 +1046,13 @@ def _load_suite_dict(mxDir):
                         original['dependencies'] += v
 
         dictName = 'extra'
-        moduleName = 'projects' + str(suffix)
+        moduleName = 'suite' + str(suffix)
         modulePath = join(mxDir, moduleName + '.py')
+        
+        deprecatedModulePath = join(mxDir, 'projects' + str(suffix) + '.py')
+        if exists(deprecatedModulePath):
+            abort('Please rename ' + deprecatedModulePath + ' to ' + modulePath)
+        
         suffix = suffix + 1
 
     return suite, modulePath
@@ -1080,8 +1085,8 @@ class Suite:
         if exists(projectsFile):
             convertprojects([projectsFile], verbose=False)
 
-        projectsPyFile = join(self.mxDir, 'projects.py')
-        if not exists(projectsPyFile):
+        suitePyFile = join(self.mxDir, 'suite.py')
+        if not exists(suitePyFile):
             return
 
         suiteDict, _ = _load_suite_dict(self.mxDir)
@@ -1219,7 +1224,7 @@ class Suite:
                 self.dists.append(d)
 
         if self.name is None:
-            abort('Missing "suite=<name>" in ' + projectsPyFile)
+            abort('Missing "suite=<name>" in ' + suitePyFile)
 
     def _commands_name(self):
         return 'mx_' + self.name.replace('-', '_')
@@ -3586,8 +3591,8 @@ def eclipseinit(args, buildProcessorJars=True, refreshOnly=False):
 
 def _check_ide_timestamp(suite, configZip, ide):
     """return True if and only if the projects file, eclipse-settings files, and mx itself are all older than configZip"""
-    projectsPyFiles = [join(suite.mxDir, e) for e in os.listdir(suite.mxDir) if e.startswith('projects') and e.endswith('.py')]
-    if configZip.isOlderThan(projectsPyFiles):
+    suitePyFiles = [join(suite.mxDir, e) for e in os.listdir(suite.mxDir) if e.startswith('suite') and e.endswith('.py')]
+    if configZip.isOlderThan(suitePyFiles):
         return False
     # Assume that any mx change might imply changes to the generated IDE files
     if configZip.isOlderThan(__file__):
@@ -5219,7 +5224,7 @@ def _is_suite_dir(d, mxDirName=None):
         for f in os.listdir(d):
             if (mxDirName == None and (f == 'mx' or fnmatch.fnmatch(f, 'mx.*'))) or f == mxDirName:
                 mxDir = join(d, f)
-                if exists(mxDir) and isdir(mxDir) and (exists(join(mxDir, 'projects.py')) or exists(join(mxDir, 'projects'))):
+                if exists(mxDir) and isdir(mxDir) and (exists(join(mxDir, 'suite.py')) or exists(join(mxDir, 'projects'))):
                     return mxDir
 
 def _check_primary_suite():
