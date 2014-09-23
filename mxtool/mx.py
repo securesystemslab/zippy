@@ -940,11 +940,11 @@ def _load_suite_dict(mxDir):
         dictName = 'extra'
         moduleName = 'suite' + str(suffix)
         modulePath = join(mxDir, moduleName + '.py')
-        
+
         deprecatedModulePath = join(mxDir, 'projects' + str(suffix) + '.py')
         if exists(deprecatedModulePath):
             abort('Please rename ' + deprecatedModulePath + ' to ' + modulePath)
-        
+
         suffix = suffix + 1
 
     return suite, modulePath
