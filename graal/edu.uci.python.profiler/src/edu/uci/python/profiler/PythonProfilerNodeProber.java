@@ -42,6 +42,7 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
     private final static PythonProfilerNodeProber INSTANCE = new PythonProfilerNodeProber();
 
     private List<MethodBodyInstrument> methodBodyInstruments;
+    private List<PNode> builtinBodies;
     private List<TimeProfilerInstrument> callInstruments;
     private List<ProfilerInstrument> loopInstruments;
     private List<ProfilerInstrument> breakContinueInstruments;
@@ -82,6 +83,10 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         MethodBodyInstrument profilerInstrument = createAttachMethodBodyInstrument(wrapper);
         methodBodyInstruments.add(profilerInstrument);
         return wrapper;
+    }
+
+    public void addBuiltinMethodBody(PNode node) {
+        builtinBodies.add(node);
     }
 
     public PythonWrapperNode probeAsCall(PNode node, PythonContext context) {

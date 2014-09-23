@@ -57,18 +57,24 @@ public abstract class SliceNode extends TernaryOpNode {
 
     @SuppressWarnings("unused")
     @Specialization(order = 4)
+    public PSlice doSlice(int start, PNone stop, int step) {
+        return new PSlice(start, MISSING_INDEX, step);
+    }
+
+    @SuppressWarnings("unused")
+    @Specialization(order = 5)
     public PSlice doSlice(PNone start, int stop, PNone step) {
         return new PSlice.PStopSlice(stop);
     }
 
     @SuppressWarnings("unused")
-    @Specialization(order = 5)
+    @Specialization(order = 6)
     public PSlice doSlice(PNone start, PNone stop, int step) {
         return new PSlice(MISSING_INDEX, MISSING_INDEX, step);
     }
 
     @SuppressWarnings("unused")
-    @Specialization(order = 6)
+    @Specialization(order = 7)
     public PSlice doSlice(PNone start, PNone stop, PNone step) {
         return new PSlice(MISSING_INDEX, MISSING_INDEX, 1);
     }

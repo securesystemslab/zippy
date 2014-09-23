@@ -170,15 +170,19 @@ public class ProfilerResultPrinter {
                                 wrapper = (PythonWrapperNode) childRootNode.getBody();
                             } else if (callTarget.getRootNode() instanceof BuiltinFunctionRootNode) {
                                 BuiltinFunctionRootNode childRootNode = (BuiltinFunctionRootNode) callTarget.getRootNode();
-                                wrapper = (PythonWrapperNode) childRootNode.getBody();
+                                if (childRootNode.getBody() instanceof PythonWrapperNode) {
+                                    wrapper = (PythonWrapperNode) childRootNode.getBody();
+                                }
                             }
 
-                            Node probe = (Node) wrapper.getProbe();
-                            MethodBodyInstrument currentMethodBodyInstrument = (MethodBodyInstrument) probe.getChildren().iterator().next();
+                            if (wrapper != null) {
+                                Node probe = (Node) wrapper.getProbe();
+                                MethodBodyInstrument currentMethodBodyInstrument = (MethodBodyInstrument) probe.getChildren().iterator().next();
 
-                            if (currentMethodBodyInstrument.equals(methodBodyInstrument)) {
-                                totalCounter = totalCounter + subCallInstrument.getCounter();
-                                cumulativeTime = cumulativeTime + subCallInstrument.getTime();
+                                if (currentMethodBodyInstrument.equals(methodBodyInstrument)) {
+                                    totalCounter = totalCounter + subCallInstrument.getCounter();
+                                    cumulativeTime = cumulativeTime + subCallInstrument.getTime();
+                                }
                             }
                         }
                     }

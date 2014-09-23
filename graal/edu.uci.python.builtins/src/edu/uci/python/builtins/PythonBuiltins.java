@@ -51,13 +51,17 @@ public abstract class PythonBuiltins {
 
     protected abstract List<? extends NodeFactory<? extends PythonBuiltinNode>> getNodeFactories();
 
+    private static int index = 1;
+
     @SuppressWarnings("unchecked")
     public void initialize(PythonContext context) {
         Source source = null;
-        try {
-            source = Source.fromFileName("graal/edu.uci.python.test/src/tests/builtins.py");
-        } catch (IOException e) {
-            e.printStackTrace();
+        if (PythonOptions.ProfileCalls) {
+            try {
+                source = Source.fromFileName("graal/edu.uci.python.test/src/tests/builtins.py");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         List<NodeFactory<PythonBuiltinNode>> factories = (List<NodeFactory<PythonBuiltinNode>>) getNodeFactories();
@@ -65,7 +69,7 @@ public abstract class PythonBuiltins {
 
         for (NodeFactory<PythonBuiltinNode> factory : factories) {
             Builtin builtin = factory.getNodeClass().getAnnotation(Builtin.class);
-            RootCallTarget callTarget = createBuiltinCallTarget(factory, builtin.name(), createArgumentsList(builtin), context, source);
+            RootCallTarget callTarget = createBuiltinCallTarget(factory, builtin.name(), createArgumentsList(builtin), context);
             PBuiltinFunction function = new PBuiltinFunction(builtin.name(), createArity(builtin), callTarget);
 
             if (builtin.isConstructor()) {
@@ -82,29 +86,25 @@ public abstract class PythonBuiltins {
                 setBuiltinClass(builtin.name(), builtinClass);
             } else {
                 setBuiltinFunction(builtin.name(), function);
+                if (PythonOptions.ProfileCalls) {
+                    PNode body = ((BuiltinFunctionRootNode) callTarget.getRootNode()).getBody();
+                    SourceSection sourceSection = source.createSection("builtin-in", index);
+                    body.assignSourceSection(sourceSection);
+
+                    PythonWrapperNode wrapperNode = null;
+                    wrapperNode = PythonProfilerNodeProber.getInstance().probeAsMethodBody(body, context);
+
+                    body.replace(wrapperNode);
+                    index++;
+                }
             }
         }
     }
 
-    static int index = 1;
-
-    private static RootCallTarget createBuiltinCallTarget(NodeFactory<PythonBuiltinNode> factory, String name, PNode[] argsKeywords, PythonContext context, Source source) {
+    private static RootCallTarget createBuiltinCallTarget(NodeFactory<PythonBuiltinNode> factory, String name, PNode[] argsKeywords, PythonContext context) {
         PythonBuiltinNode builtinNode = factory.createNode(argsKeywords, context);
         BuiltinFunctionRootNode rootNode = new BuiltinFunctionRootNode(name, builtinNode);
         RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-
-        if (PythonOptions.ProfileCalls) {
-            PNode body = rootNode.getBody();
-            SourceSection sourceSection = source.createSection("builtin-in", index);
-            body.assignSourceSection(sourceSection);
-
-            PythonWrapperNode wrapperNode = null;
-            wrapperNode = PythonProfilerNodeProber.getInstance().probeAsMethodBody(body, context);
-
-            body.replace(wrapperNode);
-            index++;
-        }
-
         return callTarget;
     }
 
