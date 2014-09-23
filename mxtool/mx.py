@@ -5020,12 +5020,27 @@ def javap(args):
         run([javapExe, '-private', '-verbose', '-classpath', classpath()] + selection)
 
 def show_projects(args):
-    """show all loaded projects"""
+    """show all projects"""
     for s in suites():
         if len(s.projects) != 0:
-            log(join(s.mxDir, 'projects*.py'))
+            log(join(s.mxDir, 'suite*.py'))
             for p in s.projects:
                 log('\t' + p.name)
+
+def show_suites(args):
+    """show all suites"""
+    def _show_section(name, section):
+        if len(section) != 0:
+            log('  ' + name + ':')
+            for e in section:
+                log('    ' + e.name)
+
+    for s in suites():
+        log(join(s.mxDir, 'suite*.py'))
+        _show_section('libraries', s.libs)
+        _show_section('jrelibraries', s.jreLibs)
+        _show_section('projects', s.projects)
+        _show_section('distributions', s.dists)
 
 def ask_yes_no(question, default=None):
     """"""
@@ -5087,6 +5102,7 @@ _commands = {
     'javadoc': [javadoc, '[options]'],
     'site': [site, '[options]'],
     'netbeansinit': [netbeansinit, ''],
+    'suites': [show_suites, ''],
     'projects': [show_projects, ''],
 }
 
@@ -5110,7 +5126,7 @@ def _is_suite_dir(d, mxDirName=None):
         for f in os.listdir(d):
             if (mxDirName == None and (f == 'mx' or fnmatch.fnmatch(f, 'mx.*'))) or f == mxDirName:
                 mxDir = join(d, f)
-                if exists(mxDir) and isdir(mxDir) and (exists(join(mxDir, 'suite.py')) or exists(join(mxDir, 'projects'))):
+                if exists(mxDir) and isdir(mxDir) and (exists(join(mxDir, 'suite.py'))):
                     return mxDir
 
 def _check_primary_suite():
