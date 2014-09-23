@@ -850,114 +850,6 @@ def _read_projects_file(projectsFile):
                 attrs[attr] = value
     return suite
 
-# TODO: remove this command once all repos have transitioned
-# to the new project format
-def convertprojects(args, verbose=True):
-    """convert old style projects file to projects*.py file(s)"""
-
-    class Printer:
-        def __init__(self, fp, indent):
-            self.fp = fp
-            self.indent = indent
-            self.prefix = ''
-        def println(self, s):
-            if len(s) == 0:
-                print >> self.fp, s
-            else:
-                print >> self.fp, self.prefix + s
-        def inc(self):
-            self.prefix = ''.rjust(len(self.prefix) + self.indent)
-        def dec(self):
-            self.prefix = ''.rjust(len(self.prefix) - self.indent)
-
-    list_attrs = ['urls', 'dependencies', 'sourceUrls', 'sourceDirs', 'annotationProcessors', 'exclude', 'distDependencies']
-
-    for projectsFile in args:
-        suite = _read_projects_file(projectsFile)
-        def print_attrs(p, name, attrs, is_last=False):
-            p.println('"' + name + '" : {')
-            p.inc()
-            for n, v in attrs.iteritems():
-                if n in list_attrs:
-                    if len(v) == 0:
-                        p.println('"{}" : [],'.format(n))
-                    else:
-                        v = [e.strip() for e in v.split(',')]
-                        if len(v) == 1:
-                            p.println('"{}" : ["{}"],'.format(n, v[0]))
-                        else:
-                            p.println('"{}" : ['.format(n))
-                            p.inc()
-                            for e in v:
-                                p.println('"' + e + '",')
-                            p.dec()
-                            p.println('],')
-                else:
-                    p.println('"{}" : "{}",'.format(n, v))
-            p.dec()
-            if is_last:
-                p.println('}')
-            else:
-                p.println('},')
-                p.println('')
-
-        def print_section(p, sname, suite, is_last=False):
-            section = suite.get(sname)
-            if section:
-                p.println('"' + sname + '" : {')
-                p.inc()
-                i = 0
-                for name, attrs in section.iteritems():
-                    i = i + 1
-                    print_attrs(p, name, attrs, i == len(section))
-
-                p.dec()
-                if is_last:
-                    p.println('}')
-                else:
-                    p.println('},')
-                    p.println('')
-
-        existing, suitePyFile = _load_suite_dict(dirname(projectsFile))
-        if existing:
-            assert existing['name'] == suite.pop('name')
-            assert existing['mxversion'] == suite.pop('mxversion')
-            for s in ['projects', 'libraries', 'jrelibraries', 'distributions']:
-                section = suite[s]
-                for k in existing[s].iterkeys():
-                    duplicate = section.pop(k)
-                    if duplicate and s == 'distributions':
-                        original = existing[s][k]
-                        extensions = [d for d in duplicate['dependencies'].split(',') if d not in original['dependencies']]
-                        if len(extensions):
-                            extensions = ','.join(extensions)
-                            suite.setdefault('distribution_extensions', {})[k] = {'dependencies' : extensions}
-                if len(section) == 0:
-                    suite.pop(s)
-
-        if len(suite):
-            out = StringIO.StringIO()
-            p = Printer(out, 2)
-            p.println(('extra' if existing else 'suite') + ' = {')
-            p.inc()
-            if not existing:
-                p.println('"mxversion" : "' + suite['mxversion'] + '",')
-                p.println('"name" : "' + suite['name'] + '",')
-            print_section(p, 'libraries', suite)
-            print_section(p, 'jrelibraries', suite)
-            print_section(p, 'projects', suite)
-            print_section(p, 'distributions', suite)
-            if existing and suite.has_key('distribution_extensions'):
-                print_section(p, 'distribution_extensions', suite, is_last=True)
-
-            p.dec()
-            p.println('}')
-
-            with open(suitePyFile, 'w') as fp:
-                fp.write(out.getvalue())
-                if verbose:
-                    print 'created: ' + suitePyFile
-
 def _load_suite_dict(mxDir):
 
     suffix = 1
@@ -1080,11 +972,6 @@ class Suite:
         return self.name
 
     def _load_projects(self):
-        # TODO: remove once mx/projects has been deprecated
-        projectsFile = join(self.mxDir, 'projects')
-        if exists(projectsFile):
-            convertprojects([projectsFile], verbose=False)
-
         suitePyFile = join(self.mxDir, 'suite.py')
         if not exists(suitePyFile):
             return
@@ -5182,7 +5069,6 @@ _commands = {
     'about': [about, ''],
     'build': [build, '[options]'],
     'checkstyle': [checkstyle, ''],
-    'convertprojects' : [convertprojects, ''],
     'canonicalizeprojects': [canonicalizeprojects, ''],
     'clean': [clean, ''],
     'eclipseinit': [eclipseinit, ''],
