@@ -215,16 +215,20 @@ public class ProfilerResultPrinter {
                                 wrapper = (PythonWrapperNode) childRootNode.getBody();
                             } else if (callTarget.getRootNode() instanceof BuiltinFunctionRootNode) {
                                 BuiltinFunctionRootNode childRootNode = (BuiltinFunctionRootNode) callTarget.getRootNode();
-                                wrapper = (PythonWrapperNode) childRootNode.getBody();
+                                if (childRootNode.getBody() instanceof PythonWrapperNode) {
+                                    wrapper = (PythonWrapperNode) childRootNode.getBody();
+                                }
                             }
 
-                            Node probe = (Node) wrapper.getProbe();
-                            MethodBodyInstrument currentMethodBodyInstrument = (MethodBodyInstrument) probe.getChildren().iterator().next();
-                            /**
-                             * Do not exclude recursive calls
-                             */
-                            if (!methodBodyInstrument.equals(currentMethodBodyInstrument)) {
-                                excludedTime = excludedTime - subCallInstrument.getTime();
+                            if (wrapper != null) {
+                                Node probe = (Node) wrapper.getProbe();
+                                MethodBodyInstrument currentMethodBodyInstrument = (MethodBodyInstrument) probe.getChildren().iterator().next();
+                                /**
+                                 * Do not exclude recursive calls
+                                 */
+                                if (!methodBodyInstrument.equals(currentMethodBodyInstrument)) {
+                                    excludedTime = excludedTime - subCallInstrument.getTime();
+                                }
                             }
                         }
                     }
