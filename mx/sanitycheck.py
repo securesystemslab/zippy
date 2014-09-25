@@ -663,6 +663,10 @@ class Test:
                 result = mx.run(['pypy'] + self.cmd[-2:], out=tee.eat)
             elif vm == 'pypy3':
                 result = mx.run(['pypy3'] + self.cmd[-2:], out=tee.eat)
+            elif vm == 'pypy-profile':
+                result = mx.run(['pypy'] + ['-m' ,'cProfile', '-s' 'calls'] + self.cmd[-2:], out=tee.eat)
+            elif vm == 'pypy3-profile':
+                result = mx.run(['pypy3'] + ['-m' ,'cProfile', '-s' 'calls'] + self.cmd[-2:], out=tee.eat)
             else:
                 result = mx_graal.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
 

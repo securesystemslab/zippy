@@ -1589,6 +1589,14 @@ def bench(args):
     if 'pypy3' in args:
         benchmarks += sanitycheck.getPythonBenchmarks(vm)
         vm = 'pypy3'
+        
+    if 'pypy-profile' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm)
+        vm = 'pypy-profile'    
+
+    if 'pypy3-profile' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm)
+        vm = 'pypy3-profile'    
 
     if 'python-micro' in args:
         benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
