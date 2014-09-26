@@ -52,19 +52,19 @@ private:
 
   Arena         _arena;
 
-  oop           _dataSection;
-  arrayOop      _sites;
-  arrayOop      _exception_handlers;
+  jobject       _data_section_handle;
+  jobject       _sites_handle;
+  jobject       _exception_handlers_handle;
   CodeOffsets   _offsets;
 
-  arrayOop      _code;
+  jobject       _code_handle;
   jint          _code_size;
   jint          _total_frame_size;
   jint          _custom_stack_area_offset;
   jint          _parameter_count;
   jint          _constants_size;
 #ifndef PRODUCT
-  arrayOop      _comments;
+  jobject       _comments_handle;
 #endif
 
   MarkId        _next_call_type;
@@ -86,6 +86,13 @@ private:
   void pd_relocate_JavaMethod(oop method, jint pc_offset);
   void pd_relocate_poll(address pc, jint mark);
 
+  objArrayOop sites() { return (objArrayOop) JNIHandles::resolve(_sites_handle); }
+  arrayOop code() { return (arrayOop) JNIHandles::resolve(_code_handle); }
+  arrayOop data_section() { return (arrayOop) JNIHandles::resolve(_data_section_handle); }
+  objArrayOop exception_handlers() { return (objArrayOop) JNIHandles::resolve(_exception_handlers_handle); }
+#ifndef PRODUCT
+  objArrayOop comments() { return (objArrayOop) JNIHandles::resolve(_comments_handle); }
+#endif
 
 public:
 

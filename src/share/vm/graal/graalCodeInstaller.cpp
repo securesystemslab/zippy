@@ -414,7 +414,6 @@ GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBl
   _constants = buffer.consts();
 
   {
-    No_Safepoint_Verifier no_safepoint;
     initialize_fields(JNIHandles::resolve(compiled_code_obj));
     if (!initialize_buffer(buffer)) {
       return GraalEnv::code_too_large;
@@ -458,10 +457,10 @@ GraalEnv::CodeInstallResult CodeInstaller::install(Handle& compiled_code, CodeBl
 }
 
 void CodeInstaller::initialize_fields(oop compiled_code) {
-  oop comp_result = HotSpotCompiledCode::comp(compiled_code);
+  Handle comp_result = HotSpotCompiledCode::comp(compiled_code);
   if (compiled_code->is_a(HotSpotCompiledNmethod::klass())) {
-    oop hotspotJavaMethod = HotSpotCompiledNmethod::method(compiled_code);
-    methodHandle method = getMethodFromHotSpotMethod(hotspotJavaMethod);
+    Handle hotspotJavaMethod = HotSpotCompiledNmethod::method(compiled_code);
+    methodHandle method = getMethodFromHotSpotMethod(hotspotJavaMethod());
     _parameter_count = method->size_of_parameters();
     TRACE_graal_1("installing code for %s", method->name_and_sig_as_C_string());
   } else {
@@ -469,25 +468,25 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
     // TODO (ds) not sure if this is correct - only used in OopMap constructor for non-product builds
     _parameter_count = 0;
   }
-  _sites = (arrayOop) HotSpotCompiledCode::sites(compiled_code);
-  _exception_handlers = (arrayOop) HotSpotCompiledCode::exceptionHandlers(compiled_code);
+  _sites_handle = JNIHandles::make_global(HotSpotCompiledCode::sites(compiled_code));
+  _exception_handlers_handle = JNIHandles::make_global(HotSpotCompiledCode::exceptionHandlers(compiled_code));
 
-  _code = (arrayOop) CompilationResult::targetCode(comp_result);
+  _code_handle = JNIHandles::make_global(CompilationResult::targetCode(comp_result));
   _code_size = CompilationResult::targetCodeSize(comp_result);
   _total_frame_size = CompilationResult::totalFrameSize(comp_result);
   _custom_stack_area_offset = CompilationResult::customStackAreaOffset(comp_result);
 
   // Pre-calculate the constants section size.  This is required for PC-relative addressing.
-  _dataSection = HotSpotCompiledCode::dataSection(compiled_code);
-  guarantee(DataSection::sectionAlignment(_dataSection) <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
-  arrayOop data = (arrayOop) DataSection::data(_dataSection);
+  _data_section_handle = JNIHandles::make_global(HotSpotCompiledCode::dataSection(compiled_code));
+  guarantee(DataSection::sectionAlignment(data_section()) <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
+  arrayHandle data = (arrayOop) DataSection::data(data_section());
   _constants_size = data->length();
   if (_constants_size > 0) {
     _constants_size = align_size_up(_constants_size, _constants->alignment());
   }
 
 #ifndef PRODUCT
-  _comments = (arrayOop) HotSpotCompiledCode::comments(compiled_code);
+  _comments_handle = JNIHandles::make_global((arrayOop) HotSpotCompiledCode::comments(compiled_code));
 #endif
 
   _next_call_type = INVOKE_INVALID;
@@ -496,8 +495,9 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
 int CodeInstaller::estimate_stub_entries() {
   // Estimate the number of static call stubs that might be emitted.
   int static_call_stubs = 0;
-  for (int i = 0; i < _sites->length(); i++) {
-    oop site = ((objArrayOop) (_sites))->obj_at(i);
+  objArrayOop sites = this->sites();
+  for (int i = 0; i < sites->length(); i++) {
+    oop site = sites->obj_at(i);
     if (site->is_a(CompilationResult_Mark::klass())) {
       oop id_obj = CompilationResult_Mark::id(site);
       if (id_obj != NULL) {
@@ -514,7 +514,9 @@ int CodeInstaller::estimate_stub_entries() {
 
 // perform data and call relocation on the CodeBuffer
 bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
-  int locs_buffer_size = _sites->length() * (relocInfo::length_limit + sizeof(relocInfo));
+  HandleMark hm;
+  objArrayHandle sites = this->sites();
+  int locs_buffer_size = sites->length() * (relocInfo::length_limit + sizeof(relocInfo));
   char* locs_buffer = NEW_RESOURCE_ARRAY(char, locs_buffer_size);
   buffer.insts()->initialize_shared_locs((relocInfo*)locs_buffer, locs_buffer_size / sizeof(relocInfo));
   // Allocate enough space in the stub section for the static call
@@ -534,21 +536,22 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
   if (!_instructions->allocates2(end_pc)) {
     return false;
   }
-  memcpy(_instructions->start(), _code->base(T_BYTE), _code_size);
+  memcpy(_instructions->start(), code()->base(T_BYTE), _code_size);
   _instructions->set_end(end_pc);
 
   // copy the constant data into the newly created CodeBuffer
   address end_data = _constants->start() + _constants_size;
-  arrayOop data = (arrayOop) DataSection::data(_dataSection);
+  typeArrayHandle data((typeArrayOop) DataSection::data(data_section()));
   memcpy(_constants->start(), data->base(T_BYTE), data->length());
   _constants->set_end(end_data);
 
-  objArrayOop patches = (objArrayOop) DataSection::patches(_dataSection);
+  
+  objArrayHandle patches = (objArrayOop) DataSection::patches(data_section());
   for (int i = 0; i < patches->length(); i++) {
-    oop patch = patches->obj_at(i);
-    oop data = CompilationResult_DataPatch::data(patch);
+    Handle patch = patches->obj_at(i);
+    Handle data = CompilationResult_DataPatch::data(patch);
     if (data->is_a(MetaspaceData::klass())) {
-      record_metadata_in_patch(data, _oop_recorder);
+      record_metadata_in_patch(data(), _oop_recorder);
     } else if (data->is_a(OopData::klass())) {
       Handle obj = OopData::object(data);
       jobject value = JNIHandles::make_local(obj());
@@ -562,41 +565,49 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
     }
   }
   jint last_pc_offset = -1;
-  for (int i = 0; i < _sites->length(); i++) {
-    oop site = ((objArrayOop) (_sites))->obj_at(i);
-    jint pc_offset = CompilationResult_Site::pcOffset(site);
+  for (int i = 0; i < sites->length(); i++) {
+    {
+        No_Safepoint_Verifier no_safepoint;
+        oop site = sites->obj_at(i);
+        jint pc_offset = CompilationResult_Site::pcOffset(site);
 
-    if (site->is_a(CompilationResult_Call::klass())) {
-      TRACE_graal_4("call at %i", pc_offset);
-      site_Call(buffer, pc_offset, site);
-    } else if (site->is_a(CompilationResult_Infopoint::klass())) {
-      // three reasons for infopoints denote actual safepoints
-      oop reason = CompilationResult_Infopoint::reason(site);
-      if (InfopointReason::SAFEPOINT() == reason || InfopointReason::CALL() == reason || InfopointReason::IMPLICIT_EXCEPTION() == reason) {
-        TRACE_graal_4("safepoint at %i", pc_offset);
-        site_Safepoint(buffer, pc_offset, site);
-      } else {
-        // if the infopoint is not an actual safepoint, it must have one of the other reasons
-        // (safeguard against new safepoint types that require handling above)
-        assert(InfopointReason::METHOD_START() == reason || InfopointReason::METHOD_END() == reason || InfopointReason::LINE_NUMBER() == reason, "");
-        site_Infopoint(buffer, pc_offset, site);
-      }
-    } else if (site->is_a(CompilationResult_DataPatch::klass())) {
-      TRACE_graal_4("datapatch at %i", pc_offset);
-      site_DataPatch(buffer, pc_offset, site);
-    } else if (site->is_a(CompilationResult_Mark::klass())) {
-      TRACE_graal_4("mark at %i", pc_offset);
-      site_Mark(buffer, pc_offset, site);
-    } else {
-      fatal("unexpected Site subclass");
+        if (site->is_a(CompilationResult_Call::klass())) {
+          TRACE_graal_4("call at %i", pc_offset);
+          site_Call(buffer, pc_offset, site);
+        } else if (site->is_a(CompilationResult_Infopoint::klass())) {
+          // three reasons for infopoints denote actual safepoints
+          oop reason = CompilationResult_Infopoint::reason(site);
+          if (InfopointReason::SAFEPOINT() == reason || InfopointReason::CALL() == reason || InfopointReason::IMPLICIT_EXCEPTION() == reason) {
+            TRACE_graal_4("safepoint at %i", pc_offset);
+            site_Safepoint(buffer, pc_offset, site);
+          } else {
+            // if the infopoint is not an actual safepoint, it must have one of the other reasons
+            // (safeguard against new safepoint types that require handling above)
+            assert(InfopointReason::METHOD_START() == reason || InfopointReason::METHOD_END() == reason || InfopointReason::LINE_NUMBER() == reason, "");
+            site_Infopoint(buffer, pc_offset, site);
+          }
+        } else if (site->is_a(CompilationResult_DataPatch::klass())) {
+          TRACE_graal_4("datapatch at %i", pc_offset);
+          site_DataPatch(buffer, pc_offset, site);
+        } else if (site->is_a(CompilationResult_Mark::klass())) {
+          TRACE_graal_4("mark at %i", pc_offset);
+          site_Mark(buffer, pc_offset, site);
+        } else {
+          fatal("unexpected Site subclass");
+        }
+        last_pc_offset = pc_offset;
     }
-    last_pc_offset = pc_offset;
+    if (CodeInstallSafepointChecks && SafepointSynchronize::do_call_back()) {
+      // this is a hacky way to force a safepoint check but nothing else was jumping out at me.
+      ThreadToNativeFromVM ttnfv(JavaThread::current());
+    }
   }
 
 #ifndef PRODUCT
-  if (_comments != NULL) {
-    for (int i = 0; i < _comments->length(); i++) {
-      oop comment = ((objArrayOop) (_comments))->obj_at(i);
+  if (comments() != NULL) {
+    No_Safepoint_Verifier no_safepoint;
+    for (int i = 0; i < comments()->length(); i++) {
+      oop comment = comments()->obj_at(i);
       assert(comment->is_a(HotSpotCompiledCode_Comment::klass()), "cce");
       jint offset = HotSpotCompiledCode_Comment::pcOffset(comment);
       char* text = java_lang_String::as_utf8_string(HotSpotCompiledCode_Comment::text(comment));
@@ -657,9 +668,10 @@ void CodeInstaller::process_exception_handlers() {
   GrowableArray<intptr_t>* scope_depths = new GrowableArray<intptr_t> (num_handlers);
   GrowableArray<intptr_t>* pcos = new GrowableArray<intptr_t> (num_handlers);
 
-  if (_exception_handlers != NULL) {
-    for (int i = 0; i < _exception_handlers->length(); i++) {
-      oop exc=((objArrayOop) (_exception_handlers))->obj_at(i);
+  if (exception_handlers() != NULL) {
+    objArrayOop handlers = exception_handlers();
+    for (int i = 0; i < handlers->length(); i++) {
+      oop exc = handlers->obj_at(i);
       jint pc_offset = CompilationResult_Site::pcOffset(exc);
       jint handler_offset = CompilationResult_ExceptionHandler::handlerPos(exc);
 

@@ -61,6 +61,9 @@
   COMPILERGRAAL_PRESENT(product(intx, GraalThreads, 1,                      \
           "Force number of Graal compiler threads to use"))                 \
                                                                             \
+  GRAAL_ONLY(product(bool, CodeInstallSafepointChecks, true,                \
+          "Perform explicit safepoint checks while installing code"))       \
+                                                                            \
   product(intx, TraceGraal, 0,                                              \
           "Trace level for Graal")                                          \
                                                                             \
