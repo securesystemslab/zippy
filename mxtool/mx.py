@@ -2136,13 +2136,13 @@ class JavaConfig:
             self._init_classpaths()
 
         for e in self._bootclasspath.split(os.pathsep):
-            if basename(e) == self.jar:
+            if basename(e) == jar:
                 return True
         for d in self._extdirs.split(os.pathsep):
-            if len(d) and self.jar in os.listdir(d):
+            if len(d) and jar in os.listdir(d):
                 return True
         for d in self._endorseddirs.split(os.pathsep):
-            if len(d) and self.jar in os.listdir(d):
+            if len(d) and jar in os.listdir(d):
                 return True
         return False
 
@@ -2382,7 +2382,7 @@ class JavaCompileTask:
             else:
                 self.logCompilation('JDT')
 
-                jdtVmArgs = ['-Xmx1g', '-jar', self.jdtJar]
+                jdtVmArgs = ['-Xmx1g', '-jar', _tpU2W(self.jdtJar)]
 
                 jdtArgs = ['-' + compliance,
                          '-cp', cp, '-g', '-enableJavadoc',
@@ -2415,7 +2415,7 @@ class JavaCompileTask:
                         jdtArgs += ['-properties', jdtPropertiesTmp]
                     else:
                         jdtArgs += ['-properties', jdtProperties]
-                jdtArgs.append('@' + argfile.name)
+                jdtArgs.append('@' + _tpU2W(argfile.name))
 
                 run_java(jdtVmArgs + jdtArgs)
 
