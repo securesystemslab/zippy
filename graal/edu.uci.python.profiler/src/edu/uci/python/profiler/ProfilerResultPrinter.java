@@ -67,7 +67,7 @@ public class ProfilerResultPrinter {
 
     public void printCallProfilerResults() {
         List<MethodBodyInstrument> methodBodyInstruments = profilerProber.getMethodBodyInstruments();
-        List<TimeProfilerInstrument> callInstruments = profilerProber.getCallInstruments();
+        Map<MethodBodyInstrument, List<Long>> timeMap = new HashMap<>();
 
         if (methodBodyInstruments.size() > 0) {
             printBanner("Call Time Profiling Results", 116);
@@ -79,45 +79,40 @@ public class ProfilerResultPrinter {
             out.format("%-40s", "Function Name");
             out.format("%-20s", "Counter");
             out.format("%-20s", "Excluded Time");
+            out.format("%-20s", "Avg Excluded");
             out.format("%-20s", "Cumulative Time");
+            out.format("%-20s", "Avg Cumulative");
             out.format("%-9s", "Line");
             out.format("%-11s", "Column");
             out.println();
-            out.println("===============                         ===============     ===============     ===============     ====     ======");
+            out.println("===============                         ===============     ===============     ===============     ===============     ===============     ====     ======");
 
             excludedTime = 0;
-            long totalCalls = 0;
 
             for (MethodBodyInstrument methodBodyInstrument : methodBodyInstruments) {
                 Node methodBody = methodBodyInstrument.getNode();
-                String methodName = null;
-                if (methodBody instanceof ReturnTargetNode) {
-                    methodName = ((FunctionRootNode) methodBody.getRootNode()).getFunctionName();
-                } else if (methodBody instanceof PythonBuiltinNode) {
-                    methodName = ((BuiltinFunctionRootNode) methodBody.getRootNode()).getFunctionName();
-                }
 
                 totalCounter = 0;
                 cumulativeTime = 0;
-
                 getCumulativeCounterTime(methodBodyInstrument);
 
                 if (totalCounter > 0) {
                     if (methodBody instanceof ReturnTargetNode) {
                         getExcludedTime(methodBody, methodBodyInstrument);
+                    } else {
+                        excludedTime = cumulativeTime;
                     }
-                    out.format("%-40s", methodName);
-                    out.format("%15s", totalCounter);
-                    totalCalls = totalCalls + totalCounter;
-                    out.format("%20s", (excludedTime / 1000000000));
-                    out.format("%20s", (cumulativeTime / 1000000000));
-                    out.format("%9s", methodBody.getSourceSection().getStartLine());
-                    out.format("%11s", methodBody.getSourceSection().getStartColumn());
-                    out.println();
+
+                    List<Long> times = new ArrayList<>();
+                    times.add(totalCounter);
+                    times.add(excludedTime);
+                    times.add(cumulativeTime);
+                    timeMap.put(methodBodyInstrument, times);
                 }
 
             }
-            out.println("Total number of executed calls: " + totalCalls);
+
+            printTime(timeMap);
         }
     }
 
@@ -236,6 +231,47 @@ public class ProfilerResultPrinter {
                 return true;
             }
         });
+    }
+
+    private void printTime(Map<MethodBodyInstrument, List<Long>> timesMap) {
+        Map<MethodBodyInstrument, List<Long>> sortedTimesMap;
+        if (PythonOptions.SortProfilerResults) {
+            sortedTimesMap = sortTimeProfilerResults(timesMap);
+        } else {
+            sortedTimesMap = timesMap;
+        }
+        long totalCalls = 0;
+
+        for (Map.Entry<MethodBodyInstrument, List<Long>> entry : sortedTimesMap.entrySet()) {
+            MethodBodyInstrument methodBodyInstrument = entry.getKey();
+            Node methodBody = methodBodyInstrument.getNode();
+            String methodName = null;
+
+            if (methodBody instanceof ReturnTargetNode) {
+                methodName = ((FunctionRootNode) methodBody.getRootNode()).getFunctionName();
+            } else if (methodBody instanceof PythonBuiltinNode) {
+                methodName = ((BuiltinFunctionRootNode) methodBody.getRootNode()).getFunctionName();
+            }
+
+            List<Long> times = entry.getValue();
+            long counter = times.get(0);
+            long excluded = times.get(1);
+            long cumulative = times.get(2);
+
+            out.format("%-40s", methodName);
+            out.format("%15s", counter);
+            totalCalls = totalCalls + counter;
+            out.format("%20s", (excluded / 1000000000));
+            out.format("%20s", ((excluded / counter) / 1000000000));
+            out.format("%20s", (cumulative / 1000000000));
+            out.format("%20s", ((cumulative / counter) / 1000000000));
+            out.format("%9s", methodBody.getSourceSection().getStartLine());
+            out.format("%11s", methodBody.getSourceSection().getStartColumn());
+            out.println();
+        }
+
+        out.println("Total number of executed calls: " + totalCalls);
+
     }
 
     public void printControlFlowProfilerResults() {
@@ -509,8 +545,26 @@ public class ProfilerResultPrinter {
         for (Map.Entry<ProfilerInstrument, List<ProfilerInstrument>> entry : list) {
             result.put(entry.getKey(), entry.getValue());
         }
-        return result;
 
+        return result;
+    }
+
+    private static Map<MethodBodyInstrument, List<Long>> sortTimeProfilerResults(Map<MethodBodyInstrument, List<Long>> map) {
+        List<Map.Entry<MethodBodyInstrument, List<Long>>> list = new LinkedList<>(map.entrySet());
+
+        Collections.sort(list, new Comparator<Map.Entry<MethodBodyInstrument, List<Long>>>() {
+
+            public int compare(Map.Entry<MethodBodyInstrument, List<Long>> if1, Map.Entry<MethodBodyInstrument, List<Long>> if2) {
+                return Long.compare(if2.getValue().get(0).longValue(), if1.getValue().get(0).longValue());
+            }
+        });
+
+        Map<MethodBodyInstrument, List<Long>> result = new LinkedHashMap<>();
+        for (Map.Entry<MethodBodyInstrument, List<Long>> entry : list) {
+            result.put(entry.getKey(), entry.getValue());
+        }
+
+        return result;
     }
 
     public void addNodeEmptySourceSection(PNode node) {
