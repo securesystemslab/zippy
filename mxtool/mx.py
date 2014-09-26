@@ -2382,7 +2382,7 @@ class JavaCompileTask:
             else:
                 self.logCompilation('JDT')
 
-                jdtVmArgs = ['-Xmx1g', '-jar', self.jdtJar]
+                jdtVmArgs = ['-Xmx1g', '-jar', _tpU2W(self.jdtJar)]
 
                 jdtArgs = ['-' + compliance,
                          '-cp', cp, '-g', '-enableJavadoc',
@@ -2415,7 +2415,7 @@ class JavaCompileTask:
                         jdtArgs += ['-properties', jdtPropertiesTmp]
                     else:
                         jdtArgs += ['-properties', jdtProperties]
-                jdtArgs.append('@' + argfile.name)
+                jdtArgs.append('@' + _tpU2W(argfile.name))
 
                 run_java(jdtVmArgs + jdtArgs)
 
