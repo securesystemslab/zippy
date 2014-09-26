@@ -265,13 +265,17 @@ public class ProfilerResultPrinter {
             out.format("%20s", ((excluded / counter) / 1000000000));
             out.format("%20s", (cumulative / 1000000000));
             out.format("%20s", ((cumulative / counter) / 1000000000));
-            out.format("%9s", methodBody.getSourceSection().getStartLine());
-            out.format("%11s", methodBody.getSourceSection().getStartColumn());
+            if (methodBody instanceof ReturnTargetNode) {
+                out.format("%9s", methodBody.getSourceSection().getStartLine());
+                out.format("%11s", methodBody.getSourceSection().getStartColumn());
+            } else {
+                out.format("%9s", "-");
+                out.format("%11s", "-");
+            }
             out.println();
         }
 
         out.println("Total number of executed calls: " + totalCalls);
-
     }
 
     public void printControlFlowProfilerResults() {
