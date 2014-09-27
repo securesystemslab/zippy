@@ -61,9 +61,9 @@ public class ProfilerResultPrinter {
         this.parseResult = parseResult;
     }
 
-    static long excludedTime = 0;
-    static long totalCounter = 0;
-    static long cumulativeTime = 0;
+    private static long excludedTime = 0;
+    private static long totalCounter = 0;
+    private static long cumulativeTime = 0;
 
     public void printCallProfilerResults() {
         List<MethodBodyInstrument> methodBodyInstruments = profilerProber.getMethodBodyInstruments();
