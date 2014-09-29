@@ -285,7 +285,7 @@ class Project(Dependency):
         libraries if 'includeLibs' is true, to the 'deps' list.
         """
         return self._all_deps_helper(deps, [], includeLibs, includeSelf, includeJreLibs, includeAnnotationProcessors)
-    
+
     def _all_deps_helper(self, deps, dependants, includeLibs, includeSelf=True, includeJreLibs=False, includeAnnotationProcessors=False):
         if self in dependants:
             abort(str(self) + 'Project dependency cycle found:\n    ' +
@@ -302,7 +302,7 @@ class Project(Dependency):
             if not dep in deps:
                 if dep.isProject():
                     dep._all_deps_helper(deps, dependants + [self], includeLibs=includeLibs, includeJreLibs=includeJreLibs, includeAnnotationProcessors=includeAnnotationProcessors)
-                elif (dep.isProject or (dep.isLibrary() and includeLibs) or (dep.isJreLibrary() and includeJreLibs)):
+                elif dep.isProject or (dep.isLibrary() and includeLibs) or (dep.isJreLibrary() and includeJreLibs):
                     dep.all_deps(deps, includeLibs=includeLibs, includeJreLibs=includeJreLibs, includeAnnotationProcessors=includeAnnotationProcessors)
         if not self in deps and includeSelf:
             deps.append(self)
