@@ -284,6 +284,13 @@ class Project(Dependency):
         Add the transitive set of dependencies for this project, including
         libraries if 'includeLibs' is true, to the 'deps' list.
         """
+        return self._all_deps_helper(deps, [], includeLibs, includeSelf, includeJreLibs, includeAnnotationProcessors)
+    
+    def _all_deps_helper(self, deps, dependants, includeLibs, includeSelf=True, includeJreLibs=False, includeAnnotationProcessors=False):
+        if self in dependants:
+            abort(str(self) + 'Project dependency cycle found:\n    ' +
+                  '\n        |\n        V\n    '.join(map(str, dependants[dependants.index(self):])) +
+                  '\n        |\n        V\n    ' + self.name)
         childDeps = list(self.deps)
         if includeAnnotationProcessors and len(self.annotation_processors()) > 0:
             childDeps = self.annotation_processors() + childDeps
@@ -292,8 +299,11 @@ class Project(Dependency):
         for name in childDeps:
             assert name != self.name
             dep = dependency(name)
-            if not dep in deps and (dep.isProject or (dep.isLibrary() and includeLibs) or (dep.isJreLibrary() and includeJreLibs)):
-                dep.all_deps(deps, includeLibs=includeLibs, includeJreLibs=includeJreLibs, includeAnnotationProcessors=includeAnnotationProcessors)
+            if not dep in deps:
+                if dep.isProject():
+                    dep._all_deps_helper(deps, dependants + [self], includeLibs=includeLibs, includeJreLibs=includeJreLibs, includeAnnotationProcessors=includeAnnotationProcessors)
+                elif (dep.isProject or (dep.isLibrary() and includeLibs) or (dep.isJreLibrary() and includeJreLibs)):
+                    dep.all_deps(deps, includeLibs=includeLibs, includeJreLibs=includeJreLibs, includeAnnotationProcessors=includeAnnotationProcessors)
         if not self in deps and includeSelf:
             deps.append(self)
         return deps
