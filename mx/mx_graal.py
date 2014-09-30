@@ -529,7 +529,7 @@ def _update_graalRuntime_inline_hpp(dist):
         graalRuntime_inline_hpp = join(genSrcDir, 'graalRuntime.inline.hpp')
         cp = os.pathsep.join([mx.distribution(d).path for d in dist.distDependencies] + [dist.path, p.output_dir()])
         tmp = StringIO.StringIO()
-        mx.run_java(['-cp', mx._tspU2W(cp), mainClass], out=tmp.write)
+        mx.run_java(['-cp', mx._separatedCygpathU2W(cp), mainClass], out=tmp.write)
 
         # Compute SHA1 for currently generated graalRuntime.inline.hpp content
         # and all other generated sources in genSrcDir
@@ -552,7 +552,7 @@ def _update_graalRuntime_inline_hpp(dist):
         javaClass = join(_graal_home, 'GeneratedSourcesSha1.class')
         with open(javaSource, 'w') as fp:
             print >> fp, 'class GeneratedSourcesSha1 { private static final String value = "' + sha1 + '"; }'
-        subprocess.check_call([mx.java().javac, '-d', mx._tpU2W(_graal_home), mx._tpU2W(javaSource)], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        subprocess.check_call([mx.java().javac, '-d', mx._cygpathU2W(_graal_home), mx._cygpathU2W(javaSource)], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         zf = zipfile.ZipFile(dist.path, 'a')
         with open(javaClass, 'rb') as fp:
             zf.writestr(os.path.basename(javaClass), fp.read())
@@ -611,14 +611,14 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
 
     winSDK = mx.get_env('WIN_SDK', 'C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1\\')
 
-    if not exists(mx._tpW2U(winSDK)):
+    if not exists(mx._cygpathW2U(winSDK)):
         mx.abort("Could not find Windows SDK : '" + winSDK + "' does not exist")
 
-    winSDKSetEnv = mx._tpW2U(join(winSDK, 'Bin', 'SetEnv.cmd'))
+    winSDKSetEnv = mx._cygpathW2U(join(winSDK, 'Bin', 'SetEnv.cmd'))
     if not exists(winSDKSetEnv):
         mx.abort("Invalid Windows SDK path (" + winSDK + ") : could not find Bin/SetEnv.cmd (you can use the WIN_SDK environment variable to specify an other path)")
 
-    wincmd = 'cmd.exe /E:ON /V:ON /K "' + mx._tpU2W(winSDKSetEnv) + '"'
+    wincmd = 'cmd.exe /E:ON /V:ON /K "' + mx._cygpathU2W(winSDKSetEnv) + '"'
     p = subprocess.Popen(wincmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     stdout = p.stdout
     stdin = p.stdin
@@ -847,14 +847,14 @@ def build(args, vm=None):
             continue
 
         if platform.system() == 'Windows' or "CYGWIN" in platform.system():
-            t_compilelogfile = mx._tpU2W(os.path.join(_graal_home, "graalCompile.log"))
+            t_compilelogfile = mx._cygpathU2W(os.path.join(_graal_home, "graalCompile.log"))
             mksHome = mx.get_env('MKS_HOME', 'C:\\cygwin\\bin')
 
             variant = {'client': 'compiler1', 'server': 'compiler2'}.get(vm, vm)
             project_config = variant + '_' + build
-            t_graal_home = mx._tpU2W(_graal_home)
+            t_graal_home = mx._cygpathU2W(_graal_home)
             _runInDebugShell('msbuild ' + t_graal_home + r'\build\vs-amd64\jvm.vcproj /p:Configuration=' + project_config + ' /target:clean', t_graal_home)
-            winCompileCmd = r'set HotSpotMksHome=' + mksHome + r'& set OUT_DIR=' + mx._tpU2W(jdk) + r'& set JAVA_HOME=' + mx._tpU2W(jdk) + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' + t_graal_home + r'\make\windows"& call create.bat ' + t_graal_home
+            winCompileCmd = r'set HotSpotMksHome=' + mksHome + r'& set OUT_DIR=' + mx._cygpathU2W(jdk) + r'& set JAVA_HOME=' + mx._cygpathU2W(jdk) + r'& set path=%JAVA_HOME%\bin;%path%;%HotSpotMksHome%& cd /D "' + t_graal_home + r'\make\windows"& call create.bat ' + t_graal_home
             print winCompileCmd
             winCompileSuccess = re.compile(r"^Writing \.vcxproj file:")
             if not _runInDebugShell(winCompileCmd, t_graal_home, t_compilelogfile, winCompileSuccess):
@@ -1451,7 +1451,7 @@ def _basic_gate_body(args, tasks):
     _jacoco = 'off'
 
     t = Task('CleanAndBuildIdealGraphVisualizer')
-    buildxml = mx._tpU2W(join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'))
+    buildxml = mx._cygpathU2W(join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'))
     mx.run(['ant', '-f', buildxml, '-q', 'clean', 'build'])
     tasks.append(t.stop())
 
@@ -2245,13 +2245,13 @@ def findbugs(args):
         findbugsJar = join(findbugsLib, 'findbugs.jar')
     assert exists(findbugsJar)
     nonTestProjects = [p for p in mx.projects() if not p.name.endswith('.test') and not p.name.endswith('.jtt')]
-    outputDirs = map(mx._tpU2W, [p.output_dir() for p in nonTestProjects])
+    outputDirs = map(mx._cygpathU2W, [p.output_dir() for p in nonTestProjects])
     findbugsResults = join(_graal_home, 'findbugs.results')
 
-    cmd = ['-jar', mx._tpU2W(findbugsJar), '-textui', '-low', '-maxRank', '15']
+    cmd = ['-jar', mx._cygpathU2W(findbugsJar), '-textui', '-low', '-maxRank', '15']
     if sys.stdout.isatty():
         cmd.append('-progress')
-    cmd = cmd + ['-auxclasspath', mx.classpath([d.name for d in _jdkDeployedDists] + [p.name for p in nonTestProjects]), '-output', mx._tpU2W(findbugsResults), '-exitcode'] + args + outputDirs
+    cmd = cmd + ['-auxclasspath', mx.classpath([d.name for d in _jdkDeployedDists] + [p.name for p in nonTestProjects]), '-output', mx._cygpathU2W(findbugsResults), '-exitcode'] + args + outputDirs
     exitcode = mx.run_java(cmd, nonZeroIsFatal=False)
     if exitcode != 0:
         with open(findbugsResults) as fp:
