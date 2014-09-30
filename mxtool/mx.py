@@ -2422,9 +2422,9 @@ class JavaCompileTask:
                         with open(jdtPropertiesTmp, 'w') as fp:
                             fp.write(content)
                         toBeDeleted.append(jdtPropertiesTmp)
-                        jdtArgs += ['-properties', jdtPropertiesTmp]
+                        jdtArgs += ['-properties', _tpU2W(jdtPropertiesTmp)]
                     else:
-                        jdtArgs += ['-properties', jdtProperties]
+                        jdtArgs += ['-properties', _tpU2W(jdtProperties)]
                 jdtArgs.append('@' + _tpU2W(argfile.name))
 
                 run_java(jdtVmArgs + jdtArgs)
