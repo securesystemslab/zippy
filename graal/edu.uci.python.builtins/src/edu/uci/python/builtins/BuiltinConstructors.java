@@ -384,34 +384,13 @@ public final class BuiltinConstructors extends PythonBuiltins {
     public abstract static class MapNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 1)
+        @Specialization
         public Object mapString(PythonCallable function, String str, PTuple iterators) {
             return doMap(function, new PString(str).__iter__());
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 2)
-        public Object mapFunctionIterable(PythonCallable function, PIterable iterable, PTuple iterators) {
-            return doMap(function, iterable.__iter__());
-        }
-
-        private static PList doMap(PythonCallable mappingFunction, PIterator iter) {
-            PList list = new PList();
-
-            try {
-                while (true) {
-                    list.append(mappingFunction.call(PArguments.createWithUserArguments(iter.__next__())));
-                }
-            } catch (StopIterationException e) {
-
-            }
-
-            return list;
-        }
-
-        @SuppressWarnings("unused")
-        // FIXME: Disabled for merge
-        // @Specialization(order = 3)
+        @Specialization
         public Object mapClassIterable(PythonClass clazz, PIterable iterable, PTuple iterators) {
             PIterator iter = iterable.__iter__();
             PList list = new PList();
@@ -431,6 +410,26 @@ public final class BuiltinConstructors extends PythonBuiltins {
                         list.append(obj);
                     }
 
+                }
+            } catch (StopIterationException e) {
+
+            }
+
+            return list;
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public Object mapFunctionIterable(PythonCallable function, PIterable iterable, PTuple iterators) {
+            return doMap(function, iterable.__iter__());
+        }
+
+        private static PList doMap(PythonCallable mappingFunction, PIterator iter) {
+            PList list = new PList();
+
+            try {
+                while (true) {
+                    list.append(mappingFunction.call(PArguments.createWithUserArguments(iter.__next__())));
                 }
             } catch (StopIterationException e) {
 

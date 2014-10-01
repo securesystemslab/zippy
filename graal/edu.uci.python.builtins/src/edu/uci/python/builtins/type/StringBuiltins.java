@@ -80,7 +80,7 @@ public final class StringBuiltins extends PythonBuiltins {
     public abstract static class JoinNode extends PythonBuiltinNode {
 
         @ExplodeLoop
-        @Specialization(order = 0)
+        @Specialization
         public String join(String string, String arg) {
             StringBuilder sb = new StringBuilder();
             char[] joinString = arg.toCharArray();
@@ -95,7 +95,7 @@ public final class StringBuiltins extends PythonBuiltins {
         }
 
         @ExplodeLoop
-        @Specialization(order = 2, guards = "is2ndObjectStorage")
+        @Specialization(guards = "is2ndObjectStorage")
         public String join(String string, PList list) {
             StringBuilder sb = new StringBuilder();
             ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
@@ -110,22 +110,7 @@ public final class StringBuiltins extends PythonBuiltins {
         }
 
         @ExplodeLoop
-        @Specialization(order = 5)
-        public String join(String string, PSequence seq) {
-            StringBuilder sb = new StringBuilder();
-
-            for (int i = 0; i < seq.len() - 1; i++) {
-                sb.append(seq.getItem(i).toString());
-                sb.append(string);
-            }
-
-            sb.append(seq.getItem(seq.len() - 1));
-            return sb.toString();
-        }
-
-        @ExplodeLoop
-        // FIXME: Disabled for merge
-        // @Specialization(order = 6)
+        @Specialization
         public String join(String string, PCharArray array) {
             StringBuilder sb = new StringBuilder();
             char[] stringList = array.getSequence();
@@ -140,7 +125,21 @@ public final class StringBuiltins extends PythonBuiltins {
         }
 
         @ExplodeLoop
-        @Specialization(order = 7)
+        @Specialization
+        public String join(String string, PSequence seq) {
+            StringBuilder sb = new StringBuilder();
+
+            for (int i = 0; i < seq.len() - 1; i++) {
+                sb.append(seq.getItem(i).toString());
+                sb.append(string);
+            }
+
+            sb.append(seq.getItem(seq.len() - 1));
+            return sb.toString();
+        }
+
+        @ExplodeLoop
+        @Specialization
         public String join(String string, PSet arg) {
             if (arg.len() == 0) {
                 return string.toString();
@@ -198,7 +197,7 @@ public final class StringBuiltins extends PythonBuiltins {
     @Builtin(name = "translate", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
     public abstract static class TranslateNode extends PythonBuiltinNode {
 
-        @Specialization(order = 0)
+        @Specialization
         public String translate(String self, PDict table) {
             char[] translatedChars = new char[self.length()];
 
@@ -217,7 +216,7 @@ public final class StringBuiltins extends PythonBuiltins {
     @Builtin(name = "lower", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     public abstract static class LowerNode extends PythonBuiltinNode {
 
-        @Specialization(order = 0)
+        @Specialization
         public String lower(String self) {
             return self.toLowerCase();
         }
