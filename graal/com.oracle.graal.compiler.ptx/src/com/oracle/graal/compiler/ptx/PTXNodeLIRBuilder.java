@@ -83,7 +83,7 @@ public class PTXNodeLIRBuilder extends NodeLIRBuilder {
             if (!Modifier.isStatic(graph.method().getModifiers())) {
                 parameterIndex--;
             }
-            Warp warpAnnotation = parameterIndex >= 0 ? MetaUtil.getParameterAnnotation(Warp.class, parameterIndex, graph.method()) : null;
+            Warp warpAnnotation = parameterIndex >= 0 ? graph.method().getParameterAnnotation(Warp.class, parameterIndex) : null;
             if (warpAnnotation != null) {
                 setResult(param, getGen().emitWarpParam(paramValue.getKind().getStackKind(), warpAnnotation));
             } else {
@@ -122,10 +122,5 @@ public class PTXNodeLIRBuilder extends NodeLIRBuilder {
         // LIRFrameState info = state(i);
         // append(new PTXSafepointOp(info, runtime().config, this));
         Debug.log("visitSafePointNode unimplemented");
-    }
-
-    @Override
-    public void visitInfopointNode(InfopointNode i) {
-        throw GraalInternalError.unimplemented("PTXLIRGenerator.visitInfopointNode()");
     }
 }

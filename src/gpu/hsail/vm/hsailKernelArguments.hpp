@@ -47,36 +47,36 @@ private:
     }
     virtual char* argsBuilderName() {return (char*)"HSAILKernelArguments";}
     virtual void pushObject(void* obj) {
-        bool pushed = Hsail::_okra_push_object(_kernel, obj);
-        assert(pushed == true, "arg push failed");
+        jint status = Hsail::_okra_push_pointer(_kernel, obj);
+        assert(status == 0, "arg push failed");
     }
     virtual void pushBool(jboolean z) {
-        bool pushed = Hsail::_okra_push_boolean(_kernel, z);
-        assert(pushed == true, "arg push failed");
+        jint status = Hsail::_okra_push_boolean(_kernel, z);
+        assert(status == 0, "arg push failed");
     }
     virtual void pushByte(jbyte b) {
-        bool pushed = Hsail::_okra_push_byte(_kernel, b);
-        assert(pushed == true, "arg push failed");
+        jint status = Hsail::_okra_push_byte(_kernel, b);
+        assert(status == 0, "arg push failed");
     }
 
     virtual void pushDouble(jdouble d) {
-        bool pushed = Hsail::_okra_push_double(_kernel, d);
-        assert(pushed == true, "arg push failed");
+        jint status = Hsail::_okra_push_double(_kernel, d);
+        assert(status == 0, "arg push failed");
     }
 
     virtual void pushFloat(jfloat f) {
-        bool pushed = Hsail::_okra_push_float(_kernel, f);
-        assert(pushed == true, "arg push failed");
+        jint status = Hsail::_okra_push_float(_kernel, f);
+        assert(status == 0, "arg push failed");
     }
 
     virtual void pushInt(jint i) {
-        bool pushed = Hsail::_okra_push_int(_kernel, i);
-        assert(pushed == true, "arg push failed");
+        jint status = Hsail::_okra_push_int(_kernel, i);
+        assert(status == 0, "arg push failed");
     }
 
     virtual void pushLong(jlong j) {
-        bool pushed = Hsail::_okra_push_long(_kernel, j);
-        assert(pushed == true, "arg push failed");
+        jint status = Hsail::_okra_push_long(_kernel, j);
+        assert(status == 0, "arg push failed");
     }
     virtual void pushTrailingArgs() {
         if (UseHSAILDeoptimization) {

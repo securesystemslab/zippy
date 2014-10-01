@@ -186,7 +186,7 @@ class CFGPrinter extends CompilationPrinter {
         if (!inFixedSchedule(input)) {
             Block inputBlock = block;
             if (latestScheduling.get(input) != null) {
-                inputBlock = ControlFlowGraph.commonDominator(inputBlock, latestScheduling.get(input));
+                inputBlock = AbstractControlFlowGraph.commonDominatorTyped(inputBlock, latestScheduling.get(input));
             }
             if (inputBlock != latestScheduling.get(input)) {
                 latestScheduling.set(input, inputBlock);
@@ -532,7 +532,7 @@ class CFGPrinter extends CompilationPrinter {
     }
 
     private void printInterval(Interval interval) {
-        out.printf("%s %s ", interval.operand, (isRegister(interval.operand) ? "fixed" : interval.kind()));
+        out.printf("%s %s ", interval.operand, (isRegister(interval.operand) ? "fixed" : interval.kind().getPlatformKind()));
         if (isRegister(interval.operand)) {
             out.printf("\"[%s|%c]\"", interval.operand, interval.operand.getKind().getTypeChar());
         } else {

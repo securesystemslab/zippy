@@ -138,6 +138,12 @@ public:
       HSAILTlabInfo* pTlabInfo = &_tlab_infos_pool_start[i];
       _cur_tlab_infos[i] = pTlabInfo;
       pTlabInfo->initialize(tlab->start(), tlab->top(), tlab->end(), donorThread, this);
+
+      // reset the real tlab fields to zero so we are sure the thread doesn't use it
+      tlab->set_start(NULL);
+      tlab->set_top(NULL);
+      tlab->set_pf_top(NULL);
+      tlab->set_end(NULL);
     }
   }
 
@@ -180,6 +186,16 @@ public:
             tty->print_cr("tlabInfo %p (donorThread = %p) overflowed by %ld bytes, setting last good top to %p", tlabInfo, donorThread, overflowAmount, tlabInfo->last_good_top());
           }
           tlabInfo->_top = tlabInfo->last_good_top();
+        }
+
+        // if the donor thread allocated anything while we were running
+        // we will retire its tlab before overwriting with our new one
+        if (tlab->top() != NULL) {
+          if (TraceGPUInteraction) {
+            tty->print("Donor Thread allocated new tlab");
+            printTlabInfoFromThread(tlab);
+          }
+          tlab->make_parsable(true);
         }
 
         // fill the donor thread tlab with the tlabInfo information

@@ -423,8 +423,8 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
             long metaspaceMethodData = unsafeReadWord(metaspaceMethod + runtime().getConfig().methodDataOffset);
             if (metaspaceMethodData != 0) {
                 methodData = new HotSpotMethodData(metaspaceMethodData);
-                if (TraceMethodDataFilter != null && MetaUtil.format("%H.%n", this).contains(TraceMethodDataFilter)) {
-                    TTY.println("Raw method data for " + MetaUtil.format("%H.%n(%p)", this) + ":");
+                if (TraceMethodDataFilter != null && this.format("%H.%n").contains(TraceMethodDataFilter)) {
+                    TTY.println("Raw method data for " + this.format("%H.%n(%p)") + ":");
                     TTY.println(methodData.toString());
                 }
             }
@@ -555,6 +555,10 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
         }
 
         long[] values = runtime().getCompilerToVM().getLineNumberTable(metaspaceMethod);
+        if (values.length == 0) {
+            // Empty table so treat is as non-existent
+            return null;
+        }
         assert values.length % 2 == 0;
         int[] bci = new int[values.length / 2];
         int[] line = new int[values.length / 2];
@@ -608,21 +612,26 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
     public int vtableEntryOffset(ResolvedJavaType resolved) {
         guarantee(isInVirtualMethodTable(resolved), "%s does not have a vtable entry", this);
         HotSpotVMConfig config = runtime().getConfig();
-        final int vtableIndex = getVtableIndex(resolved);
+        final int vtableIndex = getVtableIndex((HotSpotResolvedObjectType) resolved);
         return config.instanceKlassVtableStartOffset + vtableIndex * config.vtableEntrySize + config.vtableEntryMethodOffset;
     }
 
     @Override
     public boolean isInVirtualMethodTable(ResolvedJavaType resolved) {
-        return getVtableIndex(resolved) >= 0;
+        if (resolved instanceof HotSpotResolvedObjectType) {
+            HotSpotResolvedObjectType hotspotResolved = (HotSpotResolvedObjectType) resolved;
+            int vtableIndex = getVtableIndex(hotspotResolved);
+            return vtableIndex >= 0 && vtableIndex < hotspotResolved.getVtableLength();
+        }
+        return false;
     }
 
-    private int getVtableIndex(ResolvedJavaType resolved) {
+    private int getVtableIndex(HotSpotResolvedObjectType resolved) {
         if (!holder.isLinked()) {
             return runtime().getConfig().invalidVtableIndex;
         }
         if (holder.isInterface()) {
-            if (resolved.isArray() || resolved.isInterface()) {
+            if (resolved.isInterface()) {
                 return runtime().getConfig().invalidVtableIndex;
             }
             return getVtableIndexForInterface(resolved);
@@ -732,45 +741,6 @@ public final class HotSpotResolvedJavaMethod extends HotSpotMethod implements Re
      */
     public int allocateCompileId(int entryBCI) {
         return runtime().getCompilerToVM().allocateCompileId(metaspaceMethod, entryBCI);
-    }
-
-    public boolean tryToQueueForCompilation() {
-        // other threads may update certain bits of the access flags field concurrently. So, the
-        // loop ensures that this method only returns false when another thread has set the
-        // queuedForCompilation bit.
-        do {
-            long address = getAccessFlagsAddress();
-            int actualValue = unsafe.getInt(address);
-            int expectedValue = actualValue & ~runtime().getConfig().methodQueuedForCompilationBit;
-            if (actualValue != expectedValue) {
-                return false;
-            } else {
-                int newValue = expectedValue | runtime().getConfig().methodQueuedForCompilationBit;
-                boolean success = unsafe.compareAndSwapInt(null, address, expectedValue, newValue);
-                if (success) {
-                    return true;
-                }
-            }
-        } while (true);
-    }
-
-    public void clearQueuedForCompilation() {
-        long address = getAccessFlagsAddress();
-        boolean success;
-        do {
-            int actualValue = unsafe.getInt(address);
-            int newValue = actualValue & ~runtime().getConfig().methodQueuedForCompilationBit;
-            assert isQueuedForCompilation() : "queued for compilation must be set";
-            success = unsafe.compareAndSwapInt(null, address, actualValue, newValue);
-        } while (!success);
-    }
-
-    public boolean isQueuedForCompilation() {
-        return (unsafe.getInt(getAccessFlagsAddress()) & runtime().getConfig().methodQueuedForCompilationBit) != 0;
-    }
-
-    private long getAccessFlagsAddress() {
-        return metaspaceMethod + runtime().getConfig().methodAccessFlagsOffset;
     }
 
     public boolean hasCodeAtLevel(int entryBCI, int level) {

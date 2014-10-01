@@ -32,7 +32,6 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.options.*;
-import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
 
 /**
@@ -54,33 +53,31 @@ public class NoDeadCodeVerifyHandler implements DebugVerifyHandler {
         // @formatter:on
     }
 
-    private static final Map<Class<?>, Boolean> discovered = new ConcurrentHashMap<>();
+    /**
+     * Only the first instance of failure at any point is shown. This will also be removed once all
+     * phases clean up their own dead code.
+     */
+    private static final Map<String, Boolean> discovered = new ConcurrentHashMap<>();
 
-    public void verify(Object object, Object... context) {
-        if (NDCV.getValue() != OFF) {
-            StructuredGraph graph = extract(StructuredGraph.class, object);
-            BasePhase<?> phase = extract(BasePhase.class, context);
-            assert phase != null : "a Phase context is required by " + getClass().getSimpleName();
-            if (graph != null) {
-                List<Node> before = graph.getNodes().snapshot();
-                new DeadCodeEliminationPhase().run(graph);
-                List<Node> after = graph.getNodes().snapshot();
-                assert after.size() <= before.size();
-                if (before.size() != after.size()) {
+    public void verify(Object object, String message) {
+        if (NDCV.getValue() != OFF && object instanceof StructuredGraph) {
+            StructuredGraph graph = (StructuredGraph) object;
+            List<Node> before = graph.getNodes().snapshot();
+            new DeadCodeEliminationPhase().run(graph);
+            List<Node> after = graph.getNodes().snapshot();
+            assert after.size() <= before.size();
+            if (before.size() != after.size()) {
+                if (discovered.put(message, Boolean.TRUE) == null) {
                     before.removeAll(after);
-                    if (discovered.put(phase.getClass(), Boolean.TRUE) == null) {
-                        String message = extract(String.class, context);
-                        String prefix = message == null ? "" : message + ": ";
-                        String phaseClass = phase.getClass().getName();
-                        GraalInternalError error = new GraalInternalError("%sfound dead nodes in %s (phase class=%s): %s", prefix, graph, phaseClass, before);
-                        if (NDCV.getValue() == INFO) {
-                            System.out.println(error.getMessage());
-                        } else if (NDCV.getValue() == VERBOSE) {
-                            error.printStackTrace(System.out);
-                        } else {
-                            assert NDCV.getValue() == FATAL;
-                            throw error;
-                        }
+                    String prefix = message == null ? "" : message + ": ";
+                    GraalInternalError error = new GraalInternalError("%sfound dead nodes in %s: %s", prefix, graph, before);
+                    if (NDCV.getValue() == INFO) {
+                        System.out.println(error.getMessage());
+                    } else if (NDCV.getValue() == VERBOSE) {
+                        error.printStackTrace(System.out);
+                    } else {
+                        assert NDCV.getValue() == FATAL;
+                        throw error;
                     }
                 }
             }

@@ -27,12 +27,13 @@ import static com.oracle.graal.nodes.extended.BranchProbabilityNode.*;
 import static org.junit.Assert.*;
 
 import com.oracle.graal.phases.common.cfs.FlowSensitiveReductionPhase;
+
 import org.junit.*;
 
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.CallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.tiers.*;
@@ -143,7 +144,7 @@ public class FlowSensitiveReductionTest extends GraalCompilerTest {
         test("testNullnessSnippet", new Object(), null);
         test("testNullnessSnippet", new Object(), new Object());
 
-        StructuredGraph graph = parse("testNullnessSnippet");
+        StructuredGraph graph = parseEager("testNullnessSnippet");
         PhaseContext context = new PhaseContext(getProviders(), null);
         new FlowSensitiveReductionPhase(getMetaAccess()).apply(graph, context);
         new CanonicalizerPhase(true).apply(graph, context);
@@ -171,7 +172,7 @@ public class FlowSensitiveReductionTest extends GraalCompilerTest {
 
     @Test
     public void testDisjunction() {
-        StructuredGraph graph = parse("testDisjunctionSnippet");
+        StructuredGraph graph = parseEager("testDisjunctionSnippet");
         new CanonicalizerPhase(true).apply(graph, new PhaseContext(getProviders(), null));
         IfNode ifNode = (IfNode) graph.start().next();
         InstanceOfNode instanceOf = (InstanceOfNode) ifNode.condition();
@@ -199,7 +200,7 @@ public class FlowSensitiveReductionTest extends GraalCompilerTest {
     @Test
     public void testInvoke() {
         test("testInvokeSnippet", new Integer(16));
-        StructuredGraph graph = parse("testInvokeSnippet");
+        StructuredGraph graph = parseEager("testInvokeSnippet");
         PhaseContext context = new PhaseContext(getProviders(), null);
         new CanonicalizerPhase(true).apply(graph, context);
         new FlowSensitiveReductionPhase(getMetaAccess()).apply(graph, context);
@@ -230,7 +231,7 @@ public class FlowSensitiveReductionTest extends GraalCompilerTest {
 
     @Test
     public void testTypeMerging() {
-        StructuredGraph graph = parse("testTypeMergingSnippet");
+        StructuredGraph graph = parseEager("testTypeMergingSnippet");
         PhaseContext context = new PhaseContext(getProviders(), null);
         new CanonicalizerPhase(true).apply(graph, context);
         new FlowSensitiveReductionPhase(getMetaAccess()).apply(graph, context);
@@ -248,7 +249,7 @@ public class FlowSensitiveReductionTest extends GraalCompilerTest {
 
     @Test
     public void testInstanceOfCheckCast() {
-        StructuredGraph graph = parse("testInstanceOfCheckCastSnippet");
+        StructuredGraph graph = parseEager("testInstanceOfCheckCastSnippet");
         PhaseContext context = new PhaseContext(getProviders(), null);
         new CanonicalizerPhase(true).apply(graph, context);
         new FlowSensitiveReductionPhase(getMetaAccess()).apply(graph, context);
@@ -273,7 +274,7 @@ public class FlowSensitiveReductionTest extends GraalCompilerTest {
     public void testDuplicateNullChecks() {
         // This tests whether explicit null checks properly eliminate later null guards. Currently
         // it's failing.
-        StructuredGraph graph = parse("testDuplicateNullChecksSnippet");
+        StructuredGraph graph = parseEager("testDuplicateNullChecksSnippet");
         CanonicalizerPhase canonicalizer = new CanonicalizerPhase(true);
         PhaseContext context = new PhaseContext(getProviders(), null);
 

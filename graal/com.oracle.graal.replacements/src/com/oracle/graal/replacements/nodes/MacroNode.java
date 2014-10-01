@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,22 +24,38 @@ package com.oracle.graal.replacements.nodes;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.compiler.common.*;
+import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.CallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.StructuredGraph.GuardsStage;
-import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.common.inlining.*;
 import com.oracle.graal.phases.tiers.*;
 import com.oracle.graal.replacements.*;
 
-public class MacroNode extends AbstractMemoryCheckpoint implements Lowerable, MemoryCheckpoint.Single {
+/**
+ * Macro nodes can be used to temporarily replace an invoke (usually by using the
+ * {@link MacroSubstitution} annotation). They can, for example, be used to implement constant
+ * folding for known JDK functions like {@link Class#isInterface()}.<br/>
+ * <br/>
+ * During lowering, multiple sources are queried in order to look for a replacement:
+ * <ul>
+ * <li>If {@link #getLoweredSnippetGraph(LoweringTool)} returns a non-null result, this graph is
+ * used as a replacement.</li>
+ * <li>If a {@link MethodSubstitution} for the target method is found, this substitution is used as
+ * a replacement.</li>
+ * <li>Otherwise, the macro node is replaced with an {@link InvokeNode}. Note that this is only
+ * possible if the macro node is a {@link MacroStateSplitNode}.</li>
+ * </ul>
+ */
+public class MacroNode extends FixedWithNextNode implements Lowerable {
 
     @Input protected final NodeInputList<ValueNode> arguments;
 
@@ -49,7 +65,7 @@ public class MacroNode extends AbstractMemoryCheckpoint implements Lowerable, Me
     private final InvokeKind invokeKind;
 
     protected MacroNode(Invoke invoke) {
-        super(invoke.asNode().stamp(), invoke.stateAfter());
+        super(StampFactory.forKind(((MethodCallTargetNode) invoke.callTarget()).targetMethod().getSignature().getReturnKind()));
         MethodCallTargetNode methodCallTarget = (MethodCallTargetNode) invoke.callTarget();
         this.arguments = new NodeInputList<>(this, methodCallTarget.arguments());
         this.bci = invoke.bci();
@@ -68,6 +84,10 @@ public class MacroNode extends AbstractMemoryCheckpoint implements Lowerable, Me
 
     public JavaType getReturnType() {
         return returnType;
+    }
+
+    protected FrameState stateAfter() {
+        return null;
     }
 
     /**
@@ -108,6 +128,9 @@ public class MacroNode extends AbstractMemoryCheckpoint implements Lowerable, Me
      */
     protected StructuredGraph lowerReplacement(final StructuredGraph replacementGraph, LoweringTool tool) {
         final PhaseContext c = new PhaseContext(tool.getMetaAccess(), tool.getConstantReflection(), tool.getLowerer(), tool.getReplacements(), tool.assumptions());
+        if (!graph().hasValueProxies()) {
+            new RemoveValueProxyPhase().apply(replacementGraph);
+        }
         GuardsStage guardsStage = graph().getGuardsStage();
         if (guardsStage.ordinal() >= GuardsStage.FIXED_DEOPTS.ordinal()) {
             new GuardLoweringPhase().apply(replacementGraph, null);
@@ -145,6 +168,9 @@ public class MacroNode extends AbstractMemoryCheckpoint implements Lowerable, Me
             InliningUtil.inline(invoke, replacementGraph, false, null);
             Debug.dump(graph(), "After inlining replacement %s", replacementGraph);
         } else {
+            if (stateAfter() == null) {
+                throw new GraalInternalError("cannot lower to invoke without state: %s", this);
+            }
             invoke.lower(tool);
         }
     }
@@ -165,24 +191,5 @@ public class MacroNode extends AbstractMemoryCheckpoint implements Lowerable, Me
             }
         }
         return invoke;
-    }
-
-    protected void replaceSnippetInvokes(StructuredGraph snippetGraph) {
-        for (MethodCallTargetNode call : snippetGraph.getNodes(MethodCallTargetNode.class)) {
-            Invoke invoke = call.invoke();
-            if (!call.targetMethod().equals(getTargetMethod())) {
-                throw new GraalInternalError("unexpected invoke %s in snippet", getClass().getSimpleName());
-            }
-            assert invoke.stateAfter().bci == BytecodeFrame.AFTER_BCI;
-            // Here we need to fix the bci of the invoke
-            InvokeNode newInvoke = snippetGraph.add(new InvokeNode(invoke.callTarget(), getBci()));
-            newInvoke.setStateAfter(invoke.stateAfter());
-            snippetGraph.replaceFixedWithFixed((InvokeNode) invoke.asNode(), newInvoke);
-        }
-    }
-
-    @Override
-    public LocationIdentity getLocationIdentity() {
-        return LocationIdentity.ANY_LOCATION;
     }
 }

@@ -36,6 +36,7 @@ import sun.misc.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.replacements.*;
+import com.oracle.graal.compiler.*;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
@@ -45,8 +46,8 @@ import com.oracle.graal.graph.Graph.Mark;
 import com.oracle.graal.java.*;
 import com.oracle.graal.java.GraphBuilderPhase.Instance;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.CallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.common.*;
@@ -242,7 +243,7 @@ public class ReplacementsImpl implements Replacements {
             try (TimerCloseable a = SnippetPreparationTime.start()) {
                 FrameStateProcessing frameStateProcessing = method.getAnnotation(Snippet.class).removeAllFrameStates() ? FrameStateProcessing.Removal
                                 : FrameStateProcessing.CollapseFrameForSingleSideEffect;
-                StructuredGraph newGraph = makeGraph(method, recursiveEntry, recursiveEntry, inliningPolicy(method), frameStateProcessing);
+                StructuredGraph newGraph = makeGraph(method, recursiveEntry, inliningPolicy(method), frameStateProcessing);
                 Debug.metric("SnippetNodeCount[%#s]", method).add(newGraph.getNodeCount());
                 if (!UseSnippetGraphCache) {
                     return newGraph;
@@ -278,7 +279,7 @@ public class ReplacementsImpl implements Replacements {
         }
         StructuredGraph graph = graphs.get(substitute);
         if (graph == null) {
-            graph = makeGraph(substitute, original, substitute, inliningPolicy(substitute), FrameStateProcessing.None);
+            graph = makeGraph(substitute, original, inliningPolicy(substitute), FrameStateProcessing.None);
             graph.freeze();
             graphs.putIfAbsent(substitute, graph);
             graph = graphs.get(substitute);
@@ -350,7 +351,7 @@ public class ReplacementsImpl implements Replacements {
             original = metaAccess.lookupJavaConstructor((Constructor<?>) originalMember);
         }
         if (Debug.isLogEnabled()) {
-            Debug.log("substitution: %s --> %s", MetaUtil.format("%H.%n(%p) %r", original), MetaUtil.format("%H.%n(%p) %r", substitute));
+            Debug.log("substitution: %s --> %s", original.format("%H.%n(%p) %r"), substitute.format("%H.%n(%p) %r"));
         }
 
         cr.methodSubstitutions.put(original, substitute);
@@ -405,15 +406,15 @@ public class ReplacementsImpl implements Replacements {
      * @param policy the inlining policy to use during preprocessing
      * @param frameStateProcessing controls how {@link FrameState FrameStates} should be handled.
      */
-    public StructuredGraph makeGraph(ResolvedJavaMethod method, ResolvedJavaMethod original, ResolvedJavaMethod recursiveEntry, SnippetInliningPolicy policy, FrameStateProcessing frameStateProcessing) {
-        return createGraphMaker(method, original, recursiveEntry, frameStateProcessing).makeGraph(policy);
+    public StructuredGraph makeGraph(ResolvedJavaMethod method, ResolvedJavaMethod original, SnippetInliningPolicy policy, FrameStateProcessing frameStateProcessing) {
+        return createGraphMaker(method, original, frameStateProcessing).makeGraph(policy);
     }
 
     /**
      * Can be overridden to return an object that specializes various parts of graph preprocessing.
      */
-    protected GraphMaker createGraphMaker(ResolvedJavaMethod substitute, ResolvedJavaMethod original, ResolvedJavaMethod recursiveEntry, FrameStateProcessing frameStateProcessing) {
-        return new GraphMaker(substitute, original, recursiveEntry, frameStateProcessing);
+    protected GraphMaker createGraphMaker(ResolvedJavaMethod substitute, ResolvedJavaMethod original, FrameStateProcessing frameStateProcessing) {
+        return new GraphMaker(substitute, original, frameStateProcessing);
     }
 
     /**
@@ -428,6 +429,20 @@ public class ReplacementsImpl implements Replacements {
     }
 
     /**
+     * Calls in snippets to methods matching one of these filters are elided. Only void methods are
+     * considered for elision.
+     */
+    private static final MethodFilter[] MethodsElidedInSnippets = getMethodsElidedInSnippets();
+
+    private static MethodFilter[] getMethodsElidedInSnippets() {
+        String commaSeparatedPatterns = System.getProperty("graal.MethodsElidedInSnippets");
+        if (commaSeparatedPatterns != null) {
+            return MethodFilter.parse(commaSeparatedPatterns);
+        }
+        return null;
+    }
+
+    /**
      * Creates and preprocesses a graph for a replacement.
      */
     protected class GraphMaker {
@@ -437,24 +452,20 @@ public class ReplacementsImpl implements Replacements {
         protected final ResolvedJavaMethod method;
 
         /**
-         * The method which is used when a call to {@link #recursiveEntry} is found.
+         * The original method which {@link #method} is substituting. Calls to {@link #method} or
+         * {@link #substitutedMethod} will be replaced with a forced inline of
+         * {@link #substitutedMethod}.
          */
         protected final ResolvedJavaMethod substitutedMethod;
-
-        /**
-         * The method which is used to detect a recursive call.
-         */
-        protected final ResolvedJavaMethod recursiveEntry;
 
         /**
          * Controls how FrameStates are processed.
          */
         private FrameStateProcessing frameStateProcessing;
 
-        protected GraphMaker(ResolvedJavaMethod substitute, ResolvedJavaMethod substitutedMethod, ResolvedJavaMethod recursiveEntry, FrameStateProcessing frameStateProcessing) {
+        protected GraphMaker(ResolvedJavaMethod substitute, ResolvedJavaMethod substitutedMethod, FrameStateProcessing frameStateProcessing) {
             this.method = substitute;
             this.substitutedMethod = substitutedMethod;
-            this.recursiveEntry = recursiveEntry;
             this.frameStateProcessing = frameStateProcessing;
         }
 
@@ -484,9 +495,9 @@ public class ReplacementsImpl implements Replacements {
                 NodeIntrinsificationVerificationPhase.verify(graph);
             }
             int sideEffectCount = 0;
-            assert (sideEffectCount = graph.getNodes().filter(e -> e instanceof StateSplit && ((StateSplit) e).hasSideEffect()).count()) >= 0;
+            assert (sideEffectCount = graph.getNodes().filter(e -> hasSideEffect(e)).count()) >= 0;
             new ConvertDeoptimizeToGuardPhase().apply(graph);
-            assert sideEffectCount == graph.getNodes().filter(e -> e instanceof StateSplit && ((StateSplit) e).hasSideEffect()).count() : "deleted side effecting node";
+            assert sideEffectCount == graph.getNodes().filter(e -> hasSideEffect(e)).count() : "deleted side effecting node";
 
             switch (frameStateProcessing) {
                 case Removal:
@@ -501,6 +512,35 @@ public class ReplacementsImpl implements Replacements {
                     break;
             }
             new DeadCodeEliminationPhase().apply(graph);
+        }
+
+        /**
+         * Filter nodes which have side effects and shouldn't be deleted from snippets when
+         * converting deoptimizations to guards. Currently this only allows exception constructors
+         * to be eliminated to cover the case when Java assertions are in the inlined code.
+         *
+         * @param node
+         * @return true for nodes that have side effects and are unsafe to delete
+         */
+        private boolean hasSideEffect(Node node) {
+            if (node instanceof StateSplit) {
+                if (((StateSplit) node).hasSideEffect()) {
+                    if (node instanceof Invoke) {
+                        CallTargetNode callTarget = ((Invoke) node).callTarget();
+                        if (callTarget instanceof MethodCallTargetNode) {
+                            ResolvedJavaMethod targetMethod = ((MethodCallTargetNode) callTarget).targetMethod();
+                            if (targetMethod.isConstructor()) {
+                                ResolvedJavaType throwableType = providers.getMetaAccess().lookupJavaType(Throwable.class);
+                                return !throwableType.isAssignableFrom(targetMethod.getDeclaringClass());
+                            }
+                        }
+                    }
+                    // Not an exception constructor call
+                    return true;
+                }
+            }
+            // Not a StateSplit
+            return false;
         }
 
         private static final int MAX_GRAPH_INLINING_DEPTH = 100; // more than enough
@@ -529,7 +569,12 @@ public class ReplacementsImpl implements Replacements {
             final StructuredGraph graph = new StructuredGraph(methodToParse);
             try (Scope s = Debug.scope("buildInitialGraph", graph)) {
                 MetaAccessProvider metaAccess = providers.getMetaAccess();
-                createGraphBuilder(metaAccess, GraphBuilderConfiguration.getSnippetDefault(), OptimisticOptimizations.NONE).apply(graph);
+
+                if (MethodsElidedInSnippets != null && methodToParse.getSignature().getReturnKind() == Kind.Void && MethodFilter.matches(MethodsElidedInSnippets, methodToParse)) {
+                    graph.addAfterFixed(graph.start(), graph.add(new ReturnNode(null)));
+                } else {
+                    createGraphBuilder(metaAccess, GraphBuilderConfiguration.getSnippetDefault(), OptimisticOptimizations.NONE).apply(graph);
+                }
                 new WordTypeVerificationPhase(metaAccess, snippetReflection, target.wordKind).apply(graph);
                 new WordTypeRewriterPhase(metaAccess, snippetReflection, target.wordKind).apply(graph);
 
@@ -585,7 +630,11 @@ public class ReplacementsImpl implements Replacements {
                         continue;
                     }
                     ResolvedJavaMethod callee = callTarget.targetMethod();
-                    if (callee.equals(recursiveEntry)) {
+                    if (substitutedMethod != null && (callee.equals(method) || callee.equals(substitutedMethod))) {
+                        /*
+                         * Ensure that calls to the original method inside of a substitution ends up
+                         * calling it instead of the Graal substitution.
+                         */
                         if (isInlinable(substitutedMethod)) {
                             final StructuredGraph originalGraph = buildInitialGraph(substitutedMethod);
                             Mark mark = graph.getMark();
@@ -616,8 +665,8 @@ public class ReplacementsImpl implements Replacements {
                                     targetGraph = intrinsicGraph;
                                 } else {
                                     if (callee.getName().startsWith("$jacoco")) {
-                                        throw new GraalInternalError("Parsing call to JaCoCo instrumentation method " + format("%H.%n(%p)", callee) + " from " + format("%H.%n(%p)", methodToParse) +
-                                                        " while preparing replacement " + format("%H.%n(%p)", method) + ". Placing \"//JaCoCo Exclude\" anywhere in " +
+                                        throw new GraalInternalError("Parsing call to JaCoCo instrumentation method " + callee.format("%H.%n(%p)") + " from " + methodToParse.format("%H.%n(%p)") +
+                                                        " while preparing replacement " + method.format("%H.%n(%p)") + ". Placing \"//JaCoCo Exclude\" anywhere in " +
                                                         methodToParse.getDeclaringClass().getSourceFileName() + " should fix this.");
                                     }
                                     targetGraph = parseGraph(callee, policy, inliningDepth + 1);
@@ -686,7 +735,7 @@ public class ReplacementsImpl implements Replacements {
             dimensions++;
         }
 
-        Class<?> baseClass = base.getKind() != Kind.Object ? base.getKind().toJavaClass() : resolveClass(toJavaName(base), false);
+        Class<?> baseClass = base.getKind() != Kind.Object ? base.getKind().toJavaClass() : resolveClass(base.toJavaName(), false);
         return dimensions == 0 ? baseClass : Array.newInstance(baseClass, new int[dimensions]).getClass();
     }
 

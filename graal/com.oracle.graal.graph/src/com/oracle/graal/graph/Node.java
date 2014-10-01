@@ -59,13 +59,26 @@ public abstract class Node implements Cloneable, Formattable {
     static final int ALIVE_ID_START = 0;
 
     /**
-     * Denotes a node input. This should be applied to exactly the fields of a node that are of type
-     * {@link Node}. Nodes that update their inputs outside of their constructor should call
+     * Denotes a non-optional (non-null) node input. This should be applied to exactly the fields of
+     * a node that are of type {@link Node} or {@link NodeInputList}. Nodes that update fields of
+     * type {@link Node} outside of their constructor should call
      * {@link Node#updateUsages(Node, Node)} just prior to doing the update of the input.
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.FIELD)
     public static @interface Input {
+        InputType value() default InputType.Value;
+    }
+
+    /**
+     * Denotes an optional (nullable) node input. This should be applied to exactly the fields of a
+     * node that are of type {@link Node} or {@link NodeInputList}. Nodes that update fields of type
+     * {@link Node} outside of their constructor should call {@link Node#updateUsages(Node, Node)}
+     * just prior to doing the update of the input.
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.FIELD)
+    public static @interface OptionalInput {
         InputType value() default InputType.Value;
     }
 
@@ -565,7 +578,7 @@ public abstract class Node implements Cloneable, Formattable {
                 }
             }
             if (oldInput != null && oldInput.recordsUsages() && oldInput.usages().isEmpty()) {
-                maybeNotifyZeroInputs(oldInput);
+                maybeNotifyZeroUsages(oldInput);
             }
         }
     }
@@ -694,7 +707,7 @@ public abstract class Node implements Cloneable, Formattable {
         }
     }
 
-    private void maybeNotifyZeroInputs(Node node) {
+    private void maybeNotifyZeroUsages(Node node) {
         if (graph != null) {
             assert !graph.isFrozen();
             NodeEventListener listener = graph.nodeEventListener;
@@ -740,7 +753,7 @@ public abstract class Node implements Cloneable, Formattable {
             if (input.recordsUsages()) {
                 removeThisFromUsages(input);
                 if (input.usages().isEmpty()) {
-                    maybeNotifyZeroInputs(input);
+                    maybeNotifyZeroUsages(input);
                 }
             }
         }
@@ -793,12 +806,18 @@ public abstract class Node implements Cloneable, Formattable {
     }
 
     public final Node copyWithInputs() {
-        Node newNode = clone(graph);
+        return copyWithInputs(true);
+    }
+
+    public final Node copyWithInputs(boolean addToGraph) {
+        Node newNode = clone(addToGraph ? graph : null);
         NodeClass clazz = getNodeClass();
         clazz.copyInputs(this, newNode);
-        for (Node input : inputs()) {
-            if (input.recordsUsages()) {
-                input.addUsage(newNode);
+        if (addToGraph) {
+            for (Node input : inputs()) {
+                if (input.recordsUsages()) {
+                    input.addUsage(newNode);
+                }
             }
         }
         return newNode;
@@ -821,7 +840,7 @@ public abstract class Node implements Cloneable, Formattable {
 
     final Node clone(Graph into, boolean clearInputsAndSuccessors) {
         NodeClass nodeClass = getNodeClass();
-        if (nodeClass.valueNumberable() && nodeClass.isLeafNode()) {
+        if (into != null && nodeClass.valueNumberable() && nodeClass.isLeafNode()) {
             Node otherNode = into.findNodeInCache(this);
             if (otherNode != null) {
                 return otherNode;
@@ -841,13 +860,15 @@ public abstract class Node implements Cloneable, Formattable {
         newNode.graph = into;
         newNode.typeCacheNext = null;
         newNode.id = INITIAL_ID;
-        into.register(newNode);
+        if (into != null) {
+            into.register(newNode);
+        }
         newNode.usage0 = null;
         newNode.usage1 = null;
         newNode.extraUsages = NO_NODES;
         newNode.predecessor = null;
 
-        if (nodeClass.valueNumberable() && nodeClass.isLeafNode()) {
+        if (into != null && nodeClass.valueNumberable() && nodeClass.isLeafNode()) {
             into.putNodeIntoCache(newNode);
         }
         newNode.afterClone(this);
@@ -880,6 +901,11 @@ public abstract class Node implements Cloneable, Formattable {
                     }
                 }
             }
+        }
+        NodeClassIterator iterator = inputs().withNullIterator();
+        while (iterator.hasNext()) {
+            Position pos = iterator.nextPosition();
+            assert pos.isInputOptional(this) || pos.get(this) != null : "non-optional input " + pos.getInputName(this) + " cannot be null in " + this + " (fix nullness or use @OptionalInput)";
         }
         if (predecessor != null) {
             assertFalse(predecessor.isDeleted(), "predecessor %s must never be deleted", predecessor);

@@ -613,7 +613,7 @@ public class WriteBarrierVerificationTest extends GraalCompilerTest {
 
     private void test(final String snippet, final int expectedBarriers, final int... removedBarrierIndices) {
         try (Scope d = Debug.scope("WriteBarrierVerificationTest", new DebugDumpScope(snippet))) {
-            final StructuredGraph graph = parse(snippet);
+            final StructuredGraph graph = parseEager(snippet);
             HighTierContext highTierContext = new HighTierContext(getProviders(), new Assumptions(false), null, getDefaultGraphBuilderSuite(), OptimisticOptimizations.ALL);
             new InliningPhase(new CanonicalizerPhase(true)).apply(graph, highTierContext);
 
@@ -692,7 +692,7 @@ public class WriteBarrierVerificationTest extends GraalCompilerTest {
             };
 
             DebugConfig debugConfig = DebugScope.getConfig();
-            DebugConfig fixedConfig = Debug.fixedConfig(false, false, false, false, false, false, debugConfig.dumpHandlers(), debugConfig.verifyHandlers(), debugConfig.output());
+            DebugConfig fixedConfig = Debug.fixedConfig(0, 0, false, false, false, false, debugConfig.dumpHandlers(), debugConfig.verifyHandlers(), debugConfig.output());
             try (DebugConfigScope s = Debug.setConfig(fixedConfig)) {
                 ReentrantNodeIterator.apply(closure, graph.start(), false);
                 new WriteBarrierVerificationPhase().apply(graph);

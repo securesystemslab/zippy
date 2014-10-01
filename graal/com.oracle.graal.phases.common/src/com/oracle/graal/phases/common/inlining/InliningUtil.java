@@ -39,10 +39,10 @@ import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Graph.DuplicationReplacement;
 import com.oracle.graal.graph.Node.Verbosity;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.CallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
@@ -146,9 +146,9 @@ public class InliningUtil {
 
     private static String methodName(ResolvedJavaMethod method, Invoke invoke) {
         if (invoke != null && invoke.stateAfter() != null) {
-            return methodName(invoke.stateAfter(), invoke.bci()) + ": " + MetaUtil.format("%H.%n(%p):%r", method) + " (" + method.getCodeSize() + " bytes)";
+            return methodName(invoke.stateAfter(), invoke.bci()) + ": " + method.format("%H.%n(%p):%r") + " (" + method.getCodeSize() + " bytes)";
         } else {
-            return MetaUtil.format("%H.%n(%p):%r", method) + " (" + method.getCodeSize() + " bytes)";
+            return method.format("%H.%n(%p):%r") + " (" + method.getCodeSize() + " bytes)";
         }
     }
 
@@ -168,7 +168,7 @@ public class InliningUtil {
             sb.append(methodName(frameState.outerFrameState(), frameState.outerFrameState().bci));
             sb.append("->");
         }
-        sb.append(MetaUtil.format("%h.%n", frameState.method()));
+        sb.append(frameState.method().format("%h.%n"));
         sb.append("@").append(bci);
         return sb.toString();
     }
@@ -314,8 +314,9 @@ public class InliningUtil {
             }
         }
 
+        processSimpleInfopoints(invoke, inlineGraph, duplicates);
         if (stateAfter != null) {
-            processFrameStates(invoke, inlineGraph, duplicates, stateAtExceptionEdge);
+            processFrameStates(invoke, inlineGraph, duplicates, stateAtExceptionEdge, returnNodes.size() > 1);
             int callerLockDepth = stateAfter.nestedLockDepth();
             if (callerLockDepth != 0) {
                 for (MonitorIdNode original : inlineGraph.getNodes(MonitorIdNode.class)) {
@@ -353,7 +354,25 @@ public class InliningUtil {
         return duplicates;
     }
 
-    protected static void processFrameStates(Invoke invoke, StructuredGraph inlineGraph, Map<Node, Node> duplicates, FrameState stateAtExceptionEdge) {
+    private static void processSimpleInfopoints(Invoke invoke, StructuredGraph inlineGraph, Map<Node, Node> duplicates) {
+        if (inlineGraph.getNodes(SimpleInfopointNode.class).isEmpty()) {
+            return;
+        }
+        BytecodePosition pos = new BytecodePosition(toBytecodePosition(invoke.stateAfter()), invoke.asNode().graph().method(), invoke.bci());
+        for (SimpleInfopointNode original : inlineGraph.getNodes(SimpleInfopointNode.class)) {
+            SimpleInfopointNode duplicate = (SimpleInfopointNode) duplicates.get(original);
+            duplicate.addCaller(pos);
+        }
+    }
+
+    private static BytecodePosition toBytecodePosition(FrameState fs) {
+        if (fs == null) {
+            return null;
+        }
+        return new BytecodePosition(toBytecodePosition(fs.outerFrameState()), fs.method(), fs.bci);
+    }
+
+    protected static void processFrameStates(Invoke invoke, StructuredGraph inlineGraph, Map<Node, Node> duplicates, FrameState stateAtExceptionEdge, boolean alwaysDuplicateStateAfter) {
         FrameState stateAtReturn = invoke.stateAfter();
         FrameState outerFrameState = null;
         Kind invokeReturnKind = invoke.asNode().getKind();
@@ -366,7 +385,7 @@ public class InliningUtil {
                      * return value (top of stack)
                      */
                     FrameState stateAfterReturn = stateAtReturn;
-                    if (invokeReturnKind != Kind.Void && frameState.stackSize() > 0 && stateAfterReturn.stackAt(0) != frameState.stackAt(0)) {
+                    if (invokeReturnKind != Kind.Void && (alwaysDuplicateStateAfter || (frameState.stackSize() > 0 && stateAfterReturn.stackAt(0) != frameState.stackAt(0)))) {
                         stateAfterReturn = stateAtReturn.duplicateModified(invokeReturnKind, frameState.stackAt(0));
                     }
                     frameState.replaceAndDelete(stateAfterReturn);

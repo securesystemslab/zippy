@@ -38,7 +38,7 @@ import com.oracle.graal.nodes.spi.*;
 public class UnsafeStoreNode extends UnsafeAccessNode implements StateSplit, Lowerable, Virtualizable, MemoryCheckpoint.Single {
 
     @Input private ValueNode value;
-    @Input(InputType.State) private FrameState stateAfter;
+    @OptionalInput(InputType.State) private FrameState stateAfter;
 
     public UnsafeStoreNode(ValueNode object, ValueNode offset, ValueNode value, Kind accessKind, LocationIdentity locationIdentity) {
         this(object, offset, value, accessKind, locationIdentity, null);
@@ -118,14 +118,6 @@ public class UnsafeStoreNode extends UnsafeAccessNode implements StateSplit, Low
 
     public FrameState getState() {
         return stateAfter;
-    }
-
-    public MemoryCheckpoint asMemoryCheckpoint() {
-        return this;
-    }
-
-    public MemoryPhiNode asMemoryPhi() {
-        return null;
     }
 
     // specialized on value type until boxing/unboxing is sorted out in intrinsification

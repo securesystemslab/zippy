@@ -43,6 +43,7 @@ import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.schedule.*;
+import com.oracle.graal.phases.tiers.*;
 
 //JaCoCo Exclude
 
@@ -157,11 +158,13 @@ public abstract class Stub {
                 CallingConvention incomingCc = linkage.getIncomingCallingConvention();
                 TargetDescription target = codeCache.getTarget();
 
-                compResult = new CompilationResult();
+                compResult = new CompilationResult(toString());
                 try (Scope s0 = Debug.scope("StubCompilation", graph, providers.getCodeCache())) {
                     Assumptions assumptions = new Assumptions(OptAssumptions.getValue());
+                    Suites defaultSuites = providers.getSuites().getDefaultSuites();
+                    Suites suites = new Suites(new PhaseSuite<>(), defaultSuites.getMidTier(), defaultSuites.getLowTier());
                     SchedulePhase schedule = emitFrontEnd(providers, target, graph, assumptions, null, providers.getSuites().getDefaultGraphBuilderSuite(), OptimisticOptimizations.ALL,
-                                    getProfilingInfo(graph), null, providers.getSuites().getDefaultSuites());
+                                    getProfilingInfo(graph), null, suites);
                     emitBackEnd(graph, Stub.this, incomingCc, getInstalledCodeOwner(), backend, target, compResult, CompilationResultBuilderFactory.Default, assumptions, schedule, getRegisterConfig());
                 } catch (Throwable e) {
                     throw Debug.handle(e);

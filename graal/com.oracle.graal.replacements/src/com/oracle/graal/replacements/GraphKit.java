@@ -31,9 +31,9 @@ import com.oracle.graal.api.replacements.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.java.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.CallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.phases.common.*;
 import com.oracle.graal.phases.common.inlining.*;
 import com.oracle.graal.phases.util.*;
@@ -207,7 +207,7 @@ public class GraphKit {
     public void inline(InvokeNode invoke, SnippetReflectionProvider snippetReflection) {
         ResolvedJavaMethod method = ((MethodCallTargetNode) invoke.callTarget()).targetMethod();
         ReplacementsImpl repl = new ReplacementsImpl(providers, snippetReflection, new Assumptions(false), providers.getCodeCache().getTarget());
-        StructuredGraph calleeGraph = repl.makeGraph(method, null, method, null, FrameStateProcessing.CollapseFrameForSingleSideEffect);
+        StructuredGraph calleeGraph = repl.makeGraph(method, null, null, FrameStateProcessing.CollapseFrameForSingleSideEffect);
         InliningUtil.inline(invoke, calleeGraph, false, null);
     }
 

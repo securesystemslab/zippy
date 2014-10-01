@@ -22,13 +22,17 @@
  */
 package com.oracle.graal.compiler.hsail.test.lambda;
 
-//import com.oracle.graal.compiler.common.GraalInternalError;
-import static com.oracle.graal.hotspot.HotSpotGraalRuntime.runtime;
-import com.oracle.graal.hotspot.HotSpotVMConfig;
-import org.junit.*;
+import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
+import static org.junit.Assert.*;
+import static org.junit.Assume.*;
 
 import java.util.*;
-import java.util.stream.IntStream;
+import java.util.stream.*;
+
+import org.junit.*;
+
+import com.amd.okra.*;
+import com.oracle.graal.hotspot.*;
 
 public class ReduceSumTest {
     // The length of the input array
@@ -73,6 +77,10 @@ public class ReduceSumTest {
 
     @Test
     public void testReduce() {
+
+        // The simulator does not support HSA local memory as of June 2014
+        assumeTrue(OkraUtil.okraLibExists() && OkraContext.isSimulator() == false);
+
         // Handmade reduce does not support +UseCompressedOops
         HotSpotVMConfig config = runtime().getConfig();
         if (config.useCompressedOops == true || config.useHSAILDeoptimization == true) {
@@ -89,10 +97,10 @@ public class ReduceSumTest {
 
         // Get OptionalInt version kernel
         sumOffload = evaluate(true);
-        assert sumStream == sumOffload : "Offload sum is wrong, stream:" + sumStream + " != offload:" + sumOffload;
+        assertTrue(sumStream == sumOffload);
 
         // Get identity version kernel
         sumOffload = evaluateWithIdentity(true);
-        assert sumStream == sumOffload : "Offload sum is wrong, stream:" + sumStream + " != offload:" + sumOffload;
+        assertTrue(sumStream == sumOffload);
     }
 }

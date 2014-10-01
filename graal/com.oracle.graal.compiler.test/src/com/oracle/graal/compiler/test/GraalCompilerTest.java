@@ -67,7 +67,7 @@ import com.oracle.graal.test.*;
  * <p>
  * White box tests for Graal compiler transformations use this pattern:
  * <ol>
- * <li>Create a graph by {@linkplain #parse(String) parsing} a method.</li>
+ * <li>Create a graph by {@linkplain #parseEager(String) parsing} a method.</li>
  * <li>Manually modify the graph (e.g. replace a parameter node with a constant).</li>
  * <li>Apply a transformation to the graph.</li>
  * <li>Assert that the transformed graph is equal to an expected graph.</li>
@@ -323,15 +323,6 @@ public abstract class GraalCompilerTest extends GraalTest {
         return getProviders().getLowerer();
     }
 
-    /**
-     * Parses a Java method to produce a graph.
-     *
-     * @param methodName the name of the method in {@code this.getClass()} to be parsed
-     */
-    protected StructuredGraph parse(String methodName) {
-        return parse(getMethod(methodName));
-    }
-
     private static AtomicInteger compilationId = new AtomicInteger();
 
     protected void testN(int n, final String name, final Object... args) {
@@ -422,7 +413,7 @@ public abstract class GraalCompilerTest extends GraalTest {
         if (UseBaselineCompiler.getValue()) {
             compiledMethod = getCodeBaseline(javaMethod, method);
         } else {
-            compiledMethod = getCode(javaMethod, parse(method));
+            compiledMethod = getCode(javaMethod, parseEager(method));
         }
         try {
             return new Result(compiledMethod.executeVarargs(executeArgs), null);
@@ -475,7 +466,7 @@ public abstract class GraalCompilerTest extends GraalTest {
             try (Scope s = Debug.scope("CodeInstall", getCodeCache(), javaMethod)) {
                 installedCode = addMethod(javaMethod, compResult);
                 if (installedCode == null) {
-                    throw new GraalInternalError("Could not install code for " + MetaUtil.format("%H.%n(%p)", javaMethod));
+                    throw new GraalInternalError("Could not install code for " + javaMethod.format("%H.%n(%p)"));
                 }
             } catch (Throwable e) {
                 throw Debug.handle(e);
@@ -501,7 +492,7 @@ public abstract class GraalCompilerTest extends GraalTest {
     }
 
     protected void checkArgs(ResolvedJavaMethod method, Object[] args) {
-        JavaType[] sig = MetaUtil.signatureToTypes(method);
+        JavaType[] sig = method.toParameterTypes();
         Assert.assertEquals(sig.length, args.length);
         for (int i = 0; i < args.length; i++) {
             JavaType javaType = sig[i];
@@ -637,7 +628,7 @@ public abstract class GraalCompilerTest extends GraalTest {
             try (Scope s = Debug.scope("CodeInstall", getCodeCache(), method)) {
                 installedCode = addMethod(method, compResult);
                 if (installedCode == null) {
-                    throw new GraalInternalError("Could not install code for " + MetaUtil.format("%H.%n(%p)", method));
+                    throw new GraalInternalError("Could not install code for " + method.format("%H.%n(%p)"));
                 }
             } catch (Throwable e) {
                 throw Debug.handle(e);
@@ -667,7 +658,8 @@ public abstract class GraalCompilerTest extends GraalTest {
     }
 
     /**
-     * Parses a Java method to produce a graph.
+     * Parses a Java method in {@linkplain GraphBuilderConfiguration#getDefault() default} mode to
+     * produce a graph.
      *
      * @param methodName the name of the method in {@code this.getClass()} to be parsed
      */
@@ -676,32 +668,47 @@ public abstract class GraalCompilerTest extends GraalTest {
     }
 
     /**
-     * Parses a Java method to produce a graph.
-     */
-    protected StructuredGraph parse(Method m) {
-        return parse0(m, getCustomGraphBuilderSuite(GraphBuilderConfiguration.getEagerDefault()));
-    }
-
-    /**
-     * Parses a Java method to produce a graph.
+     * Parses a Java method in {@linkplain GraphBuilderConfiguration#getDefault() default} mode to
+     * produce a graph.
      */
     protected StructuredGraph parseProfiled(Method m) {
         return parse0(m, getDefaultGraphBuilderSuite());
     }
 
     /**
-     * Parses a Java method in debug mode to produce a graph with extra infopoints.
+     * Parses a Java method in {@linkplain GraphBuilderConfiguration#getEagerDefault() eager} mode
+     * to produce a graph.
+     *
+     * @param methodName the name of the method in {@code this.getClass()} to be parsed
+     */
+    protected StructuredGraph parseEager(String methodName) {
+        return parseEager(getMethod(methodName));
+    }
+
+    /**
+     * Parses a Java method in {@linkplain GraphBuilderConfiguration#getEagerDefault() eager} mode
+     * to produce a graph.
+     */
+    protected StructuredGraph parseEager(Method m) {
+        return parse0(m, getCustomGraphBuilderSuite(GraphBuilderConfiguration.getEagerDefault()));
+    }
+
+    /**
+     * Parses a Java method in {@linkplain GraphBuilderConfiguration#getFullDebugDefault() full
+     * debug} mode to produce a graph.
      */
     protected StructuredGraph parseDebug(Method m) {
-        return parse0(m, getCustomGraphBuilderSuite(GraphBuilderConfiguration.getEagerInfopointDefault()));
+        return parse0(m, getCustomGraphBuilderSuite(GraphBuilderConfiguration.getFullDebugDefault()));
     }
 
     private StructuredGraph parse0(Method m, PhaseSuite<HighTierContext> graphBuilderSuite) {
         assert m.getAnnotation(Test.class) == null : "shouldn't parse method with @Test annotation: " + m;
         ResolvedJavaMethod javaMethod = getMetaAccess().lookupJavaMethod(m);
-        StructuredGraph graph = new StructuredGraph(javaMethod);
-        graphBuilderSuite.apply(graph, new HighTierContext(providers, null, null, graphBuilderSuite, OptimisticOptimizations.ALL));
-        return graph;
+        try (Scope ds = Debug.scope("Parsing", javaMethod)) {
+            StructuredGraph graph = new StructuredGraph(javaMethod);
+            graphBuilderSuite.apply(graph, new HighTierContext(providers, null, null, graphBuilderSuite, OptimisticOptimizations.ALL));
+            return graph;
+        }
     }
 
     protected PhaseSuite<HighTierContext> getDefaultGraphBuilderSuite() {
@@ -742,5 +749,16 @@ public abstract class GraalCompilerTest extends GraalTest {
      */
     protected static boolean iterationCount(double i, boolean cond) {
         return cond;
+    }
+
+    /**
+     * Test if the current test runs on the given platform. The name must match the name given in
+     * the {@link Architecture#getName()}.
+     *
+     * @param name The name to test
+     * @return true if we run on the architecture given by name
+     */
+    protected boolean isArchitecture(String name) {
+        return name.equals(backend.getTarget().arch.getName());
     }
 }

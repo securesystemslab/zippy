@@ -28,29 +28,28 @@ import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.extended.*;
 
 /**
- * The {@code PhiNode} represents the merging of dataflow in the memory graph.
+ * Memory {@code PhiNode}s merge memory dependencies at control flow merges.
  */
 @NodeInfo(nameTemplate = "MemoryPhi({i#values}) {p#locationIdentity/s}", allowedUsageTypes = {InputType.Memory})
 public class MemoryPhiNode extends PhiNode implements MemoryNode {
 
-    @Input(InputType.Memory) final NodeInputList<ValueNode> values = new NodeInputList<>(this);
+    @Input(InputType.Memory) final NodeInputList<ValueNode> values;
     private final LocationIdentity locationIdentity;
 
     public MemoryPhiNode(MergeNode merge, LocationIdentity locationIdentity) {
         super(StampFactory.forVoid(), merge);
         this.locationIdentity = locationIdentity;
+        this.values = new NodeInputList<>(this);
+    }
+
+    public MemoryPhiNode(MergeNode merge, LocationIdentity locationIdentity, ValueNode[] values) {
+        super(StampFactory.forVoid(), merge);
+        this.locationIdentity = locationIdentity;
+        this.values = new NodeInputList<>(this, values);
     }
 
     public LocationIdentity getLocationIdentity() {
         return locationIdentity;
-    }
-
-    public MemoryCheckpoint asMemoryCheckpoint() {
-        return null;
-    }
-
-    public MemoryPhiNode asMemoryPhi() {
-        return this;
     }
 
     @Override

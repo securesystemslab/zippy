@@ -36,6 +36,10 @@ import com.oracle.truffle.sl.runtime.*;
 @NodeInfo(shortName = "defineFunction")
 public abstract class SLDefineFunctionBuiltin extends SLBuiltinNode {
 
+    public SLDefineFunctionBuiltin() {
+        super(new NullSourceSection("SL builtin", "defineFunction"));
+    }
+
     @Specialization
     public String defineFunction(String code) {
         doDefineFunction(getContext(), code);
@@ -46,6 +50,6 @@ public abstract class SLDefineFunctionBuiltin extends SLBuiltinNode {
     private static void doDefineFunction(SLContext context, String code) {
         Source source = Source.fromText(code, "[defineFunction]");
         /* The same parsing code as for parsing the initial source. */
-        Parser.parseSL(context, source);
+        Parser.parseSL(context, source, null);
     }
 }

@@ -92,6 +92,9 @@ typedef void (*java_call_t)(JavaValue* value, methodHandle* method, JavaCallArgu
 
 class os: AllStatic {
   friend class VMStructs;
+#ifdef GRAAL
+  friend class Arguments; // need access to format_boot_path
+#endif
 
  public:
   enum { page_sizes_max = 9 }; // Size of _page_sizes array (8 plus a sentinel)
@@ -559,6 +562,9 @@ class os: AllStatic {
   // Find agent entry point
   static void *find_agent_function(AgentLibrary *agent_lib, bool check_lib,
                                    const char *syms[], size_t syms_len);
+
+
+  static address get_pc(void* context);
 
   // Print out system information; they are called by fatal error handler.
   // Output format may be different on different platforms.

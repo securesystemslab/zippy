@@ -30,6 +30,7 @@ import com.oracle.graal.graph.Node;
 import com.oracle.graal.nodes.calc.ObjectEqualsNode;
 import com.oracle.graal.nodes.util.GraphUtil;
 import com.oracle.graal.phases.common.cfs.FlowSensitiveReductionPhase;
+
 import org.junit.*;
 
 import com.oracle.graal.nodes.*;
@@ -375,7 +376,7 @@ public class FlowSenReduTest extends GraalCompilerTest {
     }
 
     public StructuredGraph afterFlowSensitiveReduce(String snippet) {
-        StructuredGraph before = canonicalize(parse(snippet));
+        StructuredGraph before = canonicalize(parseEager(snippet));
         // visualize(before, snippet + "-before");
         StructuredGraph result = flowSensitiveReduce(before);
         // visualize(result, snippet + "-after");
@@ -384,7 +385,7 @@ public class FlowSenReduTest extends GraalCompilerTest {
 
     public StructuredGraph visualize(StructuredGraph graph, String title) {
         DebugConfig debugConfig = DebugScope.getConfig();
-        DebugConfig fixedConfig = Debug.fixedConfig(false, true, false, false, false, false, debugConfig.dumpHandlers(), debugConfig.verifyHandlers(), debugConfig.output());
+        DebugConfig fixedConfig = Debug.fixedConfig(0, Debug.DEFAULT_LOG_LEVEL, false, false, false, false, debugConfig.dumpHandlers(), debugConfig.verifyHandlers(), debugConfig.output());
         try (DebugConfigScope s = Debug.setConfig(fixedConfig)) {
             Debug.dump(graph, title);
 

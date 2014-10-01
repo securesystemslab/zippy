@@ -190,8 +190,6 @@ private:
   static jboolean execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod* nm,
                                                   jobject donorThreads, int allocBytesPerWorkitem, jobject oop_map_array, TRAPS);
 
-  static void register_heap();
-
   static GraalEnv::CodeInstallResult install_code(Handle& compiled_code, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations);
 
 public:
@@ -211,32 +209,45 @@ public:
 #endif
 
 private:
-  typedef void* (*okra_create_context_func_t)();
-  typedef void* (*okra_create_kernel_func_t)(void*, unsigned char*, const char*);
-  typedef bool (*okra_push_object_func_t)(void*, void*);
-  typedef bool (*okra_push_boolean_func_t)(void*, jboolean);
-  typedef bool (*okra_push_byte_func_t)(void*, jbyte);
-  typedef bool (*okra_push_double_func_t)(void*, jdouble);
-  typedef bool (*okra_push_float_func_t)(void*, jfloat);
-  typedef bool (*okra_push_int_func_t)(void*, jint);
-  typedef bool (*okra_push_long_func_t)(void*, jlong);
-  typedef bool (*okra_execute_with_range_func_t)(void*, jint);
-  typedef bool (*okra_clearargs_func_t)(void*);
-  typedef bool (*okra_register_heap_func_t)(void*, size_t);
+
+  /*
+   * Kernel launch options from okra.h
+   */
+  typedef struct graal_okra_range_s {
+    uint32_t dimension; //max value is 3
+    uint32_t global_size[3];
+    uint32_t group_size[3];
+    uint32_t reserved; //For future use
+  } graal_okra_range_t;
+
+  typedef jint (*okra_get_context_func_t)(void**);
+  typedef jint (*okra_create_kernel_func_t)(void*, unsigned char*, const char*, void**);
+  typedef jint (*okra_push_pointer_func_t)(void*, void*);
+  typedef jint (*okra_push_boolean_func_t)(void*, jboolean);
+  typedef jint (*okra_push_byte_func_t)(void*, jbyte);
+  typedef jint (*okra_push_double_func_t)(void*, jdouble);
+  typedef jint (*okra_push_float_func_t)(void*, jfloat);
+  typedef jint (*okra_push_int_func_t)(void*, jint);
+  typedef jint (*okra_push_long_func_t)(void*, jlong);
+  typedef jint (*okra_execute_kernel_func_t)(void*, void*, graal_okra_range_t*);
+  typedef jint (*okra_clear_args_func_t)(void*);
+  typedef jint (*okra_dispose_kernel_func_t)(void*);
+  typedef jint (*okra_dispose_context_func_t)(void*);
 
 public:
-  static okra_create_context_func_t             _okra_create_context;
+  static okra_get_context_func_t                _okra_get_context;
   static okra_create_kernel_func_t              _okra_create_kernel;
-  static okra_push_object_func_t                _okra_push_object;
+  static okra_push_pointer_func_t               _okra_push_pointer;
   static okra_push_boolean_func_t               _okra_push_boolean;
   static okra_push_byte_func_t                  _okra_push_byte;
   static okra_push_double_func_t                _okra_push_double;
   static okra_push_float_func_t                 _okra_push_float;
   static okra_push_int_func_t                   _okra_push_int;
   static okra_push_long_func_t                  _okra_push_long;
-  static okra_execute_with_range_func_t         _okra_execute_with_range;
-  static okra_clearargs_func_t                  _okra_clearargs;
-  static okra_register_heap_func_t              _okra_register_heap;
+  static okra_execute_kernel_func_t             _okra_execute_kernel;
+  static okra_clear_args_func_t                 _okra_clear_args;
+  static okra_dispose_kernel_func_t             _okra_dispose_kernel;
+  static okra_dispose_context_func_t            _okra_dispose_context;
   
 protected:
   static void* _device_context;

@@ -183,7 +183,7 @@ public abstract class DefaultJavaLoweringProvider implements LoweringProvider {
             ResolvedJavaType arrayType = StampTool.typeOrNull(array);
             if (arrayType != null && StampTool.isExactType(array)) {
                 ResolvedJavaType elementType = arrayType.getComponentType();
-                if (!MetaUtil.isJavaLangObject(elementType)) {
+                if (!elementType.isJavaLangObject()) {
                     checkCastNode = graph.add(new CheckCastNode(elementType, value, null, true));
                     graph.addBeforeFixed(storeIndexed, checkCastNode);
                     value = checkCastNode;
@@ -646,7 +646,7 @@ public abstract class DefaultJavaLoweringProvider implements LoweringProvider {
             }
         }
 
-        return tool.createGuard(n, graph.unique(new IntegerBelowThanNode(n.index(), arrayLength)), BoundsCheckException, InvalidateReprofile);
+        return tool.createGuard(n, graph.unique(new IntegerBelowNode(n.index(), arrayLength)), BoundsCheckException, InvalidateReprofile);
     }
 
     protected GuardingNode createNullCheck(ValueNode object, FixedNode before, LoweringTool tool) {

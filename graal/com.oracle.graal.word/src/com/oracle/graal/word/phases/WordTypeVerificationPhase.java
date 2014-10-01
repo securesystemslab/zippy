@@ -73,9 +73,7 @@ public class WordTypeVerificationPhase extends Phase {
                 } else if (usage instanceof StoreFieldNode) {
                     verify(!isWord(node) || ((StoreFieldNode) usage).object() != node, node, usage, "cannot store to word value");
                 } else if (usage instanceof CheckCastNode) {
-                    boolean expectWord = isWord(node);
-                    verify(isWord(node) == expectWord, node, usage, "word cannot be cast to object, and vice versa");
-                    verify(isWord(((CheckCastNode) usage).type()) == expectWord, node, usage, "word cannot be cast to object, and vice versa");
+                    verify(isWord(((CheckCastNode) usage).type()) == isWord(node), node, usage, "word cannot be cast to object, and vice versa");
                 } else if (usage instanceof LoadIndexedNode) {
                     verify(!isWord(node) || ((LoadIndexedNode) usage).array() != node, node, usage, "cannot load from word value");
                     verify(!isWord(node) || ((LoadIndexedNode) usage).index() != node, node, usage, "cannot use word value as index");
@@ -114,7 +112,7 @@ public class WordTypeVerificationPhase extends Phase {
                 ValueNode receiver = arguments.get(argc);
                 if (receiver == node && isWord(node)) {
                     ResolvedJavaMethod resolvedMethod = wordAccess.wordImplType.resolveMethod(method, invoke.getContextType());
-                    verify(resolvedMethod != null, node, invoke.asNode(), "cannot resolve method on Word class: " + MetaUtil.format("%H.%n(%P) %r", method));
+                    verify(resolvedMethod != null, node, invoke.asNode(), "cannot resolve method on Word class: " + method.format("%H.%n(%P) %r"));
                     Operation operation = resolvedMethod.getAnnotation(Word.Operation.class);
                     verify(operation != null, node, invoke.asNode(), "cannot dispatch on word value to non @Operation annotated method " + resolvedMethod);
                 }
@@ -165,7 +163,7 @@ public class WordTypeVerificationPhase extends Phase {
             return buf.toString();
         } else {
             String loc = GraphUtil.approxSourceLocation(n);
-            return loc == null ? MetaUtil.format("method %h.%n", ((StructuredGraph) n.graph()).method()) : loc;
+            return loc == null ? ((StructuredGraph) n.graph()).method().format("method %h.%n") : loc;
         }
     }
 }

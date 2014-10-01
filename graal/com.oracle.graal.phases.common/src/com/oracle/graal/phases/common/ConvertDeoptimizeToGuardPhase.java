@@ -27,6 +27,7 @@ import java.util.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.util.*;
@@ -46,6 +47,7 @@ import com.oracle.graal.phases.*;
  *
  */
 public class ConvertDeoptimizeToGuardPhase extends Phase {
+    private SimplifierTool simplifierTool = GraphUtil.getDefaultSimplifier(null, null, null, false);
 
     private static BeginNode findBeginNode(FixedNode startNode) {
         return GraphUtil.predecessorIterable(startNode).filter(BeginNode.class).first();
@@ -53,10 +55,10 @@ public class ConvertDeoptimizeToGuardPhase extends Phase {
 
     @Override
     protected void run(final StructuredGraph graph) {
+        assert graph.hasValueProxies() : "ConvertDeoptimizeToGuardPhase always creates proxies";
         if (graph.getNodes(DeoptimizeNode.class).isEmpty()) {
             return;
         }
-
         for (DeoptimizeNode d : graph.getNodes(DeoptimizeNode.class)) {
             assert d.isAlive();
             visitDeoptBegin(BeginNode.prevBegin(d), d.action(), d.reason(), graph);
@@ -106,17 +108,15 @@ public class ConvertDeoptimizeToGuardPhase extends Phase {
         if (deoptBegin instanceof MergeNode) {
             MergeNode mergeNode = (MergeNode) deoptBegin;
             Debug.log("Visiting %s", mergeNode);
-            List<BeginNode> begins = new ArrayList<>();
-            for (AbstractEndNode end : mergeNode.forwardEnds()) {
+            FixedNode next = mergeNode.next();
+            while (mergeNode.isAlive()) {
+                AbstractEndNode end = mergeNode.forwardEnds().first();
                 BeginNode newBeginNode = findBeginNode(end);
-                assert !begins.contains(newBeginNode);
-                begins.add(newBeginNode);
+                visitDeoptBegin(newBeginNode, deoptAction, deoptReason, graph);
             }
-            for (BeginNode begin : begins) {
-                assert !begin.isDeleted();
-                visitDeoptBegin(begin, deoptAction, deoptReason, graph);
-            }
-            assert mergeNode.isDeleted();
+            assert next.isAlive();
+            BeginNode newBeginNode = findBeginNode(next);
+            visitDeoptBegin(newBeginNode, deoptAction, deoptReason, graph);
             return;
         } else if (deoptBegin.predecessor() instanceof IfNode) {
             IfNode ifNode = (IfNode) deoptBegin.predecessor();
@@ -147,6 +147,7 @@ public class ConvertDeoptimizeToGuardPhase extends Phase {
                     }
                 }
             }
+            survivingSuccessor.simplify(simplifierTool);
             Debug.log("Converting deopt on %-5s branch of %s to guard for remaining branch %s.", deoptBegin == ifNode.trueSuccessor() ? "true" : "false", ifNode, otherBegin);
             FixedNode next = pred.next();
             pred.setNext(guard);

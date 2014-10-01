@@ -28,8 +28,7 @@ import java.math.BigInteger;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.dsl.Generic;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
 import edu.uci.python.runtime.datatype.*;
@@ -135,7 +134,7 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
             return operand.len() != 0;
         }
 
-        @Generic
+        @Fallback
         boolean doGeneric(Object operand) {
             // anything except for 0 and None is true
             if (operand != null) {
@@ -217,7 +216,7 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
             return operand.len() == 0;
         }
 
-        @Generic
+        @Fallback
         boolean doGeneric(Object operand) {
             // anything except for 0 and None is true
             if (operand == null) {

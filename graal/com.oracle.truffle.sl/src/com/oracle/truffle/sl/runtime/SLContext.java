@@ -29,8 +29,11 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.source.*;
+import com.oracle.truffle.sl.*;
 import com.oracle.truffle.sl.builtins.*;
 import com.oracle.truffle.sl.nodes.*;
+import com.oracle.truffle.sl.nodes.instrument.*;
 import com.oracle.truffle.sl.nodes.local.*;
 import com.oracle.truffle.sl.parser.*;
 
@@ -49,6 +52,7 @@ public final class SLContext extends ExecutionContext {
     private final PrintStream output;
     private final SLFunctionRegistry functionRegistry;
     private SourceCallback sourceCallback = null;
+    private SLASTProber astProber;
 
     public SLContext(BufferedReader input, PrintStream output) {
         this.input = input;
@@ -121,7 +125,7 @@ public final class SLContext extends ExecutionContext {
          * from this array.
          */
         for (int i = 0; i < argumentCount; i++) {
-            argumentNodes[i] = new SLReadArgumentNode(i);
+            argumentNodes[i] = new SLReadArgumentNode(null, i);
         }
         /* Instantiate the builtin node. This node performs the actual functionality. */
         SLBuiltinNode builtinBodyNode = factory.createNode(argumentNodes, this);
@@ -132,5 +136,43 @@ public final class SLContext extends ExecutionContext {
 
         /* Register the builtin function in our function registry. */
         getFunctionRegistry().register(name, rootNode);
+    }
+
+    /**
+     * This function will parse the given source code, parse the code using the {@link Parser}, and
+     * then execute the function named main. To use this method with instrumentation,
+     * setASTNodeProber must have been already called. There is currently no guard to check if this
+     * is the case. <br/>
+     * Due to the experimental nature of the instrumentation framework, the parse that happens in
+     * this method will remove any previously added instrumentation.
+     *
+     * @param source The {@link Source} to execute.
+     */
+    public void executeMain(Source source) {
+
+        if (sourceCallback != null) {
+            sourceCallback.startLoading(source);
+        }
+
+        Parser.parseSL(this, source, astProber);
+
+        if (sourceCallback != null) {
+            sourceCallback.endLoading(source);
+        }
+
+        SLFunction main = getFunctionRegistry().lookup("main");
+        if (main.getCallTarget() == null) {
+            throw new SLException("No function main() defined in SL source file.");
+        }
+        main.getCallTarget().call();
+    }
+
+    /**
+     * Sets the {@link SLASTProber} for the executeMain method.
+     *
+     * @param astProber The prober to use for adding instrumentation for this context.
+     */
+    public void setASTNodeProber(SLASTProber astProber) {
+        this.astProber = astProber;
     }
 }

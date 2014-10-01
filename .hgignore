@@ -71,12 +71,13 @@ javadoc/
 .idea/
 ^cscope.out
 ^tags
-graal.src.zip*
 syntax: glob
 *.bgv
 core.*
 *.jar
 *.jar.*
+*.zip
+*.zip.*
 eclipse-build.xml
 rebuild-launch.out
 coverage

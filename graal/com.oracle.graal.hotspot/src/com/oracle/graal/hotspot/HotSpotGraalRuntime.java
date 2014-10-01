@@ -28,13 +28,11 @@ import static com.oracle.graal.compiler.common.UnsafeAccess.*;
 import static com.oracle.graal.hotspot.CompileTheWorld.Options.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.Options.*;
 import static com.oracle.graal.hotspot.InitTimer.*;
-import static sun.reflect.Reflection.*;
 
 import java.lang.reflect.*;
 import java.util.*;
 
 import sun.misc.*;
-import sun.reflect.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.stack.*;
@@ -79,22 +77,12 @@ public final class HotSpotGraalRuntime implements GraalRuntime, RuntimeProvider,
             // Why deferred initialization? See comment in completeInitialization().
             instance.completeInitialization();
         }
-
-        registerFieldsToFilter(HotSpotGraalRuntime.class, "instance");
     }
 
     /**
      * Gets the singleton {@link HotSpotGraalRuntime} object.
      */
-    @CallerSensitive
     public static HotSpotGraalRuntime runtime() {
-        SecurityManager sm = System.getSecurityManager();
-        if (sm != null) {
-            Class<?> cc = Reflection.getCallerClass();
-            if (cc != null && cc.getClassLoader() != null) {
-                sm.checkPermission(Graal.ACCESS_PERMISSION);
-            }
-        }
         assert instance != null;
         return instance;
     }
@@ -121,7 +109,7 @@ public final class HotSpotGraalRuntime implements GraalRuntime, RuntimeProvider,
 
         this.compilerToVm = toVM;
 
-        TTY.initialize(Options.LogFile.getStream());
+        TTY.initialize(Options.LogFile.getStream(compilerToVm));
 
         if (Log.getValue() == null && Meter.getValue() == null && Time.getValue() == null && Dump.getValue() == null && Verify.getValue() == null) {
             if (MethodFilter.getValue() != null) {
@@ -130,7 +118,7 @@ public final class HotSpotGraalRuntime implements GraalRuntime, RuntimeProvider,
         }
 
         if (Debug.isEnabled()) {
-            DebugEnvironment.initialize(LogFile.getStream());
+            DebugEnvironment.initialize(TTY.cachedOut);
 
             String summary = DebugValueSummary.getValue();
             if (summary != null) {
@@ -288,16 +276,9 @@ public final class HotSpotGraalRuntime implements GraalRuntime, RuntimeProvider,
 
         CompileTheWorld.Options.overrideWithNativeOptions(config);
 
-        // Only set HotSpotPrintCompilation and HotSpotPrintInlining if they still have their
-        // default value (false).
-        if (HotSpotPrintCompilation.getValue() == false) {
-            HotSpotPrintCompilation.setValue(config.printCompilation);
-        }
+        // Only set HotSpotPrintInlining if it still has its default value (false).
         if (HotSpotPrintInlining.getValue() == false) {
             HotSpotPrintInlining.setValue(config.printInlining);
-        }
-        if (HotSpotCIPrintCompilerName.getValue() == false) {
-            HotSpotCIPrintCompilerName.setValue(config.printCompilerName);
         }
 
         if (Boolean.valueOf(System.getProperty("graal.printconfig"))) {
@@ -389,32 +370,31 @@ public final class HotSpotGraalRuntime implements GraalRuntime, RuntimeProvider,
     }
 
     /**
-     * Converts a name to a Java type.
+     * Converts a name to a Java type. This method attempts to resolve {@code name} to a
+     * {@link ResolvedJavaType}.
      *
      * @param name a well formed Java type in {@linkplain JavaType#getName() internal} format
-     * @param accessingType the context of resolution (may be null)
-     * @param resolve force resolution to a {@link ResolvedJavaType}. If true, this method will
-     *            either return a {@link ResolvedJavaType} or throw an exception
+     * @param accessingType the context of resolution which must be non-null
+     * @param resolve specifies whether resolution failure results in an unresolved type being
+     *            return or a {@link LinkageError} being thrown
      * @return a Java type for {@code name} which is guaranteed to be of type
      *         {@link ResolvedJavaType} if {@code resolve == true}
      * @throws LinkageError if {@code resolve == true} and the resolution failed
+     * @throws NullPointerException if {@code accessingClass} is {@code null}
      */
     public JavaType lookupType(String name, HotSpotResolvedObjectType accessingType, boolean resolve) {
+        Objects.requireNonNull(accessingType, "cannot resolve type without an accessing class");
         // If the name represents a primitive type we can short-circuit the lookup.
         if (name.length() == 1) {
             Kind kind = Kind.fromPrimitiveOrVoidTypeChar(name.charAt(0));
             return HotSpotResolvedPrimitiveType.fromKind(kind);
         }
 
-        // Handle non-primitive types.
-        Class<?> accessingClass = null;
-        if (accessingType != null) {
-            accessingClass = accessingType.mirror();
-        }
+        // Resolve non-primitive types in the VM.
+        final long metaspaceKlass = compilerToVm.lookupType(name, accessingType.mirror(), resolve);
 
-        // Resolve the type in the VM.
-        final long metaspaceKlass = compilerToVm.lookupType(name, accessingClass, resolve);
-        if (metaspaceKlass == 0) {
+        if (metaspaceKlass == 0L) {
+            assert resolve == false;
             return HotSpotUnresolvedJavaType.create(name);
         }
         return HotSpotResolvedObjectType.fromMetaspaceKlass(metaspaceKlass);
@@ -539,38 +519,20 @@ public final class HotSpotGraalRuntime implements GraalRuntime, RuntimeProvider,
         }
     }
 
-    public Iterable<InspectedFrame> getStackTrace(ResolvedJavaMethod[] initialMethods, ResolvedJavaMethod[] matchingMethods, int initialSkip) {
+    @Override
+    public <T> T iterateFrames(ResolvedJavaMethod[] initialMethods, ResolvedJavaMethod[] matchingMethods, int initialSkip, InspectedFrameVisitor<T> visitor) {
         final long[] initialMetaMethods = toMeta(initialMethods);
         final long[] matchingMetaMethods = toMeta(matchingMethods);
-        class StackFrameIterator implements Iterator<InspectedFrame> {
 
-            private HotSpotStackFrameReference current = compilerToVm.getNextStackFrame(null, initialMetaMethods, initialSkip);
-            // we don't want to read ahead if hasNext isn't called
-            private boolean advanced = true;
-
-            public boolean hasNext() {
-                update();
-                return current != null;
+        HotSpotStackFrameReference current = compilerToVm.getNextStackFrame(null, initialMetaMethods, initialSkip);
+        while (current != null) {
+            T result = visitor.visitFrame(current);
+            if (result != null) {
+                return result;
             }
-
-            public InspectedFrame next() {
-                update();
-                advanced = false;
-                return current;
-            }
-
-            private void update() {
-                if (!advanced) {
-                    current = compilerToVm.getNextStackFrame(current, matchingMetaMethods, 0);
-                    advanced = true;
-                }
-            }
+            current = compilerToVm.getNextStackFrame(current, matchingMetaMethods, 0);
         }
-        return new Iterable<InspectedFrame>() {
-            public Iterator<InspectedFrame> iterator() {
-                return new StackFrameIterator();
-            }
-        };
+        return null;
     }
 
     private static long[] toMeta(ResolvedJavaMethod[] methods) {

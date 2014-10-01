@@ -28,6 +28,7 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.frame.FrameInstance.FrameAccess;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.source.*;
 
 /**
  * Returns a string representation of the current stack. This includes the {@link CallTarget}s and
@@ -37,6 +38,10 @@ import com.oracle.truffle.api.nodes.*;
 @NodeInfo(shortName = "stacktrace")
 public abstract class SLStackTraceBuiltin extends SLBuiltinNode {
 
+    public SLStackTraceBuiltin() {
+        super(new NullSourceSection("SL builtin", "stacktrace"));
+    }
+
     @Specialization
     public String trace() {
         return createStackTrace();
@@ -45,13 +50,11 @@ public abstract class SLStackTraceBuiltin extends SLBuiltinNode {
     @SlowPath
     private static String createStackTrace() {
         StringBuilder str = new StringBuilder();
-        Iterable<FrameInstance> frames = Truffle.getRuntime().getStackTrace();
 
-        if (frames != null) {
-            for (FrameInstance frame : frames) {
-                dumpFrame(str, frame.getCallTarget(), frame.getFrame(FrameAccess.READ_ONLY, true), frame.isVirtualFrame());
-            }
-        }
+        Truffle.getRuntime().iterateFrames(frameInstance -> {
+            dumpFrame(str, frameInstance.getCallTarget(), frameInstance.getFrame(FrameAccess.READ_ONLY, true), frameInstance.isVirtualFrame());
+            return null;
+        });
         return str.toString();
     }
 

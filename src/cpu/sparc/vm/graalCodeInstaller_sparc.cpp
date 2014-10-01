@@ -59,11 +59,13 @@ void CodeInstaller::pd_patch_OopData(int pc_offset, oop data) {
 
 void CodeInstaller::pd_patch_DataSectionReference(int pc_offset, oop data) {
   address pc = _instructions->start() + pc_offset;
+  address const_start = _constants->start();
   jint offset = DataSectionReference::offset(data);
+  address dest = _constants->start() + offset;
 
-  NativeMovRegMem* load = nativeMovRegMem_at(pc);
-  int disp = _constants_size + pc_offset - offset - BytesPerInstWord;
-  load->set_offset(-disp);
+  _instructions->relocate(pc + NativeMovConstReg::sethi_offset, internal_word_Relocation::spec((address) dest));
+  _instructions->relocate(pc + NativeMovConstReg::add_offset, internal_word_Relocation::spec((address) dest));
+  TRACE_graal_3("relocating at %p with destination at %p (%d)", pc, dest, offset);
 }
 
 void CodeInstaller::pd_relocate_CodeBlob(CodeBlob* cb, NativeInstruction* inst) {

@@ -128,6 +128,7 @@ extern "C" {
   jobject  JNICALL JVM_GetGraalRuntime(JNIEnv *env, jclass c);
   jobject  JNICALL JVM_GetGraalServiceImpls(JNIEnv *env, jclass c);
   jobject  JNICALL JVM_CreateTruffleRuntime(JNIEnv *env, jclass c);
+  jobject  JNICALL JVM_CreateNativeFunctionInterface(JNIEnv *env, jclass c);
   jboolean JNICALL JVM_ParseGraalOptions(JNIEnv *env, jclass hotspotOptionsClass);
 #ifdef COMPILERGRAAL
   void     JNICALL JVM_PrintAndResetGraalCompRate(JNIEnv *env, jclass c);
@@ -144,14 +145,12 @@ static JNINativeMethod lookup_special_native_methods[] = {
   { CC"Java_sun_misc_Perf_registerNatives",                        NULL, FN_PTR(JVM_RegisterPerfMethods)         },
   { CC"Java_sun_hotspot_WhiteBox_registerNatives",                 NULL, FN_PTR(JVM_RegisterWhiteBoxMethods)     },
 #ifdef GRAAL
-  { CC"Java_com_oracle_graal_api_runtime_Graal_initializeRuntime",            NULL, FN_PTR(JVM_GetGraalRuntime)           },
-  { CC"Java_com_oracle_graal_api_runtime_Services_getServiceImpls",           NULL, FN_PTR(JVM_GetGraalServiceImpls)      },
-  { CC"Java_com_oracle_truffle_api_Truffle_createRuntime",                    NULL, FN_PTR(JVM_CreateTruffleRuntime)      },
-  { CC"Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_init",           NULL, FN_PTR(JVM_InitializeGraalNatives)    },
-  { CC"Java_com_oracle_graal_hotspot_HotSpotOptions_parseVMOptions",          NULL, FN_PTR(JVM_ParseGraalOptions)         },
-#ifdef COMPILERGRAAL
-  { CC"Java_com_oracle_graal_hotspot_CompilationQueue_printAndResetCompRate", NULL, FN_PTR(JVM_PrintAndResetGraalCompRate)},
-#endif
+  { CC"Java_com_oracle_graal_api_runtime_Graal_initializeRuntime",                                        NULL, FN_PTR(JVM_GetGraalRuntime)                    },
+  { CC"Java_com_oracle_graal_api_runtime_Services_getServiceImpls",                                       NULL, FN_PTR(JVM_GetGraalServiceImpls)               },
+  { CC"Java_com_oracle_truffle_api_Truffle_createRuntime",                                                NULL, FN_PTR(JVM_CreateTruffleRuntime)               },
+  { CC"Java_com_oracle_nfi_NativeFunctionInterfaceRuntime_createInterface",                               NULL, FN_PTR(JVM_CreateNativeFunctionInterface)      },
+  { CC"Java_com_oracle_graal_hotspot_bridge_CompilerToVMImpl_init",                                       NULL, FN_PTR(JVM_InitializeGraalNatives)             },
+  { CC"Java_com_oracle_graal_hotspot_HotSpotOptions_parseVMOptions",                                      NULL, FN_PTR(JVM_ParseGraalOptions)                  },
 #endif
 };
 
@@ -182,7 +181,7 @@ address NativeLookup::lookup_style(methodHandle method, char* pure_name, const c
   // gets found the first time around - otherwise an infinite loop can occure. This is
   // another VM/library dependency
   Handle loader(THREAD, method->method_holder()->class_loader());
-  if (loader.is_null()) {
+  if (loader.is_null() GRAAL_ONLY(|| loader() == SystemDictionary::graal_loader())) {
     entry = lookup_special_native(jni_name);
     if (entry == NULL) {
        entry = (address) os::dll_lookup(os::native_java_library(), jni_name);

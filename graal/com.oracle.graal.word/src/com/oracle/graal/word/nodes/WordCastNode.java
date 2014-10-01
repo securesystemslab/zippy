@@ -36,6 +36,8 @@ import com.oracle.graal.word.phases.*;
  */
 public final class WordCastNode extends FixedWithNextNode implements LIRLowerable, Canonicalizable {
 
+    @Input private ValueNode input;
+
     public static WordCastNode wordToObject(ValueNode input, Kind wordKind) {
         assert input.getKind() == wordKind;
         return new WordCastNode(StampFactory.object(), input);
@@ -45,8 +47,6 @@ public final class WordCastNode extends FixedWithNextNode implements LIRLowerabl
         assert input.getKind() == Kind.Object;
         return new WordCastNode(StampFactory.forKind(wordKind), input);
     }
-
-    @Input private ValueNode input;
 
     private WordCastNode(Stamp stamp, ValueNode input) {
         super(stamp);
@@ -71,13 +71,15 @@ public final class WordCastNode extends FixedWithNextNode implements LIRLowerabl
         assert getKind() != input.getKind();
         assert generator.getLIRGeneratorTool().target().getSizeInBytes(getKind()) == generator.getLIRGeneratorTool().target().getSizeInBytes(input.getKind());
 
+        Value value = generator.operand(input);
         LIRKind kind = generator.getLIRGeneratorTool().getLIRKind(stamp());
         if (kind.isValue()) {
-            kind = kind.makeDerivedReference();
+            // only add reference information, but never drop it
+            kind = value.getLIRKind().changeType(kind.getPlatformKind());
         }
 
         AllocatableValue result = generator.getLIRGeneratorTool().newVariable(kind);
-        generator.getLIRGeneratorTool().emitMove(result, generator.operand(input));
+        generator.getLIRGeneratorTool().emitMove(result, value);
         generator.setResult(this, result);
     }
 }

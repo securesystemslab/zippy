@@ -40,8 +40,10 @@
 #include "runtime/signature.hpp"
 #include "runtime/stubRoutines.hpp"
 #include "runtime/thread.inline.hpp"
+#ifdef GRAAL
 #include "graal/graalJavaAccess.hpp"
 #include "graal/graalRuntime.hpp"
+#endif
 
 // -----------------------------------------------------
 // Implementation of JavaCallWrapper

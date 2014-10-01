@@ -39,9 +39,9 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Invoke,
     @Successor private BeginNode next;
     @Successor private BeginNode exceptionEdge;
     @Input(InputType.Extension) private CallTargetNode callTarget;
-    @Input(InputType.State) private FrameState stateDuring;
-    @Input(InputType.State) private FrameState stateAfter;
-    @Input(InputType.Guard) private GuardingNode guard;
+    @OptionalInput(InputType.State) private FrameState stateDuring;
+    @OptionalInput(InputType.State) private FrameState stateAfter;
+    @OptionalInput(InputType.Guard) private GuardingNode guard;
     private final int bci;
     private boolean polymorphic;
     private boolean useForInlining;
@@ -201,12 +201,6 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Invoke,
     }
 
     @Override
-    public void setProbability(BeginNode successor, double value) {
-        assert successor == next || successor == exceptionEdge;
-        this.exceptionProbability = successor == next ? 1 - value : value;
-    }
-
-    @Override
     public boolean canDeoptimize() {
         return true;
     }
@@ -231,13 +225,5 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Invoke,
     public void setGuard(GuardingNode guard) {
         updateUsagesInterface(this.guard, guard);
         this.guard = guard;
-    }
-
-    public MemoryCheckpoint asMemoryCheckpoint() {
-        return this;
-    }
-
-    public MemoryPhiNode asMemoryPhi() {
-        return null;
     }
 }

@@ -49,6 +49,9 @@
   product(bool, DebugGraal, true,                                           \
           "Enable JVMTI for the compiler thread")                           \
                                                                             \
+  product(bool, UseGraalClassLoader, true,                                  \
+          "Load Graal classes with separate class loader")                  \
+                                                                            \
   COMPILERGRAAL_PRESENT(product(bool, BootstrapGraal, true,                 \
           "Bootstrap Graal before running Java main method"))               \
                                                                             \
@@ -57,12 +60,6 @@
                                                                             \
   COMPILERGRAAL_PRESENT(product(intx, GraalThreads, 1,                      \
           "Force number of Graal compiler threads to use"))                 \
-                                                                            \
-  COMPILERGRAAL_PRESENT(product(bool, UseGraalCompilationQueue, false,      \
-          "Use non-native compilation queue for Graal"))                    \
-                                                                            \
-  product(bool, ForceGraalInitialization, false,                            \
-          "Force VM to initialize the compiler even if not used")           \
                                                                             \
   product(intx, TraceGraal, 0,                                              \
           "Trace level for Graal")                                          \

@@ -23,6 +23,7 @@
 package com.oracle.graal.hotspot;
 
 import static com.oracle.graal.compiler.common.GraalOptions.*;
+import static com.oracle.graal.debug.internal.MemUseTrackerImpl.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 import static com.oracle.graal.nodes.StructuredGraph.*;
 
@@ -158,6 +159,7 @@ public final class CompileTheWorld {
     private int classFileCounter = 0;
     private int compiledMethodsCounter = 0;
     private long compileTime = 0;
+    private long memoryUsed = 0;
 
     private boolean verbose;
     private final Config config;
@@ -289,7 +291,7 @@ public final class CompileTheWorld {
                     if (classFileCounter >= startAt) {
                         println("CompileTheWorld (%d) : %s", classFileCounter, className);
 
-                        // Enqueue each constructor/method in the class for compilation.
+                        // Compile each constructor/method in the class.
                         for (Constructor<?> constructor : javaClass.getDeclaredConstructors()) {
                             HotSpotResolvedJavaMethod javaMethod = (HotSpotResolvedJavaMethod) metaAccess.lookupJavaConstructor(constructor);
                             if (canBeCompiled(javaMethod, constructor.getModifiers())) {
@@ -311,13 +313,13 @@ public final class CompileTheWorld {
         }
 
         println();
-        println("CompileTheWorld : Done (%d classes, %d methods, %d ms)", classFileCounter, compiledMethodsCounter, compileTime);
+        println("CompileTheWorld : Done (%d classes, %d methods, %d ms, %d bytes of memory used)", classFileCounter, compiledMethodsCounter, compileTime, memoryUsed);
     }
 
     class CTWCompilationTask extends CompilationTask {
 
         CTWCompilationTask(HotSpotBackend backend, HotSpotResolvedJavaMethod method) {
-            super(null, backend, method, INVOCATION_ENTRY_BCI, 0L, false);
+            super(backend, method, INVOCATION_ENTRY_BCI, 0L, method.allocateCompileId(INVOCATION_ENTRY_BCI));
         }
 
         /**
@@ -346,17 +348,19 @@ public final class CompileTheWorld {
     private void compileMethod(HotSpotResolvedJavaMethod method) {
         try {
             long start = System.currentTimeMillis();
+            long allocatedAtStart = getCurrentThreadAllocatedBytes();
 
             HotSpotBackend backend = runtime.getHostBackend();
             CompilationTask task = new CTWCompilationTask(backend, method);
             task.runCompilation();
 
+            memoryUsed += getCurrentThreadAllocatedBytes() - allocatedAtStart;
             compileTime += (System.currentTimeMillis() - start);
             compiledMethodsCounter++;
             method.reprofile();  // makes the method also not-entrant
         } catch (Throwable t) {
             // Catch everything and print a message
-            println("CompileTheWorld (%d) : Error compiling method: %s", classFileCounter, MetaUtil.format("%H.%n(%p):%r", method));
+            println("CompileTheWorld (%d) : Error compiling method: %s", classFileCounter, method.format("%H.%n(%p):%r"));
             t.printStackTrace(TTY.cachedOut);
         }
     }

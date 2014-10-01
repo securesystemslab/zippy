@@ -76,12 +76,18 @@ class Distribution:
         self.excludedDependencies = excludedDependencies
         self.distDependencies = distDependencies
 
-    def sorted_deps(self, includeLibs=False):
+    def sorted_deps(self, includeLibs=False, transitive=False):
+        deps = []
+        if transitive:
+            for depDist in [distribution(name) for name in self.distDependencies]:
+                for d in depDist.sorted_deps(includeLibs=includeLibs, transitive=True):
+                    if d not in deps:
+                        deps.append(d)
         try:
             excl = [dependency(d) for d in self.excludedDependencies]
         except SystemExit as e:
             abort('invalid excluded dependency for {} distribution: {}'.format(self.name, e))
-        return [d for d in sorted_deps(self.deps, includeLibs=includeLibs) if d not in excl]
+        return deps + [d for d in sorted_deps(self.deps, includeLibs=includeLibs) if d not in excl]
 
     def __str__(self):
         return self.name
@@ -487,10 +493,40 @@ def _make_absolute(path, prefix):
         return join(prefix, path)
     return path
 
-def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False):
+def sha1OfFile(path):
+    with open(path, 'rb') as f:
+        d = hashlib.sha1()
+        while True:
+            buf = f.read(4096)
+            if not buf:
+                break
+            d.update(buf)
+        return d.hexdigest()
+
+def download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExist, sources=False, canSymlink=True):
     def _download_lib():
-        print 'Downloading ' + ("Sources " if sources else "") + name + ' from ' + str(urls)
-        download(path, urls)
+        cacheDir = get_env('MX_CACHE_DIR', join(_opts.user_home, '.mx', 'cache'))
+        if not exists(cacheDir):
+            os.makedirs(cacheDir)
+        base = basename(path)
+        cachePath = join(cacheDir, base + '_' + sha1)
+
+        if not exists(cachePath) or sha1OfFile(cachePath) != sha1:
+            if exists(cachePath):
+                log('SHA1 of ' + cachePath + ' does not match expected value (' + sha1 + ') - re-downloading')
+            print 'Downloading ' + ("sources " if sources else "") + name + ' from ' + str(urls)
+            download(cachePath, urls)
+
+        d = dirname(path)
+        if d != '' and not exists(d):
+            os.makedirs(d)
+
+        if canSymlink and 'symlink' in dir(os):
+            if exists(path):
+                os.unlink(path)
+            os.symlink(cachePath, path)
+        else:
+            shutil.copy(cachePath, path)
 
     def _sha1Cached():
         with open(sha1path, 'r') as f:
@@ -498,30 +534,21 @@ def _download_file_with_sha1(name, path, urls, sha1, sha1path, resolve, mustExis
 
     def _writeSha1Cached():
         with open(sha1path, 'w') as f:
-            f.write(_sha1OfFile())
-
-    def _sha1OfFile():
-        with open(path, 'rb') as f:
-            d = hashlib.sha1()
-            while True:
-                buf = f.read(4096)
-                if not buf:
-                    break
-                d.update(buf)
-            return d.hexdigest()
+            f.write(sha1OfFile(path))
 
     if resolve and mustExist and not exists(path):
         assert not len(urls) == 0, 'cannot find required library ' + name + ' ' + path
         _download_lib()
 
-    if sha1 and not exists(sha1path):
-        _writeSha1Cached()
+    if exists(path):
+        if sha1 and not exists(sha1path):
+            _writeSha1Cached()
 
-    if sha1 and sha1 != _sha1Cached():
-        _download_lib()
-        if sha1 != _sha1OfFile():
-            abort("SHA1 does not match for " + name + ". Broken download? SHA1 not updated in projects file?")
-        _writeSha1Cached()
+        if sha1 and sha1 != _sha1Cached():
+            _download_lib()
+            if sha1 != sha1OfFile(path):
+                abort("SHA1 does not match for " + name + ". Broken download? SHA1 not updated in projects file?")
+            _writeSha1Cached()
 
     return path
 
@@ -537,16 +564,16 @@ class BaseLibrary(Dependency):
         return not result
 
 """
-A library that will be provided by the JDK but may be absent.
+A library that will be provided by the JRE but may be absent.
 Any project or normal library that depends on a missing library
 will be removed from the global project and library dictionaries
 (i.e., _projects and _libs).
 
 This mechanism exists primarily to be able to support code
-that may use functionality in one JDK (e.g., Oracle JDK)
-that is not present in another JDK (e.g., OpenJDK). A
+that may use functionality in one JRE (e.g., Oracle JRE)
+that is not present in another JRE (e.g., OpenJDK). A
 motivating example is the Java Flight Recorder library
-found in the Oracle JDK. 
+found in the Oracle JRE. 
 """
 class JreLibrary(BaseLibrary):
     def __init__(self, suite, name, jar, optional):
@@ -587,12 +614,26 @@ class Library(BaseLibrary):
         self.sha1 = sha1
         self.sourcePath = sourcePath
         self.sourceUrls = sourceUrls
+        if sourcePath == path:
+            assert sourceSha1 is None or sourceSha1 == sha1
+            sourceSha1 = sha1
         self.sourceSha1 = sourceSha1
         self.deps = deps
-        abspath = _make_absolute(self.path, self.suite.dir)
+        abspath = _make_absolute(path, self.suite.dir)
         if not optional and not exists(abspath):
             if not len(urls):
                 abort('Non-optional library {} must either exist at {} or specify one or more URLs from which it can be retrieved'.format(name, abspath))
+
+        def _checkSha1PropertyCondition(propName, cond, inputPath):
+            if not cond:
+                absInputPath = _make_absolute(inputPath, self.suite.dir)
+                if exists(absInputPath):
+                    abort('Missing "{}" property for library {}. Add the following line to projects file:\nlibrary@{}@{}={}'.format(propName, name, name, propName, sha1OfFile(absInputPath)))
+                abort('Missing "{}" property for library {}'.format(propName, name))
+
+        _checkSha1PropertyCondition('sha1', sha1, path)
+        _checkSha1PropertyCondition('sourceSha1', not sourcePath or sourceSha1, sourcePath)
+
         for url in urls:
             if url.endswith('/') != self.path.endswith(os.sep):
                 abort('Path for dependency directory must have a URL ending with "/": path=' + self.path + ' url=' + url)
@@ -614,7 +655,9 @@ class Library(BaseLibrary):
         if includedInJDK and java().javaCompliance >= JavaCompliance(includedInJDK):
             return None
 
-        return _download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, not self.optional)
+        bootClassPathAgent = getattr(self, 'bootClassPathAgent').lower() == 'true' if hasattr(self, 'bootClassPathAgent') else False
+
+        return download_file_with_sha1(self.name, path, self.urls, self.sha1, sha1path, resolve, not self.optional, canSymlink=not bootClassPathAgent)
 
     def get_source_path(self, resolve):
         if self.sourcePath is None:
@@ -622,7 +665,7 @@ class Library(BaseLibrary):
         path = _make_absolute(self.sourcePath, self.suite.dir)
         sha1path = path + '.sha1'
 
-        return _download_file_with_sha1(self.name, path, self.sourceUrls, self.sourceSha1, sha1path, resolve, len(self.sourceUrls) != 0, sources=True)
+        return download_file_with_sha1(self.name, path, self.sourceUrls, self.sourceSha1, sha1path, resolve, len(self.sourceUrls) != 0, sources=True)
 
     def append_to_classpath(self, cp, resolve):
         path = self.get_path(resolve)
@@ -972,7 +1015,7 @@ class Suite:
                             logv('[omitting project {} as dependency {} is missing]'.format(d, name))
                             del _projects[d.name]
                             self.projects.remove(d)
-        for dist in _dists.values():
+        for dist in _dists.itervalues():
             for name in list(dist.deps):
                 if not dependency(name, fatalIfMissing=False):
                     logv('[omitting {} from distribution {}]'.format(name, dist))
@@ -1203,18 +1246,45 @@ def _as_classpath(deps, resolve):
 
 def classpath(names=None, resolve=True, includeSelf=True, includeBootClasspath=False):
     """
-    Get the class path for a list of given dependencies, resolving each entry in the
+    Get the class path for a list of given dependencies and distributions, resolving each entry in the
     path (e.g. downloading a missing library) if 'resolve' is true.
     """
     if names is None:
-        result = _as_classpath(sorted_deps(includeLibs=True), resolve)
+        deps = sorted_deps(includeLibs=True)
+        dists = list(_dists.values())
     else:
         deps = []
+        dists = []
         if isinstance(names, types.StringTypes):
             names = [names]
         for n in names:
-            dependency(n).all_deps(deps, True, includeSelf)
-        result = _as_classpath(deps, resolve)
+            dep = dependency(n, fatalIfMissing=False)
+            if dep:
+                dep.all_deps(deps, True, includeSelf)
+            else:
+                dist = distribution(n)
+                if not dist:
+                    abort('project, library or distribution named ' + n + ' not found')
+                dists.append(dist)
+
+    if len(dists):
+        distsDeps = set()
+        for d in dists:
+            distsDeps.update(d.sorted_deps())
+
+        # remove deps covered by a dist that will be on the class path
+        deps = [d for d in deps if d not in distsDeps]
+
+    result = _as_classpath(deps, resolve)
+
+    # prepend distributions
+    if len(dists):
+        distsCp = os.pathsep.join(dist.path for dist in dists)
+        if len(result):
+            result = distsCp + os.pathsep + result
+        else:
+            result = distsCp
+
     if includeBootClasspath:
         result = os.pathsep.join([java().bootclasspath(), result])
     return result
@@ -1253,6 +1323,23 @@ def sorted_deps(projectNames=None, includeLibs=False, includeJreLibs=False, incl
     projects = projects_from_names(projectNames)
 
     return sorted_project_deps(projects, includeLibs=includeLibs, includeJreLibs=includeJreLibs, includeAnnotationProcessors=includeAnnotationProcessors)
+
+def sorted_dists():
+    """
+    Gets distributions sorted such that each distribution comes after
+    any distributions it depends upon.
+    """
+    dists = []
+    def add_dist(dist):
+        if not dist in dists:
+            for depDist in [distribution(name) for name in dist.distDependencies]:
+                add_dist(depDist)
+            if not dist in dists:
+                dists.append(dist)
+
+    for d in _dists.itervalues():
+        add_dist(d)
+    return dists
 
 def sorted_project_deps(projects, includeLibs=False, includeJreLibs=False, includeAnnotationProcessors=False):
     deps = []
@@ -1708,9 +1795,18 @@ class JavaConfig:
                 print e.output
                 abort(e.returncode)
 
-        output = output.split()
-        assert output[1] == 'version'
-        self.version = VersionSpec(output[2].strip('"'))
+        def _checkOutput(out):
+            return 'version' in out
+
+        # hotspot can print a warning, e.g. if there's a .hotspot_compiler file in the cwd
+        output = output.split('\n')
+        version = None
+        for o in output:
+            if _checkOutput(o):
+                assert version is None
+                version = o
+
+        self.version = VersionSpec(version.split()[2].strip('"'))
         self.javaCompliance = JavaCompliance(self.version.versionString)
 
         if self.debug_port is not None:
@@ -1723,8 +1819,8 @@ class JavaConfig:
             os.makedirs(outDir)
         javaSource = join(myDir, 'ClasspathDump.java')
         if not exists(join(outDir, 'ClasspathDump.class')):
-            subprocess.check_call([self.javac, '-d', outDir, javaSource])
-        self._bootclasspath, self._extdirs, self._endorseddirs = [x if x != 'null' else None for x in subprocess.check_output([self.java, '-cp', outDir, 'ClasspathDump']).split('|')]
+            subprocess.check_call([self.javac, '-d', outDir, javaSource], stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        self._bootclasspath, self._extdirs, self._endorseddirs = [x if x != 'null' else None for x in subprocess.check_output([self.java, '-cp', outDir, 'ClasspathDump'], stderr=subprocess.PIPE).split('|')]
         if not self._bootclasspath or not self._extdirs or not self._endorseddirs:
             warn("Could not find all classpaths: boot='" + str(self._bootclasspath) + "' extdirs='" + str(self._extdirs) + "' endorseddirs='" + str(self._endorseddirs) + "'")
         self._bootclasspath = _filter_non_existant_paths(self._bootclasspath)
@@ -2015,7 +2111,7 @@ class JavaCompileTask:
                 rootJdtProperties = join(self.proj.suite.mxDir, 'eclipse-settings', 'org.eclipse.jdt.core.prefs')
                 if not exists(jdtProperties) or os.path.getmtime(jdtProperties) < os.path.getmtime(rootJdtProperties):
                     # Try to fix a missing properties file by running eclipseinit
-                    eclipseinit([], buildProcessorJars=False)
+                    _eclipseinit_project(self.proj)
                 if not exists(jdtProperties):
                     log('JDT properties file {0} not found'.format(jdtProperties))
                 else:
@@ -2146,13 +2242,12 @@ def build(args, parser=None):
         sourceDirs = p.source_dirs()
         buildReason = 'forced build' if args.force else None
         taskDeps = []
-        if not buildReason:
-            for dep in p.all_deps([], includeLibs=False, includeAnnotationProcessors=True):
-                taskDep = tasks.get(dep.name)
-                if taskDep:
-                    if not buildReason:
-                        buildReason = dep.name + ' rebuilt'
-                    taskDeps.append(taskDep)
+        for dep in p.all_deps([], includeLibs=False, includeAnnotationProcessors=True):
+            taskDep = tasks.get(dep.name)
+            if taskDep:
+                if not buildReason:
+                    buildReason = dep.name + ' rebuilt'
+                taskDeps.append(taskDep)
 
         jasminAvailable = None
         javafilelist = []
@@ -2321,7 +2416,7 @@ def build(args, parser=None):
                 log('Compiling {} failed'.format(t.proj.name))
             abort('{} Java compilation tasks failed'.format(len(failed)))
 
-    for dist in _dists.values():
+    for dist in sorted_dists():
         archive(['@' + dist.name])
 
     if suppliedParser:
@@ -2593,6 +2688,8 @@ class Archiver:
 
     def __enter__(self):
         if self.path:
+            if not isdir(dirname(self.path)):
+                os.makedirs(dirname(self.path))
             fd, tmp = tempfile.mkstemp(suffix='', prefix=basename(self.path) + '.', dir=dirname(self.path))
             self.tmpFd = fd
             self.tmpPath = tmp
@@ -3146,6 +3243,229 @@ def _check_ide_timestamp(suite, configZip, ide):
                     return False
     return True
 
+def _eclipseinit_project(p, files=None, libFiles=None):
+    assert java(p.javaCompliance)
+
+    if not exists(p.dir):
+        os.makedirs(p.dir)
+
+    out = XMLDoc()
+    out.open('classpath')
+
+    for src in p.srcDirs:
+        srcDir = join(p.dir, src)
+        if not exists(srcDir):
+            os.mkdir(srcDir)
+        out.element('classpathentry', {'kind' : 'src', 'path' : src})
+
+    if len(p.annotation_processors()) > 0:
+        genDir = p.source_gen_dir()
+        if not exists(genDir):
+            os.mkdir(genDir)
+        out.element('classpathentry', {'kind' : 'src', 'path' : 'src_gen'})
+        if files:
+            files.append(genDir)
+
+    # Every Java program depends on a JRE
+    out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-' + str(p.javaCompliance)})
+
+    if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
+        out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.pde.core.requiredPlugins'})
+
+    containerDeps = set()
+    libraryDeps = set()
+    projectDeps = set()
+
+    for dep in p.all_deps([], True):
+        if dep == p:
+            continue
+        if dep.isLibrary():
+            if hasattr(dep, 'eclipse.container'):
+                container = getattr(dep, 'eclipse.container')
+                containerDeps.add(container)
+                libraryDeps -= set(dep.all_deps([], True))
+            else:
+                libraryDeps.add(dep)
+        elif dep.isProject():
+            projectDeps.add(dep)
+
+    for dep in containerDeps:
+        out.element('classpathentry', {'exported' : 'true', 'kind' : 'con', 'path' : dep})
+
+    for dep in libraryDeps:
+        path = dep.path
+        dep.get_path(resolve=True)
+
+        # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+        # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+        # safest to simply use absolute paths.
+        path = _make_absolute(path, p.suite.dir)
+
+        attributes = {'exported' : 'true', 'kind' : 'lib', 'path' : path}
+
+        sourcePath = dep.get_source_path(resolve=True)
+        if sourcePath is not None:
+            attributes['sourcepath'] = sourcePath
+        out.element('classpathentry', attributes)
+        if libFiles:
+            libFiles.append(path)
+
+    for dep in projectDeps:
+        out.element('classpathentry', {'combineaccessrules' : 'false', 'exported' : 'true', 'kind' : 'src', 'path' : '/' + dep.name})
+
+    out.element('classpathentry', {'kind' : 'output', 'path' : getattr(p, 'eclipse.output', 'bin')})
+    out.close('classpath')
+    classpathFile = join(p.dir, '.classpath')
+    update_file(classpathFile, out.xml(indent='\t', newl='\n'))
+    if files:
+        files.append(classpathFile)
+
+    csConfig = join(project(p.checkstyleProj).dir, '.checkstyle_checks.xml')
+    if exists(csConfig):
+        out = XMLDoc()
+
+        dotCheckstyle = join(p.dir, ".checkstyle")
+        checkstyleConfigPath = '/' + p.checkstyleProj + '/.checkstyle_checks.xml'
+        out.open('fileset-config', {'file-format-version' : '1.2.0', 'simple-config' : 'true'})
+        out.open('local-check-config', {'name' : 'Checks', 'location' : checkstyleConfigPath, 'type' : 'project', 'description' : ''})
+        out.element('additional-data', {'name' : 'protect-config-file', 'value' : 'false'})
+        out.close('local-check-config')
+        out.open('fileset', {'name' : 'all', 'enabled' : 'true', 'check-config-name' : 'Checks', 'local' : 'true'})
+        out.element('file-match-pattern', {'match-pattern' : '.', 'include-pattern' : 'true'})
+        out.close('fileset')
+        out.open('filter', {'name' : 'all', 'enabled' : 'true', 'check-config-name' : 'Checks', 'local' : 'true'})
+        out.element('filter-data', {'value' : 'java'})
+        out.close('filter')
+
+        exclude = join(p.dir, '.checkstyle.exclude')
+        if exists(exclude):
+            out.open('filter', {'name' : 'FilesFromPackage', 'enabled' : 'true'})
+            with open(exclude) as f:
+                for line in f:
+                    if not line.startswith('#'):
+                        line = line.strip()
+                        exclDir = join(p.dir, line)
+                        assert isdir(exclDir), 'excluded source directory listed in ' + exclude + ' does not exist or is not a directory: ' + exclDir
+                    out.element('filter-data', {'value' : line})
+            out.close('filter')
+
+        out.close('fileset-config')
+        update_file(dotCheckstyle, out.xml(indent='  ', newl='\n'))
+        if files:
+            files.append(dotCheckstyle)
+    else:
+        # clean up existing .checkstyle file
+        dotCheckstyle = join(p.dir, ".checkstyle")
+        if exists(dotCheckstyle):
+            os.unlink(dotCheckstyle)
+
+    out = XMLDoc()
+    out.open('projectDescription')
+    out.element('name', data=p.name)
+    out.element('comment', data='')
+    out.element('projects', data='')
+    out.open('buildSpec')
+    out.open('buildCommand')
+    out.element('name', data='org.eclipse.jdt.core.javabuilder')
+    out.element('arguments', data='')
+    out.close('buildCommand')
+    if exists(csConfig):
+        out.open('buildCommand')
+        out.element('name', data='net.sf.eclipsecs.core.CheckstyleBuilder')
+        out.element('arguments', data='')
+        out.close('buildCommand')
+    if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
+        for buildCommand in ['org.eclipse.pde.ManifestBuilder', 'org.eclipse.pde.SchemaBuilder']:
+            out.open('buildCommand')
+            out.element('name', data=buildCommand)
+            out.element('arguments', data='')
+            out.close('buildCommand')
+
+    # The path should always be p.name/dir. independent of where the workspace actually is.
+    # So we use the parent folder of the project, whatever that is, to generate such a relative path.
+    logicalWorkspaceRoot = os.path.dirname(p.dir)
+    binFolder = os.path.relpath(p.output_dir(), logicalWorkspaceRoot)
+
+    if _isAnnotationProcessorDependency(p):
+        refreshFile = os.path.relpath(join(p.dir, p.name + '.jar'), logicalWorkspaceRoot)
+        _genEclipseBuilder(out, p, 'Jar', 'archive ' + p.name, refresh=True, refreshFile=refreshFile, relevantResources=[binFolder], async=True, xmlIndent='', xmlStandalone='no')
+
+    out.close('buildSpec')
+    out.open('natures')
+    out.element('nature', data='org.eclipse.jdt.core.javanature')
+    if exists(csConfig):
+        out.element('nature', data='net.sf.eclipsecs.core.CheckstyleNature')
+    if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
+        out.element('nature', data='org.eclipse.pde.PluginNature')
+    out.close('natures')
+    out.close('projectDescription')
+    projectFile = join(p.dir, '.project')
+    update_file(projectFile, out.xml(indent='\t', newl='\n'))
+    if files:
+        files.append(projectFile)
+
+    settingsDir = join(p.dir, ".settings")
+    if not exists(settingsDir):
+        os.mkdir(settingsDir)
+
+    # collect the defaults from mxtool
+    defaultEclipseSettingsDir = join(dirname(__file__), 'eclipse-settings')
+    esdict = {}
+    if exists(defaultEclipseSettingsDir):
+        for name in os.listdir(defaultEclipseSettingsDir):
+            if isfile(join(defaultEclipseSettingsDir, name)):
+                esdict[name] = os.path.abspath(join(defaultEclipseSettingsDir, name))
+
+    # check for suite overrides
+    eclipseSettingsDir = join(p.suite.mxDir, 'eclipse-settings')
+    if exists(eclipseSettingsDir):
+        for name in os.listdir(eclipseSettingsDir):
+            if isfile(join(eclipseSettingsDir, name)):
+                esdict[name] = os.path.abspath(join(eclipseSettingsDir, name))
+
+    # check for project overrides
+    projectSettingsDir = join(p.dir, 'eclipse-settings')
+    if exists(projectSettingsDir):
+        for name in os.listdir(projectSettingsDir):
+            if isfile(join(projectSettingsDir, name)):
+                esdict[name] = os.path.abspath(join(projectSettingsDir, name))
+
+    # copy a possibly modified file to the project's .settings directory
+    for name, path in esdict.iteritems():
+        # ignore this file altogether if this project has no annotation processors
+        if name == "org.eclipse.jdt.apt.core.prefs" and not len(p.annotation_processors()) > 0:
+            continue
+
+        with open(path) as f:
+            content = f.read()
+        content = content.replace('${javaCompliance}', str(p.javaCompliance))
+        if len(p.annotation_processors()) > 0:
+            content = content.replace('org.eclipse.jdt.core.compiler.processAnnotations=disabled', 'org.eclipse.jdt.core.compiler.processAnnotations=enabled')
+        update_file(join(settingsDir, name), content)
+        if files:
+            files.append(join(settingsDir, name))
+
+    if len(p.annotation_processors()) > 0:
+        out = XMLDoc()
+        out.open('factorypath')
+        out.element('factorypathentry', {'kind' : 'PLUGIN', 'id' : 'org.eclipse.jst.ws.annotations.core', 'enabled' : 'true', 'runInBatchMode' : 'false'})
+        for ap in p.annotation_processors():
+            for dep in dependency(ap).all_deps([], True):
+                if dep.isLibrary():
+                    # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
+                    # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
+                    # safest to simply use absolute paths.
+                    path = _make_absolute(dep.get_path(resolve=True), p.suite.dir)
+                    out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
+                    if files:
+                        files.append(path)
+                elif dep.isProject():
+                    out.element('factorypathentry', {'kind' : 'WKSPJAR', 'id' : '/' + dep.name + '/' + dep.name + '.jar', 'enabled' : 'true', 'runInBatchMode' : 'false'})
+        out.close('factorypath')
+        update_file(join(p.dir, '.factorypath'), out.xml(indent='\t', newl='\n'))
+        if files:
+            files.append(join(p.dir, '.factorypath'))
+
 def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     configZip = TimeStampFile(join(suite.mxDir, 'eclipse-config.zip'))
     configLibsZip = join(suite.mxDir, 'eclipse-config-libs.zip')
@@ -3156,234 +3476,17 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         logv('[Eclipse configurations are up to date - skipping]')
         return
 
+
+
     files = []
     libFiles = []
     if buildProcessorJars:
         files += _processorjars_suite(suite)
 
-    projToDist = dict()
-    for dist in _dists.values():
-        distDeps = dist.sorted_deps()
-        for p in distDeps:
-            projToDist[p.name] = (dist, [dep.name for dep in distDeps])
-
     for p in suite.projects:
         if p.native:
             continue
-
-        assert java(p.javaCompliance)
-
-        if not exists(p.dir):
-            os.makedirs(p.dir)
-
-        out = XMLDoc()
-        out.open('classpath')
-
-        for src in p.srcDirs:
-            srcDir = join(p.dir, src)
-            if not exists(srcDir):
-                os.mkdir(srcDir)
-            out.element('classpathentry', {'kind' : 'src', 'path' : src})
-
-        if len(p.annotation_processors()) > 0:
-            genDir = p.source_gen_dir()
-            if not exists(genDir):
-                os.mkdir(genDir)
-            out.element('classpathentry', {'kind' : 'src', 'path' : 'src_gen'})
-            files.append(genDir)
-
-        # Every Java program depends on a JRE
-        out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-' + str(p.javaCompliance)})
-
-        if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
-            out.element('classpathentry', {'kind' : 'con', 'path' : 'org.eclipse.pde.core.requiredPlugins'})
-
-        containerDeps = set()
-        libraryDeps = set()
-        projectDeps = set()
-
-        for dep in p.all_deps([], True):
-            if dep == p:
-                continue
-            if dep.isLibrary():
-                if hasattr(dep, 'eclipse.container'):
-                    container = getattr(dep, 'eclipse.container')
-                    containerDeps.add(container)
-                    libraryDeps -= set(dep.all_deps([], True))
-                else:
-                    libraryDeps.add(dep)
-            elif dep.isProject():
-                projectDeps.add(dep)
-
-        for dep in containerDeps:
-            out.element('classpathentry', {'exported' : 'true', 'kind' : 'con', 'path' : dep})
-
-        for dep in libraryDeps:
-            path = dep.path
-            dep.get_path(resolve=True)
-
-            # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-            # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-            # safest to simply use absolute paths.
-            path = _make_absolute(path, p.suite.dir)
-
-            attributes = {'exported' : 'true', 'kind' : 'lib', 'path' : path}
-
-            sourcePath = dep.get_source_path(resolve=True)
-            if sourcePath is not None:
-                attributes['sourcepath'] = sourcePath
-            out.element('classpathentry', attributes)
-            libFiles.append(path)
-
-        for dep in projectDeps:
-            out.element('classpathentry', {'combineaccessrules' : 'false', 'exported' : 'true', 'kind' : 'src', 'path' : '/' + dep.name})
-
-        out.element('classpathentry', {'kind' : 'output', 'path' : getattr(p, 'eclipse.output', 'bin')})
-        out.close('classpath')
-        classpathFile = join(p.dir, '.classpath')
-        update_file(classpathFile, out.xml(indent='\t', newl='\n'))
-        files.append(classpathFile)
-
-        csConfig = join(project(p.checkstyleProj).dir, '.checkstyle_checks.xml')
-        if exists(csConfig):
-            out = XMLDoc()
-
-            dotCheckstyle = join(p.dir, ".checkstyle")
-            checkstyleConfigPath = '/' + p.checkstyleProj + '/.checkstyle_checks.xml'
-            out.open('fileset-config', {'file-format-version' : '1.2.0', 'simple-config' : 'true'})
-            out.open('local-check-config', {'name' : 'Checks', 'location' : checkstyleConfigPath, 'type' : 'project', 'description' : ''})
-            out.element('additional-data', {'name' : 'protect-config-file', 'value' : 'false'})
-            out.close('local-check-config')
-            out.open('fileset', {'name' : 'all', 'enabled' : 'true', 'check-config-name' : 'Checks', 'local' : 'true'})
-            out.element('file-match-pattern', {'match-pattern' : '.', 'include-pattern' : 'true'})
-            out.close('fileset')
-            out.open('filter', {'name' : 'all', 'enabled' : 'true', 'check-config-name' : 'Checks', 'local' : 'true'})
-            out.element('filter-data', {'value' : 'java'})
-            out.close('filter')
-
-            exclude = join(p.dir, '.checkstyle.exclude')
-            if exists(exclude):
-                out.open('filter', {'name' : 'FilesFromPackage', 'enabled' : 'true'})
-                with open(exclude) as f:
-                    for line in f:
-                        if not line.startswith('#'):
-                            line = line.strip()
-                            exclDir = join(p.dir, line)
-                            assert isdir(exclDir), 'excluded source directory listed in ' + exclude + ' does not exist or is not a directory: ' + exclDir
-                        out.element('filter-data', {'value' : line})
-                out.close('filter')
-
-            out.close('fileset-config')
-            update_file(dotCheckstyle, out.xml(indent='  ', newl='\n'))
-            files.append(dotCheckstyle)
-        else:
-            # clean up existing .checkstyle file
-            dotCheckstyle = join(p.dir, ".checkstyle")
-            if exists(dotCheckstyle):
-                os.unlink(dotCheckstyle)
-
-        out = XMLDoc()
-        out.open('projectDescription')
-        out.element('name', data=p.name)
-        out.element('comment', data='')
-        out.element('projects', data='')
-        out.open('buildSpec')
-        out.open('buildCommand')
-        out.element('name', data='org.eclipse.jdt.core.javabuilder')
-        out.element('arguments', data='')
-        out.close('buildCommand')
-        if exists(csConfig):
-            out.open('buildCommand')
-            out.element('name', data='net.sf.eclipsecs.core.CheckstyleBuilder')
-            out.element('arguments', data='')
-            out.close('buildCommand')
-        if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
-            for buildCommand in ['org.eclipse.pde.ManifestBuilder', 'org.eclipse.pde.SchemaBuilder']:
-                out.open('buildCommand')
-                out.element('name', data=buildCommand)
-                out.element('arguments', data='')
-                out.close('buildCommand')
-
-        # The path should always be p.name/dir. independent of where the workspace actually is.
-        # So we use the parent folder of the project, whatever that is, to generate such a relative path.
-        logicalWorkspaceRoot = os.path.dirname(p.dir)
-        binFolder = os.path.relpath(p.output_dir(), logicalWorkspaceRoot)
-
-        if _isAnnotationProcessorDependency(p):
-            refreshFile = os.path.relpath(join(p.dir, p.name + '.jar'), logicalWorkspaceRoot)
-            _genEclipseBuilder(out, p, 'Jar', 'archive ' + p.name, refresh=True, refreshFile=refreshFile, relevantResources=[binFolder], async=True, xmlIndent='', xmlStandalone='no')
-
-        out.close('buildSpec')
-        out.open('natures')
-        out.element('nature', data='org.eclipse.jdt.core.javanature')
-        if exists(csConfig):
-            out.element('nature', data='net.sf.eclipsecs.core.CheckstyleNature')
-        if exists(join(p.dir, 'plugin.xml')):  # eclipse plugin project
-            out.element('nature', data='org.eclipse.pde.PluginNature')
-        out.close('natures')
-        out.close('projectDescription')
-        projectFile = join(p.dir, '.project')
-        update_file(projectFile, out.xml(indent='\t', newl='\n'))
-        files.append(projectFile)
-
-        settingsDir = join(p.dir, ".settings")
-        if not exists(settingsDir):
-            os.mkdir(settingsDir)
-
-        # collect the defaults from mxtool
-        defaultEclipseSettingsDir = join(dirname(__file__), 'eclipse-settings')
-        esdict = {}
-        if exists(defaultEclipseSettingsDir):
-            for name in os.listdir(defaultEclipseSettingsDir):
-                if isfile(join(defaultEclipseSettingsDir, name)):
-                    esdict[name] = os.path.abspath(join(defaultEclipseSettingsDir, name))
-
-        # check for suite overrides
-        eclipseSettingsDir = join(p.suite.mxDir, 'eclipse-settings')
-        if exists(eclipseSettingsDir):
-            for name in os.listdir(eclipseSettingsDir):
-                if isfile(join(eclipseSettingsDir, name)):
-                    esdict[name] = os.path.abspath(join(eclipseSettingsDir, name))
-
-        # check for project overrides
-        projectSettingsDir = join(p.dir, 'eclipse-settings')
-        if exists(projectSettingsDir):
-            for name in os.listdir(projectSettingsDir):
-                if isfile(join(projectSettingsDir, name)):
-                    esdict[name] = os.path.abspath(join(projectSettingsDir, name))
-
-        # copy a possibly modified file to the project's .settings directory
-        for name, path in esdict.iteritems():
-            # ignore this file altogether if this project has no annotation processors
-            if name == "org.eclipse.jdt.apt.core.prefs" and not len(p.annotation_processors()) > 0:
-                continue
-
-            with open(path) as f:
-                content = f.read()
-            content = content.replace('${javaCompliance}', str(p.javaCompliance))
-            if len(p.annotation_processors()) > 0:
-                content = content.replace('org.eclipse.jdt.core.compiler.processAnnotations=disabled', 'org.eclipse.jdt.core.compiler.processAnnotations=enabled')
-            update_file(join(settingsDir, name), content)
-            files.append(join(settingsDir, name))
-
-        if len(p.annotation_processors()) > 0:
-            out = XMLDoc()
-            out.open('factorypath')
-            out.element('factorypathentry', {'kind' : 'PLUGIN', 'id' : 'org.eclipse.jst.ws.annotations.core', 'enabled' : 'true', 'runInBatchMode' : 'false'})
-            for ap in p.annotation_processors():
-                for dep in dependency(ap).all_deps([], True):
-                    if dep.isLibrary():
-                        # Relative paths for "lib" class path entries have various semantics depending on the Eclipse
-                        # version being used (e.g. see https://bugs.eclipse.org/bugs/show_bug.cgi?id=274737) so it's
-                        # safest to simply use absolute paths.
-                        path = _make_absolute(dep.get_path(resolve=True), p.suite.dir)
-                        out.element('factorypathentry', {'kind' : 'EXTJAR', 'id' : path, 'enabled' : 'true', 'runInBatchMode' : 'false'})
-                        files.append(path)
-                    elif dep.isProject():
-                        out.element('factorypathentry', {'kind' : 'WKSPJAR', 'id' : '/' + dep.name + '/' + dep.name + '.jar', 'enabled' : 'true', 'runInBatchMode' : 'false'})
-            out.close('factorypath')
-            update_file(join(p.dir, '.factorypath'), out.xml(indent='\t', newl='\n'))
-            files.append(join(p.dir, '.factorypath'))
+        _eclipseinit_project(p)
 
     _, launchFile = make_eclipse_attach(suite, 'localhost', '8000', deps=sorted_deps(projectNames=None, includeLibs=True))
     files.append(launchFile)
@@ -3392,16 +3495,16 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
     _zip_files(libFiles, suite.dir, configLibsZip)
 
     # Create an Eclipse project for each distribution that will create/update the archive
-    # for the distribution whenever any project of the distribution is updated.
+    # for the distribution whenever any (transitively) dependent project of the
+    # distribution is updated.
     for dist in suite.dists:
-        name = dist.name
         if hasattr(dist, 'subDir'):
             projectDir = join(suite.dir, dist.subDir, dist.name + '.dist')
         else:
             projectDir = join(suite.dir, dist.name + '.dist')
         if not exists(projectDir):
             os.makedirs(projectDir)
-        distProjects = [d for d in dist.sorted_deps() if d.isProject()]
+        distProjects = [d for d in dist.sorted_deps(transitive=True) if d.isProject()]
         relevantResources = []
         for p in distProjects:
             for srcDir in p.source_dirs():
@@ -3414,6 +3517,8 @@ def _eclipseinit_suite(args, suite, buildProcessorJars=True, refreshOnly=False):
         out.open('projects')
         for p in distProjects:
             out.element('project', data=p.name)
+        for d in dist.distDependencies:
+            out.element('project', data=d)
         out.close('projects')
         out.open('buildSpec')
         dist.dir = projectDir
@@ -3827,8 +3932,8 @@ jar.compress=false
 # Space-separated list of extra javac options
 javac.compilerargs=
 javac.deprecation=false
-javac.source=1.7
-javac.target=1.7
+javac.source=""" + str(p.javaCompliance) + """
+javac.target=""" + str(p.javaCompliance) + """
 javac.test.classpath=\\
     ${javac.classpath}:\\
     ${build.classes.dir}

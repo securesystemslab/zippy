@@ -58,7 +58,16 @@ public class SPARCHotSpotRegisterConfig implements RegisterConfig {
         ArrayList<Register> list = new ArrayList<>();
         for (Register reg : getAllocatableRegisters()) {
             if (architecture.canStoreValue(reg.getRegisterCategory(), kind)) {
-                list.add(reg);
+                // Special treatment for double precision
+                // TODO: This is wasteful it uses only half of the registers as float.
+                if (kind == Kind.Double || kind == Kind.Float) {
+                    // Only even register numbers are valid double precision regs
+                    if (reg.number % 2 == 0) {
+                        list.add(reg);
+                    }
+                } else {
+                    list.add(reg);
+                }
             }
         }
 
@@ -102,7 +111,11 @@ public class SPARCHotSpotRegisterConfig implements RegisterConfig {
             // @formatter:off
             registers = new Register[]{
                         // TODO this is not complete
-                        o0, o1, o2, o3, o4, o5, /*o6,*/ o7,
+                        // o7 cannot be used as register because it is always overwritten on call
+                        // and the current register handler would ignore this fact if the called
+                        // method still does not modify registers, in fact o7 is modified by the Call instruction
+                        // There would be some extra handlin necessary to be able to handle the o7 properly for local usage
+                        o0, o1, o2, o3, o4, o5, /*o6, o7,*/
                         l0, l1, l2, l3, l4, l5, l6, l7,
                         i0, i1, i2, i3, i4, i5, /*i6,*/ /*i7,*/
                         f0, f1, f2, f3, f4, f5, f6, f7
@@ -112,7 +125,7 @@ public class SPARCHotSpotRegisterConfig implements RegisterConfig {
             // @formatter:off
             registers = new Register[]{
                         // TODO this is not complete
-                        o0, o1, o2, o3, o4, o5, /*o6,*/ o7,
+                        o0, o1, o2, o3, o4, o5, /*o6, o7,*/
                         l0, l1, l2, l3, l4, l5, l6, l7,
                         i0, i1, i2, i3, i4, i5, /*i6,*/ /*i7,*/
                         f0, f1, f2, f3, f4, f5, f6, f7
@@ -201,8 +214,18 @@ public class SPARCHotSpotRegisterConfig implements RegisterConfig {
                         locations[i] = register.asValue(target.getLIRKind(kind));
                     }
                     break;
-                case Float:
                 case Double:
+                    if (!stackOnly && currentFloating < fpuParameterRegisters.length) {
+                        if (currentFloating % 2 != 0) {
+                            // Make register number even to be a double reg
+                            currentFloating++;
+                        }
+                        Register register = fpuParameterRegisters[currentFloating];
+                        currentFloating += 2; // Only every second is a double register
+                        locations[i] = register.asValue(target.getLIRKind(kind));
+                    }
+                    break;
+                case Float:
                     if (!stackOnly && currentFloating < fpuParameterRegisters.length) {
                         Register register = fpuParameterRegisters[currentFloating++];
                         locations[i] = register.asValue(target.getLIRKind(kind));
@@ -213,8 +236,14 @@ public class SPARCHotSpotRegisterConfig implements RegisterConfig {
             }
 
             if (locations[i] == null) {
+                // Stack slot is always aligned to its size in bytes but minimum wordsize
+                int typeSize = SPARC.spillSlotSize(target, kind);
+                int modulus = currentStackOffset % typeSize;
+                if (modulus != 0) {
+                    currentStackOffset += typeSize - modulus;
+                }
                 locations[i] = StackSlot.get(target.getLIRKind(kind.getStackKind()), currentStackOffset, !type.out);
-                currentStackOffset += Math.max(target.getSizeInBytes(kind), target.wordSize);
+                currentStackOffset += typeSize;
             }
         }
 

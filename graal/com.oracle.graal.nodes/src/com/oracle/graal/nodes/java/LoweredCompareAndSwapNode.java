@@ -37,7 +37,7 @@ public class LoweredCompareAndSwapNode extends FixedAccessNode implements StateS
 
     @Input private ValueNode expectedValue;
     @Input private ValueNode newValue;
-    @Input(InputType.State) private FrameState stateAfter;
+    @OptionalInput(InputType.State) private FrameState stateAfter;
 
     public FrameState stateAfter() {
         return stateAfter;
@@ -83,13 +83,5 @@ public class LoweredCompareAndSwapNode extends FixedAccessNode implements StateS
         Value address = location().generateAddress(gen, gen.getLIRGeneratorTool(), gen.operand(object()));
         Value result = gen.getLIRGeneratorTool().emitCompareAndSwap(address, gen.operand(getExpectedValue()), gen.operand(getNewValue()), Constant.INT_1, Constant.INT_0);
         gen.setResult(this, result);
-    }
-
-    public MemoryCheckpoint asMemoryCheckpoint() {
-        return this;
-    }
-
-    public MemoryPhiNode asMemoryPhi() {
-        return null;
     }
 }

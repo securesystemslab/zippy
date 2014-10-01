@@ -74,6 +74,7 @@ class Deoptimization : AllStatic {
     Reason_loop_limit_check,      // compiler generated loop limits check failed
 #ifdef GRAAL
     Reason_aliasing,              // optimistic assumption about aliasing failed
+    Reason_transfer_to_interpreter, // explicit transferToInterpreter()
 #endif
     Reason_LIMIT,
 

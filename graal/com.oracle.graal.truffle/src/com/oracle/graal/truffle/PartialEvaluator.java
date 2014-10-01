@@ -39,8 +39,8 @@ import com.oracle.graal.graph.Node;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.loop.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.CallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.nodes.virtual.*;
@@ -122,20 +122,7 @@ public class PartialEvaluator {
             new VerifyFrameDoesNotEscapePhase().apply(graph, false);
 
             if (TraceTruffleCompilationHistogram.getValue() && constantReceivers != null) {
-                DebugHistogram histogram = Debug.createHistogram("Expanded Truffle Nodes");
-                for (Constant c : constantReceivers) {
-                    String javaName = MetaUtil.toJavaName(providers.getMetaAccess().lookupJavaType(c), false);
-
-                    // The DSL uses nested classes with redundant names - only show the inner class
-                    int index = javaName.indexOf('$');
-                    if (index != -1) {
-                        javaName = javaName.substring(index + 1);
-                    }
-
-                    histogram.add(javaName);
-
-                }
-                new DebugHistogramAsciiPrinter(TTY.out().out()).print(histogram);
+                createHistogram();
             }
 
             canonicalizer.apply(graph, baseContext);
@@ -151,7 +138,11 @@ public class PartialEvaluator {
             }
 
             // EA frame and clean up.
-            new PartialEscapePhase(true, canonicalizer).apply(graph, tierContext);
+            try (Scope pe = Debug.scope("TrufflePartialEscape", graph)) {
+                new PartialEscapePhase(true, canonicalizer).apply(graph, tierContext);
+            } catch (Throwable t) {
+                Debug.handle(t);
+            }
             new VerifyNoIntrinsicsLeftPhase().apply(graph, false);
             for (MaterializeFrameNode materializeNode : graph.getNodes(MaterializeFrameNode.class).snapshot()) {
                 materializeNode.replaceAtUsages(materializeNode.getFrame());
@@ -174,6 +165,23 @@ public class PartialEvaluator {
         }
 
         return graph;
+    }
+
+    private void createHistogram() {
+        DebugHistogram histogram = Debug.createHistogram("Expanded Truffle Nodes");
+        for (Constant c : constantReceivers) {
+            String javaName = providers.getMetaAccess().lookupJavaType(c).toJavaName(false);
+
+            // The DSL uses nested classes with redundant names - only show the inner class
+            int index = javaName.indexOf('$');
+            if (index != -1) {
+                javaName = javaName.substring(index + 1);
+            }
+
+            histogram.add(javaName);
+
+        }
+        new DebugHistogramAsciiPrinter(TTY.out().out()).print(histogram);
     }
 
     private void expandTree(StructuredGraph graph, Assumptions assumptions) {
@@ -207,26 +215,7 @@ public class PartialEvaluator {
                         }
 
                         if (inlineGraph != null) {
-                            try (Indent indent = Debug.logAndIndent("inline graph %s", methodCallTargetNode.targetMethod())) {
-
-                                int nodeCountBefore = graph.getNodeCount();
-                                if (TraceTruffleExpansion.getValue()) {
-                                    expansionLogger.preExpand(methodCallTargetNode, inlineGraph);
-                                }
-                                List<Node> canonicalizedNodes = methodCallTargetNode.invoke().asNode().usages().snapshot();
-                                Map<Node, Node> inlined = InliningUtil.inline(methodCallTargetNode.invoke(), inlineGraph, false, canonicalizedNodes);
-                                if (TraceTruffleExpansion.getValue()) {
-                                    expansionLogger.postExpand(inlined);
-                                }
-                                if (Debug.isDumpEnabled()) {
-                                    int nodeCountAfter = graph.getNodeCount();
-                                    Debug.dump(graph, "After inlining %s %+d (%d)", methodCallTargetNode.targetMethod().toString(), nodeCountAfter - nodeCountBefore, nodeCountAfter);
-                                }
-                                AbstractInlineInfo.getInlinedParameterUsages(canonicalizedNodes, inlineGraph, inlined);
-                                canonicalizer.applyIncremental(graph, phaseContext, canonicalizedNodes);
-
-                                changed = true;
-                            }
+                            changed = expandTreeInline(graph, phaseContext, expansionLogger, methodCallTargetNode, inlineGraph);
                         }
                     }
                 }
@@ -239,6 +228,28 @@ public class PartialEvaluator {
 
         if (TraceTruffleExpansion.getValue()) {
             expansionLogger.print();
+        }
+    }
+
+    private boolean expandTreeInline(StructuredGraph graph, PhaseContext phaseContext, TruffleExpansionLogger expansionLogger, MethodCallTargetNode methodCallTargetNode, StructuredGraph inlineGraph) {
+        try (Indent indent = Debug.logAndIndent("inline graph %s", methodCallTargetNode.targetMethod())) {
+            int nodeCountBefore = graph.getNodeCount();
+            if (TraceTruffleExpansion.getValue()) {
+                expansionLogger.preExpand(methodCallTargetNode, inlineGraph);
+            }
+            List<Node> canonicalizedNodes = methodCallTargetNode.invoke().asNode().usages().snapshot();
+            Map<Node, Node> inlined = InliningUtil.inline(methodCallTargetNode.invoke(), inlineGraph, false, canonicalizedNodes);
+            if (TraceTruffleExpansion.getValue()) {
+                expansionLogger.postExpand(inlined);
+            }
+            if (Debug.isDumpEnabled()) {
+                int nodeCountAfter = graph.getNodeCount();
+                Debug.dump(graph, "After inlining %s %+d (%d)", methodCallTargetNode.targetMethod().toString(), nodeCountAfter - nodeCountBefore, nodeCountAfter);
+            }
+            AbstractInlineInfo.getInlinedParameterUsages(canonicalizedNodes, inlineGraph, inlined);
+            canonicalizer.applyIncremental(graph, phaseContext, canonicalizedNodes);
+
+            return true;
         }
     }
 

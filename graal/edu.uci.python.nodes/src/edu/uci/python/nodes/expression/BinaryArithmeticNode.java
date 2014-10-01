@@ -32,8 +32,7 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
-import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.dsl.Generic;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -45,7 +44,7 @@ import edu.uci.python.runtime.sequence.storage.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
-    @NodeInfo(shortName = "+")
+    @NodeInfo(shortName = "__add__")
     public abstract static class AddNode extends BinaryArithmeticNode {
 
         @Specialization(order = 0)
@@ -55,13 +54,13 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return leftInt + rightInt;
         }
 
-        @Specialization(rewriteOn = ArithmeticException.class, order = 1)
+        @Specialization(order = 1)
         int doBoolean(int left, boolean right) {
             final int rightInt = right ? 1 : 0;
             return ExactMath.addExact(left, rightInt);
         }
 
-        @Specialization(rewriteOn = ArithmeticException.class, order = 2)
+        @Specialization(order = 2)
         int doBoolean(boolean left, int right) {
             final int leftInt = left ? 1 : 0;
             return ExactMath.addExact(leftInt, right);
@@ -197,7 +196,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         // TODO: type info for operands in type error message.
-        @Generic
+        @Fallback
         Object doGeneric(Object left, Object right) {
             throw Py.TypeError("unsupported operand type(s) for +: " + left + " " + right);
         }
@@ -363,7 +362,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         // TODO: better type error message.
-        @Generic
+        @Fallback
         Object doGeneric(Object left, Object right) {
             throw Py.TypeError("can't multiply " + left + left.getClass() + " by " + right);
         }
@@ -433,7 +432,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return doSpecialMethodCall(frame, "__truediv__", left, right);
         }
 
-        @Generic
+        @Fallback
         Object doGeneric(Object left, Object right) {
             throw Py.TypeError("Unsupported operand type for /: " + left + " and " + right);
         }
@@ -462,7 +461,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return doSpecialMethodCall(frame, "__floordiv__", left, right);
         }
 
-        @Generic
+        @Fallback
         Object doGeneric(Object left, Object right) {
             throw Py.TypeError("Unsupported operand type for //: " + left + " and " + right);
         }
@@ -517,7 +516,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return doSpecialMethodCall(frame, "__mod__", left, right);
         }
 
-        @Generic
+        @Fallback
         Object doGeneric(Object left, Object right) {
             throw Py.TypeError("Unsupported operand type for %: " + left + " and " + right);
         }

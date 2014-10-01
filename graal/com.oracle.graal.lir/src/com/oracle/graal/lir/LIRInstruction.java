@@ -42,6 +42,22 @@ public abstract class LIRInstruction {
     public static final Value[] NO_OPERANDS = {};
 
     /**
+     * Iterator for iterating over a list of {@linkplain ValuePosition value positions}.
+     */
+    public abstract static class ValuePositionProcedure {
+
+        /**
+         * Iterator method to be overwritten. This version of the iterator does not take additional
+         * parameters to keep the signature short.
+         *
+         * @param instruction The current instruction.
+         * @param position The position of the value that is iterated.
+         */
+
+        public abstract void doValue(LIRInstruction instruction, ValuePosition position);
+    }
+
+    /**
      * Iterator for iterating over a list of values. Subclasses must overwrite one of the doValue
      * methods. Clients of the class must only call the doValue method that takes additional
      * parameters.
@@ -105,19 +121,29 @@ public abstract class LIRInstruction {
         }
 
         @Override
-        final protected Value doValue(LIRInstruction instruction, Value value) {
+        protected final Value doValue(LIRInstruction instruction, Value value) {
             throw GraalInternalError.shouldNotReachHere("This doValue() methods should never be called");
         }
 
         @Override
-        final public Value doValue(LIRInstruction instruction, Value value, OperandMode mode, EnumSet<OperandFlag> flags) {
+        public final Value doValue(LIRInstruction instruction, Value value, OperandMode mode, EnumSet<OperandFlag> flags) {
             return doValue(value, mode, flags);
         }
     }
 
-    public abstract static class StateProcedure {
+    public abstract static class InstructionStateProcedure {
+
+        protected abstract void doState(LIRInstruction instruction, LIRFrameState state);
+    }
+
+    public abstract static class StateProcedure extends InstructionStateProcedure {
 
         protected abstract void doState(LIRFrameState state);
+
+        @Override
+        protected final void doState(LIRInstruction instruction, LIRFrameState state) {
+            doState(state);
+        }
     }
 
     /**
@@ -297,6 +323,22 @@ public abstract class LIRInstruction {
         return false;
     }
 
+    public final void forEachInput(ValuePositionProcedure proc) {
+        instructionClass.forEachUse(this, proc);
+    }
+
+    public final void forEachAlive(ValuePositionProcedure proc) {
+        instructionClass.forEachAlive(this, proc);
+    }
+
+    public final void forEachTemp(ValuePositionProcedure proc) {
+        instructionClass.forEachTemp(this, proc);
+    }
+
+    public final void forEachOutput(ValuePositionProcedure proc) {
+        instructionClass.forEachDef(this, proc);
+    }
+
     public final void forEachInput(InstructionValueProcedure proc) {
         instructionClass.forEachUse(this, proc);
     }
@@ -317,7 +359,7 @@ public abstract class LIRInstruction {
         instructionClass.forEachState(this, proc);
     }
 
-    public final void forEachState(StateProcedure proc) {
+    public final void forEachState(InstructionStateProcedure proc) {
         instructionClass.forEachState(this, proc);
     }
 
@@ -353,5 +395,9 @@ public abstract class LIRInstruction {
     @Override
     public String toString() {
         return instructionClass.toString(this);
+    }
+
+    public LIRInstructionClass getLIRInstructionClass() {
+        return instructionClass;
     }
 }

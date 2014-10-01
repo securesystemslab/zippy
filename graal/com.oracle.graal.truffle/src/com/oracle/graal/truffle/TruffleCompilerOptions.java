@@ -63,8 +63,22 @@ public class TruffleCompilerOptions {
     public static final OptionValue<Double> TruffleInliningMinFrequency = new OptionValue<>(0.3);
     @Option(help = "Allow inlining of less hot candidates if tree size is small")
     public static final OptionValue<Integer> TruffleInliningTrivialSize = new OptionValue<>(10);
+
     @Option(help = "Enable call target splitting")
-    public static final OptionValue<Boolean> TruffleSplittingEnabled = new OptionValue<>(true);
+    public static final OptionValue<Boolean> TruffleSplitting = new OptionValue<>(true);
+    @Option(help = "Experimental: Enable the new version of truffle splitting.")
+    public static final OptionValue<Boolean> TruffleSplittingNew = new OptionValue<>(false);
+    @Option(help = "Experimental. New splitting only: Whether or not splitting should be based instance comparisons of non TypedObjects")
+    public static final OptionValue<Boolean> TruffleSplittingClassInstanceStamps = new OptionValue<>(false);
+    @Option(help = "Experimental. New splitting only: Whether or not splitting should be based instance comparisons of TypedObjects")
+    public static final OptionValue<Boolean> TruffleSplittingTypeInstanceStamps = new OptionValue<>(true);
+    @Option(help = "Experimental. New splitting only: The number of calls until splitting is performed. ")
+    public static final OptionValue<Integer> TruffleSplittingStartCallCount = new OptionValue<>(3);
+    @Option(help = "Experimental. New splitting only: Split everything aggressively. ")
+    public static final OptionValue<Boolean> TruffleSplittingAggressive = new OptionValue<>(false);
+
+
+
     @Option(help = "Disable call target splitting if tree size exceeds this limit")
     public static final OptionValue<Integer> TruffleSplittingMaxCalleeSize = new OptionValue<>(100);
     @Option(help = "Number of most recently used methods in truffle cache")
@@ -77,6 +91,8 @@ public class TruffleCompilerOptions {
     public static final OptionValue<Boolean> TruffleCompilationDecisionTimePrintFail = new OptionValue<>(false);
     @Option(help = "")
     public static final OptionValue<Boolean> TruffleReturnTypeSpeculation = new OptionValue<>(true);
+    @Option(help = "")
+    public static final OptionValue<Boolean> TruffleArgumentTypeSpeculation = new StableOptionValue<>(true);
 
     // tracing
     @Option(help = "")
@@ -89,6 +105,8 @@ public class TruffleCompilerOptions {
     public static final OptionValue<Boolean> TraceTruffleCompilationPolymorphism = new OptionValue<>(false);
     @Option(help = "Prints out all polymorphic and generic nodes after compilation.")
     public static final OptionValue<Boolean> TraceTruffleCompilationAST = new OptionValue<>(false);
+    @Option(help = "Prints out all calls of a compiled method.")
+    public static final OptionValue<Boolean> TraceTruffleCompilationCallTree = new OptionValue<>(false);
     @Option(help = "")
     public static final OptionValue<Boolean> TraceTruffleExpansion = new OptionValue<>(false);
     @Option(help = "")
@@ -101,6 +119,10 @@ public class TruffleCompilerOptions {
     public static final OptionValue<Boolean> TraceTruffleInlining = new OptionValue<>(false);
     @Option(help = "")
     public static final OptionValue<Boolean> TraceTruffleSplitting = new OptionValue<>(false);
+    @Option(help = "Print stack trace on transfer to interpreter")
+    public static final OptionValue<Boolean> TraceTruffleTransferToInterpreter = new StableOptionValue<>(false);
+    @Option(help = "Print stack trace on assumption invalidation")
+    public static final OptionValue<Boolean> TraceTruffleAssumptions = new StableOptionValue<>(false);
     @Option(help = "")
     public static final OptionValue<Boolean> TruffleCallTargetProfiling = new StableOptionValue<>(false);
     // @formatter:on

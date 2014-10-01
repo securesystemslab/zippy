@@ -24,12 +24,13 @@ package com.oracle.truffle.sl.nodes.controlflow;
 
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.source.*;
 import com.oracle.truffle.api.utilities.*;
 import com.oracle.truffle.sl.nodes.*;
 import com.oracle.truffle.sl.runtime.*;
 
 /**
- * The body of a user-defined SL function. This is the node references by a {@link SLRootNode} for
+ * The body of a user-defined SL function. This is the node referenced by a {@link SLRootNode} for
  * user-defined functions. It handles the return value of a function: the {@link SLReturnNode return
  * statement} throws an {@link SLReturnException exception} with the return value. This node catches
  * the exception. If the method ends without an explicit {@code return}, return the
@@ -49,7 +50,8 @@ public final class SLFunctionBodyNode extends SLExpressionNode {
     private final BranchProfile exceptionTaken = new BranchProfile();
     private final BranchProfile nullTaken = new BranchProfile();
 
-    public SLFunctionBodyNode(SLStatementNode bodyNode) {
+    public SLFunctionBodyNode(SourceSection src, SLStatementNode bodyNode) {
+        super(src);
         this.bodyNode = bodyNode;
     }
 

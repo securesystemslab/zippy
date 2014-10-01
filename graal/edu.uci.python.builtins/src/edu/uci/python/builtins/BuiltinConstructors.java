@@ -31,6 +31,7 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -87,7 +88,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
             return true;
         }
 
-        @Generic
+        @Fallback
         public boolean bool(Object object) {
             return JavaTypeConversions.toBoolean(object);
         }
@@ -191,7 +192,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Generic
+        @Fallback
         public PDict dictionary(Object args) {
             throw new RuntimeException("invalid args for dict()");
         }
@@ -285,7 +286,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         @SuppressWarnings("unused")
         @Specialization(order = 10)
-        public PFrozenSet frozenset(Object arg) {
+        public PFrozenSet frozenset(VirtualFrame frame, Object arg) {
             throw new UnsupportedOperationException();
         }
     }
@@ -325,7 +326,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
             return JavaTypeConversions.stringToInt(arg, 10);
         }
 
-        @Generic
+        @Fallback
         public Object createInt(Object arg, Object keywordArg) {
             if (keywordArg instanceof PNone) {
                 return JavaTypeConversions.toInt(arg);
@@ -409,7 +410,8 @@ public final class BuiltinConstructors extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 3)
+        // FIXME: Disabled for merge
+        // @Specialization(order = 3)
         public Object mapClassIterable(PythonClass clazz, PIterable iterable, PTuple iterators) {
             PIterator iter = iterable.__iter__();
             PList list = new PList();
@@ -542,8 +544,9 @@ public final class BuiltinConstructors extends PythonBuiltins {
             return new PSet();
         }
 
+        @SuppressWarnings("unused")
         @Specialization
-        public PSet set(Object arg) {
+        public PSet set(VirtualFrame frame, Object arg) {
             if (!(arg instanceof Iterable<?>)) {
                 throw Py.TypeError("'" + PythonTypesUtil.getPythonTypeName(arg) + "' object is not iterable");
             } else {

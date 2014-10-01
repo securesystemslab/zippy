@@ -51,6 +51,10 @@
 #endif
 #ifdef GRAAL
 #include "graal/graalCompiler.hpp"
+#ifdef COMPILERGRAAL
+#include "graal/graalRuntime.hpp"
+#include "runtime/vframe.hpp"
+#endif
 #endif
 #ifdef COMPILER2
 #include "opto/c2compiler.hpp"
@@ -805,18 +809,13 @@ void CompileBroker::compilation_init() {
 
 #if defined(COMPILERGRAAL)
   _compilers[1] = graal;
-  if (UseGraalCompilationQueue) {
-    c2_count = 0;
-  } else {
-    if (FLAG_IS_DEFAULT(GraalThreads)) {
-      if (!TieredCompilation && FLAG_IS_DEFAULT(BootstrapGraal) || BootstrapGraal) {
-        // Graal will bootstrap so give it the same number of threads
-        // as we would give the Java based compilation queue.
-        c2_count = os::active_processor_count();
-      }
-    } else {
-      c2_count = GraalThreads;
+  if (FLAG_IS_DEFAULT(GraalThreads)) {
+    if (!TieredCompilation && FLAG_IS_DEFAULT(BootstrapGraal) || BootstrapGraal) {
+      // Graal will bootstrap so give it more threads
+      c2_count = os::active_processor_count();
     }
+  } else {
+    c2_count = GraalThreads;
   }
 #endif // COMPILERGRAAL
 
@@ -1156,26 +1155,6 @@ void CompileBroker::compile_method_base(methodHandle method,
     return;
   }
 
-#ifdef COMPILERGRAAL
-  if (UseGraalCompilationQueue) {
-    // In tiered mode we want to only handle highest tier compiles and
-    // in non-tiered mode the default level should be
-    // CompLevel_full_optimization which equals CompLevel_highest_tier.
-    assert(TieredCompilation || comp_level == CompLevel_full_optimization, "incorrect compile level");
-    assert(CompLevel_full_optimization == CompLevel_highest_tier, "incorrect level definition");
-    if (comp_level == CompLevel_full_optimization) {
-      JavaThread* javaThread = JavaThread::current();
-      if (javaThread->can_schedule_graal_compilation()) {
-        bool blockingCompilation = is_compile_blocking(method, osr_bci);
-        NoGraalCompilationScheduling ngcs(javaThread);
-        GraalCompiler::instance()->compile_method(method, osr_bci, NULL, blockingCompilation);
-      }
-      return;
-    }
-    assert(TieredCompilation, "should only reach here in tiered mode");
-  }
-#endif // COMPILERGRAAL
-
   // Outputs from the following MutexLocker block:
   CompileTask* task     = NULL;
   bool         blocking = false;
@@ -1212,10 +1191,28 @@ void CompileBroker::compile_method_base(methodHandle method,
     blocking = is_compile_blocking(method, osr_bci);
 
 #ifdef COMPILERGRAAL
-    // Don't allow blocking compiles for requests triggered by Graal.
-    if (blocking && thread->is_Compiler_thread()) {
-      blocking = false;
+    if (blocking) {
+      // Don't allow blocking compiles for requests triggered by Graal.
+      if (thread->is_Compiler_thread()) {
+        blocking = false;
+      }
+
+      // Don't allow blocking compiles if inside a class initializer
+      vframeStream vfst((JavaThread*) thread);
+      for (; !vfst.at_end(); vfst.next()) {
+        if (vfst.method()->is_static_initializer()) {
+          blocking = false;
+          break;
+        }
+      }
+
+      // Don't allow blocking compilation requests to Graal
+      // if Graal itself is not yet initialized
+      if (!GraalRuntime::is_HotSpotGraalRuntime_initialized() && compiler(comp_level)->is_graal()) {
+        blocking = false;
+      }
     }
+    // Don't allow blocking compiles
 #endif
 
     // We will enter the compilation in the queue.
@@ -1984,13 +1981,12 @@ void CompileBroker::invoke_compiler_on_method(CompileTask* task) {
 
 #ifdef COMPILERGRAAL
   if (comp != NULL && comp->is_graal()) {
-    assert(!UseGraalCompilationQueue, "should not reach here");
     GraalCompiler* graal = (GraalCompiler*) comp;
 
     TraceTime t1("compilation", &time);
     EventCompilation event;
 
-    graal->compile_method(target_handle, osr_bci, task, false);
+    graal->compile_method(target_handle, osr_bci, task);
 
     post_compile(thread, task, event, task->code() != NULL, NULL);
   } else

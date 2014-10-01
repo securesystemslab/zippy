@@ -58,11 +58,15 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
 
     private final RootNode rootNode;
 
+    private final Map<TruffleStamp, OptimizedCallTarget> splitVersions = new HashMap<>();
+    private TruffleStamp argumentStamp = DefaultTruffleStamp.getInstance();
+
     public final RootNode getRootNode() {
         return rootNode;
     }
 
     public OptimizedCallTarget(RootNode rootNode, GraalTruffleRuntime runtime, int invokeCounter, int compilationThreshold, CompilationPolicy compilationPolicy, SpeculationLog speculationLog) {
+        super(rootNode.toString());
         this.runtime = runtime;
         this.speculationLog = speculationLog;
         this.rootNode = rootNode;
@@ -75,28 +79,50 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
         }
     }
 
+    public final void mergeArgumentStamp(TruffleStamp p) {
+        this.argumentStamp = this.argumentStamp.join(p);
+    }
+
+    public final TruffleStamp getArgumentStamp() {
+        return argumentStamp;
+    }
+
+    private int splitIndex;
+
+    public int getSplitIndex() {
+        return splitIndex;
+    }
+
+    public OptimizedCallTarget split() {
+        if (!getRootNode().isSplittable()) {
+            return null;
+        }
+        OptimizedCallTarget splitTarget = (OptimizedCallTarget) Truffle.getRuntime().createCallTarget(getRootNode().split());
+        splitTarget.splitSource = this;
+        splitTarget.splitIndex = splitIndex++;
+        return splitTarget;
+    }
+
+    public Map<TruffleStamp, OptimizedCallTarget> getSplitVersions() {
+        return splitVersions;
+    }
+
     public SpeculationLog getSpeculationLog() {
         return speculationLog;
     }
 
     @Override
     public Object call(Object... args) {
+        if (profiledArgumentTypesAssumption != null && profiledArgumentTypesAssumption.isValid()) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            profiledArgumentTypesAssumption.invalidate();
+            profiledArgumentTypes = null;
+        }
         return callBoundary(args);
     }
 
     public Object callDirect(Object... args) {
-        if (profiledArgumentTypesAssumption == null) {
-            CompilerDirectives.transferToInterpreter();
-            profiledArgumentTypesAssumption = Truffle.getRuntime().createAssumption("Profiled Argument Types");
-            profiledArgumentTypes = new Class<?>[args.length];
-        } else if (profiledArgumentTypes != null) {
-            if (profiledArgumentTypes.length != args.length) {
-                CompilerDirectives.transferToInterpreter();
-                profiledArgumentTypesAssumption.invalidate();
-                profiledArgumentTypes = null;
-            }
-        }
-
+        profileArguments(args);
         Object result = callBoundary(args);
         Class<?> klass = profiledReturnType;
         if (klass != null && CompilerDirectives.inCompiledCode() && profiledReturnTypeAssumption.isValid()) {
@@ -105,11 +131,70 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
         return result;
     }
 
+    @ExplodeLoop
+    private void profileArguments(Object[] args) {
+        if (profiledArgumentTypesAssumption == null) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            initializeProfiledArgumentTypes(args);
+        } else if (profiledArgumentTypes != null) {
+            if (profiledArgumentTypes.length != args.length) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                profiledArgumentTypesAssumption.invalidate();
+                profiledArgumentTypes = null;
+            } else if (TruffleArgumentTypeSpeculation.getValue() && profiledArgumentTypesAssumption.isValid()) {
+                for (int i = 0; i < profiledArgumentTypes.length; i++) {
+                    if (profiledArgumentTypes[i] != null && !profiledArgumentTypes[i].isInstance(args[i])) {
+                        CompilerDirectives.transferToInterpreterAndInvalidate();
+                        updateProfiledArgumentTypes(args);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private void initializeProfiledArgumentTypes(Object[] args) {
+        CompilerAsserts.neverPartOfCompilation();
+        profiledArgumentTypesAssumption = Truffle.getRuntime().createAssumption("Profiled Argument Types");
+        profiledArgumentTypes = new Class<?>[args.length];
+        if (TruffleArgumentTypeSpeculation.getValue()) {
+            for (int i = 0; i < args.length; i++) {
+                profiledArgumentTypes[i] = classOf(args[i]);
+            }
+        }
+    }
+
+    private void updateProfiledArgumentTypes(Object[] args) {
+        CompilerAsserts.neverPartOfCompilation();
+        profiledArgumentTypesAssumption.invalidate();
+        for (int j = 0; j < profiledArgumentTypes.length; j++) {
+            profiledArgumentTypes[j] = joinTypes(profiledArgumentTypes[j], classOf(args[j]));
+        }
+        profiledArgumentTypesAssumption = Truffle.getRuntime().createAssumption("Profiled Argument Types");
+    }
+
+    private static Class<?> classOf(Object arg) {
+        return arg != null ? arg.getClass() : null;
+    }
+
+    private static Class<?> joinTypes(Class<?> class1, Class<?> class2) {
+        if (class1 == class2) {
+            return class1;
+        } else if (class1 == null || class2 == null) {
+            return null;
+        } else if (class1.isAssignableFrom(class2)) {
+            return class1;
+        } else if (class2.isAssignableFrom(class1)) {
+            return class2;
+        } else {
+            return Object.class;
+        }
+    }
+
     @TruffleCallBoundary
     private Object callBoundary(Object[] args) {
         if (CompilerDirectives.inInterpreter()) {
             // We are called and we are still in Truffle interpreter mode.
-            CompilerDirectives.transferToInterpreter();
             interpreterCall();
         } else {
             // We come here from compiled code (i.e., we have been inlined).
@@ -132,6 +217,7 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
             logOptimizedInvalidated(this, oldNode, newNode, reason);
         }
         cancelInstalledTask(oldNode, newNode, reason);
+        // invalidateInlining();
     }
 
     public void invalidateInlining() {
@@ -235,10 +321,10 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
     public String toString() {
         String superString = rootNode.toString();
         if (isValid()) {
-            superString += " <compiled>";
+            superString += " <opt>";
         }
         if (splitSource != null) {
-            superString += " <split>";
+            superString += " <split-" + splitIndex + "-" + argumentStamp.toStringShort() + ">";
         }
         return superString;
     }
@@ -289,10 +375,12 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
     }
 
     public final Object callRoot(Object[] originalArguments) {
-
         Object[] args = originalArguments;
         if (this.profiledArgumentTypesAssumption != null && CompilerDirectives.inCompiledCode() && profiledArgumentTypesAssumption.isValid()) {
             args = CompilerDirectives.unsafeCast(castArrayFixedLength(args, profiledArgumentTypes.length), Object[].class, true, true);
+            if (TruffleArgumentTypeSpeculation.getValue()) {
+                args = castArguments(args);
+            }
         }
 
         VirtualFrame frame = createFrame(getRootNode().getFrameDescriptor(), args);
@@ -301,19 +389,28 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
         // Profile call return type
         if (profiledReturnTypeAssumption == null) {
             if (TruffleReturnTypeSpeculation.getValue()) {
-                CompilerDirectives.transferToInterpreter();
+                CompilerDirectives.transferToInterpreterAndInvalidate();
                 profiledReturnType = (result == null ? null : result.getClass());
                 profiledReturnTypeAssumption = Truffle.getRuntime().createAssumption("Profiled Return Type");
             }
         } else if (profiledReturnType != null) {
             if (result == null || profiledReturnType != result.getClass()) {
-                CompilerDirectives.transferToInterpreter();
+                CompilerDirectives.transferToInterpreterAndInvalidate();
                 profiledReturnType = null;
                 profiledReturnTypeAssumption.invalidate();
             }
         }
 
         return result;
+    }
+
+    @ExplodeLoop
+    private Object[] castArguments(Object[] originalArguments) {
+        Object[] castArguments = new Object[profiledArgumentTypes.length];
+        for (int i = 0; i < profiledArgumentTypes.length; i++) {
+            castArguments[i] = profiledArgumentTypes[i] != null ? CompilerDirectives.unsafeCast(originalArguments[i], profiledArgumentTypes[i], true, true) : originalArguments[i];
+        }
+        return castArguments;
     }
 
     private static Object castArrayFixedLength(Object[] args, @SuppressWarnings("unused") int length) {
@@ -342,4 +439,5 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
         return properties;
 
     }
+
 }

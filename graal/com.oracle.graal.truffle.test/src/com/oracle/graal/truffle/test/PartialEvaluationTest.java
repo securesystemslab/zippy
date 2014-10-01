@@ -65,7 +65,7 @@ public class PartialEvaluationTest extends GraalCompilerTest {
     protected InstalledCode assertPartialEvalEquals(String methodName, RootNode root, Object[] arguments) {
         Assumptions assumptions = new Assumptions(true);
         StructuredGraph actual = partialEval(root, arguments, assumptions, true);
-        InstalledCode result = new InstalledCode();
+        InstalledCode result = new InstalledCode("Test:" + methodName);
         truffleCompiler.compileMethodHelper(actual, assumptions, root.toString(), getSpeculationLog(), result);
         StructuredGraph expected = parseForComparison(methodName);
         removeFrameStates(actual);
@@ -158,13 +158,13 @@ public class PartialEvaluationTest extends GraalCompilerTest {
 
         try (Scope s = Debug.scope("Truffle", new DebugDumpScope("Comparison: " + methodName))) {
             Assumptions assumptions = new Assumptions(false);
-            StructuredGraph graph = parse(methodName);
+            StructuredGraph graph = parseEager(methodName);
             PhaseContext context = new PhaseContext(getProviders(), assumptions);
             CanonicalizerPhase canonicalizer = new CanonicalizerPhase(true);
             canonicalizer.apply(graph, context);
 
             // Additional inlining.
-            PhaseSuite<HighTierContext> graphBuilderSuite = getCustomGraphBuilderSuite(GraphBuilderConfiguration.getEagerInfopointDefault());
+            PhaseSuite<HighTierContext> graphBuilderSuite = getCustomGraphBuilderSuite(GraphBuilderConfiguration.getFullDebugDefault());
             graphBuilderSuite.appendPhase(canonicalizer);
             graphBuilderSuite.appendPhase(new DeadCodeEliminationPhase());
 

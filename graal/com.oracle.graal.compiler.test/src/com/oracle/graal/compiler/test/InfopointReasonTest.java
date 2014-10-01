@@ -59,7 +59,7 @@ public class InfopointReasonTest extends GraalCompilerTest {
     @Test
     public void callInfopoints() {
         final Method method = getMethod("testMethod");
-        final StructuredGraph graph = parse(method);
+        final StructuredGraph graph = parseEager(method);
         CallingConvention cc = getCallingConvention(getCodeCache(), Type.JavaCallee, graph.method(), false);
         final CompilationResult cr = compileGraph(graph, null, cc, graph.method(), getProviders(), getBackend(), getCodeCache().getTarget(), null, getDefaultGraphBuilderSuite(),
                         OptimisticOptimizations.ALL, getProfilingInfo(graph), null, getSuites(), new CompilationResult(), CompilationResultBuilderFactory.Default);
@@ -76,14 +76,14 @@ public class InfopointReasonTest extends GraalCompilerTest {
         final Method method = getMethod("testMethod");
         final StructuredGraph graph = parseDebug(method);
         int graphLineSPs = 0;
-        for (InfopointNode ipn : graph.getNodes().filter(InfopointNode.class)) {
-            if (ipn.reason == InfopointReason.LINE_NUMBER) {
+        for (FullInfopointNode ipn : graph.getNodes().filter(FullInfopointNode.class)) {
+            if (ipn.getReason() == InfopointReason.LINE_NUMBER) {
                 ++graphLineSPs;
             }
         }
         assertTrue(graphLineSPs > 0);
         CallingConvention cc = getCallingConvention(getCodeCache(), Type.JavaCallee, graph.method(), false);
-        PhaseSuite<HighTierContext> graphBuilderSuite = getCustomGraphBuilderSuite(GraphBuilderConfiguration.getEagerInfopointDefault());
+        PhaseSuite<HighTierContext> graphBuilderSuite = getCustomGraphBuilderSuite(GraphBuilderConfiguration.getFullDebugDefault());
         final CompilationResult cr = compileGraph(graph, null, cc, graph.method(), getProviders(), getBackend(), getCodeCache().getTarget(), null, graphBuilderSuite, OptimisticOptimizations.ALL,
                         getProfilingInfo(graph), getSpeculationLog(), getSuites(), new CompilationResult(), CompilationResultBuilderFactory.Default);
         int lineSPs = 0;

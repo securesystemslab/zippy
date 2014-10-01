@@ -24,7 +24,6 @@ package com.oracle.graal.loop;
 
 import java.util.*;
 
-import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.compiler.common.cfg.*;
@@ -36,6 +35,7 @@ import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.extended.*;
+import com.oracle.graal.nodes.util.*;
 
 public class LoopEx {
 
@@ -144,13 +144,14 @@ public class LoopEx {
             BinaryNode result = BinaryNode.reassociate(binary, invariant, binary.getX(), binary.getY());
             if (result != binary) {
                 if (Debug.isLogEnabled()) {
-                    Debug.log("%s : Reassociated %s into %s", MetaUtil.format("%H::%n", graph.method()), binary, result);
+                    Debug.log("%s : Reassociated %s into %s", graph.method().format("%H::%n"), binary, result);
                 }
                 if (!result.isAlive()) {
                     assert !result.isDeleted();
                     result = graph.addOrUniqueWithInputs(result);
                 }
-                graph.replaceFloating(binary, result);
+                binary.replaceAtUsages(result);
+                GraphUtil.killWithUnusedFloatingInputs(binary);
             }
         }
     }
@@ -172,7 +173,7 @@ public class LoopEx {
             }
             LogicNode ifTest = ifNode.condition();
             if (!(ifTest instanceof IntegerLessThanNode)) {
-                if (ifTest instanceof IntegerBelowThanNode) {
+                if (ifTest instanceof IntegerBelowNode) {
                     Debug.log("Ignored potential Counted loop at %s with |<|", loopBegin);
                 }
                 return false;

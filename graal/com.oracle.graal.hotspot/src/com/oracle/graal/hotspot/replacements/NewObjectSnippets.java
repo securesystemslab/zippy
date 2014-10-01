@@ -23,7 +23,6 @@
 package com.oracle.graal.hotspot.replacements;
 
 import static com.oracle.graal.api.code.UnsignedMath.*;
-import static com.oracle.graal.api.meta.MetaUtil.*;
 import static com.oracle.graal.compiler.common.GraalOptions.*;
 import static com.oracle.graal.hotspot.replacements.HotSpotReplacementsUtil.*;
 import static com.oracle.graal.hotspot.replacements.NewObjectSnippets.Options.*;
@@ -154,7 +153,7 @@ public class NewObjectSnippets implements Snippets {
     public static Object allocateInstanceDynamic(Class<?> type, @ConstantParameter boolean fillContents, @ConstantParameter Register threadRegister, @ConstantParameter String typeContext) {
         Word hub = loadWordFromObject(type, klassOffset());
         if (probability(FAST_PATH_PROBABILITY, !hub.equal(Word.zero()))) {
-            if (probability(FAST_PATH_PROBABILITY, isKlassFullyInitialized(hub))) {
+            if (probability(FAST_PATH_PROBABILITY, isInstanceKlassFullyInitialized(hub))) {
                 int layoutHelper = readLayoutHelper(hub);
                 /*
                  * src/share/vm/oops/klass.hpp: For instances, layout helper is a positive number,
@@ -398,7 +397,7 @@ public class NewObjectSnippets implements Snippets {
             args.addConst("fillContents", newInstanceNode.fillContents());
             args.addConst("threadRegister", registers.getThreadRegister());
             args.addConst("constantSize", true);
-            args.addConst("typeContext", ProfileAllocations.getValue() ? toJavaName(type, false) : "");
+            args.addConst("typeContext", ProfileAllocations.getValue() ? type.toJavaName(false) : "");
 
             SnippetTemplate template = template(args);
             Debug.log("Lowering allocateInstance in %s: node=%s, template=%s, arguments=%s", graph, newInstanceNode, template, args);
@@ -428,7 +427,7 @@ public class NewObjectSnippets implements Snippets {
             args.addConst("fillContents", newArrayNode.fillContents());
             args.addConst("threadRegister", registers.getThreadRegister());
             args.addConst("maybeUnroll", length.isConstant());
-            args.addConst("typeContext", ProfileAllocations.getValue() ? toJavaName(arrayType, false) : "");
+            args.addConst("typeContext", ProfileAllocations.getValue() ? arrayType.toJavaName(false) : "");
 
             SnippetTemplate template = template(args);
             Debug.log("Lowering allocateArray in %s: node=%s, template=%s, arguments=%s", graph, newArrayNode, template, args);

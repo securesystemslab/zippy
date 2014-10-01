@@ -691,7 +691,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return dispatch.executeCall(frame, obj, PNone.NONE);
         }
 
-        @Generic
+        @Fallback
         public int len(Object arg) {
             throw Py.TypeError("object of type '" + PythonTypesUtil.getPythonTypeName(arg) + "' has no len()");
         }
@@ -1143,7 +1143,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return PDict.__class__;
         }
 
-        @Generic
+        @Fallback
         public Object type(Object object) {
             throw new RuntimeException("type is not supported for object " + object + " " + object.getClass());
         }

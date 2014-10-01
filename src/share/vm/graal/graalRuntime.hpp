@@ -32,7 +32,9 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
  private:
 
   static jobject _HotSpotGraalRuntime_instance;
+  static bool _HotSpotGraalRuntime_initialized;
   static address _external_deopt_i2c_entry;
+  static const char* _generated_sources_sha1;
 
   /**
    * Reads the OptionValue object from a specified static field.
@@ -101,11 +103,16 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
    */
   static Handle create_Service(const char* name, TRAPS);
 
+  /**
+   * Checks that _generated_sources_sha1 equals GeneratedSourcesSha1.value.
+   */
+  static void check_generated_sources_sha1(TRAPS);
+
  public:
 
   static void initialize_natives(JNIEnv *env, jclass c2vmClass);
 
-  static bool is_HotSpotGraalRuntime_initialized() { return _HotSpotGraalRuntime_instance != NULL; }
+  static bool is_HotSpotGraalRuntime_initialized() { return _HotSpotGraalRuntime_initialized; }
 
   /**
    * Gets the singleton HotSpotGraalRuntime instance, initializing it if necessary
@@ -139,13 +146,43 @@ class GraalRuntime: public CHeapObj<mtCompiler> {
    */
   static void call_printStackTrace(Handle exception, Thread* thread);
 
-#define GUARANTEE_NO_PENDING_EXCEPTION(error_message) do { \
-    if (HAS_PENDING_EXCEPTION) { \
-      GraalRuntime::abort_on_pending_exception(PENDING_EXCEPTION, error_message); \
-    } \
-  } while (0);
+#define CHECK_ABORT THREAD); \
+  if (HAS_PENDING_EXCEPTION) { \
+    char buf[256]; \
+    jio_snprintf(buf, 256, "Uncaught exception at %s:%d", __FILE__, __LINE__); \
+    GraalRuntime::abort_on_pending_exception(PENDING_EXCEPTION, buf); \
+    return; \
+  } \
+  (void)(0
 
+#define CHECK_ABORT_(result) THREAD); \
+  if (HAS_PENDING_EXCEPTION) { \
+    char buf[256]; \
+    jio_snprintf(buf, 256, "Uncaught exception at %s:%d", __FILE__, __LINE__); \
+    GraalRuntime::abort_on_pending_exception(PENDING_EXCEPTION, buf); \
+    return result; \
+  } \
+  (void)(0
+
+  /**
+   * Same as SystemDictionary::resolve_or_null but uses the Graal loader.
+   */
+  static Klass* resolve_or_null(Symbol* name, TRAPS);
+
+  /**
+   * Same as SystemDictionary::resolve_or_fail but uses the Graal loader.
+   */
+  static Klass* resolve_or_fail(Symbol* name, TRAPS);
+
+  /**
+   * Loads a given Graal class and aborts the VM if it fails.
+   */
   static Klass* load_required_class(Symbol* name);
+
+  /**
+   * Creates a separate class loader for classes in graal.jar and graal-truffle.jar.
+   */
+  static oop compute_graal_class_loader(TRAPS);
 
   static BufferBlob* initialize_buffer_blob();
 

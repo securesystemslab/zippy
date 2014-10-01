@@ -65,9 +65,10 @@ Function
 
 Function
 =
-"function"                                      
-identifier                                      (. factory.startFunction(t); .)
-"("
+"function"
+identifier            							(. Token identifierToken = t; .)                          
+"("												(. int bodyStartPos = t.charPos; .)
+												(. factory.startFunction(identifierToken, bodyStartPos); .)
 [
     identifier                                  (. factory.addFormalParameter(t); .)
     {
@@ -84,11 +85,12 @@ Block<out SLStatementNode body, false>          (. factory.finishFunction(body);
 Block<out SLStatementNode result, boolean inLoop>
 =                                               (. factory.startBlock();
                                                    List<SLStatementNode> body = new ArrayList<>(); .)
-"{" 
+"{"    											(. int start = t.charPos; .)
 {
     Statement<out SLStatementNode s, inLoop>    (. body.add(s); .)
 }
-"}"                                             (. result = factory.finishBlock(body); .)
+"}"                                             (. int length = (t.charPos + t.val.length()) - start; .)
+												(. result = factory.finishBlock(body, start, length); .)
 .
 
 
@@ -114,8 +116,8 @@ Statement<out SLStatementNode result, boolean inLoop>
 
 WhileStatement<out SLStatementNode result>
 =
-"while"
-"("                                             (. Token whileToken = t; .)
+"while"											(. Token whileToken = t; .)
+"("                                             
 Expression<out SLExpressionNode condition>
 ")" 
 Block<out SLStatementNode body, true>           (. result = factory.createWhile(whileToken, condition, body); .)
@@ -124,8 +126,8 @@ Block<out SLStatementNode body, true>           (. result = factory.createWhile(
 
 IfStatement<out SLStatementNode result, boolean inLoop>
 =
-"if" 
-"("                                             (. Token ifToken = t; .)
+"if" 											(. Token ifToken = t; .)
+"("
 Expression<out SLExpressionNode condition> 
 ")"
 Block<out SLStatementNode thenPart, inLoop>     (. SLStatementNode elsePart = null; .)                             
@@ -210,8 +212,9 @@ Factor<out SLExpressionNode result>
                 "," 
                 Expression<out parameter>       (. parameters.add(parameter); .)
             }                                               
-        ]                                       (. result = factory.createCall(nameToken, parameters); .) 
-        ")"
+        ]
+        ")"					(. Token finalToken = t; .)
+                                               (. result = factory.createCall(nameToken, parameters, finalToken); .) 
     |
         "=" 
         Expression<out SLExpressionNode value>  (. result = factory.createAssignment(nameToken, value); .)
@@ -223,7 +226,10 @@ Factor<out SLExpressionNode result>
 |
     numericLiteral                              (. result = factory.createNumericLiteral(t); .)
 |
-    "(" Expression<out result> ")"
+    "(" 										(. int start = t.charPos; .)
+    Expression<out result> 						(. SLExpressionNode expr = result; .)
+    ")"											(. int length = (t.charPos + t.val.length()) - start; .)
+    											(. result = factory.createParenExpression(expr, start, length); .)
 ) 
 .
 

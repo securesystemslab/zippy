@@ -26,6 +26,7 @@ import java.math.*;
 
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.source.*;
 import com.oracle.truffle.sl.nodes.*;
 import com.oracle.truffle.sl.runtime.*;
 
@@ -41,6 +42,10 @@ import com.oracle.truffle.sl.runtime.*;
  */
 @NodeInfo(shortName = "==")
 public abstract class SLEqualNode extends SLBinaryNode {
+
+    public SLEqualNode(SourceSection src) {
+        super(src);
+    }
 
     @Specialization
     protected boolean equal(long left, long right) {
@@ -78,11 +83,11 @@ public abstract class SLEqualNode extends SLBinaryNode {
     }
 
     /**
-     * The {@link Generic} annotation informs the Truffle DSL that this method should be executed
+     * The {@link Fallback} annotation informs the Truffle DSL that this method should be executed
      * when no {@link Specialization specialized method} matches. The operand types must be
      * {@link Object}.
      */
-    @Generic
+    @Fallback
     protected boolean equal(Object left, Object right) {
         /*
          * We covered all the cases that can return true in specializations. If we compare two
