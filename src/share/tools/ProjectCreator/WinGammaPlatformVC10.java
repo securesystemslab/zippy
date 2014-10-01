@@ -352,8 +352,7 @@ class CompilerInterfaceVC10 extends CompilerInterface {
         // Set /On option
         addAttr(rv, "Optimization", opt);
         // Set /FR option.
-        addAttr(rv, "BrowseInformation", "true");
-        addAttr(rv, "BrowseInformationFile", "$(IntDir)");
+        addAttr(rv, "BrowseInformation", "false");
         // Set /MD option.
         addAttr(rv, "RuntimeLibrary", "MultiThreadedDLL");
         // Set /Oy- option
