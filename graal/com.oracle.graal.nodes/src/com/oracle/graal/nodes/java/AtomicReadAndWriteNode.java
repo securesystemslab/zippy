@@ -39,14 +39,19 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo
 public class AtomicReadAndWriteNode extends AbstractMemoryCheckpoint implements Lowerable, MemoryCheckpoint.Single {
 
-    @Input private ValueNode object;
-    @Input private ValueNode offset;
-    @Input private ValueNode newValue;
+    @Input ValueNode object;
+    @Input ValueNode offset;
+    @Input ValueNode newValue;
 
     private final Kind valueKind;
     private final LocationIdentity locationIdentity;
 
-    public AtomicReadAndWriteNode(ValueNode object, ValueNode offset, ValueNode newValue, Kind valueKind, LocationIdentity locationIdentity) {
+    public static AtomicReadAndWriteNode create(ValueNode object, ValueNode offset, ValueNode newValue, Kind valueKind, LocationIdentity locationIdentity) {
+        return USE_GENERATED_NODES ? new AtomicReadAndWriteNodeGen(object, offset, newValue, valueKind, locationIdentity) : new AtomicReadAndWriteNode(object, offset, newValue, valueKind,
+                        locationIdentity);
+    }
+
+    AtomicReadAndWriteNode(ValueNode object, ValueNode offset, ValueNode newValue, Kind valueKind, LocationIdentity locationIdentity) {
         super(StampFactory.forKind(newValue.getKind()));
         this.object = object;
         this.offset = offset;

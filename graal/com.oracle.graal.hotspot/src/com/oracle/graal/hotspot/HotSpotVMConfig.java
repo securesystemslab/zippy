@@ -793,6 +793,13 @@ public class HotSpotVMConfig extends CompilerObject {
     @HotSpotVMConstant(name = "VM_Version::CPU_ERMS", archs = {"amd64"}) @Stable public int cpuERMS;
     @HotSpotVMConstant(name = "VM_Version::CPU_CLMUL", archs = {"amd64"}) @Stable public int cpuCLMUL;
 
+    // SPARC specific values
+    @HotSpotVMField(name = "VM_Version::_features", type = "int", get = HotSpotVMField.Type.VALUE, archs = {"sparc"}) @Stable public int sparcFeatures;
+    @HotSpotVMConstant(name = "VM_Version::vis3_instructions_m", archs = {"sparc"}) @Stable public int vis3Instructions;
+    @HotSpotVMConstant(name = "VM_Version::vis2_instructions_m", archs = {"sparc"}) @Stable public int vis2Instructions;
+    @HotSpotVMConstant(name = "VM_Version::vis1_instructions_m", archs = {"sparc"}) @Stable public int vis1Instructions;
+    @HotSpotVMConstant(name = "VM_Version::cbcond_instructions_m", archs = {"sparc"}) @Stable public int cbcondInstructions;
+
     // offsets, ...
     @HotSpotVMFlag(name = "StackShadowPages") @Stable public int stackShadowPages;
     @HotSpotVMFlag(name = "UseStackBanging") @Stable public boolean useStackBanging;
@@ -1594,22 +1601,53 @@ public class HotSpotVMConfig extends CompilerObject {
     }
 
     /**
-     * Returns the name of the C/C++ function that is associated (via HotSpotVMValue annotation)
-     * with the HotSpotVMConfig object's field containing {@code foreignCalltargetAddress}; returns
-     * null if no field holds the provided address.
+     * Returns the name of the C/C++ symbol that is associated (via HotSpotVMValue annotation) with
+     * the HotSpotVMConfig object's field containing {@code value}; returns null if no field holds
+     * the provided address.
      *
-     * @param foreignCallTargetAddress address of foreign call target
+     * @param value value of the field
      * @return C/C++ symbol name or null
      */
-    public String getCSymbol(long foreignCallTargetAddress) {
+    public String getVMValueCSymbol(long value) {
         for (Field f : HotSpotVMConfig.class.getDeclaredFields()) {
             if (f.isAnnotationPresent(HotSpotVMValue.class)) {
                 HotSpotVMValue annotation = f.getAnnotation(HotSpotVMValue.class);
 
                 if (annotation.get() == HotSpotVMValue.Type.ADDRESS) {
                     try {
-                        if (foreignCallTargetAddress == f.getLong(this)) {
+                        if (value == f.getLong(this)) {
                             return (annotation.expression() + annotation.signature());
+                        }
+                    } catch (IllegalArgumentException e1) {
+                        // TODO Auto-generated catch block
+                        e1.printStackTrace();
+                    } catch (IllegalAccessException e1) {
+                        // TODO Auto-generated catch block
+                        e1.printStackTrace();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns the name of the C/C++ symbol that is associated (via HotSpotVMField annotation) with
+     * the HotSpotVMConfig object's field containing {@code value}; returns null if no field holds
+     * the provided address.
+     *
+     * @param value value of the field
+     * @return C/C++ symbol name or null
+     */
+    public String getVMFieldCSymbol(long value) {
+        for (Field f : HotSpotVMConfig.class.getDeclaredFields()) {
+            if (f.isAnnotationPresent(HotSpotVMField.class)) {
+                HotSpotVMField annotation = f.getAnnotation(HotSpotVMField.class);
+
+                if (annotation.get() == HotSpotVMField.Type.VALUE) {
+                    try {
+                        if (value == f.getLong(this)) {
+                            return (annotation.name());
                         }
                     } catch (IllegalArgumentException e1) {
                         // TODO Auto-generated catch block

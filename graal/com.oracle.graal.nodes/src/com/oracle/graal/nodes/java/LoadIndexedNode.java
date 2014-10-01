@@ -42,7 +42,11 @@ public class LoadIndexedNode extends AccessIndexedNode implements Virtualizable 
      * @param index the instruction producing the index
      * @param elementKind the element type
      */
-    public LoadIndexedNode(ValueNode array, ValueNode index, Kind elementKind) {
+    public static LoadIndexedNode create(ValueNode array, ValueNode index, Kind elementKind) {
+        return USE_GENERATED_NODES ? new LoadIndexedNodeGen(array, index, elementKind) : new LoadIndexedNode(array, index, elementKind);
+    }
+
+    LoadIndexedNode(ValueNode array, ValueNode index, Kind elementKind) {
         super(createStamp(array, elementKind), array, index, elementKind);
     }
 
@@ -65,9 +69,9 @@ public class LoadIndexedNode extends AccessIndexedNode implements Virtualizable 
         State arrayState = tool.getObjectState(array());
         if (arrayState != null && arrayState.getState() == EscapeState.Virtual) {
             ValueNode indexValue = tool.getReplacedValue(index());
-            int index = indexValue.isConstant() ? indexValue.asConstant().asInt() : -1;
-            if (index >= 0 && index < arrayState.getVirtualObject().entryCount()) {
-                tool.replaceWith(arrayState.getEntry(index));
+            int idx = indexValue.isConstant() ? indexValue.asConstant().asInt() : -1;
+            if (idx >= 0 && idx < arrayState.getVirtualObject().entryCount()) {
+                tool.replaceWith(arrayState.getEntry(idx));
             }
         }
     }

@@ -36,7 +36,11 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo(allowedUsageTypes = {InputType.Memory})
 public class EndLockScopeNode extends AbstractMemoryCheckpoint implements LIRLowerable, MonitorExit, MemoryCheckpoint.Single {
 
-    public EndLockScopeNode() {
+    public static EndLockScopeNode create() {
+        return USE_GENERATED_NODES ? new EndLockScopeNodeGen() : new EndLockScopeNode();
+    }
+
+    protected EndLockScopeNode() {
         super(StampFactory.forVoid());
     }
 

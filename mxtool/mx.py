@@ -33,7 +33,7 @@ Version 1.x supports a single suite of projects.
 Full documentation can be found at https://wiki.openjdk.java.net/display/Graal/The+mx+Tool
 """
 
-import sys, os, errno, time, subprocess, shlex, types, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch
+import sys, os, errno, time, subprocess, shlex, types, StringIO, zipfile, signal, xml.sax.saxutils, tempfile, fnmatch, platform
 import multiprocessing
 import textwrap
 import socket
@@ -43,7 +43,7 @@ import xml.parsers.expat
 import shutil, re, xml.dom.minidom
 import pipes
 import difflib
-from collections import Callable
+from collections import Callable, OrderedDict
 from threading import Thread
 from argparse import ArgumentParser, REMAINDER
 from os.path import join, basename, dirname, exists, getmtime, isabs, expandvars, isdir, isfile
@@ -64,7 +64,7 @@ _warn = False
 A distribution is a jar or zip file containing the output from one or more Java projects.
 """
 class Distribution:
-    def __init__(self, suite, name, path, sourcesPath, deps, mainClass, excludedDependencies, distDependencies):
+    def __init__(self, suite, name, path, sourcesPath, deps, mainClass, excludedDependencies, distDependencies, javaCompliance):
         self.suite = suite
         self.name = name
         self.path = path.replace('/', os.sep)
@@ -75,6 +75,7 @@ class Distribution:
         self.mainClass = mainClass
         self.excludedDependencies = excludedDependencies
         self.distDependencies = distDependencies
+        self.javaCompliance = JavaCompliance(javaCompliance) if javaCompliance else None
 
     def sorted_deps(self, includeLibs=False, transitive=False):
         deps = []
@@ -168,6 +169,10 @@ class Distribution:
 
                     if isCoveredByDependecy:
                         continue
+
+                    if self.javaCompliance:
+                        if p.javaCompliance > self.javaCompliance:
+                            abort("Compliance level doesn't match: Distribution {0} requires {1}, but {2} is {3}.".format(self.name, self.javaCompliance, p.name, p.javaCompliance))
 
                     # skip a  Java project if its Java compliance level is "higher" than the configured JDK
                     jdk = java(p.javaCompliance)
@@ -782,6 +787,271 @@ class HgConfig:
             else:
                 return None
 
+# TODO: remove this function once all repos have transitioned
+# to the new project format
+def _read_projects_file(projectsFile):
+    suite = OrderedDict()
+
+    suite['projects'] = OrderedDict()
+    suite['libraries'] = OrderedDict()
+    suite['jrelibraries'] = OrderedDict()
+    suite['distributions'] = OrderedDict()
+
+    with open(projectsFile) as f:
+        prefix = ''
+        lineNum = 0
+
+        def error(message):
+            abort(projectsFile + ':' + str(lineNum) + ': ' + message)
+
+        for line in f:
+            lineNum = lineNum + 1
+            line = line.strip()
+            if line.endswith('\\'):
+                prefix = prefix + line[:-1]
+                continue
+            if len(prefix) != 0:
+                line = prefix + line
+                prefix = ''
+            if len(line) != 0 and line[0] != '#':
+                if '=' not in line:
+                    error('non-comment line does not contain an "=" character')
+                key, value = line.split('=', 1)
+
+                parts = key.split('@')
+
+                if len(parts) == 1:
+                    if parts[0] == 'suite':
+                        suite['name'] = value
+                    elif parts[0] == 'mxversion':
+                        suite['mxversion'] = value
+                    else:
+                        error('Single part property must be "suite": ' + key)
+
+                    continue
+                if len(parts) != 3:
+                    error('Property name does not have 3 parts separated by "@": ' + key)
+                kind, name, attr = parts
+                if kind == 'project':
+                    m = suite['projects']
+                elif kind == 'library':
+                    m = suite['libraries']
+                elif kind == 'jrelibrary':
+                    m = suite['jrelibraries']
+                elif kind == 'distribution':
+                    m = suite['distributions']
+                else:
+                    error('Property name does not start with "project@", "library@" or "distribution@": ' + key)
+
+                attrs = m.get(name)
+                if attrs is None:
+                    attrs = OrderedDict()
+                    m[name] = attrs
+                attrs[attr] = value
+    return suite
+
+# TODO: remove this command once all repos have transitioned
+# to the new project format
+def convertprojects(args, verbose=True):
+    """convert old style projects file to projects*.py file(s)"""
+
+    class Printer:
+        def __init__(self, fp, indent):
+            self.fp = fp
+            self.indent = indent
+            self.prefix = ''
+        def println(self, s):
+            if len(s) == 0:
+                print >> self.fp, s
+            else:
+                print >> self.fp, self.prefix + s
+        def inc(self):
+            self.prefix = ''.rjust(len(self.prefix) + self.indent)
+        def dec(self):
+            self.prefix = ''.rjust(len(self.prefix) - self.indent)
+
+    list_attrs = ['urls', 'dependencies', 'sourceUrls', 'sourceDirs', 'annotationProcessors', 'exclude', 'distDependencies']
+
+    for projectsFile in args:
+        suite = _read_projects_file(projectsFile)
+        def print_attrs(p, name, attrs, is_last=False):
+            p.println('"' + name + '" : {')
+            p.inc()
+            for n, v in attrs.iteritems():
+                if n in list_attrs:
+                    if len(v) == 0:
+                        p.println('"{}" : [],'.format(n))
+                    else:
+                        v = [e.strip() for e in v.split(',')]
+                        if len(v) == 1:
+                            p.println('"{}" : ["{}"],'.format(n, v[0]))
+                        else:
+                            p.println('"{}" : ['.format(n))
+                            p.inc()
+                            for e in v:
+                                p.println('"' + e + '",')
+                            p.dec()
+                            p.println('],')
+                else:
+                    p.println('"{}" : "{}",'.format(n, v))
+            p.dec()
+            if is_last:
+                p.println('}')
+            else:
+                p.println('},')
+                p.println('')
+
+        def print_section(p, sname, suite, is_last=False):
+            section = suite.get(sname)
+            if section:
+                p.println('"' + sname + '" : {')
+                p.inc()
+                i = 0
+                for name, attrs in section.iteritems():
+                    i = i + 1
+                    print_attrs(p, name, attrs, i == len(section))
+
+                p.dec()
+                if is_last:
+                    p.println('}')
+                else:
+                    p.println('},')
+                    p.println('')
+
+        existing, projectsPyFile = _load_suite_dict(dirname(projectsFile))
+        if existing:
+            assert existing['name'] == suite.pop('name')
+            assert existing['mxversion'] == suite.pop('mxversion')
+            for s in ['projects', 'libraries', 'jrelibraries', 'distributions']:
+                section = suite[s]
+                for k in existing[s].iterkeys():
+                    duplicate = section.pop(k)
+                    if duplicate and s == 'distributions':
+                        original = existing[s][k]
+                        extensions = [d for d in duplicate['dependencies'].split(',') if d not in original['dependencies']]
+                        if len(extensions):
+                            extensions = ','.join(extensions)
+                            suite.setdefault('distribution_extensions', {})[k] = {'dependencies' : extensions}
+                if len(section) == 0:
+                    suite.pop(s)
+
+        if len(suite):
+            out = StringIO.StringIO()
+            p = Printer(out, 2)
+            p.println(('extra' if existing else 'suite') + ' = {')
+            p.inc()
+            if not existing:
+                p.println('"mxversion" : "' + suite['mxversion'] + '",')
+                p.println('"name" : "' + suite['name'] + '",')
+            print_section(p, 'libraries', suite)
+            print_section(p, 'jrelibraries', suite)
+            print_section(p, 'projects', suite)
+            print_section(p, 'distributions', suite)
+            if existing and suite.has_key('distribution_extensions'):
+                print_section(p, 'distribution_extensions', suite, is_last=True)
+
+            p.dec()
+            p.println('}')
+
+            with open(projectsPyFile, 'w') as fp:
+                fp.write(out.getvalue())
+                if verbose:
+                    print 'created: ' + projectsPyFile
+
+def _load_suite_dict(mxDir):
+
+    suffix = 1
+    suite = None
+    dictName = 'suite'
+
+    def expand(value, context):
+        if isinstance(value, types.DictionaryType):
+            for n, v in value.iteritems():
+                value[n] = expand(v, context + [n])
+        elif isinstance(value, types.ListType):
+            for i in range(len(value)):
+                value[i] = expand(value[i], context + [str(i)])
+        else:
+            if not isinstance(value, types.StringTypes):
+                abort('value of ' + '.'.join(context) + ' is of unexpected type ' + str(type(value)))
+            value = expandvars(value)
+            if '$' in value or '%' in value:
+                abort('value of ' + '.'.join(context) + ' contains an undefined environment variable: ' + value)
+
+        return value
+
+    moduleName = 'projects'
+    modulePath = join(mxDir, moduleName + '.py')
+    while exists(modulePath):
+
+        savedModule = sys.modules.get(moduleName)
+        if savedModule:
+            warn(modulePath + ' conflicts with ' + savedModule.__file__)
+        # temporarily extend the Python path
+        sys.path.insert(0, mxDir)
+
+        snapshot = frozenset(sys.modules.viewkeys())
+        module = __import__(moduleName)
+
+        if savedModule:
+            # restore the old module into the module name space
+            sys.modules[moduleName] = savedModule
+        else:
+            # remove moduleName from the module name space
+            sys.modules.pop(moduleName)
+
+        # For now fail fast if extra modules were loaded.
+        # This can later be relaxed to simply remove the extra modules
+        # from the sys.modules name space if necessary.
+        extraModules = snapshot - sys.modules.viewkeys()
+        assert len(extraModules) == 0, 'loading ' + modulePath + ' caused extra modules to be loaded: ' + ', '.join([m.__file__ for m in extraModules])
+
+        # revert the Python path
+        del sys.path[0]
+
+        if not hasattr(module, dictName):
+            abort(modulePath + ' must define a variable named "' + dictName + '"')
+        d = expand(getattr(module, dictName), [dictName])
+        sections = ['projects', 'libraries', 'jrelibraries', 'distributions'] + (['distribution_extensions'] if suite else ['name', 'mxversion'])
+        unknown = d.viewkeys() - sections
+        if unknown:
+            abort(modulePath + ' defines unsupported suite sections: ' + ', '.join(unknown))
+
+        if suite is None:
+            suite = d
+        else:
+            for s in sections:
+                existing = suite.get(s)
+                additional = d.get(s)
+                if additional:
+                    if not existing:
+                        suite[s] = additional
+                    else:
+                        conflicting = additional.viewkeys() & existing.viewkeys()
+                        if conflicting:
+                            abort(modulePath + ' redefines: ' + ', '.join(conflicting))
+                        existing.update(additional)
+            distExtensions = d.get('distribution_extensions')
+            if distExtensions:
+                existing = suite['distributions']
+                for n, attrs in distExtensions.iteritems():
+                    original = existing.get(n)
+                    if not original:
+                        abort('cannot extend non-existing distribution ' + n)
+                    for k, v in attrs.iteritems():
+                        if k != 'dependencies':
+                            abort('Only the dependencies of distribution ' + n + ' can be extended')
+                        if not isinstance(v, types.ListType):
+                            abort('distribution_extensions.' + n + '.dependencies must be a list')
+                        original['dependencies'] += v
+
+        dictName = 'extra'
+        moduleName = 'projects' + str(suffix)
+        modulePath = join(mxDir, moduleName + '.py')
+        suffix = suffix + 1
+
+    return suite, modulePath
+
 class Suite:
     def __init__(self, mxDir, primary, load=True):
         self.dir = dirname(mxDir)
@@ -805,81 +1075,44 @@ class Suite:
         return self.name
 
     def _load_projects(self):
-        libsMap = dict()
-        jreLibsMap = dict()
-        projsMap = dict()
-        distsMap = dict()
+        # TODO: remove once mx/projects has been deprecated
         projectsFile = join(self.mxDir, 'projects')
-        if not exists(projectsFile):
+        if exists(projectsFile):
+            convertprojects([projectsFile], verbose=False)
+
+        projectsPyFile = join(self.mxDir, 'projects.py')
+        if not exists(projectsPyFile):
             return
 
-        with open(projectsFile) as f:
-            prefix = ''
-            lineNum = 0
+        suiteDict, _ = _load_suite_dict(self.mxDir)
 
-            def error(message):
-                abort(projectsFile + ':' + str(lineNum) + ': ' + message)
+        if suiteDict.get('name') is not None and suiteDict.get('name') != self.name:
+            abort('suite name in project file does not match ' + _suitename(self.mxDir))
 
-            for line in f:
-                lineNum = lineNum + 1
-                line = line.strip()
-                if line.endswith('\\'):
-                    prefix = prefix + line[:-1]
-                    continue
-                if len(prefix) != 0:
-                    line = prefix + line
-                    prefix = ''
-                if len(line) != 0 and line[0] != '#':
-                    if '=' not in line:
-                        error('non-comment line does not contain an "=" character')
-                    key, value = line.split('=', 1)
+        if suiteDict.has_key('mxversion'):
+            try:
+                self.requiredMxVersion = VersionSpec(suiteDict['mxversion'])
+            except AssertionError as ae:
+                abort('Exception while parsing "mxversion" in project file: ' + str(ae))
 
-                    parts = key.split('@')
+        libsMap = suiteDict['libraries']
+        jreLibsMap = suiteDict['jrelibraries']
+        projsMap = suiteDict['projects']
+        distsMap = suiteDict['distributions']
 
-                    if len(parts) == 1:
-                        if parts[0] == 'suite':
-                            if self.name != value:
-                                error('suite name in project file does not match ' + _suitename(self.mxDir))
-                        elif parts[0] == 'mxversion':
-                            try:
-                                self.requiredMxVersion = VersionSpec(value)
-                            except AssertionError as ae:
-                                error('Exception while parsing "mxversion" in project file: ' + str(ae))
-                        else:
-                            error('Single part property must be "suite": ' + key)
-
-                        continue
-                    if len(parts) != 3:
-                        error('Property name does not have 3 parts separated by "@": ' + key)
-                    kind, name, attr = parts
-                    if kind == 'project':
-                        m = projsMap
-                    elif kind == 'library':
-                        m = libsMap
-                    elif kind == 'jrelibrary':
-                        m = jreLibsMap
-                    elif kind == 'distribution':
-                        m = distsMap
-                    else:
-                        error('Property name does not start with "project@", "library@" or "distribution@": ' + key)
-
-                    attrs = m.get(name)
-                    if attrs is None:
-                        attrs = dict()
-                        m[name] = attrs
-                    value = expandvars_in_property(value)
-                    attrs[attr] = value
-
-        def pop_list(attrs, name):
+        def pop_list(attrs, name, context):
             v = attrs.pop(name, None)
-            if v is None or len(v.strip()) == 0:
+            if not v:
                 return []
-            return [n.strip() for n in v.split(',')]
+            if not isinstance(v, list):
+                abort('Attribute "' + name + '" for ' + context + ' must be a list')
+            return v
 
         for name, attrs in projsMap.iteritems():
-            srcDirs = pop_list(attrs, 'sourceDirs')
-            deps = pop_list(attrs, 'dependencies')
-            ap = pop_list(attrs, 'annotationProcessors')
+            context = 'project ' + name
+            srcDirs = pop_list(attrs, 'sourceDirs', context)
+            deps = pop_list(attrs, 'dependencies', context)
+            ap = pop_list(attrs, 'annotationProcessors', context)
             javaCompliance = attrs.pop('javaCompliance', None)
             subDir = attrs.pop('subDir', None)
             if subDir is None:
@@ -891,7 +1124,7 @@ class Suite:
             p.checkstyleProj = attrs.pop('checkstyle', name)
             p.native = attrs.pop('native', '') == 'true'
             if not p.native and p.javaCompliance is None:
-                error('javaCompliance property required for non-native project ' + name)
+                abort('javaCompliance property required for non-native project ' + name)
             if len(ap) > 0:
                 p._declaredAnnotationProcessors = ap
             p.__dict__.update(attrs)
@@ -905,13 +1138,20 @@ class Suite:
             self.jreLibs.append(l)
 
         for name, attrs in libsMap.iteritems():
+            context = 'library ' + name
+            if "|" in name:
+                if name.count('|') != 2:
+                    abort("Format error in library name: " + name + "\nsyntax: libname|os-platform|architecture")
+                name, platform, architecture = name.split("|")
+                if platform != get_os() or architecture != get_arch():
+                    continue
             path = attrs.pop('path')
-            urls = pop_list(attrs, 'urls')
+            urls = pop_list(attrs, 'urls', context)
             sha1 = attrs.pop('sha1', None)
             sourcePath = attrs.pop('sourcePath', None)
-            sourceUrls = pop_list(attrs, 'sourceUrls')
+            sourceUrls = pop_list(attrs, 'sourceUrls', context)
             sourceSha1 = attrs.pop('sourceSha1', None)
-            deps = pop_list(attrs, 'dependencies')
+            deps = pop_list(attrs, 'dependencies', context)
             # Add support optional libraries once we have a good use case
             optional = False
             l = Library(self, name, path, optional, urls, sha1, sourcePath, sourceUrls, sourceSha1, deps)
@@ -919,13 +1159,15 @@ class Suite:
             self.libs.append(l)
 
         for name, attrs in distsMap.iteritems():
+            context = 'distribution ' + name
             path = attrs.pop('path')
             sourcesPath = attrs.pop('sourcesPath', None)
-            deps = pop_list(attrs, 'dependencies')
+            deps = pop_list(attrs, 'dependencies', context)
             mainClass = attrs.pop('mainClass', None)
-            exclDeps = pop_list(attrs, 'exclude')
-            distDeps = pop_list(attrs, 'distDependencies')
-            d = Distribution(self, name, path, sourcesPath, deps, mainClass, exclDeps, distDeps)
+            exclDeps = pop_list(attrs, 'exclude', context)
+            distDeps = pop_list(attrs, 'distDependencies', context)
+            javaCompliance = attrs.pop('javaCompliance', None)
+            d = Distribution(self, name, path, sourcesPath, deps, mainClass, exclDeps, distDeps, javaCompliance)
             d.__dict__.update(attrs)
             self.dists.append(d)
 
@@ -950,7 +1192,8 @@ class Suite:
                 mainClass = None
                 exclDeps = []
                 distDeps = []
-                d = Distribution(self, dname, path, sourcesPath, deps, mainClass, exclDeps, distDeps)
+                javaCompliance = None
+                d = Distribution(self, dname, path, sourcesPath, deps, mainClass, exclDeps, distDeps, javaCompliance)
                 d.subDir = os.path.relpath(os.path.dirname(p.dir), self.dir)
                 self.dists.append(d)
                 p.definedAnnotationProcessors = annotationProcessors
@@ -976,7 +1219,7 @@ class Suite:
                 self.dists.append(d)
 
         if self.name is None:
-            abort('Missing "suite=<name>" in ' + projectsFile)
+            abort('Missing "suite=<name>" in ' + projectsPyFile)
 
     def _commands_name(self):
         return 'mx_' + self.name.replace('-', '_')
@@ -1207,6 +1450,22 @@ def get_os():
     else:
         abort('Unknown operating system ' + sys.platform)
 
+def get_arch():
+    machine = platform.uname()[4]
+    if machine in ['amd64', 'AMD64', 'x86_64', 'i86pc']:
+        return 'amd64'
+    if machine in ['sun4v', 'sun4u']:
+        return 'sparcv9'
+    if machine == 'i386' and get_os() == 'darwin':
+        try:
+            # Support for Snow Leopard and earlier version of MacOSX
+            if subprocess.check_output(['sysctl', '-n', 'hw.cpu64bit_capable']).strip() == '1':
+                return 'amd64'
+        except OSError:
+            # sysctl is not available
+            pass
+    abort('unknown or unsupported architecture: os=' + get_os() + ', machine=' + machine)
+
 def _loadSuite(mxDir, primary=False):
     """
     Load a suite from 'mxDir'.
@@ -1247,11 +1506,11 @@ def projects(opt_limit_to_suite=False):
     """
     Get the list of all loaded projects limited by --suite option if opt_limit_to_suite == True
     """
-
+    sortedProjects = sorted(_projects.values(), key=lambda p: p.name)
     if opt_limit_to_suite:
-        return _projects_opt_limit_to_suites(_projects.values())
+        return _projects_opt_limit_to_suites(sortedProjects)
     else:
-        return _projects.values()
+        return sortedProjects
 
 def projects_opt_limit_to_suites():
     """
@@ -2230,8 +2489,13 @@ class JavaCompileTask:
                 self.proj.definedAnnotationProcessorsDist.make_archive()
 
         finally:
-            for n in toBeDeleted:
-                os.remove(n)
+            # Do not clean up temp files if verbose as there's
+            # a good chance the user wants to copy and paste the
+            # Java compiler command directly
+            if not _opts.verbose:
+                for n in toBeDeleted:
+                    os.remove(n)
+
             self.done = True
 
 def build(args, parser=None):
@@ -2412,15 +2676,17 @@ def build(args, parser=None):
             logv('[no Java sources for {0} - skipping]'.format(p.name))
             continue
 
+        javafilelist = sorted(javafilelist)
+
         task = JavaCompileTask(args, p, buildReason, javafilelist, jdk, outputDir, jdtJar, taskDeps)
         if p.definedAnnotationProcessorsDist:
             updatedAnnotationProcessorDists.add(p.definedAnnotationProcessorsDist)
 
+        tasks[p.name] = task
         if args.parallelize:
             # Best to initialize class paths on main process
             jdk.bootclasspath()
             task.proc = None
-            tasks[p.name] = task
         else:
             task.execute()
 
@@ -2515,9 +2781,10 @@ def build(args, parser=None):
                 log('Compiling {} failed'.format(t.proj.name))
             abort('{} Java compilation tasks failed'.format(len(failed)))
 
-    for dist in sorted_dists():
-        if dist not in updatedAnnotationProcessorDists:
-            archive(['@' + dist.name])
+    if args.java:
+        for dist in sorted_dists():
+            if dist not in updatedAnnotationProcessorDists:
+                archive(['@' + dist.name])
 
     if suppliedParser:
         return args
@@ -2829,61 +3096,56 @@ def archive(args):
     return archives
 
 def canonicalizeprojects(args):
-    """process all project files to canonicalize the dependencies
+    """check all project specifications for canonical dependencies
 
-    The exit code of this command reflects how many files were updated."""
+    The exit code of this command reflects how many projects have non-canonical dependencies."""
 
-    changedFiles = 0
+    nonCanonical = []
     for s in suites(True):
-        projectsFile = join(s.mxDir, 'projects')
-        if not exists(projectsFile):
-            continue
-        with open(projectsFile) as f:
-            out = StringIO.StringIO()
-            pattern = re.compile('project@([^@]+)@dependencies=.*')
-            lineNo = 1
-            for line in f:
-                line = line.strip()
-                m = pattern.match(line)
-                p = project(m.group(1), fatalIfMissing=False) if m else None
-                if m is None or p is None:
-                    out.write(line + '\n')
-                else:
-                    for pkg in p.defined_java_packages():
-                        if not pkg.startswith(p.name):
-                            abort('package in {0} does not have prefix matching project name: {1}'.format(p, pkg))
+        for p in s.projects:
+            for pkg in p.defined_java_packages():
+                if not pkg.startswith(p.name):
+                    abort('package in {0} does not have prefix matching project name: {1}'.format(p, pkg))
 
-                    ignoredDeps = set([name for name in p.deps if project(name, False) is not None])
-                    for pkg in p.imported_java_packages():
-                        for name in p.deps:
-                            dep = project(name, False)
-                            if dep is None:
-                                ignoredDeps.discard(name)
-                            else:
-                                if pkg in dep.defined_java_packages():
-                                    ignoredDeps.discard(name)
-                                if pkg in dep.extended_java_packages():
-                                    ignoredDeps.discard(name)
-                    if len(ignoredDeps) != 0:
-                        candidates = set()
-                        # Compute dependencies based on projects required by p
-                        for d in sorted_deps():
-                            if not d.defined_java_packages().isdisjoint(p.imported_java_packages()):
-                                candidates.add(d)
-                        # Remove non-canonical candidates
-                        for c in list(candidates):
-                            candidates.difference_update(c.all_deps([], False, False))
-                        candidates = [d.name for d in candidates]
+            ignoredDeps = set([name for name in p.deps if project(name, False) is not None])
+            for pkg in p.imported_java_packages():
+                for name in p.deps:
+                    dep = project(name, False)
+                    if dep is None:
+                        ignoredDeps.discard(name)
+                    else:
+                        if pkg in dep.defined_java_packages():
+                            ignoredDeps.discard(name)
+                        if pkg in dep.extended_java_packages():
+                            ignoredDeps.discard(name)
+            if len(ignoredDeps) != 0:
+                candidates = set()
+                # Compute dependencies based on projects required by p
+                for d in sorted_deps():
+                    if not d.defined_java_packages().isdisjoint(p.imported_java_packages()):
+                        candidates.add(d)
+                # Remove non-canonical candidates
+                for c in list(candidates):
+                    candidates.difference_update(c.all_deps([], False, False))
+                candidates = [d.name for d in candidates]
 
-                        abort('{0}:{1}: {2} does not use any packages defined in these projects: {3}\nComputed project dependencies: {4}'.format(
-                            projectsFile, lineNo, p, ', '.join(ignoredDeps), ','.join(candidates)))
+                abort('{} does not use any packages defined in these projects: {}\nComputed project dependencies: {}'.format(
+                    p, ', '.join(ignoredDeps), ','.join(candidates)))
 
-                    out.write('project@' + m.group(1) + '@dependencies=' + ','.join(p.canonical_deps()) + '\n')
-                lineNo = lineNo + 1
-            content = out.getvalue()
-        if update_file(projectsFile, content):
-            changedFiles += 1
-    return changedFiles
+            excess = frozenset(p.deps) - set(p.canonical_deps())
+            if len(excess) != 0:
+                nonCanonical.append(p)
+    if len(nonCanonical) != 0:
+        for p in nonCanonical:
+            canonicalDeps = p.canonical_deps()
+            if len(canonicalDeps) != 0:
+                log('Canonical dependencies for project ' + p.name + ' are: [')
+                for d in canonicalDeps:
+                    log('        "' + d + '",')
+                log('      ],')
+            else:
+                log('Canonical dependencies for project ' + p.name + ' are: []')
+    return len(nonCanonical)
 
 class TimeStampFile:
     def __init__(self, path):
@@ -3077,11 +3339,12 @@ def clean(args, parser=None):
                 if config.exists():
                     os.unlink(config.path)
 
-    if args.dist:
-        for d in _dists.keys():
-            log('Removing distribution {0}...'.format(d))
-            _rmIfExists(distribution(d).path)
-            _rmIfExists(distribution(d).sourcesPath)
+    if args.java:
+        if args.dist:
+            for d in _dists.keys():
+                log('Removing distribution {0}...'.format(d))
+                _rmIfExists(distribution(d).path)
+                _rmIfExists(distribution(d).sourcesPath)
 
     if suppliedParser:
         return args
@@ -3322,8 +3585,8 @@ def eclipseinit(args, buildProcessorJars=True, refreshOnly=False):
 
 def _check_ide_timestamp(suite, configZip, ide):
     """return True if and only if the projects file, eclipse-settings files, and mx itself are all older than configZip"""
-    projectsFile = join(suite.mxDir, 'projects')
-    if configZip.isOlderThan(projectsFile):
+    projectsPyFiles = [join(suite.mxDir, e) for e in os.listdir(suite.mxDir) if e.startswith('projects') and e.endswith('.py')]
+    if configZip.isOlderThan(projectsPyFiles):
         return False
     # Assume that any mx change might imply changes to the generated IDE files
     if configZip.isOlderThan(__file__):
@@ -3940,14 +4203,14 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
         out.open('source-roots')
         out.element('root', {'id' : 'src.dir'})
         if len(p.annotation_processors()) > 0:
-            out.element('root', {'id' : 'src.ap-source-output.dir'})
+            out.element('root', {'id' : 'src.ap-source-output.dir', 'name' : 'Generated Packages'})
         out.close('source-roots')
         out.open('test-roots')
         out.close('test-roots')
         out.close('data')
 
         firstDep = True
-        for dep in p.all_deps([], True):
+        for dep in p.all_deps([], includeLibs=False, includeAnnotationProcessors=True):
             if dep == p:
                 continue
 
@@ -3982,7 +4245,10 @@ def _netbeansinit_suite(args, suite, refreshOnly=False, buildProcessorJars=True)
         annotationProcessorSrcFolder = ""
         if len(p.annotation_processors()) > 0:
             annotationProcessorEnabled = "true"
-            annotationProcessorSrcFolder = "src.ap-source-output.dir=${build.generated.sources.dir}/ap-source-output"
+            genSrcDir = p.source_gen_dir()
+            if not exists(genSrcDir):
+                os.makedirs(genSrcDir)
+            annotationProcessorSrcFolder = "src.ap-source-output.dir=" + genSrcDir
 
         content = """
 annotation.processing.enabled=""" + annotationProcessorEnabled + """
@@ -3995,7 +4261,6 @@ build.classes.dir=${build.dir}
 build.classes.excludes=**/*.java,**/*.form
 # This directory is removed when the project is cleaned:
 build.dir=bin
-build.generated.dir=${build.dir}/generated
 build.generated.sources.dir=${build.dir}/generated-sources
 # Only compile against the classpath explicitly listed here:
 build.sysclasspath=ignore
@@ -4016,7 +4281,7 @@ excludes=
 includes=**
 jar.compress=false
 # Space-separated list of extra javac options
-javac.compilerargs=
+javac.compilerargs=-XDignore.symbol.file
 javac.deprecation=false
 javac.source=""" + str(p.javaCompliance) + """
 javac.target=""" + str(p.javaCompliance) + """
@@ -4116,10 +4381,12 @@ source.encoding=UTF-8""".replace(':', os.pathsep).replace('/', os.sep)
 
     if updated:
         log('If using NetBeans:')
-        log('  1. Ensure that the following platform(s) are defined (Tools -> Java Platforms):')
+        # http://stackoverflow.com/questions/24720665/cant-resolve-jdk-internal-package
+        log('  1. Edit etc/netbeans.conf in your NetBeans installation and modify netbeans_default_options variable to include "-J-DCachingArchiveProvider.disableCtSym=true"')
+        log('  2. Ensure that the following platform(s) are defined (Tools -> Java Platforms):')
         for jdk in jdks:
             log('        JDK_' + str(jdk.version))
-        log('  2. Open/create a Project Group for the directory containing the projects (File -> Project Group -> New Group... -> Folder of Projects)')
+        log('  3. Open/create a Project Group for the directory containing the projects (File -> Project Group -> New Group... -> Folder of Projects)')
 
     _zip_files(files, suite.dir, configZip.path)
     _zip_files(libFiles, suite.dir, configLibsZip)
@@ -4862,9 +5129,8 @@ def javap(args):
 def show_projects(args):
     """show all loaded projects"""
     for s in suites():
-        projectsFile = join(s.mxDir, 'projects')
-        if exists(projectsFile):
-            log(projectsFile)
+        if len(s.projects) != 0:
+            log(join(s.mxDir, 'projects*.py'))
             for p in s.projects:
                 log('\t' + p.name)
 
@@ -4910,6 +5176,7 @@ _commands = {
     'about': [about, ''],
     'build': [build, '[options]'],
     'checkstyle': [checkstyle, ''],
+    'convertprojects' : [convertprojects, ''],
     'canonicalizeprojects': [canonicalizeprojects, ''],
     'clean': [clean, ''],
     'eclipseinit': [eclipseinit, ''],
@@ -4951,7 +5218,7 @@ def _is_suite_dir(d, mxDirName=None):
         for f in os.listdir(d):
             if (mxDirName == None and (f == 'mx' or fnmatch.fnmatch(f, 'mx.*'))) or f == mxDirName:
                 mxDir = join(d, f)
-                if exists(mxDir) and isdir(mxDir) and exists(join(mxDir, 'projects')):
+                if exists(mxDir) and isdir(mxDir) and (exists(join(mxDir, 'projects.py')) or exists(join(mxDir, 'projects'))):
                     return mxDir
 
 def _check_primary_suite():

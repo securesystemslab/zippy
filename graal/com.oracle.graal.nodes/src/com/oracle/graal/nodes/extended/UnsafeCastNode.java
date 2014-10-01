@@ -40,20 +40,32 @@ import com.oracle.graal.nodes.type.*;
 @NodeInfo
 public class UnsafeCastNode extends FloatingGuardedNode implements LIRLowerable, Virtualizable, GuardingNode, IterableNodeType, Canonicalizable, ValueProxy {
 
-    @Input private ValueNode object;
+    @Input ValueNode object;
 
-    public UnsafeCastNode(ValueNode object, Stamp stamp) {
+    public static UnsafeCastNode create(ValueNode object, Stamp stamp) {
+        return USE_GENERATED_NODES ? new UnsafeCastNodeGen(object, stamp) : new UnsafeCastNode(object, stamp);
+    }
+
+    UnsafeCastNode(ValueNode object, Stamp stamp) {
         super(stamp);
         this.object = object;
     }
 
-    public UnsafeCastNode(ValueNode object, Stamp stamp, ValueNode anchor) {
+    public static UnsafeCastNode create(ValueNode object, Stamp stamp, ValueNode anchor) {
+        return USE_GENERATED_NODES ? new UnsafeCastNodeGen(object, stamp, anchor) : new UnsafeCastNode(object, stamp, anchor);
+    }
+
+    UnsafeCastNode(ValueNode object, Stamp stamp, ValueNode anchor) {
         super(stamp, (GuardingNode) anchor);
         this.object = object;
     }
 
-    public UnsafeCastNode(ValueNode object, ResolvedJavaType toType, boolean exactType, boolean nonNull) {
-        this(object, toType.getKind() == Kind.Object ? StampFactory.object(toType, exactType, nonNull || StampTool.isObjectNonNull(object.stamp())) : StampFactory.forKind(toType.getKind()));
+    public static UnsafeCastNode create(ValueNode object, ResolvedJavaType toType, boolean exactType, boolean nonNull) {
+        return USE_GENERATED_NODES ? new UnsafeCastNodeGen(object, toType, exactType, nonNull) : new UnsafeCastNode(object, toType, exactType, nonNull);
+    }
+
+    UnsafeCastNode(ValueNode object, ResolvedJavaType toType, boolean exactType, boolean nonNull) {
+        this(object, toType.getKind() == Kind.Object ? StampFactory.object(toType, exactType, nonNull || StampTool.isObjectNonNull(object.stamp()), true) : StampFactory.forKind(toType.getKind()));
     }
 
     @Override

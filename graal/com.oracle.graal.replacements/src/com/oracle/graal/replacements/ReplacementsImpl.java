@@ -25,6 +25,7 @@ package com.oracle.graal.replacements;
 import static com.oracle.graal.api.meta.MetaUtil.*;
 import static com.oracle.graal.compiler.GraalCompiler.*;
 import static com.oracle.graal.compiler.common.GraalOptions.*;
+import static com.oracle.graal.phases.common.DeadCodeEliminationPhase.Optionality.*;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -74,9 +75,9 @@ public class ReplacementsImpl implements Replacements {
      * Encapsulates method and macro substitutions for a single class.
      */
     protected class ClassReplacements {
-        protected final Map<ResolvedJavaMethod, ResolvedJavaMethod> methodSubstitutions = new HashMap<>();
-        private final Map<ResolvedJavaMethod, Class<? extends FixedWithNextNode>> macroSubstitutions = new HashMap<>();
-        private final Set<ResolvedJavaMethod> forcedSubstitutions = new HashSet<>();
+        public final Map<ResolvedJavaMethod, ResolvedJavaMethod> methodSubstitutions = new HashMap<>();
+        public final Map<ResolvedJavaMethod, Class<? extends FixedWithNextNode>> macroSubstitutions = new HashMap<>();
+        public final Set<ResolvedJavaMethod> forcedSubstitutions = new HashSet<>();
 
         public ClassReplacements(Class<?>[] substitutionClasses, AtomicReference<ClassReplacements> ref) {
             for (Class<?> substitutionClass : substitutionClasses) {
@@ -265,9 +266,13 @@ public class ReplacementsImpl implements Replacements {
 
         // Do deferred intrinsification of node intrinsics
 
-        new NodeIntrinsificationPhase(providers, snippetReflection).apply(specializedSnippet);
+        createNodeIntrinsificationPhase().apply(specializedSnippet);
         new CanonicalizerPhase(true).apply(specializedSnippet, new PhaseContext(providers, assumptions));
         NodeIntrinsificationVerificationPhase.verify(specializedSnippet);
+    }
+
+    protected NodeIntrinsificationPhase createNodeIntrinsificationPhase() {
+        return new NodeIntrinsificationPhase(providers, snippetReflection);
     }
 
     @Override
@@ -490,7 +495,7 @@ public class ReplacementsImpl implements Replacements {
          * Does final processing of a snippet graph.
          */
         protected void finalizeGraph(StructuredGraph graph) {
-            new NodeIntrinsificationPhase(providers, snippetReflection).apply(graph);
+            createNodeIntrinsificationPhase().apply(graph);
             if (!SnippetTemplate.hasConstantParameter(method)) {
                 NodeIntrinsificationVerificationPhase.verify(graph);
             }
@@ -511,7 +516,7 @@ public class ReplacementsImpl implements Replacements {
                     new CollapseFrameForSingleSideEffectPhase().apply(graph);
                     break;
             }
-            new DeadCodeEliminationPhase().apply(graph);
+            new DeadCodeEliminationPhase(Required).apply(graph);
         }
 
         /**
@@ -571,10 +576,11 @@ public class ReplacementsImpl implements Replacements {
                 MetaAccessProvider metaAccess = providers.getMetaAccess();
 
                 if (MethodsElidedInSnippets != null && methodToParse.getSignature().getReturnKind() == Kind.Void && MethodFilter.matches(MethodsElidedInSnippets, methodToParse)) {
-                    graph.addAfterFixed(graph.start(), graph.add(new ReturnNode(null)));
+                    graph.addAfterFixed(graph.start(), graph.add(ReturnNode.create(null)));
                 } else {
                     createGraphBuilder(metaAccess, GraphBuilderConfiguration.getSnippetDefault(), OptimisticOptimizations.NONE).apply(graph);
                 }
+                afterParsing(graph);
                 new WordTypeVerificationPhase(metaAccess, snippetReflection, target.wordKind).apply(graph);
                 new WordTypeRewriterPhase(metaAccess, snippetReflection, target.wordKind).apply(graph);
 
@@ -589,6 +595,9 @@ public class ReplacementsImpl implements Replacements {
 
         protected Instance createGraphBuilder(MetaAccessProvider metaAccess, GraphBuilderConfiguration graphBuilderConfig, OptimisticOptimizations optimisticOpts) {
             return new GraphBuilderPhase.Instance(metaAccess, graphBuilderConfig, optimisticOpts);
+        }
+
+        protected void afterParsing(@SuppressWarnings("unused") StructuredGraph graph) {
         }
 
         protected Object beforeInline(@SuppressWarnings("unused") MethodCallTargetNode callTarget, @SuppressWarnings("unused") StructuredGraph callee) {
@@ -612,8 +621,8 @@ public class ReplacementsImpl implements Replacements {
          * Called after all inlining for a given graph is complete.
          */
         protected void afterInlining(StructuredGraph graph) {
-            new NodeIntrinsificationPhase(providers, snippetReflection).apply(graph);
-            new DeadCodeEliminationPhase().apply(graph);
+            createNodeIntrinsificationPhase().apply(graph);
+            new DeadCodeEliminationPhase(Optional).apply(graph);
             if (OptCanonicalizer.getValue()) {
                 new CanonicalizerPhase(true).apply(graph, new PhaseContext(providers, assumptions));
             }
@@ -686,7 +695,7 @@ public class ReplacementsImpl implements Replacements {
                     end.disableSafepoint();
                 }
 
-                new DeadCodeEliminationPhase().apply(graph);
+                new DeadCodeEliminationPhase(Required).apply(graph);
             } catch (Throwable e) {
                 throw Debug.handle(e);
             }

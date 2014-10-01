@@ -32,10 +32,14 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo(nameTemplate = "VirtualArray {p#componentType/s}[{p#length}]")
 public class VirtualArrayNode extends VirtualObjectNode implements ArrayLengthProvider {
 
-    private final ResolvedJavaType componentType;
-    private final int length;
+    protected final ResolvedJavaType componentType;
+    protected final int length;
 
-    public VirtualArrayNode(ResolvedJavaType componentType, int length) {
+    public static VirtualArrayNode create(ResolvedJavaType componentType, int length) {
+        return USE_GENERATED_NODES ? new VirtualArrayNodeGen(componentType, length) : new VirtualArrayNode(componentType, length);
+    }
+
+    protected VirtualArrayNode(ResolvedJavaType componentType, int length) {
         super(componentType.getArrayClass(), true);
         this.componentType = componentType;
         this.length = length;
@@ -137,12 +141,12 @@ public class VirtualArrayNode extends VirtualObjectNode implements ArrayLengthPr
 
     @Override
     public VirtualArrayNode duplicate() {
-        return new VirtualArrayNode(componentType, length);
+        return VirtualArrayNode.create(componentType, length);
     }
 
     @Override
     public ValueNode getMaterializedRepresentation(FixedNode fixed, ValueNode[] entries, LockState locks) {
-        return new AllocatedObjectNode(this);
+        return AllocatedObjectNode.create(this);
     }
 
     public ValueNode length() {

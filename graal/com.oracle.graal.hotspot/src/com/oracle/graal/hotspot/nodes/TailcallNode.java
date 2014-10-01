@@ -43,8 +43,8 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo
 public class TailcallNode extends FixedWithNextNode implements LIRLowerable {
 
-    @Input(InputType.State) private FrameState frameState;
-    @Input private ValueNode target;
+    @Input(InputType.State) FrameState frameState;
+    @Input ValueNode target;
 
     /**
      * Creates a TailcallNode.
@@ -52,7 +52,11 @@ public class TailcallNode extends FixedWithNextNode implements LIRLowerable {
      * @param target points to the start of an nmethod
      * @param frameState the parameters will be taken from this FrameState
      */
-    public TailcallNode(ValueNode target, FrameState frameState) {
+    public static TailcallNode create(ValueNode target, FrameState frameState) {
+        return USE_GENERATED_NODES ? new TailcallNodeGen(target, frameState) : new TailcallNode(target, frameState);
+    }
+
+    protected TailcallNode(ValueNode target, FrameState frameState) {
         super(StampFactory.forVoid());
         this.target = target;
         this.frameState = frameState;

@@ -43,7 +43,11 @@ public class AMD64FloatConvertNode extends UnaryNode implements ArithmeticLIRLow
 
     private final FloatConvert op;
 
-    public AMD64FloatConvertNode(Stamp stamp, FloatConvert op, ValueNode value) {
+    public static AMD64FloatConvertNode create(Stamp stamp, FloatConvert op, ValueNode value) {
+        return USE_GENERATED_NODES ? new AMD64FloatConvertNodeGen(stamp, op, value) : new AMD64FloatConvertNode(stamp, op, value);
+    }
+
+    protected AMD64FloatConvertNode(Stamp stamp, FloatConvert op, ValueNode value) {
         super(stamp, value);
         this.op = op;
     }

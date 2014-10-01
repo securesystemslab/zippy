@@ -41,7 +41,11 @@ public class FloatConvertNode extends ConvertNode implements Lowerable, Arithmet
 
     private final FloatConvert op;
 
-    public FloatConvertNode(FloatConvert op, ValueNode input) {
+    public static FloatConvertNode create(FloatConvert op, ValueNode input) {
+        return USE_GENERATED_NODES ? new FloatConvertNodeGen(op, input) : new FloatConvertNode(op, input);
+    }
+
+    protected FloatConvertNode(FloatConvert op, ValueNode input) {
         super(createStamp(op, input), input);
         this.op = op;
     }

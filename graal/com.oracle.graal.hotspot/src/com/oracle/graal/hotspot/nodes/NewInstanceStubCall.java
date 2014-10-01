@@ -42,9 +42,13 @@ public class NewInstanceStubCall extends DeoptimizingStubCall implements LIRLowe
 
     private static final Stamp defaultStamp = StampFactory.objectNonNull();
 
-    @Input private ValueNode hub;
+    @Input ValueNode hub;
 
-    public NewInstanceStubCall(ValueNode hub) {
+    public static NewInstanceStubCall create(ValueNode hub) {
+        return USE_GENERATED_NODES ? new NewInstanceStubCallGen(hub) : new NewInstanceStubCall(hub);
+    }
+
+    protected NewInstanceStubCall(ValueNode hub) {
         super(defaultStamp);
         this.hub = hub;
     }

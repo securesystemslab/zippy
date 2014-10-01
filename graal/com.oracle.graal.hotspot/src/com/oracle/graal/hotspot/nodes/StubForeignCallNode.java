@@ -40,12 +40,16 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo(nameTemplate = "StubForeignCall#{p#descriptor/s}", allowedUsageTypes = {InputType.Memory})
 public class StubForeignCallNode extends FixedWithNextNode implements LIRLowerable, MemoryCheckpoint.Multi {
 
-    @Input private final NodeInputList<ValueNode> arguments;
+    @Input NodeInputList<ValueNode> arguments;
     private final ForeignCallsProvider foreignCalls;
 
     private final ForeignCallDescriptor descriptor;
 
-    public StubForeignCallNode(@InjectedNodeParameter ForeignCallsProvider foreignCalls, ForeignCallDescriptor descriptor, ValueNode... arguments) {
+    public static StubForeignCallNode create(@InjectedNodeParameter ForeignCallsProvider foreignCalls, ForeignCallDescriptor descriptor, ValueNode... arguments) {
+        return USE_GENERATED_NODES ? new StubForeignCallNodeGen(foreignCalls, descriptor, arguments) : new StubForeignCallNode(foreignCalls, descriptor, arguments);
+    }
+
+    protected StubForeignCallNode(@InjectedNodeParameter ForeignCallsProvider foreignCalls, ForeignCallDescriptor descriptor, ValueNode... arguments) {
         super(StampFactory.forKind(Kind.fromJavaClass(descriptor.getResultType())));
         this.arguments = new NodeInputList<>(this, arguments);
         this.descriptor = descriptor;

@@ -33,8 +33,6 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.Graph.DuplicationReplacement;
 import com.oracle.graal.graph.Graph.Mark;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.graph.NodeClass.NodeClassIterator;
-import com.oracle.graal.graph.NodeClass.Position;
 import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.VirtualState.NodeClosure;
@@ -64,7 +62,11 @@ public class TailDuplicationPhase extends BasePhase<PhaseContext> {
 
     @NodeInfo
     static class DummyAnchorNode extends FixedWithNextNode implements GuardingNode {
-        public DummyAnchorNode() {
+        public static DummyAnchorNode create() {
+            return USE_GENERATED_NODES ? new TailDuplicationPhase_DummyAnchorNodeGen() : new DummyAnchorNode();
+        }
+
+        protected DummyAnchorNode() {
             super(StampFactory.forVoid());
         }
     }
@@ -339,7 +341,7 @@ public class TailDuplicationPhase extends BasePhase<PhaseContext> {
          * @return The new {@link ValueAnchorNode} that was created.
          */
         private DummyAnchorNode addValueAnchor() {
-            DummyAnchorNode anchor = graph.add(new DummyAnchorNode());
+            DummyAnchorNode anchor = graph.add(DummyAnchorNode.create());
             graph.addAfterFixed(merge, anchor);
             merge.replaceAtUsages(InputType.Guard, anchor);
             merge.replaceAtUsages(InputType.Anchor, anchor);
@@ -449,8 +451,8 @@ public class TailDuplicationPhase extends BasePhase<PhaseContext> {
          * @return The newly created end node.
          */
         private AbstractEndNode createNewMerge(FixedNode successor, FrameState stateAfterMerge) {
-            MergeNode newBottomMerge = graph.add(new MergeNode());
-            AbstractEndNode newBottomEnd = graph.add(new EndNode());
+            MergeNode newBottomMerge = graph.add(MergeNode.create());
+            AbstractEndNode newBottomEnd = graph.add(EndNode.create());
             newBottomMerge.addForwardEnd(newBottomEnd);
             newBottomMerge.setStateAfter(stateAfterMerge);
             ((FixedWithNextNode) successor.predecessor()).setNext(newBottomEnd);
@@ -494,7 +496,7 @@ public class TailDuplicationPhase extends BasePhase<PhaseContext> {
             Node newOutsideClone = null;
             for (Node usage : unique) {
                 if (!duplicatedNodes.contains(usage)) {
-                    NodeClassIterator iter = usage.inputs().iterator();
+                    NodePosIterator iter = usage.inputs().iterator();
                     while (iter.hasNext()) {
                         Position pos = iter.nextPosition();
                         if (pos.get(usage) == duplicated) {
@@ -524,7 +526,7 @@ public class TailDuplicationPhase extends BasePhase<PhaseContext> {
                                     ValueNode node = (ValueNode) duplicated;
                                     PhiNode newPhi = bottomPhis.get(node);
                                     if (newPhi == null) {
-                                        newPhi = graph.addWithoutUnique(new ValuePhiNode(node.stamp().unrestricted(), newBottomMerge));
+                                        newPhi = graph.addWithoutUnique(ValuePhiNode.create(node.stamp().unrestricted(), newBottomMerge));
                                         bottomPhis.put(node, newPhi);
                                         newPhi.addInput(node);
                                     }
@@ -542,7 +544,7 @@ public class TailDuplicationPhase extends BasePhase<PhaseContext> {
 
         private void processInputs(Node duplicated, HashSet<Node> duplicatedNodes, Deque<Node> worklist) {
             // check if this node has an input that lies outside and cannot be shared
-            NodeClassIterator iter = duplicated.inputs().iterator();
+            NodePosIterator iter = duplicated.inputs().iterator();
             while (iter.hasNext()) {
                 Position pos = iter.nextPosition();
                 Node input = pos.get(duplicated);

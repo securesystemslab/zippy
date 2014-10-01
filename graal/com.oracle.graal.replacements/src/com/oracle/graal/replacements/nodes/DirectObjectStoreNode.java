@@ -37,13 +37,18 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo
 public class DirectObjectStoreNode extends FixedWithNextNode implements Lowerable {
 
-    @Input private ValueNode object;
-    @Input private ValueNode value;
-    @Input private ValueNode offset;
+    @Input ValueNode object;
+    @Input ValueNode value;
+    @Input ValueNode offset;
     private final int displacement;
     private final LocationIdentity locationIdentity;
 
-    public DirectObjectStoreNode(ValueNode object, int displacement, ValueNode offset, ValueNode value, LocationIdentity locationIdentity) {
+    public static DirectObjectStoreNode create(ValueNode object, int displacement, ValueNode offset, ValueNode value, LocationIdentity locationIdentity) {
+        return USE_GENERATED_NODES ? new DirectObjectStoreNodeGen(object, displacement, offset, value, locationIdentity) : new DirectObjectStoreNode(object, displacement, offset, value,
+                        locationIdentity);
+    }
+
+    protected DirectObjectStoreNode(ValueNode object, int displacement, ValueNode offset, ValueNode value, LocationIdentity locationIdentity) {
         super(StampFactory.forVoid());
         this.object = object;
         this.value = value;
@@ -61,7 +66,7 @@ public class DirectObjectStoreNode extends FixedWithNextNode implements Lowerabl
     @Override
     public void lower(LoweringTool tool) {
         IndexedLocationNode location = IndexedLocationNode.create(locationIdentity, value.getKind(), displacement, offset, graph(), 1);
-        JavaWriteNode write = graph().add(new JavaWriteNode(object, value, location, BarrierType.NONE, value.getKind() == Kind.Object, false));
+        JavaWriteNode write = graph().add(JavaWriteNode.create(object, value, location, BarrierType.NONE, value.getKind() == Kind.Object, false));
         graph().replaceFixedWithFixed(this, write);
 
         tool.getLowerer().lower(write, tool);

@@ -35,19 +35,27 @@ import com.oracle.graal.nodes.virtual.*;
 @NodeInfo
 public class VirtualObjectState extends EscapeObjectState implements Node.ValueNumberable {
 
-    @Input private final NodeInputList<ValueNode> values;
+    @Input NodeInputList<ValueNode> values;
 
     public NodeInputList<ValueNode> values() {
         return values;
     }
 
-    public VirtualObjectState(VirtualObjectNode object, ValueNode[] values) {
+    public static VirtualObjectState create(VirtualObjectNode object, ValueNode[] values) {
+        return USE_GENERATED_NODES ? new VirtualObjectStateGen(object, values) : new VirtualObjectState(object, values);
+    }
+
+    protected VirtualObjectState(VirtualObjectNode object, ValueNode[] values) {
         super(object);
         assert object.entryCount() == values.length;
         this.values = new NodeInputList<>(this, values);
     }
 
-    public VirtualObjectState(VirtualObjectNode object, List<ValueNode> values) {
+    public static VirtualObjectState create(VirtualObjectNode object, List<ValueNode> values) {
+        return USE_GENERATED_NODES ? new VirtualObjectStateGen(object, values) : new VirtualObjectState(object, values);
+    }
+
+    protected VirtualObjectState(VirtualObjectNode object, List<ValueNode> values) {
         super(object);
         assert object.entryCount() == values.size();
         this.values = new NodeInputList<>(this, values);
@@ -55,7 +63,7 @@ public class VirtualObjectState extends EscapeObjectState implements Node.ValueN
 
     @Override
     public VirtualObjectState duplicateWithVirtualState() {
-        return graph().addWithoutUnique(new VirtualObjectState(object(), values));
+        return graph().addWithoutUnique(VirtualObjectState.create(object(), values));
     }
 
     @Override

@@ -38,7 +38,11 @@ import com.oracle.graal.replacements.nodes.*;
 @NodeInfo
 public class ClassGetSuperclassNode extends MacroNode implements Canonicalizable {
 
-    public ClassGetSuperclassNode(Invoke invoke) {
+    public static ClassGetSuperclassNode create(Invoke invoke) {
+        return USE_GENERATED_NODES ? new ClassGetSuperclassNodeGen(invoke) : new ClassGetSuperclassNode(invoke);
+    }
+
+    protected ClassGetSuperclassNode(Invoke invoke) {
         super(invoke);
     }
 

@@ -37,18 +37,26 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo
 public class LoadHubNode extends FloatingGuardedNode implements Lowerable, Canonicalizable, Virtualizable {
 
-    @Input private ValueNode value;
+    @Input ValueNode value;
 
     public ValueNode getValue() {
         return value;
     }
 
-    public LoadHubNode(ValueNode value, Kind kind) {
+    public static LoadHubNode create(ValueNode value, Kind kind) {
+        return USE_GENERATED_NODES ? new LoadHubNodeGen(value, kind) : new LoadHubNode(value, kind);
+    }
+
+    LoadHubNode(ValueNode value, Kind kind) {
         super(getKind(kind), null);
         this.value = value;
     }
 
-    public LoadHubNode(ValueNode value, Kind kind, ValueNode guard) {
+    public static LoadHubNode create(ValueNode value, Kind kind, ValueNode guard) {
+        return USE_GENERATED_NODES ? new LoadHubNodeGen(value, kind, guard) : new LoadHubNode(value, kind, guard);
+    }
+
+    LoadHubNode(ValueNode value, Kind kind, ValueNode guard) {
         super(getKind(kind), (GuardingNode) guard);
         assert value != guard;
         this.value = value;

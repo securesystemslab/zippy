@@ -51,7 +51,12 @@ public class IntegerSwitchNode extends SwitchNode implements LIRLowerable, Simpl
      * @param keyProbabilities the probabilities of the keys
      * @param keySuccessors the successor index for each key
      */
-    public IntegerSwitchNode(ValueNode value, BeginNode[] successors, int[] keys, double[] keyProbabilities, int[] keySuccessors) {
+    public static IntegerSwitchNode create(ValueNode value, BeginNode[] successors, int[] keys, double[] keyProbabilities, int[] keySuccessors) {
+        return USE_GENERATED_NODES ? new IntegerSwitchNodeGen(value, successors, keys, keyProbabilities, keySuccessors) : new IntegerSwitchNode(value, successors, keys, keyProbabilities,
+                        keySuccessors);
+    }
+
+    IntegerSwitchNode(ValueNode value, BeginNode[] successors, int[] keys, double[] keyProbabilities, int[] keySuccessors) {
         super(value, successors, keySuccessors, keyProbabilities);
         assert keySuccessors.length == keys.length + 1;
         assert keySuccessors.length == keyProbabilities.length;
@@ -77,7 +82,12 @@ public class IntegerSwitchNode extends SwitchNode implements LIRLowerable, Simpl
      * @param keyProbabilities the probabilities of the keys
      * @param keySuccessors the successor index for each key
      */
-    public IntegerSwitchNode(ValueNode value, int successorCount, int[] keys, double[] keyProbabilities, int[] keySuccessors) {
+    public static IntegerSwitchNode create(ValueNode value, int successorCount, int[] keys, double[] keyProbabilities, int[] keySuccessors) {
+        return USE_GENERATED_NODES ? new IntegerSwitchNodeGen(value, successorCount, keys, keyProbabilities, keySuccessors) : new IntegerSwitchNode(value, successorCount, keys, keyProbabilities,
+                        keySuccessors);
+    }
+
+    IntegerSwitchNode(ValueNode value, int successorCount, int[] keys, double[] keyProbabilities, int[] keySuccessors) {
         this(value, new BeginNode[successorCount], keys, keyProbabilities, keySuccessors);
     }
 
@@ -191,7 +201,7 @@ public class IntegerSwitchNode extends SwitchNode implements LIRLowerable, Simpl
                     }
 
                     BeginNode[] successorsArray = newSuccessors.toArray(new BeginNode[newSuccessors.size()]);
-                    IntegerSwitchNode newSwitch = graph().add(new IntegerSwitchNode(value(), successorsArray, newKeys, newKeyProbabilities, newKeySuccessors));
+                    IntegerSwitchNode newSwitch = graph().add(IntegerSwitchNode.create(value(), successorsArray, newKeys, newKeyProbabilities, newKeySuccessors));
                     ((FixedWithNextNode) predecessor()).setNext(newSwitch);
                     GraphUtil.killWithUnusedFloatingInputs(this);
                 }

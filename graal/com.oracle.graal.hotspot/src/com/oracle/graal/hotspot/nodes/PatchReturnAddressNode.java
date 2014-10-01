@@ -35,9 +35,13 @@ import com.oracle.graal.word.*;
 @NodeInfo
 public class PatchReturnAddressNode extends FixedWithNextNode implements LIRLowerable {
 
-    @Input private ValueNode address;
+    @Input ValueNode address;
 
-    public PatchReturnAddressNode(ValueNode address) {
+    public static PatchReturnAddressNode create(ValueNode address) {
+        return USE_GENERATED_NODES ? new PatchReturnAddressNodeGen(address) : new PatchReturnAddressNode(address);
+    }
+
+    protected PatchReturnAddressNode(ValueNode address) {
         super(StampFactory.forVoid());
         this.address = address;
     }

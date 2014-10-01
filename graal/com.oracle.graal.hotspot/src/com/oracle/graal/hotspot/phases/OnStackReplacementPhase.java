@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.hotspot.phases;
 
+import static com.oracle.graal.phases.common.DeadCodeEliminationPhase.Optionality.*;
+
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
@@ -84,7 +86,7 @@ public class OnStackReplacementPhase extends Phase {
 
         FrameState osrState = osr.stateAfter();
         osr.setStateAfter(null);
-        OSRStartNode osrStart = graph.add(new OSRStartNode());
+        OSRStartNode osrStart = graph.add(OSRStartNode.create());
         StartNode start = graph.start();
         FixedNode next = osr.next();
         osr.setNext(null);
@@ -100,7 +102,7 @@ public class OnStackReplacementPhase extends Phase {
                  * we need to drop the stamp since the types we see during OSR may be too precise
                  * (if a branch was not parsed for example).
                  */
-                proxy.replaceAndDelete(graph.unique(new OSRLocalNode(i, proxy.stamp().unrestricted())));
+                proxy.replaceAndDelete(graph.unique(OSRLocalNode.create(i, proxy.stamp().unrestricted())));
             } else {
                 assert value == null || value instanceof OSRLocalNode;
             }
@@ -109,6 +111,6 @@ public class OnStackReplacementPhase extends Phase {
         GraphUtil.killCFG(start);
 
         Debug.dump(graph, "OnStackReplacement result");
-        new DeadCodeEliminationPhase().apply(graph);
+        new DeadCodeEliminationPhase(Required).apply(graph);
     }
 }

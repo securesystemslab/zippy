@@ -39,7 +39,7 @@ import com.oracle.graal.nodes.calc.*;
 @NodeInfo
 public abstract class PhiNode extends FloatingNode implements Simplifiable {
 
-    @Input(InputType.Association) private MergeNode merge;
+    @Input(InputType.Association) protected MergeNode merge;
 
     protected PhiNode(Stamp stamp, MergeNode merge) {
         super(stamp);
@@ -142,13 +142,17 @@ public abstract class PhiNode extends FloatingNode implements Simplifiable {
     @NodeInfo
     static class MultipleValuesNode extends ValueNode {
 
-        public MultipleValuesNode() {
+        public static MultipleValuesNode create() {
+            return USE_GENERATED_NODES ? new PhiNode_MultipleValuesNodeGen() : new MultipleValuesNode();
+        }
+
+        protected MultipleValuesNode() {
             super(null);
         }
 
     }
 
-    public static final ValueNode MULTIPLE_VALUES = new MultipleValuesNode();
+    public static final ValueNode MULTIPLE_VALUES = MultipleValuesNode.create();
 
     /**
      * If all inputs are the same value, this value is returned, otherwise {@link #MULTIPLE_VALUES}.
@@ -189,7 +193,13 @@ public abstract class PhiNode extends FloatingNode implements Simplifiable {
 
     @Override
     public void simplify(SimplifierTool tool) {
-        ValueNode singleValue = singleValue();
+        ValueNode singleValue;
+
+        if (isLoopPhi() && singleBackValue() == this) {
+            singleValue = firstValue();
+        } else {
+            singleValue = singleValue();
+        }
 
         if (singleValue != MULTIPLE_VALUES) {
             for (Node node : usages().snapshot()) {

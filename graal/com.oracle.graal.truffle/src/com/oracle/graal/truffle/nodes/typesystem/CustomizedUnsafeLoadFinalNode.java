@@ -42,13 +42,18 @@ import com.oracle.truffle.api.*;
  */
 @NodeInfo
 public class CustomizedUnsafeLoadFinalNode extends FixedWithNextNode implements Canonicalizable, Virtualizable, Lowerable {
-    @Input private ValueNode object;
-    @Input private ValueNode offset;
-    @Input private ValueNode condition;
-    @Input private ValueNode location;
+    @Input ValueNode object;
+    @Input ValueNode offset;
+    @Input ValueNode condition;
+    @Input ValueNode location;
     private final Kind accessKind;
 
-    public CustomizedUnsafeLoadFinalNode(ValueNode object, ValueNode offset, ValueNode condition, ValueNode location, Kind accessKind) {
+    public static CustomizedUnsafeLoadFinalNode create(ValueNode object, ValueNode offset, ValueNode condition, ValueNode location, Kind accessKind) {
+        return USE_GENERATED_NODES ? new CustomizedUnsafeLoadFinalNodeGen(object, offset, condition, location, accessKind) : new CustomizedUnsafeLoadFinalNode(object, offset, condition, location,
+                        accessKind);
+    }
+
+    protected CustomizedUnsafeLoadFinalNode(ValueNode object, ValueNode offset, ValueNode condition, ValueNode location, Kind accessKind) {
         super(StampFactory.forKind(accessKind.getStackKind()));
         this.object = object;
         this.offset = offset;
@@ -96,7 +101,7 @@ public class CustomizedUnsafeLoadFinalNode extends FixedWithNextNode implements 
         } else {
             locationIdentity = ObjectLocationIdentity.create(location.asConstant());
         }
-        UnsafeLoadNode result = graph().add(new UnsafeLoadNode(object, offset, accessKind, locationIdentity, compare));
+        UnsafeLoadNode result = graph().add(UnsafeLoadNode.create(object, offset, accessKind, locationIdentity, compare));
         graph().replaceFixedWithFixed(this, result);
         result.lower(tool);
     }

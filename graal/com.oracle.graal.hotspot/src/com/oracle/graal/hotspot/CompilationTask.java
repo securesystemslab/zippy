@@ -29,6 +29,7 @@ import static com.oracle.graal.compiler.common.GraalOptions.*;
 import static com.oracle.graal.compiler.common.UnsafeAccess.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 import static com.oracle.graal.hotspot.InitTimer.*;
+import static com.oracle.graal.hotspot.meta.HotSpotSuitesProvider.*;
 import static com.oracle.graal.nodes.StructuredGraph.*;
 import static com.oracle.graal.phases.common.inlining.InliningUtil.*;
 
@@ -52,7 +53,6 @@ import com.oracle.graal.hotspot.events.EventProvider.CompilerFailureEvent;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.phases.*;
 import com.oracle.graal.java.*;
-import com.oracle.graal.java.GraphBuilderConfiguration.DebugInfoMode;
 import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
@@ -130,16 +130,7 @@ public class CompilationTask {
     }
 
     protected PhaseSuite<HighTierContext> getGraphBuilderSuite(HotSpotProviders providers) {
-        PhaseSuite<HighTierContext> suite = providers.getSuites().getDefaultGraphBuilderSuite();
-
-        if (HotSpotGraalRuntime.runtime().getCompilerToVM().shouldDebugNonSafepoints()) {
-            // need to tweak the graph builder config
-            suite = suite.copy();
-            GraphBuilderPhase graphBuilderPhase = (GraphBuilderPhase) suite.findPhase(GraphBuilderPhase.class).previous();
-            GraphBuilderConfiguration graphBuilderConfig = graphBuilderPhase.getGraphBuilderConfig();
-            GraphBuilderPhase newGraphBuilderPhase = new GraphBuilderPhase(graphBuilderConfig.withDebugInfoMode(DebugInfoMode.Simple));
-            suite.findPhase(GraphBuilderPhase.class).set(newGraphBuilderPhase);
-        }
+        PhaseSuite<HighTierContext> suite = withSimpleDebugInfoIfRequested(providers.getSuites().getDefaultGraphBuilderSuite());
 
         boolean osrCompilation = entryBCI != StructuredGraph.INVOCATION_ENTRY_BCI;
         if (osrCompilation) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
  */
 package com.oracle.truffle.api.instrument.impl;
 
+import java.io.*;
 import java.util.*;
 
 import com.oracle.truffle.api.instrument.*;
@@ -34,6 +35,10 @@ import com.oracle.truffle.api.source.*;
  * a collection of {@link Probe}s whose associated {@link SourceSection} starts on that line.
  */
 public class LineLocationToProbeCollectionMap implements ProbeListener {
+
+    private static final boolean TRACE = false;
+    private static final PrintStream OUT = System.out;
+
     /**
      * Map: Source line ==> probes associated with source sections starting on the line.
      */
@@ -43,8 +48,13 @@ public class LineLocationToProbeCollectionMap implements ProbeListener {
     }
 
     public void newProbeInserted(SourceSection source, Probe probe) {
-        final LineLocation line = source.getLineLocation();
-        this.addProbeToLine(line, probe);
+        if (source != null && !(source instanceof NullSourceSection)) {
+            final LineLocation lineLocation = source.getLineLocation();
+            if (TRACE) {
+                OUT.println("LineLocationToProbeCollectionMap: adding " + lineLocation + " Probe=" + probe);
+            }
+            this.addProbeToLine(lineLocation, probe);
+        }
     }
 
     public void probeTaggedAs(Probe probe, SyntaxTag tag) {
@@ -69,7 +79,7 @@ public class LineLocationToProbeCollectionMap implements ProbeListener {
     }
 
     /**
-     * Adds a probe to the given line.
+     * Records creation of a probe whose associated source starts on the given line.
      * <p>
      * If the line already exists in the internal {@link #lineToProbesMap}, this probe will be added
      * to the existing collection. If no line already exists in the internal map, then a new key is
@@ -81,7 +91,7 @@ public class LineLocationToProbeCollectionMap implements ProbeListener {
      * @param line The {@link LineLocation} to attach the probe to.
      * @param probe The {@link Probe} to attach for that line location.
      */
-    private void addProbeToLine(LineLocation line, Probe probe) {
+    protected void addProbeToLine(LineLocation line, Probe probe) {
 
         if (!lineToProbesMap.containsKey(line)) {
             // Key does not exist, add new probe list
@@ -97,18 +107,57 @@ public class LineLocationToProbeCollectionMap implements ProbeListener {
     }
 
     /**
-     * Returns a collection of {@link Probe}s at the given {@link LineLocation}. If there are no
-     * probes at that line, an empty list is returned.
+     *
+     * Returns a collection of {@link Probe}s whose associated source begins at the given
+     * {@link LineLocation}, an empty list if none.
      *
      * @param line The line to check.
-     * @return A iterable collection of probes at the given line.
+     * @return A collection of probes at the given line.
      */
-    private Collection<Probe> getProbesAtLine(LineLocation line) {
+    public Collection<Probe> getProbesAtLine(LineLocation line) {
         Collection<Probe> probeList = lineToProbesMap.get(line);
 
-        if (probeList == null)
-            probeList = new ArrayList<>(2);
-
+        if (probeList == null) {
+            return Collections.emptyList();
+        }
         return probeList;
+    }
+
+    /**
+     * Convenience method to get probes according to a int line number. Returns a collection of
+     * {@link Probe}s at the given line number, an empty list if none.
+     *
+     * @param lineNumber The line number to check.
+     * @return A collection of probes at the given line.
+     */
+    public Collection<Probe> getProbesAtLineNumber(int lineNumber) {
+
+        final Set<LineLocation> keySet = lineToProbesMap.keySet();
+        if (keySet.size() == 0) {
+            return Collections.emptyList();
+        }
+
+        ArrayList<Probe> probes = new ArrayList<>();
+        for (LineLocation line : keySet) {
+            if (line.getLineNumber() == lineNumber)
+                probes.addAll(lineToProbesMap.get(line));
+        }
+
+        return probes;
+    }
+
+    public void forget(Source source) {
+        final Set<LineLocation> mappedLines = lineToProbesMap.keySet();
+        if (mappedLines.size() > 0) {
+            List<LineLocation> forgetLines = new ArrayList<>();
+            for (LineLocation line : mappedLines) {
+                if (line.getSource().equals(source)) {
+                    forgetLines.add(line);
+                }
+            }
+            for (LineLocation line : forgetLines) {
+                lineToProbesMap.remove(line);
+            }
+        }
     }
 }

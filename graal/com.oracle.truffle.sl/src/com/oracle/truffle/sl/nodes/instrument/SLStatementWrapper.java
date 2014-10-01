@@ -30,14 +30,10 @@ import com.oracle.truffle.sl.nodes.*;
 import com.oracle.truffle.sl.runtime.*;
 
 /**
- * SLStatmentWrapper is a Truffle AST node that gets inserted as the parent to the node that it is
- * wrapping. Any debugging instruments are attached to this wrapper through {@link Probe}s (which
- * themselves contain the instruments). It is through this mechanism that tools can interact
- * directly with the AST. <br/>
- * SLStatmentWrapper specifically wraps {@link SLStatementWrapper}s and overrides the executeVoid
- * function of {@link SLStatementNode} to operate on the child of the wrapper instead of the wrapper
- * itself.
- *
+ * A Truffle node that can be inserted into a Simple AST (assumed not to have executed yet) to
+ * enable "instrumentation" of a {@link SLStatementNode}. Tools wishing to interact with AST
+ * execution may attach {@link Instrument}s to the {@link Probe} uniquely associated with the
+ * wrapper, and to which this wrapper routes {@link ExecutionEvents}.
  */
 public final class SLStatementWrapper extends SLStatementNode implements Wrapper {
 
@@ -48,8 +44,8 @@ public final class SLStatementWrapper extends SLStatementNode implements Wrapper
     public SLStatementWrapper(SLContext context, SLStatementNode child) {
         super(child.getSourceSection());
         assert !(child instanceof SLStatementWrapper);
-        this.child = insert(child);
         this.probe = context.createProbe(child.getSourceSection());
+        this.child = child;
     }
 
     @Override
@@ -63,16 +59,6 @@ public final class SLStatementWrapper extends SLStatementNode implements Wrapper
 
     public Probe getProbe() {
         return probe;
-    }
-
-    @SlowPath
-    public boolean isTaggedAs(SyntaxTag tag) {
-        return probe.isTaggedAs(tag);
-    }
-
-    @SlowPath
-    public Iterable<SyntaxTag> getSyntaxTags() {
-        return probe.getSyntaxTags();
     }
 
     @SlowPath
@@ -94,6 +80,6 @@ public final class SLStatementWrapper extends SLStatementNode implements Wrapper
             probe.leaveExceptional(child, frame, e);
             throw (e);
         }
-
     }
+
 }

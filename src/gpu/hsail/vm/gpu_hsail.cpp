@@ -140,6 +140,8 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
                                                 jint num_tlabs, int allocBytesPerWorkitem, jobject oop_map_array, TRAPS) {
   ResourceMark rm(THREAD);
   objArrayOop argsArray = (objArrayOop) JNIHandles::resolve(args);
+  // Note this length does not include the iteration variable since it is replaced by the HSA workitemid
+  int argsArrayLength = argsArray->length();
   assert(THREAD->is_Java_thread(), "must be a JavaThread");
 
   // We avoid HSAILAllocationInfo logic if kernel does not allocate
@@ -247,6 +249,7 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
             int myActionReason = Deoptimization::make_trap_request(Deoptimization::trap_request_reason(pdeopt->reason()), Deoptimization::Action_none);
             javaArgs.push_int(myActionReason);
             javaArgs.push_oop((oop) NULL);
+            javaArgs.push_int(mh->size_of_parameters());
             if (TraceGPUInteraction) {
               tty->print_cr("[HSAIL] Deoptimizing to host for workitem=%d (slot=%d) with deoptId=%d, frame=" INTPTR_FORMAT ", actionAndReason=%d", workitem, k, deoptId, hsailFrame, myActionReason);
               // show the $d registers or stack slots containing references
@@ -296,7 +299,8 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
             KlassHandle methKlass = mh->method_holder();
             Thread* THREAD = Thread::current();
             JavaValue result(T_VOID);
-            JavaCallArguments javaArgs;
+            // Add the iteration variable to the HSA args length
+            JavaCallArguments javaArgs(argsArrayLength + 1);
             // re-resolve the args_handle here
             objArrayOop resolvedArgsArray = (objArrayOop) JNIHandles::resolve(args);
 
@@ -344,8 +348,11 @@ GPU_ENTRY(jlong, Hsail::generate_kernel, (JNIEnv* env, jclass, jbyteArray code_h
   // The kernel entrypoint is always run for the time being  
   const char* entryPointName = "&run";
   jlong okra_kernel;
-  jint okra_status = _okra_create_kernel(_device_context, code, entryPointName, (void**)&okra_kernel);
-  guarantee(okra_status==0, "_okra_create_kernel failed");
+  {
+    TraceTime t("generate kernel ", TraceGPUInteraction);
+    jint okra_status = _okra_create_kernel(_device_context, code, entryPointName, (void**)&okra_kernel);
+    guarantee(okra_status==0, "_okra_create_kernel failed");
+  }
   return (jlong) okra_kernel;
 GPU_END
 

@@ -48,9 +48,13 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo
 public class BreakpointNode extends FixedWithNextNode implements LIRLowerable {
 
-    @Input private final NodeInputList<ValueNode> arguments;
+    @Input NodeInputList<ValueNode> arguments;
 
-    public BreakpointNode(ValueNode... arguments) {
+    public static BreakpointNode create(ValueNode[] arguments) {
+        return USE_GENERATED_NODES ? new BreakpointNodeGen(arguments) : new BreakpointNode(arguments);
+    }
+
+    protected BreakpointNode(ValueNode... arguments) {
         super(StampFactory.forVoid());
         this.arguments = new NodeInputList<>(this, arguments);
     }

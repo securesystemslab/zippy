@@ -22,24 +22,23 @@
  */
 package com.oracle.graal.phases.common.cfs;
 
-import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.Node;
-import com.oracle.graal.nodes.*;
-import com.oracle.graal.nodes.calc.FloatingNode;
-import com.oracle.graal.nodes.calc.IsNullNode;
-import com.oracle.graal.nodes.extended.LoadHubNode;
-import com.oracle.graal.nodes.extended.NullCheckNode;
-import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.compiler.common.type.IllegalStamp;
-import com.oracle.graal.nodes.type.StampTool;
-import com.oracle.graal.nodes.util.GraphUtil;
-import com.oracle.graal.phases.common.DeadCodeEliminationPhase;
-import com.oracle.graal.phases.tiers.PhaseContext;
-
-import java.lang.reflect.Modifier;
-
-import static com.oracle.graal.api.meta.DeoptimizationAction.InvalidateReprofile;
+import static com.oracle.graal.api.meta.DeoptimizationAction.*;
 import static com.oracle.graal.api.meta.DeoptimizationReason.*;
+import static com.oracle.graal.phases.common.DeadCodeEliminationPhase.Optionality.*;
+
+import java.lang.reflect.*;
+
+import com.oracle.graal.api.meta.*;
+import com.oracle.graal.compiler.common.type.*;
+import com.oracle.graal.graph.*;
+import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.calc.*;
+import com.oracle.graal.nodes.extended.*;
+import com.oracle.graal.nodes.java.*;
+import com.oracle.graal.nodes.type.*;
+import com.oracle.graal.nodes.util.*;
+import com.oracle.graal.phases.common.*;
+import com.oracle.graal.phases.tiers.*;
 
 /**
  * <p>
@@ -152,7 +151,7 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
             for (PostponedDeopt postponed : postponedDeopts) {
                 postponed.doRewrite(falseConstant);
             }
-            new DeadCodeEliminationPhase().apply(graph);
+            new DeadCodeEliminationPhase(Optional).apply(graph);
         }
         for (MethodCallTargetNode mcn : graph.getNodes().filter(MethodCallTargetNode.class)) {
             if (mcn.isAlive() && FlowUtil.lacksUsages(mcn)) {
@@ -499,9 +498,9 @@ public class FlowSensitiveReduction extends FixedGuardReduction {
          * state-tracking. TODO the assumption here is that the code emitted for the resulting
          * FixedGuardNode is as efficient as for NullCheckNode.
          */
-        IsNullNode isNN = graph.unique(new IsNullNode(object));
+        IsNullNode isNN = graph.unique(IsNullNode.create(object));
         reasoner.added.add(isNN);
-        FixedGuardNode nullCheck = graph.add(new FixedGuardNode(isNN, UnreachedCode, InvalidateReprofile, true));
+        FixedGuardNode nullCheck = graph.add(FixedGuardNode.create(isNN, UnreachedCode, InvalidateReprofile, true));
         graph.replaceFixedWithFixed(ncn, nullCheck);
 
         state.trackNN(object, nullCheck);

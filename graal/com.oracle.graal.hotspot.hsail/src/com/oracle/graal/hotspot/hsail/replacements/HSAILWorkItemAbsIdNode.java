@@ -32,7 +32,11 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo
 public class HSAILWorkItemAbsIdNode extends FixedWithNextNode implements LIRLowerable {
 
-    public HSAILWorkItemAbsIdNode() {
+    public static HSAILWorkItemAbsIdNode create() {
+        return USE_GENERATED_NODES ? new HSAILWorkItemAbsIdNodeGen() : new HSAILWorkItemAbsIdNode();
+    }
+
+    protected HSAILWorkItemAbsIdNode() {
         super(StampFactory.forKind(Kind.Int));
     }
 

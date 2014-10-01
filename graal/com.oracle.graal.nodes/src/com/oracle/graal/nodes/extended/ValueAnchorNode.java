@@ -36,9 +36,13 @@ import com.oracle.graal.nodes.util.*;
 @NodeInfo(allowedUsageTypes = {InputType.Anchor, InputType.Guard})
 public class ValueAnchorNode extends FixedWithNextNode implements LIRLowerable, Simplifiable, Virtualizable, AnchoringNode, GuardingNode {
 
-    @OptionalInput(InputType.Guard) private ValueNode anchored;
+    @OptionalInput(InputType.Guard) ValueNode anchored;
 
-    public ValueAnchorNode(ValueNode value) {
+    public static ValueAnchorNode create(ValueNode value) {
+        return USE_GENERATED_NODES ? new ValueAnchorNodeGen(value) : new ValueAnchorNode(value);
+    }
+
+    ValueAnchorNode(ValueNode value) {
         super(StampFactory.forVoid());
         this.anchored = value;
     }
@@ -66,13 +70,13 @@ public class ValueAnchorNode extends FixedWithNextNode implements LIRLowerable, 
             }
         }
         if (usages().isEmpty() && next() instanceof FixedAccessNode) {
-            FixedAccessNode next = (FixedAccessNode) next();
-            if (next.getGuard() == anchored) {
+            FixedAccessNode currentNext = (FixedAccessNode) next();
+            if (currentNext.getGuard() == anchored) {
                 GraphUtil.removeFixedWithUnusedInputs(this);
                 return;
-            } else if (next.getGuard() == null && anchored instanceof GuardNode && ((GuardNode) anchored).condition() instanceof IsNullNode) {
+            } else if (currentNext.getGuard() == null && anchored instanceof GuardNode && ((GuardNode) anchored).condition() instanceof IsNullNode) {
                 // coalesce null check guards into subsequent read/write
-                next.setGuard((GuardingNode) anchored);
+                currentNext.setGuard((GuardingNode) anchored);
                 tool.addToWorkList(next());
                 return;
             }

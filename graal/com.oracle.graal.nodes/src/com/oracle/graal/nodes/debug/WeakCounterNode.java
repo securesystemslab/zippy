@@ -36,9 +36,13 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo
 public class WeakCounterNode extends DynamicCounterNode implements Simplifiable, Virtualizable {
 
-    @Input private ValueNode checkedValue;
+    @Input ValueNode checkedValue;
 
-    public WeakCounterNode(String group, String name, ValueNode increment, boolean addContext, ValueNode checkedValue) {
+    public static WeakCounterNode create(String group, String name, ValueNode increment, boolean addContext, ValueNode checkedValue) {
+        return USE_GENERATED_NODES ? new WeakCounterNodeGen(group, name, increment, addContext, checkedValue) : new WeakCounterNode(group, name, increment, addContext, checkedValue);
+    }
+
+    WeakCounterNode(String group, String name, ValueNode increment, boolean addContext, ValueNode checkedValue) {
         super(group, name, increment, addContext);
         this.checkedValue = checkedValue;
     }
@@ -61,7 +65,7 @@ public class WeakCounterNode extends DynamicCounterNode implements Simplifiable,
 
     public static void addCounterBefore(String group, String name, long increment, boolean addContext, ValueNode checkedValue, FixedNode position) {
         StructuredGraph graph = position.graph();
-        WeakCounterNode counter = graph.add(new WeakCounterNode(name, group, ConstantNode.forLong(increment, graph), addContext, checkedValue));
+        WeakCounterNode counter = graph.add(WeakCounterNode.create(name, group, ConstantNode.forLong(increment, graph), addContext, checkedValue));
         graph.addBeforeFixed(position, counter);
     }
 }

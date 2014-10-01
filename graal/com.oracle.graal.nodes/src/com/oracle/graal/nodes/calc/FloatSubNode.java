@@ -34,7 +34,11 @@ import com.oracle.graal.nodes.util.*;
 @NodeInfo(shortName = "-")
 public class FloatSubNode extends FloatArithmeticNode {
 
-    public FloatSubNode(ValueNode x, ValueNode y, boolean isStrictFP) {
+    public static FloatSubNode create(ValueNode x, ValueNode y, boolean isStrictFP) {
+        return USE_GENERATED_NODES ? new FloatSubNodeGen(x, y, isStrictFP) : new FloatSubNode(x, y, isStrictFP);
+    }
+
+    protected FloatSubNode(ValueNode x, ValueNode y, boolean isStrictFP) {
         super(x.stamp().unrestricted(), x, y, isStrictFP);
     }
 
@@ -59,16 +63,17 @@ public class FloatSubNode extends FloatArithmeticNode {
         }
         // Constant -0.0 is an additive identity, so (-0.0) - x == (-0.0) + (-x) == -x.
         if (forX.isConstant()) {
+            @SuppressWarnings("hiding")
             Constant x = forX.asConstant();
             switch (x.getKind()) {
                 case Float:
                     if (Float.compare(x.asFloat(), -0.0f) == 0) {
-                        return new NegateNode(forY);
+                        return NegateNode.create(forY);
                     }
                     break;
                 case Double:
                     if (Double.compare(x.asDouble(), -0.0) == 0) {
-                        return new NegateNode(forY);
+                        return NegateNode.create(forY);
                     }
                     break;
                 default:
@@ -78,6 +83,7 @@ public class FloatSubNode extends FloatArithmeticNode {
         // Constant -0.0 can't be eliminated since it can affect the sign of the result.
         // Constant 0.0 is a subtractive identity.
         if (forY.isConstant()) {
+            @SuppressWarnings("hiding")
             Constant y = forY.asConstant();
             switch (y.getKind()) {
                 case Float:
@@ -101,7 +107,7 @@ public class FloatSubNode extends FloatArithmeticNode {
          * that a-b produces the same result as a+(-b).
          */
         if (forY instanceof NegateNode) {
-            return new FloatAddNode(forX, ((NegateNode) forY).getValue(), isStrictFP());
+            return FloatAddNode.create(forX, ((NegateNode) forY).getValue(), isStrictFP());
         }
         return this;
     }

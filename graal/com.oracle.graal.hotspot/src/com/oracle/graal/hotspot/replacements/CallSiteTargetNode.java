@@ -37,7 +37,11 @@ import com.oracle.graal.replacements.nodes.*;
 @NodeInfo
 public class CallSiteTargetNode extends MacroStateSplitNode implements Canonicalizable, Lowerable {
 
-    public CallSiteTargetNode(Invoke invoke) {
+    public static CallSiteTargetNode create(Invoke invoke) {
+        return USE_GENERATED_NODES ? new CallSiteTargetNodeGen(invoke) : new CallSiteTargetNode(invoke);
+    }
+
+    protected CallSiteTargetNode(Invoke invoke) {
         super(invoke);
     }
 

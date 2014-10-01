@@ -37,7 +37,11 @@ import com.oracle.graal.nodes.java.*;
 @NodeInfo
 public class MacroStateSplitNode extends MacroNode implements StateSplit, MemoryCheckpoint.Single {
 
-    @OptionalInput(InputType.State) private FrameState stateAfter;
+    @OptionalInput(InputType.State) protected FrameState stateAfter;
+
+    public static MacroStateSplitNode create(Invoke invoke) {
+        return USE_GENERATED_NODES ? new MacroStateSplitNodeGen(invoke) : new MacroStateSplitNode(invoke);
+    }
 
     protected MacroStateSplitNode(Invoke invoke) {
         super(invoke);
@@ -71,7 +75,7 @@ public class MacroStateSplitNode extends MacroNode implements StateSplit, Memory
             }
             assert invoke.stateAfter().bci == BytecodeFrame.AFTER_BCI;
             // Here we need to fix the bci of the invoke
-            InvokeNode newInvoke = snippetGraph.add(new InvokeNode(invoke.callTarget(), getBci()));
+            InvokeNode newInvoke = snippetGraph.add(InvokeNode.create(invoke.callTarget(), getBci()));
             newInvoke.setStateAfter(invoke.stateAfter());
             snippetGraph.replaceFixedWithFixed((InvokeNode) invoke.asNode(), newInvoke);
         }

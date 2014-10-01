@@ -44,7 +44,7 @@ public class HSAILMathIntrinsicsNode extends FloatingNode implements Canonicaliz
     /**
      * The parameter passed to the math operation that this node represents.
      */
-    @Input private ValueNode param;
+    @Input ValueNode param;
 
     /**
      * The math operation that this Node represents.
@@ -75,7 +75,11 @@ public class HSAILMathIntrinsicsNode extends FloatingNode implements Canonicaliz
      * @param x the argument to the math operation
      * @param op the math operation
      */
-    public HSAILMathIntrinsicsNode(ValueNode x, HSAILArithmetic op) {
+    public static HSAILMathIntrinsicsNode create(ValueNode x, HSAILArithmetic op) {
+        return USE_GENERATED_NODES ? new HSAILMathIntrinsicsNodeGen(x, op) : new HSAILMathIntrinsicsNode(x, op);
+    }
+
+    protected HSAILMathIntrinsicsNode(ValueNode x, HSAILArithmetic op) {
         super(StampFactory.forKind(x.getKind()));
         this.param = x;
         this.operation = op;

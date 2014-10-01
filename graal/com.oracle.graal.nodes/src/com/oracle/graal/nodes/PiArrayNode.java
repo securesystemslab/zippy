@@ -37,13 +37,17 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo
 public class PiArrayNode extends PiNode implements ArrayLengthProvider {
 
-    @Input private ValueNode length;
+    @Input ValueNode length;
 
     public ValueNode length() {
         return length;
     }
 
-    public PiArrayNode(ValueNode object, ValueNode length, Stamp stamp) {
+    public static PiArrayNode create(ValueNode object, ValueNode length, Stamp stamp) {
+        return USE_GENERATED_NODES ? new PiArrayNodeGen(object, length, stamp) : new PiArrayNode(object, length, stamp);
+    }
+
+    protected PiArrayNode(ValueNode object, ValueNode length, Stamp stamp) {
         super(object, stamp);
         this.length = length;
     }

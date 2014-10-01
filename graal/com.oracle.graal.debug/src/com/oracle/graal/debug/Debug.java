@@ -30,6 +30,7 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
+import com.oracle.graal.debug.DelegatingDebugConfig.Level;
 import com.oracle.graal.debug.internal.*;
 
 /**
@@ -318,7 +319,7 @@ public class Debug {
         for (Object obj : context()) {
             context.add(obj);
         }
-        return Debug.sandbox("forceLog", new DelegatingDebugConfig().enable(LOG).enable(LOG_METHOD), context.toArray());
+        return Debug.sandbox("forceLog", new DelegatingDebugConfig().override(Level.LOG, Integer.MAX_VALUE).enable(LOG_METHOD), context.toArray());
     }
 
     /**
@@ -928,7 +929,10 @@ public class Debug {
 
     private static DebugMetric createMetric(String format, Object arg1, Object arg2) {
         String name = formatDebugName(format, arg1, arg2);
-        boolean conditional = enabledMetrics == null || !enabledMetrics.contains(name);
+        boolean conditional = enabledMetrics == null || !findMatch(enabledMetrics, enabledMetricsSubstrings, name);
+        if (!ENABLED && conditional) {
+            return VOID_METRIC;
+        }
         return new MetricImpl(name, conditional);
     }
 
@@ -1079,24 +1083,57 @@ public class Debug {
 
     private static final Set<String> enabledMetrics;
     private static final Set<String> enabledTimers;
+    private static final Set<String> enabledMetricsSubstrings = new HashSet<>();
+    private static final Set<String> enabledTimersSubstrings = new HashSet<>();
+
     static {
         Set<String> metrics = new HashSet<>();
         Set<String> timers = new HashSet<>();
-        parseMetricAndTimerSystemProperties(metrics, timers);
-        enabledMetrics = metrics.isEmpty() ? null : metrics;
-        enabledTimers = timers.isEmpty() ? null : timers;
+        parseMetricAndTimerSystemProperties(metrics, timers, enabledMetricsSubstrings, enabledTimersSubstrings);
+        enabledMetrics = metrics.isEmpty() && enabledMetricsSubstrings.isEmpty() ? null : metrics;
+        enabledTimers = timers.isEmpty() && enabledTimersSubstrings.isEmpty() ? null : timers;
     }
 
-    protected static void parseMetricAndTimerSystemProperties(Set<String> metrics, Set<String> timers) {
+    private static boolean findMatch(Set<String> haystack, Set<String> haystackSubstrings, String needle) {
+        if (haystack.contains(needle)) {
+            return true;
+        }
+        if (!haystackSubstrings.isEmpty()) {
+            for (String h : haystackSubstrings) {
+                if (needle.startsWith(h)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean areUnconditionalTimersEnabled() {
+        return enabledTimers != null;
+    }
+
+    public static boolean areUnconditionalMetricsEnabled() {
+        return enabledMetrics != null;
+    }
+
+    protected static void parseMetricAndTimerSystemProperties(Set<String> metrics, Set<String> timers, Set<String> metricsSubstrings, Set<String> timersSubstrings) {
         do {
             try {
                 for (Map.Entry<Object, Object> e : System.getProperties().entrySet()) {
                     String name = e.getKey().toString();
                     if (name.startsWith(ENABLE_METRIC_PROPERTY_NAME_PREFIX) && Boolean.parseBoolean(e.getValue().toString())) {
-                        metrics.add(name.substring(ENABLE_METRIC_PROPERTY_NAME_PREFIX.length()));
+                        if (name.endsWith("*")) {
+                            metricsSubstrings.add(name.substring(ENABLE_METRIC_PROPERTY_NAME_PREFIX.length(), name.length() - 1));
+                        } else {
+                            metrics.add(name.substring(ENABLE_METRIC_PROPERTY_NAME_PREFIX.length()));
+                        }
                     }
                     if (name.startsWith(ENABLE_TIMER_PROPERTY_NAME_PREFIX) && Boolean.parseBoolean(e.getValue().toString())) {
-                        timers.add(name.substring(ENABLE_TIMER_PROPERTY_NAME_PREFIX.length()));
+                        if (name.endsWith("*")) {
+                            timersSubstrings.add(name.substring(ENABLE_TIMER_PROPERTY_NAME_PREFIX.length(), name.length() - 1));
+                        } else {
+                            timers.add(name.substring(ENABLE_TIMER_PROPERTY_NAME_PREFIX.length()));
+                        }
                     }
                 }
                 return;
@@ -1194,7 +1231,10 @@ public class Debug {
 
     private static DebugTimer createTimer(String format, Object arg1, Object arg2) {
         String name = formatDebugName(format, arg1, arg2);
-        boolean conditional = enabledTimers == null || !enabledTimers.contains(name);
+        boolean conditional = enabledTimers == null || !findMatch(enabledTimers, enabledTimersSubstrings, name);
+        if (!ENABLED && conditional) {
+            return VOID_TIMER;
+        }
         return new TimerImpl(name, conditional);
     }
 

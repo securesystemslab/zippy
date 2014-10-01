@@ -516,10 +516,11 @@ class AdapterGenerator {
                               const VMRegPair *regs,
                               Label& skip_fixup);
   void gen_i2c_adapter(int total_args_passed,
-                              // VMReg max_arg,
-                              int comp_args_on_stack, // VMRegStackSlots
-                              const BasicType *sig_bt,
-                              const VMRegPair *regs);
+                       // VMReg max_arg,
+                       int comp_args_on_stack, // VMRegStackSlots
+                       const BasicType *sig_bt,
+                       const VMRegPair *regs,
+                       int frame_extension_argument = -1);
 
   AdapterGenerator(MacroAssembler *_masm) : masm(_masm) {}
 };
@@ -763,12 +764,13 @@ static void range_check(MacroAssembler* masm, Register pc_reg, Register temp_reg
   __ bind(L_fail);
 }
 
-void AdapterGenerator::gen_i2c_adapter(
-                            int total_args_passed,
-                            // VMReg max_arg,
-                            int comp_args_on_stack, // VMRegStackSlots
-                            const BasicType *sig_bt,
-                            const VMRegPair *regs) {
+void AdapterGenerator::gen_i2c_adapter(int total_args_passed,
+                                       // VMReg max_arg,
+                                       int comp_args_on_stack, // VMRegStackSlots
+                                       const BasicType *sig_bt,
+                                       const VMRegPair *regs,
+                                       int frame_extension_argument) {
+  assert(frame_extension_argument == -1, "unsupported");
 
   // Generate an I2C adapter: adjust the I-frame to make space for the C-frame
   // layout.  Lesp was saved by the calling I-frame and will be restored on
@@ -1026,9 +1028,10 @@ void SharedRuntime::gen_i2c_adapter(MacroAssembler *masm,
                                     int total_args_passed,
                                     int comp_args_on_stack,
                                     const BasicType *sig_bt,
-                                    const VMRegPair *regs) {
+                                    const VMRegPair *regs,
+                                    int frame_extension_argument) {
   AdapterGenerator agen(masm);
-  agen.gen_i2c_adapter(total_args_passed, comp_args_on_stack, sig_bt, regs);
+  agen.gen_i2c_adapter(total_args_passed, comp_args_on_stack, sig_bt, regs, frame_extension_argument);
 }
 
 // ---------------------------------------------------------------
@@ -3433,8 +3436,11 @@ void SharedRuntime::generate_deopt_blob() {
   if (UseStackBanging) {
     pad += StackShadowPages*16 + 32;
   }
+#ifdef GRAAL
+  pad += 1000; // Increase the buffer size when compiling for GRAAL
+#endif
 #ifdef _LP64
-  CodeBuffer buffer("deopt_blob", 2100+pad, 512);
+  CodeBuffer buffer("deopt_blob", 2100+pad+1000, 512);
 #else
   // Measured 8/7/03 at 1212 in 32bit debug build (no VerifyThread)
   // Measured 8/7/03 at 1396 in 32bit debug build (VerifyThread)
@@ -3566,6 +3572,33 @@ void SharedRuntime::generate_deopt_blob() {
 
   // Restore G2_thread
   __ get_thread();
+
+#ifdef GRAAL
+  // load throwing pc from JavaThread and patch it as the return address
+  // of the current frame. Then clear the field in JavaThread
+  __ block_comment("load throwing pc and patch return");
+  Address exception_pc(G2_thread, JavaThread::exception_pc_offset());
+  Label has_no_pc;
+  // TODO: Remove this weird check if we should patch the return pc
+  // This is because when graal decides to deoptimize and the ExceptionHandlerStub.java
+  // jumps back to this code and the I7 register contains the pc pointing to the begin
+  // of this code. If this is the case (PC within a certain range) then we need to patch
+  // the return pc.
+  // THIS NEEDS REWORK! (sa)
+  __ rdpc(L0);
+  __ sub(L0, I7, L0);
+  __ cmp(L0, 0xFFF);
+  __ br(Assembler::greater, false, Assembler::pt, has_no_pc);
+  __ delayed() -> nop();
+  __ cmp(L0, -0xFFF);
+  __ br(Assembler::less, false, Assembler::pt, has_no_pc);
+  __ delayed() -> nop();
+  __ ld_ptr(exception_pc, I7);
+  __ sub(I7, 8, I7);
+  __ st_ptr(G0, exception_pc);
+  __ bind(has_no_pc);
+  __ block_comment("/load throwing pc and patch return");
+#endif // GAAL
 
 #ifdef ASSERT
   {

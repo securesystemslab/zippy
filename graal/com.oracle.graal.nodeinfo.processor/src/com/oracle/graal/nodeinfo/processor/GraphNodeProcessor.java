@@ -22,8 +22,12 @@
  */
 package com.oracle.graal.nodeinfo.processor;
 
+import static com.oracle.truffle.dsl.processor.java.ElementUtils.*;
+import static java.util.Collections.*;
+
 import java.io.*;
 import java.util.*;
+import java.util.stream.*;
 
 import javax.annotation.processing.*;
 import javax.lang.model.*;
@@ -46,19 +50,41 @@ public class GraphNodeProcessor extends AbstractProcessor {
         return SourceVersion.latest();
     }
 
+    /**
+     * Node class currently being processed.
+     */
+    private Element scope;
+
+    public static boolean isEnclosedIn(Element e, Element scopeElement) {
+        List<Element> elementHierarchy = getElementHierarchy(e);
+        return elementHierarchy.contains(scopeElement);
+    }
+
     void errorMessage(Element element, String format, Object... args) {
-        processingEnv.getMessager().printMessage(Kind.ERROR, String.format(format, args), element);
+        message(Kind.ERROR, element, format, args);
+    }
+
+    void message(Kind kind, Element element, String format, Object... args) {
+        if (scope != null && !isEnclosedIn(element, scope)) {
+            // See https://bugs.eclipse.org/bugs/show_bug.cgi?id=428357#c1
+            List<Element> elementHierarchy = getElementHierarchy(element);
+            reverse(elementHierarchy);
+            String loc = elementHierarchy.stream().filter(e -> e.getKind() != ElementKind.PACKAGE).map(Object::toString).collect(Collectors.joining("."));
+            processingEnv.getMessager().printMessage(kind, String.format(loc + ": " + format, args), scope);
+        } else {
+            processingEnv.getMessager().printMessage(kind, String.format(format, args), element);
+        }
     }
 
     /**
      * Bugs in an annotation processor can cause silent failure so try to report any exception
      * throws as errors.
      */
-    private void reportException(Element element, Throwable t) {
+    private void reportException(Kind kind, Element element, Throwable t) {
         StringWriter buf = new StringWriter();
         t.printStackTrace(new PrintWriter(buf));
         buf.toString();
-        errorMessage(element, "Exception thrown during processing: %s", buf.toString());
+        message(kind, element, "Exception thrown during processing: %s", buf.toString());
     }
 
     ProcessingEnvironment getProcessingEnv() {
@@ -90,6 +116,7 @@ public class GraphNodeProcessor extends AbstractProcessor {
         GraphNodeGenerator gen = new GraphNodeGenerator(this);
 
         for (Element element : roundEnv.getElementsAnnotatedWith(NodeInfo.class)) {
+            scope = element;
             try {
                 if (!isNodeType(element)) {
                     errorMessage(element, "%s can only be applied to Node subclasses", NodeInfo.class.getSimpleName());
@@ -105,25 +132,41 @@ public class GraphNodeProcessor extends AbstractProcessor {
                 TypeElement typeElement = (TypeElement) element;
 
                 if (typeElement.getModifiers().contains(Modifier.FINAL)) {
-                    errorMessage(element, "%s annotated class cannot be final", NodeInfo.class.getSimpleName());
+                    errorMessage(element, "%s annotated class must not be final", NodeInfo.class.getSimpleName());
                     continue;
                 }
 
-                CodeCompilationUnit unit = gen.process(typeElement);
-                unit.setGeneratorElement(typeElement);
-
-                DeclaredType overrideType = (DeclaredType) ElementUtils.getType(processingEnv, Override.class);
-                DeclaredType unusedType = (DeclaredType) ElementUtils.getType(processingEnv, SuppressWarnings.class);
-                unit.accept(new GenerateOverrideVisitor(overrideType), null);
-                unit.accept(new FixWarningsVisitor(processingEnv, unusedType, overrideType), null);
-                unit.accept(new CodeWriter(processingEnv, typeElement), null);
-            } catch (Throwable t) {
-                if (!isBug367599(t)) {
-                    reportException(element, t);
+                if (!typeElement.equals(gen.Node) && !typeElement.getModifiers().contains(Modifier.ABSTRACT)) {
+                    try {
+                        CodeCompilationUnit unit = gen.process(typeElement, false);
+                        emitCode(typeElement, unit);
+                    } catch (ElementException ee) {
+                        // Try to generate the class with just the constructors so that
+                        // spurious errors related to a missing class are not emitted
+                        CodeCompilationUnit unit = gen.process(typeElement, true);
+                        emitCode(typeElement, unit);
+                        throw ee;
+                    }
                 }
+            } catch (ElementException ee) {
+                errorMessage(ee.element, ee.getMessage());
+            } catch (Throwable t) {
+                reportException(isBug367599(t) ? Kind.NOTE : Kind.ERROR, element, t);
+            } finally {
+                scope = null;
             }
         }
         return false;
+    }
+
+    private void emitCode(TypeElement typeElement, CodeCompilationUnit unit) {
+        unit.setGeneratorElement(typeElement);
+
+        DeclaredType overrideType = (DeclaredType) ElementUtils.getType(processingEnv, Override.class);
+        DeclaredType unusedType = (DeclaredType) ElementUtils.getType(processingEnv, SuppressWarnings.class);
+        unit.accept(new GenerateOverrideVisitor(overrideType), null);
+        unit.accept(new FixWarningsVisitor(processingEnv, unusedType, overrideType), null);
+        unit.accept(new CodeWriter(processingEnv, typeElement), null);
     }
 
     /**
@@ -131,10 +174,12 @@ public class GraphNodeProcessor extends AbstractProcessor {
      * href="https://bugs.eclipse.org/bugs/show_bug.cgi?id=367599">Bug 367599</a>.
      */
     public static boolean isBug367599(Throwable t) {
-        for (StackTraceElement ste : t.getStackTrace()) {
-            if (ste.toString().contains("org.eclipse.jdt.internal.apt.pluggable.core.filer.IdeFilerImpl.create")) {
-                // See: https://bugs.eclipse.org/bugs/show_bug.cgi?id=367599
-                return true;
+        if (t instanceof FilerException) {
+            for (StackTraceElement ste : t.getStackTrace()) {
+                if (ste.toString().contains("org.eclipse.jdt.internal.apt.pluggable.core.filer.IdeFilerImpl.create")) {
+                    // See: https://bugs.eclipse.org/bugs/show_bug.cgi?id=367599
+                    return true;
+                }
             }
         }
         if (t.getCause() != null) {

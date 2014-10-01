@@ -44,7 +44,8 @@ public class TemplateMethod extends MessageContainer implements Comparable<Templ
     private final ExecutableElement method;
     private final AnnotationMirror markerAnnotation;
     private Parameter returnType;
-    private List<Parameter> parameters;
+    private final List<Parameter> parameters;
+    private final Map<String, Parameter> parameterCache = new HashMap<>();
 
     public TemplateMethod(String id, int naturalOrder, Template template, MethodSpec specification, ExecutableElement method, AnnotationMirror markerAnnotation, Parameter returnType,
                     List<Parameter> parameters) {
@@ -59,6 +60,10 @@ public class TemplateMethod extends MessageContainer implements Comparable<Templ
             Parameter newParam = new Parameter(param);
             this.parameters.add(newParam);
             newParam.setMethod(this);
+            parameterCache.put(param.getLocalName(), param);
+        }
+        if (returnType != null) {
+            parameterCache.put(returnType.getLocalName(), returnType);
         }
         this.id = id;
     }
@@ -75,10 +80,6 @@ public class TemplateMethod extends MessageContainer implements Comparable<Templ
     public TemplateMethod(TemplateMethod method, ExecutableElement executable) {
         this(method.id, method.naturalOrder, method.template, method.specification, executable, method.markerAnnotation, method.returnType, method.parameters);
         getMessages().addAll(method.getMessages());
-    }
-
-    public void setParameters(List<Parameter> parameters) {
-        this.parameters = parameters;
     }
 
     @Override
@@ -120,14 +121,10 @@ public class TemplateMethod extends MessageContainer implements Comparable<Templ
         if (returnType.getLocalName().equals(localName)) {
             returnType = newParameter;
             returnType.setMethod(this);
-        }
-
-        for (ListIterator<Parameter> iterator = parameters.listIterator(); iterator.hasNext();) {
-            Parameter parameter = iterator.next();
-            if (parameter.getLocalName().equals(localName)) {
-                iterator.set(newParameter);
-                newParameter.setMethod(this);
-            }
+        } else {
+            Parameter local = findParameter(localName);
+            int index = parameters.indexOf(local);
+            parameters.set(index, newParameter);
         }
     }
 
@@ -175,12 +172,7 @@ public class TemplateMethod extends MessageContainer implements Comparable<Templ
     }
 
     public Parameter findParameter(String valueName) {
-        for (Parameter param : getReturnTypeAndParameters()) {
-            if (param.getLocalName().equals(valueName)) {
-                return param;
-            }
-        }
-        return null;
+        return parameterCache.get(valueName);
     }
 
     public List<Parameter> getReturnTypeAndParameters() {

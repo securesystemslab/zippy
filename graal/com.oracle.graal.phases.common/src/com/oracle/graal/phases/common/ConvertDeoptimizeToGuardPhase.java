@@ -22,6 +22,8 @@
  */
 package com.oracle.graal.phases.common;
 
+import static com.oracle.graal.phases.common.DeadCodeEliminationPhase.Optionality.*;
+
 import java.util.*;
 
 import com.oracle.graal.api.meta.*;
@@ -101,7 +103,7 @@ public class ConvertDeoptimizeToGuardPhase extends Phase {
             }
         }
 
-        new DeadCodeEliminationPhase().apply(graph);
+        new DeadCodeEliminationPhase(Optional).apply(graph);
     }
 
     private void visitDeoptBegin(BeginNode deoptBegin, DeoptimizationAction deoptAction, DeoptimizationReason deoptReason, StructuredGraph graph) {
@@ -122,7 +124,7 @@ public class ConvertDeoptimizeToGuardPhase extends Phase {
             IfNode ifNode = (IfNode) deoptBegin.predecessor();
             BeginNode otherBegin = ifNode.trueSuccessor();
             LogicNode conditionNode = ifNode.condition();
-            FixedGuardNode guard = graph.add(new FixedGuardNode(conditionNode, deoptReason, deoptAction, deoptBegin == ifNode.trueSuccessor()));
+            FixedGuardNode guard = graph.add(FixedGuardNode.create(conditionNode, deoptReason, deoptAction, deoptBegin == ifNode.trueSuccessor()));
             FixedWithNextNode pred = (FixedWithNextNode) ifNode.predecessor();
             BeginNode survivingSuccessor;
             if (deoptBegin == ifNode.trueSuccessor()) {
@@ -147,11 +149,11 @@ public class ConvertDeoptimizeToGuardPhase extends Phase {
                     }
                 }
             }
-            survivingSuccessor.simplify(simplifierTool);
             Debug.log("Converting deopt on %-5s branch of %s to guard for remaining branch %s.", deoptBegin == ifNode.trueSuccessor() ? "true" : "false", ifNode, otherBegin);
             FixedNode next = pred.next();
             pred.setNext(guard);
             guard.setNext(next);
+            survivingSuccessor.simplify(simplifierTool);
             return;
         }
 
@@ -160,7 +162,7 @@ public class ConvertDeoptimizeToGuardPhase extends Phase {
         FixedNode next = deoptPred.next();
 
         if (!(next instanceof DeoptimizeNode)) {
-            DeoptimizeNode newDeoptNode = graph.add(new DeoptimizeNode(deoptAction, deoptReason));
+            DeoptimizeNode newDeoptNode = graph.add(DeoptimizeNode.create(deoptAction, deoptReason));
             deoptPred.setNext(newDeoptNode);
             assert deoptPred == newDeoptNode.predecessor();
             GraphUtil.killCFG(next);

@@ -26,10 +26,9 @@ import static com.oracle.graal.api.code.CallingConvention.Type.*;
 import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.compiler.common.GraalOptions.*;
 import static com.oracle.graal.sparc.SPARC.*;
+import static com.oracle.graal.compiler.common.UnsafeAccess.*;
 
 import java.util.*;
-
-import sun.misc.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
@@ -44,6 +43,7 @@ import com.oracle.graal.asm.sparc.SPARCMacroAssembler.Cmp;
 import com.oracle.graal.asm.sparc.SPARCMacroAssembler.Nop;
 import com.oracle.graal.asm.sparc.SPARCMacroAssembler.RestoreWindow;
 import com.oracle.graal.asm.sparc.SPARCMacroAssembler.Setx;
+import com.oracle.graal.compiler.common.cfg.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.meta.HotSpotCodeCacheProvider.MarkId;
 import com.oracle.graal.hotspot.meta.*;
@@ -53,15 +53,15 @@ import com.oracle.graal.lir.StandardOp.SaveRegistersOp;
 import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.lir.gen.*;
 import com.oracle.graal.lir.sparc.*;
+import com.oracle.graal.lir.sparc.SPARCCall.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.sparc.*;
 
 /**
  * HotSpot SPARC specific backend.
  */
 public class SPARCHotSpotBackend extends HotSpotHostBackend {
-
-    private static final Unsafe unsafe = Unsafe.getUnsafe();
 
     public SPARCHotSpotBackend(HotSpotGraalRuntime runtime, HotSpotProviders providers) {
         super(runtime, providers);
@@ -116,8 +116,11 @@ public class SPARCHotSpotBackend extends HotSpotHostBackend {
                     if (SPARCAssembler.isSimm13(address.getDisplacement())) {
                         new Stx(g0, address).emit(masm);
                     } else {
-                        new Setx(address.getDisplacement(), g3).emit(masm);
-                        new Stx(g0, new SPARCAddress(sp, g3)).emit(masm);
+                        try (SPARCScratchRegister sc = SPARCScratchRegister.get()) {
+                            Register scratch = sc.getRegister();
+                            new Setx(address.getDisplacement(), scratch).emit(masm);
+                            new Stx(g0, new SPARCAddress(sp, scratch)).emit(masm);
+                        }
                     }
                 }
             }
@@ -139,12 +142,21 @@ public class SPARCHotSpotBackend extends HotSpotHostBackend {
         @Override
         public void enter(CompilationResultBuilder crb) {
             final int frameSize = crb.frameMap.totalFrameSize();
-
+            final int stackpoinerChange = -frameSize;
             SPARCMacroAssembler masm = (SPARCMacroAssembler) crb.asm;
             if (!isStub && pagesToBang > 0) {
                 emitStackOverflowCheck(crb, pagesToBang, false);
             }
-            new Save(sp, -frameSize, sp).emit(masm);
+
+            if (SPARCAssembler.isSimm13(stackpoinerChange)) {
+                new Save(sp, stackpoinerChange, sp).emit(masm);
+            } else {
+                try (SPARCScratchRegister sc = SPARCScratchRegister.get()) {
+                    Register scratch = sc.getRegister();
+                    new Setx(stackpoinerChange, scratch).emit(masm);
+                    new Save(sp, scratch, sp).emit(masm);
+                }
+            }
 
             if (ZapStackOnMethodEntry.getValue()) {
                 final int slotSize = 8;
@@ -197,6 +209,7 @@ public class SPARCHotSpotBackend extends HotSpotHostBackend {
 
     @Override
     public void emitCode(CompilationResultBuilder crb, LIR lir, ResolvedJavaMethod installedCodeOwner) {
+        fixupDelayedInstructions(lir);
         SPARCMacroAssembler masm = (SPARCMacroAssembler) crb.asm;
         FrameMap frameMap = crb.frameMap;
         RegisterConfig regConfig = frameMap.registerConfig;
@@ -210,12 +223,15 @@ public class SPARCHotSpotBackend extends HotSpotHostBackend {
             // We need to use JavaCall here because we haven't entered the frame yet.
             CallingConvention cc = regConfig.getCallingConvention(JavaCall, null, new JavaType[]{getProviders().getMetaAccess().lookupJavaType(Object.class)}, getTarget(), false);
             Register inlineCacheKlass = g5; // see MacroAssembler::ic_call
-            Register scratch = g3;
-            Register receiver = asRegister(cc.getArgument(0));
-            SPARCAddress src = new SPARCAddress(receiver, config.hubOffset);
 
-            new Ldx(src, scratch).emit(masm);
-            new Cmp(scratch, inlineCacheKlass).emit(masm);
+            try (SPARCScratchRegister sc = SPARCScratchRegister.get()) {
+                Register scratch = sc.getRegister();
+                Register receiver = asRegister(cc.getArgument(0));
+                SPARCAddress src = new SPARCAddress(receiver, config.hubOffset);
+
+                new Ldx(src, scratch).emit(masm);
+                new Cmp(scratch, inlineCacheKlass).emit(masm);
+            }
             new Bpne(CC.Xcc, unverifiedStub).emit(masm);
             new Nop().emit(masm);  // delay slot
         }
@@ -241,9 +257,89 @@ public class SPARCHotSpotBackend extends HotSpotHostBackend {
 
         if (unverifiedStub != null) {
             masm.bind(unverifiedStub);
-            Register scratch = g3;
-            SPARCCall.indirectJmp(crb, masm, scratch, foreignCalls.lookupForeignCall(IC_MISS_HANDLER));
+            try (SPARCScratchRegister sc = SPARCScratchRegister.get()) {
+                Register scratch = sc.getRegister();
+                SPARCCall.indirectJmp(crb, masm, scratch, foreignCalls.lookupForeignCall(IC_MISS_HANDLER));
+            }
         }
     }
 
+    private static void fixupDelayedInstructions(LIR l) {
+        for (AbstractBlock<?> b : l.codeEmittingOrder()) {
+            fixupDelayedInstructions(l, b);
+        }
+    }
+
+    private static void fixupDelayedInstructions(LIR l, AbstractBlock<?> block) {
+        TailDelayedLIRInstruction lastDelayable = null;
+        for (LIRInstruction inst : l.getLIRforBlock(block)) {
+            if (lastDelayable != null && inst instanceof DelaySlotHolder) {
+                if (isDelayable(inst, (LIRInstruction) lastDelayable)) {
+                    lastDelayable.setDelaySlotHolder((DelaySlotHolder) inst);
+                }
+                lastDelayable = null; // We must not pull over other delay slot holder.
+            } else if (inst instanceof TailDelayedLIRInstruction) {
+                lastDelayable = (TailDelayedLIRInstruction) inst;
+            } else {
+                lastDelayable = null;
+            }
+        }
+    }
+
+    public static boolean isDelayable(final LIRInstruction delaySlotHolder, final LIRInstruction other) {
+        final Set<Value> delaySlotHolderInputs = new HashSet<>(2);
+        final Set<LIRFrameState> otherFrameStates = new HashSet<>(2);
+        other.forEachState(new InstructionStateProcedure() {
+            @Override
+            protected void doState(LIRInstruction instruction, LIRFrameState state) {
+                otherFrameStates.add(state);
+            }
+        });
+        int frameStatesBefore = otherFrameStates.size();
+        delaySlotHolder.forEachState(new InstructionStateProcedure() {
+            @Override
+            protected void doState(LIRInstruction instruction, LIRFrameState state) {
+                otherFrameStates.add(state);
+            }
+        });
+        if (frameStatesBefore != otherFrameStates.size() && otherFrameStates.size() >= 2) {
+            // both have framestates, the instruction is not delayable
+            return false;
+        }
+        // Direct calls do not have dependencies to data before
+        if (delaySlotHolder instanceof DirectCallOp) {
+            return true;
+        }
+        delaySlotHolder.visitEachInput(new InstructionValueConsumer() {
+            @Override
+            protected void visitValue(LIRInstruction instruction, Value value) {
+                delaySlotHolderInputs.add(value);
+            }
+        });
+        delaySlotHolder.visitEachTemp(new InstructionValueConsumer() {
+            @Override
+            protected void visitValue(LIRInstruction instruction, Value value) {
+                delaySlotHolderInputs.add(value);
+            }
+        });
+        if (delaySlotHolderInputs.size() == 0) {
+            return true;
+        }
+        final Set<Value> otherOutputs = new HashSet<>();
+        other.visitEachOutput(new InstructionValueConsumer() {
+            @Override
+            protected void visitValue(LIRInstruction instruction, Value value) {
+                otherOutputs.add(value);
+            }
+        });
+        other.visitEachTemp(new InstructionValueConsumer() {
+            @Override
+            protected void visitValue(LIRInstruction instruction, Value value) {
+                otherOutputs.add(value);
+            }
+        });
+        int sizeBefore = otherOutputs.size();
+        otherOutputs.removeAll(delaySlotHolderInputs);
+        return otherOutputs.size() == sizeBefore;
+    }
 }

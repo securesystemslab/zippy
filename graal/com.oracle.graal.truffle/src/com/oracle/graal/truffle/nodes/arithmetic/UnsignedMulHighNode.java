@@ -38,11 +38,19 @@ import com.oracle.truffle.api.*;
 @NodeInfo(shortName = "|*H|")
 public class UnsignedMulHighNode extends IntegerArithmeticNode {
 
-    public UnsignedMulHighNode(ValueNode x, ValueNode y) {
+    public static UnsignedMulHighNode create(ValueNode x, ValueNode y) {
+        return USE_GENERATED_NODES ? new UnsignedMulHighNodeGen(x, y) : new UnsignedMulHighNode(x, y);
+    }
+
+    protected UnsignedMulHighNode(ValueNode x, ValueNode y) {
         this(x.stamp().unrestricted(), x, y);
     }
 
-    public UnsignedMulHighNode(Stamp stamp, ValueNode x, ValueNode y) {
+    public static UnsignedMulHighNode create(Stamp stamp, ValueNode x, ValueNode y) {
+        return USE_GENERATED_NODES ? new UnsignedMulHighNodeGen(stamp, x, y) : new UnsignedMulHighNode(stamp, x, y);
+    }
+
+    protected UnsignedMulHighNode(Stamp stamp, ValueNode x, ValueNode y) {
         super(stamp, x, y);
     }
 

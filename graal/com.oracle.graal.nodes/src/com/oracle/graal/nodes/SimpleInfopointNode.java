@@ -24,14 +24,19 @@ package com.oracle.graal.nodes;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.spi.*;
 
 @NodeInfo
-public class SimpleInfopointNode extends InfopointNode implements LIRLowerable, IterableNodeType {
+public class SimpleInfopointNode extends InfopointNode implements LIRLowerable, IterableNodeType, Simplifiable {
     private BytecodePosition position;
 
-    public SimpleInfopointNode(InfopointReason reason, BytecodePosition position) {
+    public static SimpleInfopointNode create(InfopointReason reason, BytecodePosition position) {
+        return USE_GENERATED_NODES ? new SimpleInfopointNodeGen(reason, position) : new SimpleInfopointNode(reason, position);
+    }
+
+    protected SimpleInfopointNode(InfopointReason reason, BytecodePosition position) {
         super(reason);
         this.position = position;
     }
@@ -54,6 +59,13 @@ public class SimpleInfopointNode extends InfopointNode implements LIRLowerable, 
             return new BytecodePosition(link, position.getMethod(), position.getBCI());
         } else {
             return new BytecodePosition(relink(position.getCaller(), link), position.getMethod(), position.getBCI());
+        }
+    }
+
+    @Override
+    public void simplify(SimplifierTool tool) {
+        if (next() instanceof SimpleInfopointNode) {
+            graph().removeFixed(this);
         }
     }
 }

@@ -35,14 +35,19 @@ import com.oracle.graal.replacements.SnippetTemplate.Arguments;
 @NodeInfo(allowedUsageTypes = {InputType.Memory})
 public class UnsafeArrayCopyNode extends ArrayRangeWriteNode implements Lowerable, MemoryCheckpoint.Single {
 
-    @Input private ValueNode src;
-    @Input private ValueNode srcPos;
-    @Input private ValueNode dest;
-    @Input private ValueNode destPos;
-    @Input private ValueNode length;
-    @OptionalInput private ValueNode layoutHelper;
+    @Input ValueNode src;
+    @Input ValueNode srcPos;
+    @Input ValueNode dest;
+    @Input ValueNode destPos;
+    @Input ValueNode length;
+    @OptionalInput ValueNode layoutHelper;
 
     private Kind elementKind;
+
+    public static UnsafeArrayCopyNode create(ValueNode src, ValueNode srcPos, ValueNode dest, ValueNode destPos, ValueNode length, ValueNode layoutHelper, Kind elementKind) {
+        return USE_GENERATED_NODES ? new UnsafeArrayCopyNodeGen(src, srcPos, dest, destPos, length, layoutHelper, elementKind) : new UnsafeArrayCopyNode(src, srcPos, dest, destPos, length,
+                        layoutHelper, elementKind);
+    }
 
     UnsafeArrayCopyNode(ValueNode src, ValueNode srcPos, ValueNode dest, ValueNode destPos, ValueNode length, ValueNode layoutHelper, Kind elementKind) {
         super(StampFactory.forVoid());
@@ -56,11 +61,19 @@ public class UnsafeArrayCopyNode extends ArrayRangeWriteNode implements Lowerabl
         this.elementKind = elementKind;
     }
 
-    private UnsafeArrayCopyNode(ValueNode src, ValueNode srcPos, ValueNode dest, ValueNode destPos, ValueNode length, Kind elementKind) {
+    public static UnsafeArrayCopyNode create(ValueNode src, ValueNode srcPos, ValueNode dest, ValueNode destPos, ValueNode length, Kind elementKind) {
+        return USE_GENERATED_NODES ? new UnsafeArrayCopyNodeGen(src, srcPos, dest, destPos, length, elementKind) : new UnsafeArrayCopyNode(src, srcPos, dest, destPos, length, elementKind);
+    }
+
+    UnsafeArrayCopyNode(ValueNode src, ValueNode srcPos, ValueNode dest, ValueNode destPos, ValueNode length, Kind elementKind) {
         this(src, srcPos, dest, destPos, length, null, elementKind);
     }
 
-    private UnsafeArrayCopyNode(ValueNode src, ValueNode srcPos, ValueNode dest, ValueNode destPos, ValueNode length, ValueNode layoutHelper) {
+    public static UnsafeArrayCopyNode create(ValueNode src, ValueNode srcPos, ValueNode dest, ValueNode destPos, ValueNode length, ValueNode layoutHelper) {
+        return USE_GENERATED_NODES ? new UnsafeArrayCopyNodeGen(src, srcPos, dest, destPos, length, layoutHelper) : new UnsafeArrayCopyNode(src, srcPos, dest, destPos, length, layoutHelper);
+    }
+
+    UnsafeArrayCopyNode(ValueNode src, ValueNode srcPos, ValueNode dest, ValueNode destPos, ValueNode length, ValueNode layoutHelper) {
         this(src, srcPos, dest, destPos, length, layoutHelper, null);
     }
 

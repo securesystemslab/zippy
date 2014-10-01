@@ -40,7 +40,11 @@ public class MonitorEnterNode extends AccessMonitorNode implements Virtualizable
      *
      * @param object the instruction producing the object
      */
-    public MonitorEnterNode(ValueNode object, MonitorIdNode monitorId) {
+    public static MonitorEnterNode create(ValueNode object, MonitorIdNode monitorId) {
+        return USE_GENERATED_NODES ? new MonitorEnterNodeGen(object, monitorId) : new MonitorEnterNode(object, monitorId);
+    }
+
+    MonitorEnterNode(ValueNode object, MonitorIdNode monitorId) {
         super(object, monitorId);
     }
 

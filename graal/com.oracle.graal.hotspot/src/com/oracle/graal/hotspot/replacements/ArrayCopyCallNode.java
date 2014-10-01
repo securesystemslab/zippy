@@ -43,11 +43,11 @@ import com.oracle.graal.runtime.*;
 @NodeInfo(allowedUsageTypes = {InputType.Memory})
 public class ArrayCopyCallNode extends AbstractMemoryCheckpoint implements Lowerable, MemoryCheckpoint.Single {
 
-    @Input private ValueNode src;
-    @Input private ValueNode srcPos;
-    @Input private ValueNode dest;
-    @Input private ValueNode destPos;
-    @Input private ValueNode length;
+    @Input ValueNode src;
+    @Input ValueNode srcPos;
+    @Input ValueNode dest;
+    @Input ValueNode destPos;
+    @Input ValueNode length;
 
     private Kind elementKind;
 
@@ -57,6 +57,12 @@ public class ArrayCopyCallNode extends AbstractMemoryCheckpoint implements Lower
     private boolean aligned;
     private boolean disjoint;
     private boolean uninitialized;
+
+    public static ArrayCopyCallNode create(ValueNode src, ValueNode srcPos, ValueNode dest, ValueNode destPos, ValueNode length, Kind elementKind, boolean aligned, boolean disjoint,
+                    boolean uninitialized) {
+        return USE_GENERATED_NODES ? new ArrayCopyCallNodeGen(src, srcPos, dest, destPos, length, elementKind, aligned, disjoint, uninitialized) : new ArrayCopyCallNode(src, srcPos, dest, destPos,
+                        length, elementKind, aligned, disjoint, uninitialized);
+    }
 
     ArrayCopyCallNode(ValueNode src, ValueNode srcPos, ValueNode dest, ValueNode destPos, ValueNode length, Kind elementKind, boolean aligned, boolean disjoint, boolean uninitialized) {
         super(StampFactory.forVoid());
@@ -70,6 +76,11 @@ public class ArrayCopyCallNode extends AbstractMemoryCheckpoint implements Lower
         this.aligned = aligned;
         this.disjoint = disjoint;
         this.uninitialized = uninitialized;
+    }
+
+    public static ArrayCopyCallNode create(ValueNode src, ValueNode srcPos, ValueNode dest, ValueNode destPos, ValueNode length, Kind elementKind, boolean disjoint) {
+        return USE_GENERATED_NODES ? new ArrayCopyCallNodeGen(src, srcPos, dest, destPos, length, elementKind, disjoint) : new ArrayCopyCallNode(src, srcPos, dest, destPos, length, elementKind,
+                        disjoint);
     }
 
     ArrayCopyCallNode(ValueNode src, ValueNode srcPos, ValueNode dest, ValueNode destPos, ValueNode length, Kind elementKind, boolean disjoint) {
@@ -113,10 +124,10 @@ public class ArrayCopyCallNode extends AbstractMemoryCheckpoint implements Lower
     }
 
     private ValueNode computeBase(ValueNode base, ValueNode pos) {
-        FixedWithNextNode basePtr = graph().add(new GetObjectAddressNode(base));
+        FixedWithNextNode basePtr = graph().add(GetObjectAddressNode.create(base));
         graph().addBeforeFixed(this, basePtr);
         ValueNode loc = IndexedLocationNode.create(getLocationIdentity(), elementKind, arrayBaseOffset(elementKind), pos, graph(), arrayIndexScale(elementKind));
-        return graph().unique(new ComputeAddressNode(basePtr, loc, StampFactory.forKind(Kind.Long)));
+        return graph().unique(ComputeAddressNode.create(basePtr, loc, StampFactory.forKind(Kind.Long)));
     }
 
     @Override
@@ -131,7 +142,7 @@ public class ArrayCopyCallNode extends AbstractMemoryCheckpoint implements Lower
             if (len.stamp().getStackKind() != Kind.Long) {
                 len = IntegerConvertNode.convert(len, StampFactory.forKind(Kind.Long), graph());
             }
-            ForeignCallNode call = graph.add(new ForeignCallNode(Graal.getRequiredCapability(RuntimeProvider.class).getHostBackend().getForeignCalls(), desc, srcAddr, destAddr, len));
+            ForeignCallNode call = graph.add(ForeignCallNode.create(Graal.getRequiredCapability(RuntimeProvider.class).getHostBackend().getForeignCalls(), desc, srcAddr, destAddr, len));
             call.setStateAfter(stateAfter());
             graph.replaceFixedWithFixed(this, call);
 
@@ -174,6 +185,10 @@ public class ArrayCopyCallNode extends AbstractMemoryCheckpoint implements Lower
         return uninitialized;
     }
 
+    static boolean isHeapWordAligned(Constant value, Kind kind) {
+        return (arrayBaseOffset(kind) + (long) value.asInt() * arrayIndexScale(kind)) % heapWordSize() == 0;
+    }
+
     public void updateAlignedDisjoint() {
         Kind componentKind = elementKind;
         if (srcPos == destPos) {
@@ -184,7 +199,7 @@ public class ArrayCopyCallNode extends AbstractMemoryCheckpoint implements Lower
         Constant constantDst = destPos.stamp().asConstant();
         if (constantSrc != null && constantDst != null) {
             if (!aligned) {
-                aligned = ArrayCopyNode.isHeapWordAligned(constantSrc, componentKind) && ArrayCopyNode.isHeapWordAligned(constantDst, componentKind);
+                aligned = isHeapWordAligned(constantSrc, componentKind) && isHeapWordAligned(constantDst, componentKind);
             }
             if (constantSrc.asInt() >= constantDst.asInt()) {
                 // low to high copy so treat as disjoint

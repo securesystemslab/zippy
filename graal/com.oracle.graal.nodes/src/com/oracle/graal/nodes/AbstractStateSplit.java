@@ -31,7 +31,7 @@ import com.oracle.graal.nodeinfo.*;
 @NodeInfo
 public abstract class AbstractStateSplit extends FixedWithNextNode implements StateSplit {
 
-    @OptionalInput(InputType.State) private FrameState stateAfter;
+    @OptionalInput(InputType.State) protected FrameState stateAfter;
 
     public FrameState stateAfter() {
         return stateAfter;

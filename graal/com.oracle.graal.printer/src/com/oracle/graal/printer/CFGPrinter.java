@@ -34,8 +34,6 @@ import com.oracle.graal.compiler.alloc.Interval.UsePosList;
 import com.oracle.graal.compiler.common.cfg.*;
 import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.graph.NodeClass.NodeClassIterator;
-import com.oracle.graal.graph.NodeClass.Position;
 import com.oracle.graal.java.*;
 import com.oracle.graal.java.BciBlockMapping.BciBlock;
 import com.oracle.graal.lir.*;
@@ -274,24 +272,20 @@ class CFGPrinter extends CompilationPrinter {
             }
         }
 
-        // Currently no node printing for lir
-        if (lir == null) {
-            Node cur = block.getBeginNode();
-            while (true) {
-                printNode(cur, false);
+        Node cur = block.getBeginNode();
+        while (true) {
+            printNode(cur, false);
 
-                if (cur == block.getEndNode()) {
-                    for (Map.Entry<Node, Block> entry : latestScheduling.entries()) {
-                        if (entry.getValue() == block && !inFixedSchedule(entry.getKey()) && !printedNodes.isMarked(entry.getKey())) {
-                            printNode(entry.getKey(), true);
-                        }
+            if (cur == block.getEndNode()) {
+                for (Map.Entry<Node, Block> entry : latestScheduling.entries()) {
+                    if (entry.getValue() == block && !inFixedSchedule(entry.getKey()) && !printedNodes.isMarked(entry.getKey())) {
+                        printNode(entry.getKey(), true);
                     }
-                    break;
                 }
-                assert cur.successors().count() == 1;
-                cur = cur.successors().first();
+                break;
             }
-
+            assert cur.successors().count() == 1;
+            cur = cur.successors().first();
         }
 
         out.enableIndentation();
@@ -349,7 +343,7 @@ class CFGPrinter extends CompilationPrinter {
         out.println("=== Succesors ===");
         printNamedNodes(node, node.successors().iterator(), "", "\n", null);
         out.println("=== Usages ===");
-        if (node.recordsUsages() && !node.usages().isEmpty()) {
+        if (!node.usages().isEmpty()) {
             for (Node usage : node.usages()) {
                 out.print(nodeToString(usage)).print(" ");
             }
@@ -372,7 +366,7 @@ class CFGPrinter extends CompilationPrinter {
         out.print(COLUMN_END).print(' ').println(COLUMN_END);
     }
 
-    private void printNamedNodes(Node node, NodeClassIterator iter, String prefix, String suffix, String hideSuffix) {
+    private void printNamedNodes(Node node, NodePosIterator iter, String prefix, String suffix, String hideSuffix) {
         int lastIndex = -1;
         while (iter.hasNext()) {
             Position pos = iter.nextPosition();

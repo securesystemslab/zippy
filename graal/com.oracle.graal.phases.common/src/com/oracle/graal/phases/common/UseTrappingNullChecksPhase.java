@@ -162,7 +162,7 @@ public class UseTrappingNullChecksPhase extends BasePhase<LowTierContext> {
         IsNullNode isNullNode = (IsNullNode) condition;
         BeginNode nonTrappingContinuation = ifNode.falseSuccessor();
         BeginNode trappingContinuation = ifNode.trueSuccessor();
-        NullCheckNode trappingNullCheck = deopt.graph().add(new NullCheckNode(isNullNode.getValue()));
+        NullCheckNode trappingNullCheck = deopt.graph().add(NullCheckNode.create(isNullNode.getValue()));
         trappingNullCheck.setStateBefore(deopt.stateBefore());
         deopt.graph().replaceSplit(ifNode, trappingNullCheck, nonTrappingContinuation);
 
@@ -172,10 +172,14 @@ public class UseTrappingNullChecksPhase extends BasePhase<LowTierContext> {
          * then remove the Begin from the graph.
          */
         nonTrappingContinuation.replaceAtUsages(InputType.Guard, trappingNullCheck);
-        FixedNode next = nonTrappingContinuation.next();
-        nonTrappingContinuation.clearSuccessors();
-        trappingNullCheck.setNext(next);
-        nonTrappingContinuation.safeDelete();
+        if (nonTrappingContinuation.getNodeClass().is(BeginNode.class)) {
+            FixedNode next = nonTrappingContinuation.next();
+            nonTrappingContinuation.clearSuccessors();
+            trappingNullCheck.setNext(next);
+            nonTrappingContinuation.safeDelete();
+        } else {
+            trappingNullCheck.setNext(nonTrappingContinuation);
+        }
 
         GraphUtil.killCFG(trappingContinuation);
         if (isNullNode.usages().isEmpty()) {

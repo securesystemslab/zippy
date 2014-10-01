@@ -63,7 +63,7 @@ void GraalCompiler::initialize() {
     CompilationPolicy::completed_vm_startup();
 
 #ifndef PRODUCT
-    if (CompileTheWorld) {
+    if (CompileTheWorld && !BootstrapGraal) {
       compile_the_world();
     }
 #endif
@@ -113,6 +113,11 @@ void GraalCompiler::bootstrap() {
     tty->print_cr(" in %d ms (compiled %d methods)", os::javaTimeMillis() - start, _methodsCompiled);
   }
   _bootstrapping = false;
+#ifndef PRODUCT
+    if (CompileTheWorld) {
+      compile_the_world();
+    }
+#endif
 }
 
 void GraalCompiler::compile_method(methodHandle method, int entry_bci, CompileTask* task) {

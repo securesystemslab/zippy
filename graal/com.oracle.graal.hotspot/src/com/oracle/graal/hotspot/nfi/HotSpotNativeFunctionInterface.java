@@ -88,7 +88,7 @@ public class HotSpotNativeFunctionInterface implements NativeFunctionInterface {
 
     @Override
     public HotSpotNativeFunctionHandle getFunctionHandle(NativeLibraryHandle library, String name, Class<?> returnType, Class<?>... argumentTypes) {
-        HotSpotNativeFunctionPointer functionPointer = lookupFunctionPointer(name, library, true);
+        HotSpotNativeFunctionPointer functionPointer = lookupFunctionPointer(name, library, false);
         return createHandle(functionPointer, returnType, argumentTypes);
     }
 
@@ -146,8 +146,12 @@ public class HotSpotNativeFunctionInterface implements NativeFunctionInterface {
 
     private HotSpotNativeFunctionHandle createHandle(NativeFunctionPointer functionPointer, Class<?> returnType, Class<?>... argumentTypes) {
         HotSpotNativeFunctionPointer hs = (HotSpotNativeFunctionPointer) functionPointer;
-        InstalledCode code = installNativeFunctionStub(hs.value, returnType, argumentTypes);
-        return new HotSpotNativeFunctionHandle(code, hs.name, argumentTypes);
+        if (hs != null) {
+            InstalledCode code = installNativeFunctionStub(hs.value, returnType, argumentTypes);
+            return new HotSpotNativeFunctionHandle(code, hs.name, argumentTypes);
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -179,7 +183,7 @@ public class HotSpotNativeFunctionInterface implements NativeFunctionInterface {
         if (rtldDefault == null) {
             throw new UnsatisfiedLinkError(name);
         }
-        return lookupFunctionPointer(name, rtldDefault, true);
+        return lookupFunctionPointer(name, rtldDefault, false);
     }
 
     public boolean isDefaultLibrarySearchSupported() {

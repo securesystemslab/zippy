@@ -37,6 +37,10 @@ import com.oracle.graal.word.*;
 @NodeInfo
 public class MonitorCounterNode extends FloatingNode implements LIRLowerable {
 
+    public static MonitorCounterNode create() {
+        return USE_GENERATED_NODES ? new MonitorCounterNodeGen() : new MonitorCounterNode();
+    }
+
     MonitorCounterNode() {
         super(null);
     }

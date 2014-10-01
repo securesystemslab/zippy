@@ -35,11 +35,15 @@ import com.oracle.graal.replacements.Snippet.VarargsParameter;
 @NodeInfo
 public class LoadSnippetVarargParameterNode extends FixedWithNextNode implements Canonicalizable {
 
-    @Input private ValueNode index;
+    @Input ValueNode index;
 
-    @Input private final NodeInputList<ParameterNode> parameters;
+    @Input NodeInputList<ParameterNode> parameters;
 
-    public LoadSnippetVarargParameterNode(ParameterNode[] locals, ValueNode index, Stamp stamp) {
+    public static LoadSnippetVarargParameterNode create(ParameterNode[] locals, ValueNode index, Stamp stamp) {
+        return USE_GENERATED_NODES ? new LoadSnippetVarargParameterNodeGen(locals, index, stamp) : new LoadSnippetVarargParameterNode(locals, index, stamp);
+    }
+
+    protected LoadSnippetVarargParameterNode(ParameterNode[] locals, ValueNode index, Stamp stamp) {
         super(stamp);
         this.index = index;
         this.parameters = new NodeInputList<>(this, locals);

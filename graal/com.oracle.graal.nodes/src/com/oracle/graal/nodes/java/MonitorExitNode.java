@@ -39,12 +39,16 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo
 public class MonitorExitNode extends AccessMonitorNode implements Virtualizable, Simplifiable, Lowerable, IterableNodeType, MonitorExit, MemoryCheckpoint.Single {
 
-    @OptionalInput private ValueNode escapedReturnValue;
+    @OptionalInput ValueNode escapedReturnValue;
 
     /**
      * Creates a new MonitorExitNode.
      */
-    public MonitorExitNode(ValueNode object, MonitorIdNode monitorId, ValueNode escapedReturnValue) {
+    public static MonitorExitNode create(ValueNode object, MonitorIdNode monitorId, ValueNode escapedReturnValue) {
+        return USE_GENERATED_NODES ? new MonitorExitNodeGen(object, monitorId, escapedReturnValue) : new MonitorExitNode(object, monitorId, escapedReturnValue);
+    }
+
+    MonitorExitNode(ValueNode object, MonitorIdNode monitorId, ValueNode escapedReturnValue) {
         super(object, monitorId);
         this.escapedReturnValue = escapedReturnValue;
     }

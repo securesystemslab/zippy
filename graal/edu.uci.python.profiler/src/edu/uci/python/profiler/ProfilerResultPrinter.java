@@ -40,6 +40,7 @@ import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
 import edu.uci.python.nodes.call.PythonCallNode.ConstructorCallNode;
 import edu.uci.python.nodes.call.PythonCallNode.UnboxedCallNode;
 import edu.uci.python.nodes.control.*;
+import edu.uci.python.nodes.control.LoopNode;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.*;
 

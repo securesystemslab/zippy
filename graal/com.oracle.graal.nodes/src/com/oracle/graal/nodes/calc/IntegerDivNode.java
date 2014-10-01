@@ -34,7 +34,11 @@ import com.oracle.graal.nodes.type.*;
 @NodeInfo(shortName = "/")
 public class IntegerDivNode extends FixedBinaryNode implements Lowerable, LIRLowerable {
 
-    public IntegerDivNode(ValueNode x, ValueNode y) {
+    public static IntegerDivNode create(ValueNode x, ValueNode y) {
+        return USE_GENERATED_NODES ? new IntegerDivNodeGen(x, y) : new IntegerDivNode(x, y);
+    }
+
+    protected IntegerDivNode(ValueNode x, ValueNode y) {
         super(StampTool.div(x.stamp(), y.stamp()), x, y);
     }
 
@@ -46,6 +50,7 @@ public class IntegerDivNode extends FixedBinaryNode implements Lowerable, LIRLow
     @Override
     public ValueNode canonical(CanonicalizerTool tool, ValueNode forX, ValueNode forY) {
         if (forX.isConstant() && forY.isConstant()) {
+            @SuppressWarnings("hiding")
             long y = forY.asConstant().asLong();
             if (y == 0) {
                 return this; // this will trap, can not canonicalize
@@ -57,7 +62,7 @@ public class IntegerDivNode extends FixedBinaryNode implements Lowerable, LIRLow
                 return forX;
             }
             if (c == -1) {
-                return new NegateNode(forX);
+                return NegateNode.create(forX);
             }
             long abs = Math.abs(c);
             if (CodeUtil.isPowerOf2(abs) && forX.stamp() instanceof IntegerStamp) {
@@ -67,13 +72,13 @@ public class IntegerDivNode extends FixedBinaryNode implements Lowerable, LIRLow
                 // no rounding if dividend is positive or if its low bits are always 0
                 if (stampX.canBeNegative() || (stampX.upMask() & (abs - 1)) != 0) {
                     int bits = PrimitiveStamp.getBits(stamp());
-                    RightShiftNode sign = new RightShiftNode(forX, ConstantNode.forInt(bits - 1));
-                    UnsignedRightShiftNode round = new UnsignedRightShiftNode(sign, ConstantNode.forInt(bits - log2));
+                    RightShiftNode sign = RightShiftNode.create(forX, ConstantNode.forInt(bits - 1));
+                    UnsignedRightShiftNode round = UnsignedRightShiftNode.create(sign, ConstantNode.forInt(bits - log2));
                     dividend = IntegerArithmeticNode.add(dividend, round);
                 }
-                RightShiftNode shift = new RightShiftNode(dividend, ConstantNode.forInt(log2));
+                RightShiftNode shift = RightShiftNode.create(dividend, ConstantNode.forInt(log2));
                 if (c < 0) {
-                    return new NegateNode(shift);
+                    return NegateNode.create(shift);
                 }
                 return shift;
             }
@@ -86,13 +91,13 @@ public class IntegerDivNode extends FixedBinaryNode implements Lowerable, LIRLow
                 IntegerRemNode integerRemNode = (IntegerRemNode) integerSubNode.getY();
                 if (integerSubNode.stamp().isCompatible(this.stamp()) && integerRemNode.stamp().isCompatible(this.stamp()) && integerSubNode.getX() == integerRemNode.getX() &&
                                 forY == integerRemNode.getY()) {
-                    return new IntegerDivNode(integerSubNode.getX(), forY);
+                    return IntegerDivNode.create(integerSubNode.getX(), forY);
                 }
             }
         }
 
         if (next() instanceof IntegerDivNode) {
-            NodeClass nodeClass = NodeClass.get(this.getClass());
+            NodeClass nodeClass = getNodeClass();
             if (next().getClass() == this.getClass() && nodeClass.inputsEqual(this, next()) && nodeClass.valueEqual(this, next())) {
                 return next();
             }

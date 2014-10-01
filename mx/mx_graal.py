@@ -83,6 +83,18 @@ _make_eclipse_launch = False
 
 _minVersion = mx.VersionSpec('1.8')
 
+class JDKDeployedDist:
+    def __init__(self, name, isExtension):
+        self.name = name
+        self.isExtension = isExtension
+
+_jdkDeployedDists = [
+    JDKDeployedDist('TRUFFLE', isExtension=False),
+    JDKDeployedDist('GRAAL_LOADER', isExtension=False),
+    JDKDeployedDist('GRAAL', isExtension=False),
+    JDKDeployedDist('GRAAL_TRUFFLE', isExtension=False)
+]
+
 JDK_UNIX_PERMISSIONS_DIR = 0755
 JDK_UNIX_PERMISSIONS_FILE = 0644
 JDK_UNIX_PERMISSIONS_EXEC = 0755
@@ -187,7 +199,7 @@ def export(args):
 
     infos['jdkversion'] = str(mx.java().version)
 
-    infos['architecture'] = _arch()
+    infos['architecture'] = mx.get_arch()
     infos['platform'] = mx.get_os()
 
     if mx.get_os != 'windows':
@@ -334,22 +346,6 @@ def scaladacapo(args):
 
     _run_benchmark(args, sanitycheck.dacapoScalaSanityWarmup.keys(), launcher)
 
-def _arch():
-    machine = platform.uname()[4]
-    if machine in ['amd64', 'AMD64', 'x86_64', 'i86pc']:
-        return 'amd64'
-    if machine in ['sun4v', 'sun4u']:
-        return 'sparcv9'
-    if machine == 'i386' and mx.get_os() == 'darwin':
-        try:
-            # Support for Snow Leopard and earlier version of MacOSX
-            if subprocess.check_output(['sysctl', '-n', 'hw.cpu64bit_capable']).strip() == '1':
-                return 'amd64'
-        except OSError:
-            # sysctl is not available
-            pass
-    mx.abort('unknown or unsupported architecture: os=' + mx.get_os() + ', machine=' + machine)
-
 def _vmLibDirInJdk(jdk):
     """
     Get the directory within a JDK where the server and client
@@ -359,20 +355,32 @@ def _vmLibDirInJdk(jdk):
         return join(jdk, 'jre', 'lib')
     if platform.system() == 'Windows':
         return join(jdk, 'jre', 'bin')
-    return join(jdk, 'jre', 'lib', _arch())
+    return join(jdk, 'jre', 'lib', mx.get_arch())
 
-def _vmCfgInJdk(jdk):
+def _vmJliLibDirs(jdk):
+    """
+    Get the directories within a JDK where the jli library designates to.
+    """
+    if platform.system() == 'Darwin':
+        return [join(jdk, 'jre', 'lib', 'jli')]
+    if platform.system() == 'Windows':
+        return [join(jdk, 'jre', 'bin'), join(jdk, 'bin')]
+    return [join(jdk, 'jre', 'lib', mx.get_arch(), 'jli'), join(jdk, 'lib', mx.get_arch(), 'jli')]
+
+def _vmCfgInJdk(jdk, jvmCfgFile='jvm.cfg'):
     """
     Get the jvm.cfg file.
     """
     if platform.system() == 'Windows':
-        return join(jdk, 'jre', 'lib', _arch(), 'jvm.cfg')
-    return join(_vmLibDirInJdk(jdk), 'jvm.cfg')
+        return join(jdk, 'jre', 'lib', mx.get_arch(), jvmCfgFile)
+    return join(_vmLibDirInJdk(jdk), jvmCfgFile)
 
 def _jdksDir():
     return os.path.abspath(join(_installed_jdks if _installed_jdks else _graal_home, 'jdk' + str(mx.java().version)))
 
-def _handle_missing_VM(bld, vm):
+def _handle_missing_VM(bld, vm=None):
+    if not vm:
+        vm = _get_vm()
     mx.log('The ' + bld + ' ' + vm + ' VM has not been created')
     if sys.stdout.isatty():
         if mx.ask_yes_no('Build it now', 'y'):
@@ -381,10 +389,12 @@ def _handle_missing_VM(bld, vm):
             return
     mx.abort('You need to run "mx --vm ' + vm + ' --vmbuild ' + bld + ' build" to build the selected VM')
 
-def _jdk(build='product', vmToCheck=None, create=False, installJars=True):
+def _jdk(build=None, vmToCheck=None, create=False, installJars=True):
     """
     Get the JDK into which Graal is installed, creating it first if necessary.
     """
+    if not build:
+        build = _vmbuild if _vmSourcesAvailable else 'product'
     jdk = join(_jdksDir(), build)
     if create:
         srcJdk = mx.java().jdk
@@ -456,13 +466,13 @@ def _jdk(build='product', vmToCheck=None, create=False, installJars=True):
         if not exists(jdk):
             if _installed_jdks:
                 mx.log("The selected JDK directory does not (yet) exist: " + jdk)
-            _handle_missing_VM(build, vmToCheck if vmToCheck else 'graal')
+            _handle_missing_VM(build, vmToCheck)
 
     if installJars:
-        _installDistInJdks(mx.distribution('GRAAL'))
-        _installDistInJdks(mx.distribution('GRAAL_LOADER'))
-        _installDistInJdks(mx.distribution('TRUFFLE'))
-        _installDistInJdks(mx.distribution('GRAAL_TRUFFLE'))
+        for jdkDist in _jdkDeployedDists:
+            dist = mx.distribution(jdkDist.name)
+            if exists(dist.path):
+                _installDistInJdks(dist, jdkDist.isExtension)
 
     if vmToCheck is not None:
         jvmCfg = _vmCfgInJdk(jdk)
@@ -565,6 +575,9 @@ def _copyToJdk(src, dst, permissions=JDK_UNIX_PERMISSIONS_FILE):
         shutil.move(tmp, dstLib)
         os.chmod(dstLib, permissions)
 
+def _installDistInJdksExt(dist):
+    _installDistInJdks(dist, True)
+
 def _installDistInJdks(dist, ext=False):
     """
     Installs the jar(s) for a given Distribution into all existing Graal JDKs
@@ -646,8 +659,7 @@ def _runInDebugShell(cmd, workingDir, logFile=None, findInOutput=None, respondTo
 
 def jdkhome(vm=None):
     """return the JDK directory selected for the 'vm' command"""
-    build = _vmbuild if _vmSourcesAvailable else 'product'
-    return _jdk(build, installJars=False)
+    return _jdk(installJars=False)
 
 def print_jdkhome(args, vm=None):
     """print the JDK directory selected for the 'vm' command"""
@@ -736,8 +748,19 @@ def build(args, vm=None):
         else:
             assert os.path.isdir(opts2.export_dir), '{} is not a directory'.format(opts2.export_dir)
 
-        shutil.copy(mx.distribution('GRAAL').path, opts2.export_dir)
-        shutil.copy(mx.distribution('GRAAL_LOADER').path, opts2.export_dir)
+        defsPath = join(_graal_home, 'make', 'defs.make')
+        with open(defsPath) as fp:
+            defs = fp.read()
+        for jdkDist in _jdkDeployedDists:
+            dist = mx.distribution(jdkDist.name)
+            defLine = 'EXPORT_LIST += $(EXPORT_JRE_LIB_DIR)/' + basename(dist.path)
+            if jdkDist.isExtension:
+                defLine = 'EXPORT_LIST += $(EXPORT_JRE_LIB_EXT_DIR)/' + basename(dist.path)
+            else:
+                defLine = 'EXPORT_LIST += $(EXPORT_JRE_LIB_DIR)/' + basename(dist.path)
+            if defLine not in defs:
+                mx.abort('Missing following line in ' + defsPath + '\n' + defLine)
+            shutil.copy(dist.path, opts2.export_dir)
         graalOptions = join(_graal_home, 'graal.options')
         if exists(graalOptions):
             shutil.copy(graalOptions, opts2.export_dir)
@@ -770,7 +793,7 @@ def build(args, vm=None):
             if build is None or len(build) == 0:
                 continue
 
-        jdk = _jdk(build, create=True, installJars=not opts2.java)
+        jdk = _jdk(build, create=True, installJars=vm != 'original' and not opts2.java)
 
         if vm == 'original':
             if build != 'product':
@@ -955,7 +978,7 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
     elif _vm_cwd is not None and _vm_cwd != cwd:
         mx.abort("conflicting working directories: do not set --vmcwd for this command")
 
-    build = vmbuild if vmbuild is not None else _vmbuild if _vmSourcesAvailable else 'product'
+    build = vmbuild if vmbuild else _vmbuild if _vmSourcesAvailable else 'product'
     jdk = _jdk(build, vmToCheck=vm, installJars=False)
     _updateInstalledGraalOptionsFile(jdk)
     mx.expand_project_in_args(args)
@@ -985,6 +1008,10 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
         ignoredArgs = args[args.index('-version') + 1:]
         if  len(ignoredArgs) > 0:
             mx.log("Warning: The following options will be ignored by the vm because they come after the '-version' argument: " + ' '.join(ignoredArgs))
+
+    if vm == 'original':
+        truffle_jar = mx.archive(['@TRUFFLE'])[0]
+        args = ['-Xbootclasspath/p:' + truffle_jar] + args
 
     args = mx.java().processArgs(args)
     return (pfx, exe, vm, args, cwd)
@@ -1029,7 +1056,7 @@ def _extract_VM_args(args, allowClasspath=False, useDoubleDash=False, defaultAll
     else:
         return [], args
 
-def _run_tests(args, harness, annotations, testfile, whitelist, regex):
+def _run_tests(args, harness, annotations, testfile, blacklist, whitelist, regex):
 
 
     vmArgs, tests = _extract_VM_args(args)
@@ -1076,6 +1103,9 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
                     mx.log('warning: no tests matched by substring "' + t)
         projectsCp = mx.classpath(projs)
 
+    if blacklist:
+        classes = [c for c in classes if not any((glob.match(c) for glob in blacklist))]
+
     if whitelist:
         classes = [c for c in classes if any((glob.match(c) for glob in whitelist))]
 
@@ -1089,7 +1119,7 @@ def _run_tests(args, harness, annotations, testfile, whitelist, regex):
         f_testfile.close()
         harness(projectsCp, vmArgs)
 
-def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, enable_timing=False, regex=None, color=False, eager_stacktrace=False, gc_after_test=False):
+def _unittest(args, annotations, prefixCp="", blacklist=None, whitelist=None, verbose=False, enable_timing=False, regex=None, color=False, eager_stacktrace=False, gc_after_test=False):
     testfile = os.environ.get('MX_TESTFILE', None)
     if testfile is None:
         (_, testfile) = tempfile.mkstemp(".testclasses", "graal")
@@ -1124,9 +1154,11 @@ def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, ena
         # access core Graal classes.
         cp = prefixCp + coreCp + os.pathsep + projectsCp
         if isGraalEnabled(_get_vm()):
-            graalDist = mx.distribution('GRAAL')
-            graalJarCp = set([d.output_dir() for d in graalDist.sorted_deps()])
-            cp = os.pathsep.join([e for e in cp.split(os.pathsep) if e not in graalJarCp])
+            excluded = set()
+            for jdkDist in _jdkDeployedDists:
+                dist = mx.distribution(jdkDist.name)
+                excluded.update([d.output_dir() for d in dist.sorted_deps()])
+            cp = os.pathsep.join([e for e in cp.split(os.pathsep) if e not in excluded])
             vmArgs = ['-XX:-UseGraalClassLoader'] + vmArgs
 
         if len(testclasses) == 1:
@@ -1137,7 +1169,7 @@ def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, ena
             vm(prefixArgs + vmArgs + ['-cp', cp, 'com.oracle.graal.test.GraalJUnitCore'] + coreArgs + ['@' + testfile])
 
     try:
-        _run_tests(args, harness, annotations, testfile, whitelist, regex)
+        _run_tests(args, harness, annotations, testfile, blacklist, whitelist, regex)
     finally:
         if os.environ.get('MX_TESTFILE') is None:
             os.remove(testfile)
@@ -1145,6 +1177,7 @@ def _unittest(args, annotations, prefixCp="", whitelist=None, verbose=False, ena
 _unittestHelpSuffix = """
     Unittest options:
 
+      --blacklist <file>     run all testcases not specified in the blacklist
       --whitelist <file>     run only testcases which are included
                              in the given whitelist
       --verbose              enable verbose JUnit output
@@ -1189,6 +1222,7 @@ def unittest(args):
           formatter_class=RawDescriptionHelpFormatter,
           epilog=_unittestHelpSuffix,
         )
+    parser.add_argument('--blacklist', help='run all testcases not specified in the blacklist', metavar='<path>')
     parser.add_argument('--whitelist', help='run testcases specified in whitelist only', metavar='<path>')
     parser.add_argument('--verbose', help='enable verbose JUnit output', action='store_true')
     parser.add_argument('--enable-timing', help='enable JUnit test timing', action='store_true')
@@ -1220,6 +1254,12 @@ def unittest(args):
                 parsed_args.whitelist = [re.compile(fnmatch.translate(l.rstrip())) for l in fp.readlines() if not l.startswith('#')]
         except IOError:
             mx.log('warning: could not read whitelist: ' + parsed_args.whitelist)
+    if parsed_args.blacklist:
+        try:
+            with open(join(_graal_home, parsed_args.blacklist)) as fp:
+                parsed_args.blacklist = [re.compile(fnmatch.translate(l.rstrip())) for l in fp.readlines() if not l.startswith('#')]
+        except IOError:
+            mx.log('warning: could not read blacklist: ' + parsed_args.blacklist)
 
     _unittest(args, ['@Test', '@Parameters'], **parsed_args.__dict__)
 
@@ -1293,6 +1333,41 @@ class Task:
         mx.log(time.strftime('gate: %d %b %Y %H:%M:%S: ABORT: ') + self.title + ' [' + str(self.duration) + ']')
         mx.abort(codeOrMessage)
         return self
+
+def ctw(args):
+    """run CompileTheWorld"""
+    from sanitycheck import CTWMode
+    modes = {
+             'noinline' : CTWMode.NoInline,
+             'nocomplex' : CTWMode.NoComplex,
+             'full' : CTWMode.Full
+             }
+    mode = sanitycheck.CTWMode.NoInline
+    vmargs = []
+    for a in args:
+        m = modes.get(a, None)
+        if m:
+            mode = m
+        else:
+            vmargs.append(a)
+
+    jdk = _jdk(installJars=False)
+    rtjar = join(jdk, 'jre', 'lib', 'rt.jar')
+
+    vm_ = _get_vm()
+
+    args = vmargs + ['-XX:+CompileTheWorld', '-Xbootclasspath/p:' + rtjar]
+    if vm_ == 'graal':
+        args += ['-XX:+BootstrapGraal']
+    if mode >= CTWMode.NoInline:
+        if not isGraalEnabled(vm_):
+            args.append('-XX:-Inline')
+        else:
+            args.append('-G:-Inline')
+    if mode >= CTWMode.NoComplex:
+        if isGraalEnabled(vm_):
+            args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-NewMemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
+    vm(args)
 
 def _basic_gate_body(args, tasks):
     t = Task('BuildHotSpotGraal: fastdebug,product')
@@ -1991,7 +2066,7 @@ def hsdis(args, copyToDir=None):
     flavor = 'intel'
     if 'att' in args:
         flavor = 'att'
-    lib = mx.add_lib_suffix('hsdis-' + _arch())
+    lib = mx.add_lib_suffix('hsdis-' + mx.get_arch())
     path = join(_graal_home, 'lib', lib)
 
     sha1s = {
@@ -2002,8 +2077,12 @@ def hsdis(args, copyToDir=None):
         'intel/hsdis-amd64.dylib' : 'fdb13ef0d7d23d93dacaae9c98837bea0d4fc5a2',
     }
 
+    flavoredLib = flavor + "/" + lib
+    if flavoredLib not in sha1s:
+        mx.logv("hsdis not supported on this plattform or architecture")
+        return
+
     if not exists(path):
-        flavoredLib = flavor + "/" + lib
         sha1 = sha1s[flavoredLib]
         sha1path = path + '.sha1'
         mx.download_file_with_sha1('hsdis', path, ['http://lafo.ssw.uni-linz.ac.at/hsdis/' + flavoredLib], sha1, sha1path, True, True, sources=False)
@@ -2260,7 +2339,7 @@ def findbugs(args):
     cmd = ['-jar', findbugsJar, '-textui', '-low', '-maxRank', '15']
     if sys.stdout.isatty():
         cmd.append('-progress')
-    cmd = cmd + ['-auxclasspath', mx.classpath(['GRAAL'] + [p.name for p in nonTestProjects]), '-output', findbugsResults, '-exitcode'] + args + outputDirs
+    cmd = cmd + ['-auxclasspath', mx.classpath([d.name for d in _jdkDeployedDists] + [p.name for p in nonTestProjects]), '-output', findbugsResults, '-exitcode'] + args + outputDirs
     exitcode = mx.run_java(cmd, nonZeroIsFatal=False)
     if exitcode != 0:
         with open(findbugsResults) as fp:
@@ -2305,6 +2384,7 @@ def mx_init(suite):
         'c1visualizer' : [c1visualizer, ''],
         'checkheaders': [checkheaders, ''],
         'clean': [clean, ''],
+        'ctw': [ctw, '[-vmoptions|noinline|nocomplex|full]'],
         'findbugs': [findbugs, ''],
         'generateZshCompletion' : [generateZshCompletion, ''],
         'hsdis': [hsdis, '[att]'],
@@ -2377,7 +2457,8 @@ def mx_post_parse_cmd_line(opts):  #
     global _vm_prefix
     _vm_prefix = opts.vm_prefix
 
-    mx.distribution('GRAAL').add_update_listener(_installDistInJdks)
-    mx.distribution('GRAAL_LOADER').add_update_listener(_installDistInJdks)
-    mx.distribution('TRUFFLE').add_update_listener(_installDistInJdks)
-    mx.distribution('GRAAL_TRUFFLE').add_update_listener(_installDistInJdks)
+    for jdkDist in _jdkDeployedDists:
+        if jdkDist.isExtension:
+            mx.distribution(jdkDist.name).add_update_listener(_installDistInJdksExt)
+        else:
+            mx.distribution(jdkDist.name).add_update_listener(_installDistInJdks)

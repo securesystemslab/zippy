@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2012, 2014, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -20,16 +22,20 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-package com.oracle.truffle.sl.nodes.instrument;
+package com.oracle.truffle.api.impl;
 
-import com.oracle.truffle.api.instrument.*;
-import com.oracle.truffle.sl.nodes.*;
+import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.nodes.*;
 
-public interface SLNodeProber extends ASTNodeProber {
+public final class DefaultLoopNode extends LoopNode {
 
-    SLStatementNode probeAsStatement(SLStatementNode result);
+    public DefaultLoopNode(RepeatingNode repeatNode) {
+        super(repeatNode);
+    }
 
-    SLExpressionNode probeAsCall(SLExpressionNode node, String callName);
-
-    SLExpressionNode probeAsLocalAssignment(SLExpressionNode node, String localName);
+    @Override
+    public void executeLoop(VirtualFrame frame) {
+        while (executeRepeatingNode(frame)) {
+        }
+    }
 }

@@ -35,7 +35,11 @@ import com.oracle.graal.nodes.util.*;
 @NodeInfo(shortName = "|")
 public class OrNode extends BitLogicNode {
 
-    public OrNode(ValueNode x, ValueNode y) {
+    public static OrNode create(ValueNode x, ValueNode y) {
+        return USE_GENERATED_NODES ? new OrNodeGen(x, y) : new OrNode(x, y);
+    }
+
+    OrNode(ValueNode x, ValueNode y) {
         super(StampTool.or(x.stamp(), y.stamp()), x, y);
         assert x.stamp().isCompatible(y.stamp());
     }
@@ -57,7 +61,7 @@ public class OrNode extends BitLogicNode {
             return forX;
         }
         if (forX.isConstant() && !forY.isConstant()) {
-            return new OrNode(forY, forX);
+            return create(forY, forX);
         }
         if (forX.isConstant()) {
             return ConstantNode.forPrimitive(stamp(), evalConst(forX.asConstant(), forY.asConstant()));

@@ -318,6 +318,7 @@
   GRAAL_ONLY(template(com_oracle_graal_hotspot_CompilationTask,                 "com/oracle/graal/hotspot/CompilationTask"))                      \
   GRAAL_ONLY(template(com_oracle_graal_api_meta_Constant,                       "com/oracle/graal/api/meta/Constant"))                            \
   GRAAL_ONLY(template(com_oracle_graal_api_meta_PrimitiveConstant,              "com/oracle/graal/api/meta/PrimitiveConstant"))                   \
+  GRAAL_ONLY(template(com_oracle_graal_api_meta_RawConstant,                    "com/oracle/graal/api/meta/RawConstant"))                         \
   GRAAL_ONLY(template(com_oracle_graal_api_meta_NullConstant,                   "com/oracle/graal/api/meta/NullConstant"))                        \
   GRAAL_ONLY(template(com_oracle_graal_api_meta_ExceptionHandler,               "com/oracle/graal/api/meta/ExceptionHandler"))                    \
   GRAAL_ONLY(template(com_oracle_graal_api_meta_JavaMethod,                     "com/oracle/graal/api/meta/JavaMethod"))                          \
@@ -345,6 +346,7 @@
   GRAAL_ONLY(template(com_oracle_graal_api_code_DebugInfo,                      "com/oracle/graal/api/code/DebugInfo"))                           \
   GRAAL_ONLY(template(com_oracle_graal_api_code_Register,                       "com/oracle/graal/api/code/Register"))                            \
   GRAAL_ONLY(template(com_oracle_graal_api_code_RegisterValue,                  "com/oracle/graal/api/code/RegisterValue"))                       \
+  GRAAL_ONLY(template(com_oracle_graal_api_code_Register_RegisterCategory,      "com/oracle/graal/api/code/Register$RegisterCategory"))           \
   GRAAL_ONLY(template(com_oracle_graal_api_code_StackSlot,                      "com/oracle/graal/api/code/StackSlot"))                           \
   GRAAL_ONLY(template(com_oracle_graal_api_code_VirtualObject,                  "com/oracle/graal/api/code/VirtualObject"))                       \
   GRAAL_ONLY(template(com_oracle_graal_api_code_RegisterSaveLayout,             "com/oracle/graal/api/code/RegisterSaveLayout"))                  \

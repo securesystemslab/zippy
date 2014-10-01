@@ -34,7 +34,7 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo
 public class AbstractNewArrayNode extends AbstractNewObjectNode implements ArrayLengthProvider {
 
-    @Input private ValueNode length;
+    @Input protected ValueNode length;
 
     @Override
     public ValueNode length() {
@@ -48,6 +48,10 @@ public class AbstractNewArrayNode extends AbstractNewObjectNode implements Array
      * @param length the node that produces the length for this allocation.
      * @param fillContents determines whether the array elements should be initialized to zero/null.
      */
+    public static AbstractNewArrayNode create(Stamp stamp, ValueNode length, boolean fillContents) {
+        return USE_GENERATED_NODES ? new AbstractNewArrayNodeGen(stamp, length, fillContents) : new AbstractNewArrayNode(stamp, length, fillContents);
+    }
+
     protected AbstractNewArrayNode(Stamp stamp, ValueNode length, boolean fillContents) {
         super(stamp, fillContents);
         this.length = length;

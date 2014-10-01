@@ -47,7 +47,11 @@ public class NewArrayNode extends AbstractNewArrayNode implements VirtualizableA
      * @param length the node that produces the length for this allocation.
      * @param fillContents determines whether the array elements should be initialized to zero/null.
      */
-    public NewArrayNode(ResolvedJavaType elementType, ValueNode length, boolean fillContents) {
+    public static NewArrayNode create(ResolvedJavaType elementType, ValueNode length, boolean fillContents) {
+        return USE_GENERATED_NODES ? new NewArrayNodeGen(elementType, length, fillContents) : new NewArrayNode(elementType, length, fillContents);
+    }
+
+    protected NewArrayNode(ResolvedJavaType elementType, ValueNode length, boolean fillContents) {
         super(StampFactory.exactNonNull(elementType.getArrayClass()), length, fillContents);
     }
 
@@ -77,11 +81,15 @@ public class NewArrayNode extends AbstractNewArrayNode implements VirtualizableA
                 for (int i = 0; i < constantLength; i++) {
                     state[i] = defaultForKind;
                 }
-                VirtualObjectNode virtualObject = new VirtualArrayNode(elementType(), constantLength);
+                VirtualObjectNode virtualObject = createVirtualArrayNode(constantLength);
                 tool.createVirtualObject(virtualObject, state, Collections.<MonitorIdNode> emptyList());
                 tool.replaceWithVirtual(virtualObject);
             }
         }
+    }
+
+    protected VirtualArrayNode createVirtualArrayNode(int constantLength) {
+        return VirtualArrayNode.create(elementType(), constantLength);
     }
 
     /* Factored out in a separate method so that subclasses can override it. */

@@ -41,6 +41,9 @@ import com.oracle.truffle.dsl.processor.java.model.CodeTypeMirror.DeclaredCodeTy
 public class ElementUtils {
 
     public static TypeMirror getType(ProcessingEnvironment processingEnv, Class<?> element) {
+        if (element.isArray()) {
+            return processingEnv.getTypeUtils().getArrayType(getType(processingEnv, element.getComponentType()));
+        }
         if (element.isPrimitive()) {
             if (element == void.class) {
                 return processingEnv.getTypeUtils().getNoType(TypeKind.VOID);
@@ -216,7 +219,7 @@ public class ElementUtils {
     }
 
     public static boolean isSubtype(TypeMirror type1, TypeMirror type2) {
-        if (type1 instanceof CodeTypeMirror && type2 instanceof CodeTypeMirror) {
+        if (type1 instanceof CodeTypeMirror || type2 instanceof CodeTypeMirror) {
             throw new UnsupportedOperationException();
         }
         return ProcessorContext.getInstance().getEnvironment().getTypeUtils().isSubtype(type1, type2);
@@ -398,7 +401,7 @@ public class ElementUtils {
             case LONG:
                 return "long";
             case DECLARED:
-                return getDeclaredName((DeclaredType) mirror);
+                return getDeclaredName((DeclaredType) mirror, true);
             case ARRAY:
                 return getSimpleName(((ArrayType) mirror).getComponentType()) + "[]";
             case VOID:
@@ -424,10 +427,10 @@ public class ElementUtils {
         return b.toString();
     }
 
-    private static String getDeclaredName(DeclaredType element) {
+    public static String getDeclaredName(DeclaredType element, boolean includeTypeVariables) {
         String simpleName = fixECJBinaryNameIssue(element.asElement().getSimpleName().toString());
 
-        if (element.getTypeArguments().size() == 0) {
+        if (!includeTypeVariables || element.getTypeArguments().size() == 0) {
             return simpleName;
         }
 
@@ -576,12 +579,10 @@ public class ElementUtils {
 
     public static List<TypeElement> getDirectSuperTypes(TypeElement element) {
         List<TypeElement> types = new ArrayList<>();
-        if (element.getSuperclass() != null) {
-            TypeElement superElement = fromTypeMirror(element.getSuperclass());
-            if (superElement != null) {
-                types.add(superElement);
-                types.addAll(getDirectSuperTypes(superElement));
-            }
+        TypeElement superElement = getSuperType(element);
+        if (superElement != null) {
+            types.add(superElement);
+            types.addAll(getDirectSuperTypes(superElement));
         }
 
         return types;
@@ -610,16 +611,25 @@ public class ElementUtils {
         }
     }
 
+    /**
+     * Gets the element representing the {@linkplain TypeElement#getSuperclass() super class} of a
+     * given type element.
+     */
+    public static TypeElement getSuperType(TypeElement element) {
+        if (element.getSuperclass() != null) {
+            return fromTypeMirror(element.getSuperclass());
+        }
+        return null;
+    }
+
     public static List<TypeElement> getSuperTypes(TypeElement element) {
         List<TypeElement> types = new ArrayList<>();
         List<TypeElement> superTypes = null;
         List<TypeElement> superInterfaces = null;
-        if (element.getSuperclass() != null) {
-            TypeElement superElement = fromTypeMirror(element.getSuperclass());
-            if (superElement != null) {
-                types.add(superElement);
-                superTypes = getSuperTypes(superElement);
-            }
+        TypeElement superElement = getSuperType(element);
+        if (superElement != null) {
+            types.add(superElement);
+            superTypes = getSuperTypes(superElement);
         }
         for (TypeMirror interfaceMirror : element.getInterfaces()) {
             TypeElement interfaceElement = fromTypeMirror(interfaceMirror);
@@ -646,6 +656,17 @@ public class ElementUtils {
 
     public static String getPackageName(TypeElement element) {
         return findPackageElement(element).getQualifiedName().toString();
+    }
+
+    public static String getEnclosedQualifiedName(DeclaredType mirror) {
+        Element e = ((TypeElement) mirror.asElement()).getEnclosingElement();
+        if (e.getKind() == ElementKind.PACKAGE) {
+            return ((PackageElement) e).getQualifiedName().toString();
+        } else if (e.getKind().isInterface() || e.getKind().isClass()) {
+            return getQualifiedName((TypeElement) e);
+        } else {
+            return null;
+        }
     }
 
     public static String getPackageName(TypeMirror mirror) {
@@ -893,19 +914,29 @@ public class ElementUtils {
         return null;
     }
 
-    private static boolean isDeclaredMethod(TypeElement element, String name, TypeMirror[] params) {
-        return getDeclaredMethod(element, name, params) != null;
+    public static boolean isDeclaredMethodInSuperType(TypeElement element, String name, TypeMirror[] params) {
+        return !getDeclaredMethodsInSuperTypes(element, name, params).isEmpty();
     }
 
-    public static boolean isDeclaredMethodInSuperType(TypeElement element, String name, TypeMirror[] params) {
-        List<TypeElement> superElements = getSuperTypes(element);
+    /**
+     * Gets the methods in the super type hierarchy (excluding interfaces) that are overridden by a
+     * method in a subtype.
+     *
+     * @param declaringElement the subtype element declaring the method
+     * @param name the name of the method
+     * @param params the signature of the method
+     */
+    public static List<ExecutableElement> getDeclaredMethodsInSuperTypes(TypeElement declaringElement, String name, TypeMirror... params) {
+        List<ExecutableElement> superMethods = new ArrayList<>();
+        List<TypeElement> superElements = getSuperTypes(declaringElement);
 
-        for (TypeElement typeElement : superElements) {
-            if (isDeclaredMethod(typeElement, name, params)) {
-                return true;
+        for (TypeElement superElement : superElements) {
+            ExecutableElement superMethod = getDeclaredMethod(superElement, name, params);
+            if (superMethod != null) {
+                superMethods.add(superMethod);
             }
         }
-        return false;
+        return superMethods;
     }
 
     public static boolean typeEquals(TypeMirror type1, TypeMirror type2) {
@@ -1004,6 +1035,33 @@ public class ElementUtils {
 
     public static boolean isObject(TypeMirror actualType) {
         return actualType.getKind() == TypeKind.DECLARED && getQualifiedName(actualType).equals("java.lang.Object");
+    }
+
+    public static TypeMirror fillInGenericWildcards(TypeMirror type) {
+        if (type.getKind() != TypeKind.DECLARED) {
+            return type;
+        }
+        DeclaredType declaredType = (DeclaredType) type;
+        TypeElement element = (TypeElement) declaredType.asElement();
+        if (element == null) {
+            return type;
+        }
+        int typeParameters = element.getTypeParameters().size();
+        if (typeParameters > 0 && declaredType.getTypeArguments().size() != typeParameters) {
+            return ProcessorContext.getInstance().getEnvironment().getTypeUtils().erasure(type);
+        }
+        return type;
+    }
+
+    public static TypeMirror eraseGenericTypes(TypeMirror type) {
+        if (type.getKind() != TypeKind.DECLARED) {
+            return type;
+        }
+        DeclaredType declaredType = (DeclaredType) type;
+        if (declaredType.getTypeArguments().size() == 0) {
+            return type;
+        }
+        return new DeclaredCodeTypeMirror((TypeElement) declaredType.asElement());
     }
 
 }

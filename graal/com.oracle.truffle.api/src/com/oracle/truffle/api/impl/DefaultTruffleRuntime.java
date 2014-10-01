@@ -41,6 +41,7 @@ public final class DefaultTruffleRuntime implements TruffleRuntime {
 
     private ThreadLocal<LinkedList<FrameInstance>> stackTraces = new ThreadLocal<>();
     private ThreadLocal<FrameInstance> currentFrames = new ThreadLocal<>();
+    private final Map<RootCallTarget, Void> callTargets = Collections.synchronizedMap(new WeakHashMap<RootCallTarget, Void>());
 
     public DefaultTruffleRuntime() {
         if (Truffle.getRuntime() != null) {
@@ -55,11 +56,13 @@ public final class DefaultTruffleRuntime implements TruffleRuntime {
 
     @Override
     public RootCallTarget createCallTarget(RootNode rootNode) {
-        return new DefaultCallTarget(rootNode, this);
+        DefaultCallTarget target = new DefaultCallTarget(rootNode);
+        callTargets.put(target, null);
+        return target;
     }
 
     public DirectCallNode createDirectCallNode(CallTarget target) {
-        return new DefaultDirectCallNode(target, this);
+        return new DefaultDirectCallNode(target);
     }
 
     public IndirectCallNode createIndirectCallNode() {
@@ -132,10 +135,22 @@ public final class DefaultTruffleRuntime implements TruffleRuntime {
     }
 
     @Override
+    public Collection<RootCallTarget> getCallTargets() {
+        return Collections.unmodifiableSet(callTargets.keySet());
+    }
+
+    @Override
     public FrameInstance getCurrentFrame() {
         return currentFrames.get();
     }
 
     public void notifyTransferToInterpreter() {
+    }
+
+    public LoopNode createLoopNode(RepeatingNode repeating) {
+        if (!(repeating instanceof Node)) {
+            throw new IllegalArgumentException("Repeating node must be of type Node.");
+        }
+        return new DefaultLoopNode(repeating);
     }
 }

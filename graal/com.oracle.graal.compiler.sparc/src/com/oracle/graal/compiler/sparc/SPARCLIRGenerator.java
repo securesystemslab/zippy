@@ -27,27 +27,48 @@ import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.lir.sparc.SPARCArithmetic.*;
 import static com.oracle.graal.lir.sparc.SPARCBitManipulationOp.IntrinsicOpcode.*;
 import static com.oracle.graal.lir.sparc.SPARCCompare.*;
-import static com.oracle.graal.lir.sparc.SPARCControlFlow.*;
 import static com.oracle.graal.lir.sparc.SPARCMathIntrinsicOp.IntrinsicOpcode.*;
-import static com.oracle.graal.lir.sparc.SPARCMove.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.asm.*;
 import com.oracle.graal.asm.sparc.*;
+import com.oracle.graal.asm.sparc.SPARCAssembler.CC;
+import com.oracle.graal.asm.sparc.SPARCAssembler.ConditionFlag;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.StandardOp.JumpOp;
 import com.oracle.graal.lir.gen.*;
 import com.oracle.graal.lir.sparc.*;
+import com.oracle.graal.lir.sparc.SPARCArithmetic.BinaryRegConst;
+import com.oracle.graal.lir.sparc.SPARCArithmetic.BinaryRegReg;
+import com.oracle.graal.lir.sparc.SPARCArithmetic.MulHighOp;
+import com.oracle.graal.lir.sparc.SPARCArithmetic.RemOp;
+import com.oracle.graal.lir.sparc.SPARCArithmetic.Unary2Op;
+import com.oracle.graal.lir.sparc.SPARCCompare.CompareOp;
+import com.oracle.graal.lir.sparc.SPARCControlFlow.BranchOp;
+import com.oracle.graal.lir.sparc.SPARCControlFlow.CondMoveOp;
+import com.oracle.graal.lir.sparc.SPARCControlFlow.ReturnOp;
+import com.oracle.graal.lir.sparc.SPARCControlFlow.StrategySwitchOp;
+import com.oracle.graal.lir.sparc.SPARCControlFlow.TableSwitchOp;
+import com.oracle.graal.lir.sparc.SPARCMove.LoadAddressOp;
+import com.oracle.graal.lir.sparc.SPARCMove.LoadDataAddressOp;
+import com.oracle.graal.lir.sparc.SPARCMove.MembarOp;
+import com.oracle.graal.lir.sparc.SPARCMove.MoveFpGp;
+import com.oracle.graal.lir.sparc.SPARCMove.MoveFpGpVIS3;
+import com.oracle.graal.lir.sparc.SPARCMove.MoveFromRegOp;
+import com.oracle.graal.lir.sparc.SPARCMove.MoveToRegOp;
+import com.oracle.graal.lir.sparc.SPARCMove.StackLoadAddressOp;
 import com.oracle.graal.phases.util.*;
+import com.oracle.graal.sparc.*;
+import com.oracle.graal.sparc.SPARC.*;
 
 /**
  * This class implements the SPARC specific portion of the LIR generator.
  */
 public abstract class SPARCLIRGenerator extends LIRGenerator {
+
+    private StackSlot tmpStackSlot;
 
     private class SPARCSpillMoveFactory implements LIR.SpillMoveFactory {
 
@@ -148,15 +169,6 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
                 } else {
                     indexRegister = asAllocatable(index);
                 }
-
-                // if (baseRegister.equals(Value.ILLEGAL)) {
-                // baseRegister = asAllocatable(indexRegister);
-                // } else {
-                // Variable newBase = newVariable(Kind.Long);
-                // emitMove(newBase, baseRegister);
-                // baseRegister = newBase;
-                // baseRegister = emitAdd(baseRegister, indexRegister);
-                // }
             }
         } else {
             indexRegister = Value.ILLEGAL;
@@ -166,9 +178,8 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
 
         // If we don't have an index register we can use a displacement, otherwise load the
         // displacement into a register and add it to the base.
-        if (indexRegister.equals(Value.ILLEGAL)) {
+        if (indexRegister.equals(Value.ILLEGAL) && SPARCAssembler.isSimm13(finalDisp)) {
             displacementInt = (int) finalDisp;
-            assert SPARCAssembler.isSimm13(displacementInt) : displacementInt;
         } else {
             displacementInt = 0;
             if (baseRegister.equals(Value.ILLEGAL)) {
@@ -215,34 +226,54 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitJump(LabelRef label) {
-        append(new JumpOp(label));
+        append(new SPARCJumpOp(label));
     }
 
     @Override
-    public void emitCompareBranch(PlatformKind cmpKind, Value left, Value right, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination,
+    public void emitCompareBranch(PlatformKind cmpKind, Value x, Value y, Condition cond, boolean unorderedIsTrue, LabelRef trueDestination, LabelRef falseDestination,
                     double trueDestinationProbability) {
-        boolean mirrored = emitCompare(cmpKind, left, right);
-        Condition finalCondition = mirrored ? cond.mirror() : cond;
+        Variable left;
+        Value right;
+        Condition actualCondition = null;
+        if (isConstant(x)) {
+            left = load(y);
+            right = loadNonConst(x);
+            actualCondition = cond.mirror();
+        } else {
+            left = load(x);
+            right = loadNonConst(y);
+            actualCondition = cond;
+        }
+        SPARCCompare opcode = null;
         Kind kind = left.getKind().getStackKind();
         switch (kind) {
-            case Int:
-            case Long:
             case Object:
-                append(new BranchOp(finalCondition, trueDestination, falseDestination, kind));
+                opcode = ACMP;
+                break;
+            case Long:
+                opcode = LCMP;
+                break;
+            case Int:
+            case Short:
+            case Char:
+            case Byte:
+                opcode = ICMP;
                 break;
             case Float:
+                opcode = FCMP;
+                break;
             case Double:
-                append(new BranchOp(cond, trueDestination, falseDestination, kind));
+                opcode = DCMP;
                 break;
             default:
-                throw GraalInternalError.shouldNotReachHere("" + left.getKind());
+                GraalInternalError.shouldNotReachHere(kind.toString());
         }
+        append(new SPARCControlFlow.CompareBranchOp(opcode, left, right, actualCondition, trueDestination, falseDestination, kind, unorderedIsTrue, trueDestinationProbability));
     }
 
     @Override
     public void emitOverflowCheckBranch(LabelRef overflow, LabelRef noOverflow, double overflowProbability) {
-        // append(new BranchOp(negated ? ConditionFlag.NoOverflow : ConditionFlag.Overflow, label));
-        throw GraalInternalError.unimplemented();
+        append(new BranchOp(ConditionFlag.CarrySet, overflow, noOverflow, Kind.Long));
     }
 
     @Override
@@ -260,26 +291,52 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
         }
     }
 
+    private Value loadSimm11(Value value) {
+        if (isConstant(value)) {
+            Constant c = asConstant(value);
+            if (c.isNull() || SPARCAssembler.isSimm11(c)) {
+                return value;
+            } else {
+                return load(c);
+            }
+        }
+        return emitMove(value);
+    }
+
     @Override
     public Variable emitConditionalMove(PlatformKind cmpKind, Value left, Value right, Condition cond, boolean unorderedIsTrue, Value trueValue, Value falseValue) {
         boolean mirrored = emitCompare(cmpKind, left, right);
-        Condition finalCondition = mirrored ? cond.mirror() : cond;
-
-        Variable result = newVariable(trueValue.getLIRKind());
-        Kind kind = left.getKind().getStackKind();
-        switch (kind) {
+        CC conditionFlags;
+        Value actualTrueValue = trueValue;
+        Value actualFalseValue = falseValue;
+        switch ((Kind) left.getLIRKind().getPlatformKind()) {
+            case Byte:
+            case Short:
+            case Char:
             case Int:
-            case Long:
+                conditionFlags = CC.Icc;
+                actualTrueValue = loadSimm11(trueValue);
+                actualFalseValue = loadSimm11(falseValue);
+                break;
             case Object:
-                append(new CondMoveOp(kind, result, finalCondition, load(trueValue), loadNonConst(falseValue)));
+            case Long:
+                conditionFlags = CC.Xcc;
+                actualTrueValue = loadSimm11(trueValue);
+                actualFalseValue = loadSimm11(falseValue);
                 break;
             case Float:
             case Double:
-                append(new FloatCondMoveOp(kind, result, finalCondition, unorderedIsTrue, load(trueValue), load(falseValue)));
+                conditionFlags = CC.Fcc0;
+                actualTrueValue = load(trueValue); // Floats cannot be immediate at all
+                actualFalseValue = load(falseValue);
                 break;
             default:
-                throw GraalInternalError.shouldNotReachHere("" + left.getKind());
+                throw GraalInternalError.shouldNotReachHere();
         }
+        Variable result = newVariable(trueValue.getLIRKind());
+        ConditionFlag finalCondition = ConditionFlag.fromCondtition(conditionFlags, mirrored ? cond.mirror() : cond, unorderedIsTrue);
+        Kind kind = result.getKind().getStackKind();
+        append(new CondMoveOp(kind, result, conditionFlags, finalCondition, actualTrueValue, actualFalseValue));
         return result;
     }
 
@@ -308,10 +365,10 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
         switch ((Kind) cmpKind) {
             case Short:
             case Char:
-                append(new CompareOp(ICMP, emitZeroExtend(left, 16, 32), emitZeroExtend(right, 16, 32)));
+                append(new CompareOp(ICMP, emitSignExtend(left, 16, 32), emitSignExtend(right, 16, 32)));
                 break;
             case Byte:
-                append(new CompareOp(ICMP, emitZeroExtend(left, 8, 32), emitZeroExtend(right, 8, 32)));
+                append(new CompareOp(ICMP, emitSignExtend(left, 8, 32), emitSignExtend(right, 8, 32)));
                 break;
             case Int:
                 append(new CompareOp(ICMP, left, right));
@@ -339,7 +396,23 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
         emitIntegerTest(left, right);
         Variable result = newVariable(trueValue.getLIRKind());
         Kind kind = left.getKind().getStackKind();
-        append(new CondMoveOp(kind, result, Condition.EQ, load(trueValue), loadNonConst(falseValue)));
+        CC conditionCode;
+        switch (kind) {
+            case Object:
+            case Long:
+                conditionCode = CC.Xcc;
+                break;
+            case Int:
+            case Short:
+            case Char:
+            case Byte:
+                conditionCode = CC.Icc;
+                break;
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
+        ConditionFlag flag = ConditionFlag.fromCondtition(conditionCode, Condition.EQ, false);
+        append(new CondMoveOp(kind, result, conditionCode, flag, loadSimm11(trueValue), loadSimm11(falseValue)));
         return result;
     }
 
@@ -355,9 +428,7 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
 
     @Override
     public void emitStrategySwitch(SwitchStrategy strategy, Variable key, LabelRef[] keyTargets, LabelRef defaultTarget) {
-        // a temp is needed for loading long and object constants
-        boolean needsTemp = key.getKind() == Kind.Long || key.getKind() == Kind.Object;
-        append(new StrategySwitchOp(strategy, keyTargets, defaultTarget, key, needsTemp ? newVariable(key.getLIRKind()) : Value.ILLEGAL));
+        append(new StrategySwitchOp(strategy, keyTargets, defaultTarget, key, newVariable(key.getLIRKind())));
     }
 
     @Override
@@ -400,7 +471,7 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     @Override
     public Value emitMathAbs(Value input) {
         Variable result = newVariable(LIRKind.derive(input));
-        append(new BinaryRegConst(DAND, result, asAllocatable(input), Constant.forDouble(Double.longBitsToDouble(0x7FFFFFFFFFFFFFFFL)), null));
+        append(new SPARCMathIntrinsicOp(ABS, result, asAllocatable(input)));
         return result;
     }
 
@@ -448,59 +519,60 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
 
     @Override
     public Value emitArrayEquals(Kind kind, Value array1, Value array2, Value length) {
-        // TODO Auto-generated method stub
-        throw GraalInternalError.unimplemented();
+        Variable result = newVariable(LIRKind.value(Kind.Int));
+        append(new SPARCArrayEqualsOp(this, kind, result, load(array1), load(array2), asAllocatable(length)));
+        return result;
     }
 
     @Override
     public Value emitNegate(Value input) {
-        Variable result = newVariable(LIRKind.derive(input));
         switch (input.getKind().getStackKind()) {
             case Long:
-                append(new Op1Stack(LNEG, result, input));
-                break;
+                return emitUnary(LNEG, input);
             case Int:
-                append(new Op1Stack(INEG, result, input));
-                break;
+                return emitUnary(INEG, input);
             case Float:
-                append(new Op1Stack(FNEG, result, input));
-                break;
+                return emitUnary(FNEG, input);
             case Double:
-                append(new Op1Stack(DNEG, result, input));
-                break;
+                return emitUnary(DNEG, input);
             default:
                 throw GraalInternalError.shouldNotReachHere();
         }
-        return result;
     }
 
     @Override
     public Value emitNot(Value input) {
-        Variable result = newVariable(LIRKind.derive(input));
         switch (input.getKind().getStackKind()) {
             case Int:
-                append(new Op1Stack(INOT, result, input));
-                break;
+                return emitUnary(INOT, input);
             case Long:
-                append(new Op1Stack(LNOT, result, input));
-                break;
+                return emitUnary(LNOT, input);
             default:
                 throw GraalInternalError.shouldNotReachHere();
         }
+    }
+
+    private Variable emitUnary(SPARCArithmetic op, Value input) {
+        Variable result = newVariable(LIRKind.derive(input));
+        append(new Unary2Op(op, result, load(input)));
         return result;
     }
 
+    private Variable emitBinary(SPARCArithmetic op, boolean commutative, Value a, Value b) {
+        return emitBinary(op, commutative, a, b, null);
+    }
+
     private Variable emitBinary(SPARCArithmetic op, boolean commutative, Value a, Value b, LIRFrameState state) {
-        if (isConstant(b)) {
-            return emitBinaryConst(op, commutative, asAllocatable(a), asConstant(b), state);
-        } else if (commutative && isConstant(a)) {
-            return emitBinaryConst(op, commutative, asAllocatable(b), asConstant(a), state);
+        if (isConstant(b) && canInlineConstant(asConstant(b))) {
+            return emitBinaryConst(op, load(a), asConstant(b), state);
+        } else if (commutative && isConstant(a) && canInlineConstant(asConstant(a))) {
+            return emitBinaryConst(op, load(b), asConstant(a), state);
         } else {
-            return emitBinaryVar(op, commutative, asAllocatable(a), asAllocatable(b), state);
+            return emitBinaryVar(op, load(a), load(b), state);
         }
     }
 
-    private Variable emitBinaryConst(SPARCArithmetic op, boolean commutative, AllocatableValue a, Constant b, LIRFrameState state) {
+    private Variable emitBinaryConst(SPARCArithmetic op, AllocatableValue a, Constant b, LIRFrameState state) {
         switch (op) {
             case IADD:
             case LADD:
@@ -514,24 +586,19 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
             case LXOR:
             case IMUL:
             case LMUL:
-                if (NumUtil.isInt(b.asLong())) {
+                if (canInlineConstant(b)) {
                     Variable result = newVariable(LIRKind.derive(a, b));
                     append(new BinaryRegConst(op, result, a, b, state));
                     return result;
                 }
                 break;
         }
-
-        return emitBinaryVar(op, commutative, a, asAllocatable(b), state);
+        return emitBinaryVar(op, a, asAllocatable(b), state);
     }
 
-    private Variable emitBinaryVar(SPARCArithmetic op, boolean commutative, AllocatableValue a, AllocatableValue b, LIRFrameState state) {
+    private Variable emitBinaryVar(SPARCArithmetic op, AllocatableValue a, AllocatableValue b, LIRFrameState state) {
         Variable result = newVariable(LIRKind.derive(a, b));
-        if (commutative) {
-            append(new BinaryCommutative(op, result, a, b));
-        } else {
-            append(new BinaryRegReg(op, result, a, b, state));
-        }
+        append(new BinaryRegReg(op, result, a, b, state));
         return result;
     }
 
@@ -539,13 +606,13 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     public Variable emitAdd(Value a, Value b) {
         switch (a.getKind().getStackKind()) {
             case Int:
-                return emitBinary(IADD, true, a, b, null);
+                return emitBinary(IADD, true, a, b);
             case Long:
-                return emitBinary(LADD, true, a, b, null);
+                return emitBinary(LADD, true, a, b);
             case Float:
-                return emitBinary(FADD, true, a, b, null);
+                return emitBinary(FADD, true, a, b);
             case Double:
-                return emitBinary(DADD, true, a, b, null);
+                return emitBinary(DADD, true, a, b);
             default:
                 throw GraalInternalError.shouldNotReachHere();
         }
@@ -553,78 +620,81 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
 
     @Override
     public Variable emitSub(Value a, Value b) {
-        Variable result = newVariable(LIRKind.derive(a, b));
         switch (a.getKind().getStackKind()) {
             case Int:
-                append(new Op2Stack(ISUB, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(ISUB, false, a, b);
             case Long:
-                append(new Op2Stack(LSUB, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(LSUB, false, a, b);
             case Float:
-                append(new Op2Stack(FSUB, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(FSUB, false, a, b);
             case Double:
-                append(new Op2Stack(DSUB, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(DSUB, false, a, b);
             default:
                 throw GraalInternalError.shouldNotReachHere("missing: " + a.getKind());
         }
-        return result;
     }
 
     @Override
     public Variable emitMul(Value a, Value b) {
-        Variable result = newVariable(LIRKind.derive(a, b));
         switch (a.getKind().getStackKind()) {
             case Int:
-                append(new BinaryRegReg(IMUL, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(IMUL, true, a, b);
             case Long:
-                append(new BinaryRegReg(LMUL, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(LMUL, true, a, b);
             case Float:
-                append(new Op2Stack(FMUL, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(FMUL, true, a, b);
             case Double:
-                append(new Op2Stack(DMUL, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(DMUL, true, a, b);
             default:
                 throw GraalInternalError.shouldNotReachHere("missing: " + a.getKind());
         }
-        return result;
     }
 
     @Override
     public Value emitMulHigh(Value a, Value b) {
-        throw GraalInternalError.unimplemented();
+        switch (a.getKind().getStackKind()) {
+            case Int:
+                return emitMulHigh(IMUL, a, b);
+            case Long:
+                return emitMulHigh(LMUL, a, b);
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
     }
 
     @Override
     public Value emitUMulHigh(Value a, Value b) {
-        throw GraalInternalError.unimplemented();
+        switch (a.getKind().getStackKind()) {
+            case Int:
+                return emitMulHigh(IUMUL, a, b);
+            case Long:
+                return emitMulHigh(LUMUL, a, b);
+            default:
+                throw GraalInternalError.shouldNotReachHere();
+        }
+    }
+
+    private Value emitMulHigh(SPARCArithmetic opcode, Value a, Value b) {
+        Variable result = newVariable(LIRKind.derive(a, b));
+        MulHighOp mulHigh = new MulHighOp(opcode, load(a), load(b), result, newVariable(LIRKind.derive(a, b)));
+        append(mulHigh);
+        return result;
     }
 
     @Override
     public Value emitDiv(Value a, Value b, LIRFrameState state) {
-        SPARCArithmetic op = null;
         switch (a.getKind().getStackKind()) {
             case Int:
-                op = IDIV;
-                break;
+                return emitBinary(IDIV, false, a, b, state);
             case Long:
-                op = LDIV;
-                break;
+                return emitBinary(LDIV, false, a, b, state);
             case Float:
-                op = FDIV;
-                break;
+                return emitBinary(FDIV, false, a, b, state);
             case Double:
-                op = DDIV;
-                break;
+                return emitBinary(DDIV, false, a, b, state);
             default:
                 throw GraalInternalError.shouldNotReachHere("missing: " + a.getKind());
         }
-        return emitBinary(op, false, a, b, state);
     }
 
     @Override
@@ -633,26 +703,26 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
         Variable q = null;
         switch (a.getKind().getStackKind()) {
             case Int:
-                append(new RemOp(IREM, result, a, loadNonConst(b), state, this));
+                append(new RemOp(IREM, result, load(a), loadNonConst(b), state, this));
                 break;
             case Long:
-                append(new RemOp(LREM, result, a, loadNonConst(b), state, this));
+                append(new RemOp(LREM, result, load(a), loadNonConst(b), state, this));
                 break;
             case Float:
                 q = newVariable(LIRKind.value(Kind.Float));
-                append(new Op2Stack(FDIV, q, a, b));
+                append(new BinaryRegReg(FDIV, q, a, b, state));
                 append(new Unary2Op(F2I, q, q));
                 append(new Unary2Op(I2F, q, q));
-                append(new Op2Stack(FMUL, q, q, b));
-                append(new Op2Stack(FSUB, result, a, q));
+                append(new BinaryRegReg(FMUL, q, q, b));
+                append(new BinaryRegReg(FSUB, result, a, q));
                 break;
             case Double:
                 q = newVariable(LIRKind.value(Kind.Double));
-                append(new Op2Stack(DDIV, q, a, b));
+                append(new BinaryRegReg(DDIV, q, a, b, state));
                 append(new Unary2Op(D2L, q, q));
                 append(new Unary2Op(L2D, q, q));
-                append(new Op2Stack(DMUL, q, q, b));
-                append(new Op2Stack(DSUB, result, a, q));
+                append(new BinaryRegReg(DMUL, q, q, b));
+                append(new BinaryRegReg(DSUB, result, a, q));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere("missing: " + a.getKind());
@@ -665,10 +735,10 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
         Variable result = newVariable(LIRKind.derive(a, b));
         switch (a.getKind().getStackKind()) {
             case Int:
-                append(new RemOp(IUREM, result, a, loadNonConst(b), state, this));
+                append(new RemOp(IUREM, result, load(a), load(b), state, this));
                 break;
             case Long:
-                append(new RemOp(LUREM, result, a, loadNonConst(b), state, this));
+                append(new RemOp(LUREM, result, load(a), loadNonConst(b), state, this));
                 break;
             default:
                 throw GraalInternalError.shouldNotReachHere();
@@ -680,9 +750,13 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     @Override
     public Value emitUDiv(Value a, Value b, LIRFrameState state) {
         SPARCArithmetic op;
+        Value actualA = a;
+        Value actualB = b;
         switch (a.getKind().getStackKind()) {
             case Int:
-                op = IUDIV;
+                op = LUDIV;
+                actualA = emitZeroExtend(actualA, 32, 64);
+                actualB = emitZeroExtend(actualB, 32, 64);
                 break;
             case Long:
                 op = LUDIV;
@@ -690,65 +764,52 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
             default:
                 throw GraalInternalError.shouldNotReachHere();
         }
-        return emitBinary(op, false, a, b, state);
+        return emitBinary(op, false, actualA, actualB, state);
     }
 
     @Override
     public Variable emitAnd(Value a, Value b) {
-        Variable result = newVariable(LIRKind.derive(a, b));
         switch (a.getKind().getStackKind()) {
             case Int:
-                append(new Op2Stack(IAND, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(IAND, true, a, b);
             case Long:
-                append(new Op2Stack(LAND, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(LAND, true, a, b);
 
             default:
                 throw GraalInternalError.shouldNotReachHere("missing: " + a.getKind());
         }
-        return result;
     }
 
     @Override
     public Variable emitOr(Value a, Value b) {
-        Variable result = newVariable(LIRKind.derive(a, b));
         switch (a.getKind().getStackKind()) {
             case Int:
-                append(new Op2Stack(IOR, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(IOR, true, a, b);
             case Long:
-                append(new Op2Stack(LOR, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(LOR, true, a, b);
             default:
                 throw GraalInternalError.shouldNotReachHere("missing: " + a.getKind());
         }
-        return result;
     }
 
     @Override
     public Variable emitXor(Value a, Value b) {
-        Variable result = newVariable(LIRKind.derive(a, b));
         switch (a.getKind().getStackKind()) {
             case Int:
-                append(new Op2Stack(IXOR, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(IXOR, true, a, b);
             case Long:
-                append(new Op2Stack(LXOR, result, a, loadNonConst(b)));
-                break;
+                return emitBinary(LXOR, true, a, b);
             default:
                 throw GraalInternalError.shouldNotReachHere();
         }
-        return result;
     }
 
     private Variable emitShift(SPARCArithmetic op, Value a, Value b) {
         Variable result = newVariable(LIRKind.derive(a, b).changeType(a.getPlatformKind()));
-        AllocatableValue input = asAllocatable(a);
-        if (isConstant(b)) {
-            append(new BinaryRegConst(op, result, input, asConstant(b), null));
+        if (isConstant(b) && canInlineConstant((Constant) b)) {
+            append(new BinaryRegConst(op, result, load(a), asConstant(b), null));
         } else {
-            append(new BinaryRegReg(op, result, input, b));
+            append(new BinaryRegReg(op, result, load(a), load(b)));
         }
         return result;
     }
@@ -804,59 +865,87 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     @Override
     public Value emitFloatConvert(FloatConvert op, Value inputVal) {
         AllocatableValue input = asAllocatable(inputVal);
-        Kind fromRegisterKind = null;
-        Kind toRegisterKind = null;
-        SPARCArithmetic conversionInstruction = null;
         switch (op) {
             case D2F:
                 return emitConvert2Op(LIRKind.derive(inputVal).changeType(Kind.Float), D2F, input);
-            case D2I:
-                fromRegisterKind = Kind.Double;
-                toRegisterKind = Kind.Int;
-                conversionInstruction = D2I;
-                break;
-            case F2L:
-                Variable v = newVariable(LIRKind.derive(inputVal).changeType(Kind.Double));
-                emitMove(v, input);
-                input = v;
-            case D2L:
-                fromRegisterKind = Kind.Double;
-                toRegisterKind = Kind.Long;
-                conversionInstruction = D2L;
-                break;
             case F2D:
                 return emitConvert2Op(LIRKind.derive(inputVal).changeType(Kind.Double), F2D, input);
-            case F2I:
-                fromRegisterKind = Kind.Float;
-                toRegisterKind = Kind.Int;
-                conversionInstruction = F2I;
-                break;
-            case I2D:
-            // Implemented in two steps, as this consists of sign extension and then move the
-            // bits over to the double register and then convert to double, in fact this does
-            // not generate any overhead in generated code
-            {
-                AllocatableValue tmp = emitConvert2Op(LIRKind.derive(inputVal).changeType(Kind.Long), I2L, input);
-                return emitConvert2Op(LIRKind.derive(inputVal).changeType(Kind.Double), L2D, tmp);
+            case I2F: {
+                AllocatableValue convertedFloatReg = newVariable(LIRKind.derive(input).changeType(Kind.Float));
+                moveBetweenFpGp(convertedFloatReg, input);
+                append(new Unary2Op(I2F, convertedFloatReg, convertedFloatReg));
+                return convertedFloatReg;
             }
-            case I2F:
-                return emitConvert2Op(LIRKind.derive(inputVal).changeType(Kind.Float), I2F, input);
-            case L2D:
-                return emitConvert2Op(LIRKind.derive(inputVal).changeType(Kind.Double), L2D, input);
+            case I2D: {
+                // Unfortunately we must do int -> float -> double because fitod has float
+                // and double encoding in one instruction
+                AllocatableValue convertedFloatReg = newVariable(LIRKind.derive(input).changeType(Kind.Float));
+                moveBetweenFpGp(convertedFloatReg, input);
+                AllocatableValue convertedDoubleReg = newVariable(LIRKind.derive(input).changeType(Kind.Double));
+                append(new Unary2Op(I2D, convertedDoubleReg, convertedFloatReg));
+                return convertedDoubleReg;
+            }
+            case L2D: {
+                AllocatableValue convertedDoubleReg = newVariable(LIRKind.derive(input).changeType(Kind.Double));
+                moveBetweenFpGp(convertedDoubleReg, input);
+                append(new Unary2Op(L2D, convertedDoubleReg, convertedDoubleReg));
+                return convertedDoubleReg;
+            }
+            case D2I: {
+                AllocatableValue convertedFloatReg = emitConvert2Op(LIRKind.derive(input).changeType(Kind.Float), D2I, input);
+                AllocatableValue convertedIntReg = newVariable(LIRKind.derive(convertedFloatReg).changeType(Kind.Int));
+                moveBetweenFpGp(convertedIntReg, convertedFloatReg);
+                return convertedIntReg;
+            }
+            case F2L: {
+                AllocatableValue convertedDoubleReg = emitConvert2Op(LIRKind.derive(input).changeType(Kind.Double), F2L, input);
+                AllocatableValue convertedLongReg = newVariable(LIRKind.derive(convertedDoubleReg).changeType(Kind.Long));
+                moveBetweenFpGp(convertedLongReg, convertedDoubleReg);
+                return convertedLongReg;
+            }
+            case F2I: {
+                AllocatableValue convertedFloatReg = emitConvert2Op(LIRKind.derive(input).changeType(Kind.Float), F2I, input);
+                AllocatableValue convertedIntReg = newVariable(LIRKind.derive(convertedFloatReg).changeType(Kind.Int));
+                moveBetweenFpGp(convertedIntReg, convertedFloatReg);
+                return convertedIntReg;
+            }
+            case D2L: {
+                AllocatableValue convertedDoubleReg = emitConvert2Op(LIRKind.derive(input).changeType(Kind.Double), D2L, input);
+                AllocatableValue convertedLongReg = newVariable(LIRKind.derive(convertedDoubleReg).changeType(Kind.Long));
+                moveBetweenFpGp(convertedLongReg, convertedDoubleReg);
+                return convertedLongReg;
+            }
             case L2F: {
-                AllocatableValue tmp = emitConvert2Op(LIRKind.derive(inputVal).changeType(Kind.Double), L2D, input);
-                return emitConvert2Op(LIRKind.derive(inputVal).changeType(Kind.Float), D2F, tmp);
+                // long -> double -> float see above
+                AllocatableValue convertedDoubleReg = newVariable(LIRKind.derive(input).changeType(Kind.Double));
+                moveBetweenFpGp(convertedDoubleReg, input);
+                AllocatableValue convertedFloatReg = newVariable(LIRKind.derive(input).changeType(Kind.Float));
+                append(new Unary2Op(L2F, convertedFloatReg, convertedDoubleReg));
+                return convertedFloatReg;
             }
             default:
                 throw GraalInternalError.shouldNotReachHere();
         }
-        if (fromRegisterKind != null) {
-            AllocatableValue var = newVariable(LIRKind.derive(inputVal).changeType(toRegisterKind));
-            emitMove(var, emitConvert2Op(LIRKind.derive(inputVal).changeType(fromRegisterKind), conversionInstruction, input));
-            return var;
+    }
+
+    private void moveBetweenFpGp(AllocatableValue dst, AllocatableValue src) {
+        if (!getArchitecture().getFeatures().contains(CPUFeature.VIS3)) {
+            StackSlot tempSlot = getTempSlot(LIRKind.value(Kind.Long));
+            append(new MoveFpGp(dst, src, tempSlot));
         } else {
-            throw GraalInternalError.shouldNotReachHere();
+            append(new MoveFpGpVIS3(dst, src));
         }
+    }
+
+    private StackSlot getTempSlot(LIRKind kind) {
+        if (tmpStackSlot == null) {
+            tmpStackSlot = getResult().getFrameMap().allocateSpillSlot(kind);
+        }
+        return tmpStackSlot;
+    }
+
+    protected SPARC getArchitecture() {
+        return (SPARC) target().arch;
     }
 
     @Override
@@ -912,14 +1001,14 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
             append(new BinaryRegConst(SPARCArithmetic.LAND, result, asAllocatable(inputVal), Constant.forLong(mask), null));
             return result;
         } else {
-            assert inputVal.getKind() == Kind.Int || inputVal.getKind() == Kind.Short || inputVal.getKind() == Kind.Byte : inputVal.getKind();
+            assert inputVal.getKind() == Kind.Int || inputVal.getKind() == Kind.Short || inputVal.getKind() == Kind.Byte || inputVal.getKind() == Kind.Char : inputVal.getKind();
             Variable result = newVariable(LIRKind.derive(inputVal).changeType(Kind.Int));
             long mask = IntegerStamp.defaultMask(fromBits);
-            Constant constant = Constant.forLong(mask);
-            if (canInlineConstant(constant)) {
+            Constant constant = Constant.forInt((int) mask);
+            if (fromBits == 32) {
+                append(new BinaryRegConst(IUSHR, result, inputVal, Constant.forInt(0)));
+            } else if (canInlineConstant(constant)) {
                 append(new BinaryRegConst(SPARCArithmetic.IAND, result, asAllocatable(inputVal), constant, null));
-            } else if (fromBits == 32) {
-                append(new ShiftOp(IUSHR, result, inputVal, Constant.forInt(0)));
             } else {
                 Variable maskVar = newVariable(LIRKind.derive(inputVal).changeType(Kind.Int));
                 emitMove(maskVar, constant);
@@ -939,35 +1028,39 @@ public abstract class SPARCLIRGenerator extends LIRGenerator {
     public AllocatableValue emitReinterpret(LIRKind to, Value inputVal) {
         Kind from = inputVal.getKind();
         AllocatableValue input = asAllocatable(inputVal);
-
+        Variable result = newVariable(to);
         // These cases require a move between CPU and FPU registers:
         switch ((Kind) to.getPlatformKind()) {
             case Int:
                 switch (from) {
                     case Float:
                     case Double:
-                        return emitConvert2Op(to, MOV_F2I, input);
+                        moveBetweenFpGp(result, input);
+                        return result;
                 }
                 break;
             case Long:
                 switch (from) {
                     case Float:
                     case Double:
-                        return emitConvert2Op(to, MOV_D2L, input);
+                        moveBetweenFpGp(result, input);
+                        return result;
                 }
                 break;
             case Float:
                 switch (from) {
                     case Int:
                     case Long:
-                        return emitConvert2Op(to, MOV_I2F, input);
+                        moveBetweenFpGp(result, input);
+                        return result;
                 }
                 break;
             case Double:
                 switch (from) {
                     case Int:
                     case Long:
-                        return emitConvert2Op(to, MOV_L2D, input);
+                        moveBetweenFpGp(result, input);
+                        return result;
                 }
                 break;
         }

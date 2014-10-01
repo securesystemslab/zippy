@@ -25,6 +25,7 @@ package com.oracle.graal.truffle.hotspot;
 import static com.oracle.graal.api.code.CodeUtil.*;
 import static com.oracle.graal.compiler.GraalCompiler.*;
 import static com.oracle.graal.graph.util.CollectionsAccess.*;
+import static com.oracle.graal.hotspot.meta.HotSpotSuitesProvider.*;
 import static com.oracle.graal.truffle.TruffleCompilerOptions.*;
 
 import java.util.*;
@@ -59,6 +60,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.nodes.Node;
 
 /**
  * Implementation of the Truffle runtime when running on top of Graal.
@@ -80,6 +82,7 @@ public final class HotSpotTruffleRuntime implements GraalTruffleRuntime {
     private final ResolvedJavaMethod[] callNodeMethod;
     private final ResolvedJavaMethod[] callTargetMethod;
     private final ResolvedJavaMethod[] anyFrameMethod;
+    private final Map<RootCallTarget, Void> callTargets = Collections.synchronizedMap(new WeakHashMap<RootCallTarget, Void>());
 
     private HotSpotTruffleRuntime() {
         installOptimizedCallTargetCallMethod();
@@ -114,12 +117,22 @@ public final class HotSpotTruffleRuntime implements GraalTruffleRuntime {
         } else {
             compilationPolicy = new InterpreterOnlyCompilationPolicy();
         }
-        return new OptimizedCallTarget(rootNode, this, TruffleMinInvokeThreshold.getValue(), TruffleCompilationThreshold.getValue(), compilationPolicy, new HotSpotSpeculationLog());
+        OptimizedCallTarget target = new OptimizedCallTarget(rootNode, this, TruffleMinInvokeThreshold.getValue(), TruffleCompilationThreshold.getValue(), compilationPolicy,
+                        new HotSpotSpeculationLog());
+        callTargets.put(target, null);
+        return target;
+    }
+
+    public LoopNode createLoopNode(RepeatingNode repeating) {
+        if (!(repeating instanceof Node)) {
+            throw new IllegalArgumentException("Repeating node must be of type Node.");
+        }
+        return new OptimizedLoopNode(repeating);
     }
 
     public DirectCallNode createDirectCallNode(CallTarget target) {
         if (target instanceof OptimizedCallTarget) {
-            return OptimizedDirectCallNode.create((OptimizedCallTarget) target);
+            return new OptimizedDirectCallNode((OptimizedCallTarget) target);
         } else {
             throw new IllegalStateException(String.format("Unexpected call target class %s!", target.getClass()));
         }
@@ -234,7 +247,7 @@ public final class HotSpotTruffleRuntime implements GraalTruffleRuntime {
         removeInliningPhase(suites);
         StructuredGraph graph = new StructuredGraph(javaMethod);
         new GraphBuilderPhase.Instance(metaAccess, GraphBuilderConfiguration.getEagerDefault(), OptimisticOptimizations.ALL).apply(graph);
-        PhaseSuite<HighTierContext> graphBuilderSuite = suitesProvider.getDefaultGraphBuilderSuite();
+        PhaseSuite<HighTierContext> graphBuilderSuite = getGraphBuilderSuite(suitesProvider);
         CallingConvention cc = getCallingConvention(providers.getCodeCache(), Type.JavaCallee, graph.method(), false);
         Backend backend = Graal.getRequiredCapability(RuntimeProvider.class).getHostBackend();
         CompilationResultBuilderFactory factory = getOptimizedCallTargetInstrumentationFactory(backend.getTarget().arch.getName(), javaMethod);
@@ -245,6 +258,11 @@ public final class HotSpotTruffleRuntime implements GraalTruffleRuntime {
     private static Providers getGraalProviders() {
         RuntimeProvider runtimeProvider = Graal.getRequiredCapability(RuntimeProvider.class);
         return runtimeProvider.getHostBackend().getProviders();
+    }
+
+    private static PhaseSuite<HighTierContext> getGraphBuilderSuite(SuitesProvider suitesProvider) {
+        PhaseSuite<HighTierContext> graphBuilderSuite = suitesProvider.getDefaultGraphBuilderSuite();
+        return withSimpleDebugInfoIfRequested(graphBuilderSuite);
     }
 
     private static void removeInliningPhase(Suites suites) {
@@ -316,11 +334,15 @@ public final class HotSpotTruffleRuntime implements GraalTruffleRuntime {
                 }
             }
         };
-        if (mayBeAsynchronous) {
-            Future<?> future = compileQueue.submit(r);
-            this.compilations.put(optimizedCallTarget, future);
-        } else {
-            r.run();
+        Future<?> future = compileQueue.submit(r);
+        this.compilations.put(optimizedCallTarget, future);
+
+        if (!mayBeAsynchronous) {
+            try {
+                future.get();
+            } catch (InterruptedException | ExecutionException e) {
+                // silently ignored
+            }
         }
     }
 
@@ -331,6 +353,17 @@ public final class HotSpotTruffleRuntime implements GraalTruffleRuntime {
             return codeTask.cancel(true);
         }
         return false;
+    }
+
+    public void waitForCompilation(OptimizedCallTarget optimizedCallTarget, long timeout) throws ExecutionException, TimeoutException {
+        Future<?> codeTask = this.compilations.get(optimizedCallTarget);
+        if (codeTask != null && isCompiling(optimizedCallTarget)) {
+            try {
+                codeTask.get(timeout, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                // ignore interrupted
+            }
+        }
     }
 
     public boolean isCompiling(OptimizedCallTarget optimizedCallTarget) {
@@ -351,6 +384,11 @@ public final class HotSpotTruffleRuntime implements GraalTruffleRuntime {
 
     public void reinstallStubs() {
         installOptimizedCallTargetCallMethod();
+    }
+
+    @Override
+    public Collection<RootCallTarget> getCallTargets() {
+        return Collections.unmodifiableSet(callTargets.keySet());
     }
 
     public void notifyTransferToInterpreter() {

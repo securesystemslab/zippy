@@ -31,7 +31,11 @@ import com.oracle.graal.nodes.extended.*;
 @NodeInfo(allowedUsageTypes = {InputType.Value, InputType.Anchor, InputType.Guard})
 public class SnippetAnchorNode extends FixedWithNextNode implements Simplifiable, GuardingNode {
 
-    public SnippetAnchorNode() {
+    public static SnippetAnchorNode create() {
+        return USE_GENERATED_NODES ? new SnippetAnchorNodeGen() : new SnippetAnchorNode();
+    }
+
+    protected SnippetAnchorNode() {
         super(StampFactory.object());
     }
 

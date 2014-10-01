@@ -99,10 +99,19 @@ public class FixedNodeProbabilityCache implements ToDoubleFunction<FixedNode> {
             return cachedValue;
         }
 
-        double probability;
+        double probability = 0.0;
         if (current.predecessor() == null) {
             if (current instanceof MergeNode) {
-                probability = ((MergeNode) current).forwardEnds().stream().mapToDouble(this::applyAsDouble).sum();
+                MergeNode currentMerge = (MergeNode) current;
+                NodeInputList<AbstractEndNode> currentForwardEnds = currentMerge.forwardEnds();
+                /*
+                 * Use simple iteration instead of streams, since the stream infrastructure adds
+                 * many frames which causes the recursion to overflow the stack earlier than it
+                 * would otherwise.
+                 */
+                for (AbstractEndNode endNode : currentForwardEnds) {
+                    probability += applyAsDouble(endNode);
+                }
                 if (current instanceof LoopBeginNode) {
                     probability *= ((LoopBeginNode) current).loopFrequency();
                 }

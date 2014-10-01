@@ -33,20 +33,24 @@ import com.oracle.graal.nodes.virtual.*;
 @NodeInfo
 public class MaterializedObjectState extends EscapeObjectState implements Node.ValueNumberable {
 
-    @Input private ValueNode materializedValue;
+    @Input ValueNode materializedValue;
 
     public ValueNode materializedValue() {
         return materializedValue;
     }
 
-    public MaterializedObjectState(VirtualObjectNode object, ValueNode materializedValue) {
+    public static MaterializedObjectState create(VirtualObjectNode object, ValueNode materializedValue) {
+        return USE_GENERATED_NODES ? new MaterializedObjectStateGen(object, materializedValue) : new MaterializedObjectState(object, materializedValue);
+    }
+
+    protected MaterializedObjectState(VirtualObjectNode object, ValueNode materializedValue) {
         super(object);
         this.materializedValue = materializedValue;
     }
 
     @Override
     public MaterializedObjectState duplicateWithVirtualState() {
-        return graph().addWithoutUnique(new MaterializedObjectState(object(), materializedValue));
+        return graph().addWithoutUnique(MaterializedObjectState.create(object(), materializedValue));
     }
 
     @Override

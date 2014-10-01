@@ -36,6 +36,9 @@ import com.oracle.graal.lir.sparc.*;
 @Opcode("LEAVE_CURRENT_STACK_FRAME")
 final class SPARCHotSpotLeaveCurrentStackFrameOp extends SPARCLIRInstruction {
 
+    public SPARCHotSpotLeaveCurrentStackFrameOp() {
+    }
+
     @Override
     public void emitCode(CompilationResultBuilder crb, SPARCMacroAssembler masm) {
         // Save O registers over restore.

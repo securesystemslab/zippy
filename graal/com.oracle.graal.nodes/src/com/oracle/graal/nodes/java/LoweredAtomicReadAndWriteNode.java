@@ -37,10 +37,14 @@ import com.oracle.graal.nodes.spi.*;
 @NodeInfo(allowedUsageTypes = {InputType.Memory})
 public class LoweredAtomicReadAndWriteNode extends FixedAccessNode implements StateSplit, LIRLowerable, MemoryCheckpoint.Single {
 
-    @Input private ValueNode newValue;
-    @OptionalInput(InputType.State) private FrameState stateAfter;
+    @Input ValueNode newValue;
+    @OptionalInput(InputType.State) FrameState stateAfter;
 
-    public LoweredAtomicReadAndWriteNode(ValueNode object, LocationNode location, ValueNode newValue, BarrierType barrierType) {
+    public static LoweredAtomicReadAndWriteNode create(ValueNode object, LocationNode location, ValueNode newValue, BarrierType barrierType) {
+        return USE_GENERATED_NODES ? new LoweredAtomicReadAndWriteNodeGen(object, location, newValue, barrierType) : new LoweredAtomicReadAndWriteNode(object, location, newValue, barrierType);
+    }
+
+    LoweredAtomicReadAndWriteNode(ValueNode object, LocationNode location, ValueNode newValue, BarrierType barrierType) {
         super(object, location, newValue.stamp().unrestricted(), barrierType);
         this.newValue = newValue;
     }

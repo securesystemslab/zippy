@@ -32,6 +32,7 @@
 #include "asm/register.hpp"
 #include "classfile/vmSymbols.hpp"
 #include "code/vmreg.hpp"
+#include "vmreg_x86.inline.hpp"
 
 jint CodeInstaller::pd_next_offset(NativeInstruction* inst, jint pc_offset, oop method) {
   if (inst->is_call() || inst->is_jump()) {
@@ -208,4 +209,22 @@ void CodeInstaller::pd_relocate_poll(address pc, jint mark) {
       fatal("invalid mark value");
       break;
   }
+}
+
+// convert Graal register indices (as used in oop maps) to HotSpot registers
+VMReg CodeInstaller::get_hotspot_reg(jint graal_reg) {
+  if (graal_reg < RegisterImpl::number_of_registers) {
+    return as_Register(graal_reg)->as_VMReg();
+  } else {
+    jint floatRegisterNumber = graal_reg - RegisterImpl::number_of_registers;
+    if (floatRegisterNumber < XMMRegisterImpl::number_of_registers) {
+      return as_XMMRegister(floatRegisterNumber)->as_VMReg();
+    }
+    ShouldNotReachHere();
+    return NULL;
+  }
+}
+
+bool CodeInstaller::is_general_purpose_reg(VMReg hotspotRegister) {
+  return !(hotspotRegister->is_FloatRegister() || hotspotRegister->is_XMMRegister());
 }

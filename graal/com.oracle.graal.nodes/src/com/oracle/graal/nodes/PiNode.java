@@ -44,27 +44,39 @@ import com.oracle.graal.nodes.type.*;
 @NodeInfo
 public class PiNode extends FloatingGuardedNode implements LIRLowerable, Virtualizable, IterableNodeType, Canonicalizable, ValueProxy {
 
-    @Input private ValueNode object;
+    @Input ValueNode object;
     private final Stamp piStamp;
 
     public ValueNode object() {
         return object;
     }
 
-    public PiNode(ValueNode object, Stamp stamp) {
+    public static PiNode create(ValueNode object, Stamp stamp) {
+        return USE_GENERATED_NODES ? new PiNodeGen(object, stamp) : new PiNode(object, stamp);
+    }
+
+    protected PiNode(ValueNode object, Stamp stamp) {
         super(stamp);
         this.piStamp = stamp;
         this.object = object;
     }
 
-    public PiNode(ValueNode object, Stamp stamp, ValueNode anchor) {
+    public static PiNode create(ValueNode object, Stamp stamp, ValueNode anchor) {
+        return USE_GENERATED_NODES ? new PiNodeGen(object, stamp, anchor) : new PiNode(object, stamp, anchor);
+    }
+
+    protected PiNode(ValueNode object, Stamp stamp, ValueNode anchor) {
         super(stamp, (GuardingNode) anchor);
         this.object = object;
         this.piStamp = stamp;
     }
 
-    public PiNode(ValueNode object, ResolvedJavaType toType, boolean exactType, boolean nonNull) {
-        this(object, StampFactory.object(toType, exactType, nonNull || StampTool.isObjectNonNull(object.stamp())));
+    public static PiNode create(ValueNode object, ResolvedJavaType toType, boolean exactType, boolean nonNull) {
+        return USE_GENERATED_NODES ? new PiNodeGen(object, toType, exactType, nonNull) : new PiNode(object, toType, exactType, nonNull);
+    }
+
+    protected PiNode(ValueNode object, ResolvedJavaType toType, boolean exactType, boolean nonNull) {
+        this(object, StampFactory.object(toType, exactType, nonNull || StampTool.isObjectNonNull(object.stamp()), true));
     }
 
     @Override

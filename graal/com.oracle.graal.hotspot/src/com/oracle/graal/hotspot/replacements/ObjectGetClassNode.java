@@ -41,7 +41,11 @@ import com.oracle.graal.replacements.nodes.*;
 @NodeInfo
 public class ObjectGetClassNode extends MacroNode implements Virtualizable, Canonicalizable {
 
-    public ObjectGetClassNode(Invoke invoke) {
+    public static ObjectGetClassNode create(Invoke invoke) {
+        return USE_GENERATED_NODES ? new ObjectGetClassNodeGen(invoke) : new ObjectGetClassNode(invoke);
+    }
+
+    protected ObjectGetClassNode(Invoke invoke) {
         super(invoke);
     }
 

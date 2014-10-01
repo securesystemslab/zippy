@@ -24,6 +24,8 @@
  */
 package com.oracle.truffle.api;
 
+import java.util.*;
+
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -57,6 +59,11 @@ public interface TruffleRuntime {
      * @return the new call node
      */
     DirectCallNode createDirectCallNode(CallTarget target);
+
+    /**
+     * Experimental API. May change without notice.
+     */
+    LoopNode createLoopNode(RepeatingNode body);
 
     /**
      * Creates a new runtime specific version of {@link IndirectCallNode}.
@@ -132,7 +139,14 @@ public interface TruffleRuntime {
     FrameInstance getCurrentFrame();
 
     /**
+     * Returns a list of all still referenced {@link RootCallTarget} instances that were created
+     * using {@link #createCallTarget(RootNode)}.
+     */
+    Collection<RootCallTarget> getCallTargets();
+
+    /**
      * Internal API method. Do not use.
      */
     void notifyTransferToInterpreter();
+
 }

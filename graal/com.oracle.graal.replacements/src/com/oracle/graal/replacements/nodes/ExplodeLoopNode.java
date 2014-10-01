@@ -39,25 +39,29 @@ import com.oracle.graal.replacements.Snippet.VarargsParameter;
 @NodeInfo
 public class ExplodeLoopNode extends FixedWithNextNode {
 
-    public ExplodeLoopNode() {
+    public static ExplodeLoopNode create() {
+        return USE_GENERATED_NODES ? new ExplodeLoopNodeGen() : new ExplodeLoopNode();
+    }
+
+    protected ExplodeLoopNode() {
         super(StampFactory.forVoid());
     }
 
     public LoopBeginNode findLoopBegin() {
-        Node next = next();
+        Node currentNext = next();
         ArrayList<Node> succs = new ArrayList<>();
-        while (!(next instanceof LoopBeginNode)) {
-            assert next != null : "cannot find loop after " + this;
-            for (Node n : next.cfgSuccessors()) {
+        while (!(currentNext instanceof LoopBeginNode)) {
+            assert currentNext != null : "cannot find loop after " + this;
+            for (Node n : currentNext.cfgSuccessors()) {
                 succs.add(n);
             }
             if (succs.size() == 1) {
-                next = succs.get(0);
+                currentNext = succs.get(0);
             } else {
                 return null;
             }
         }
-        return (LoopBeginNode) next;
+        return (LoopBeginNode) currentNext;
     }
 
     /**

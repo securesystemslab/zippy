@@ -50,10 +50,14 @@ public class BranchProbabilityNode extends FloatingNode implements Simplifiable,
     public static final double VERY_FAST_PATH_PROBABILITY = 0.999;
     public static final double VERY_SLOW_PATH_PROBABILITY = 1 - VERY_FAST_PATH_PROBABILITY;
 
-    @Input private ValueNode probability;
-    @Input private ValueNode condition;
+    @Input ValueNode probability;
+    @Input ValueNode condition;
 
-    public BranchProbabilityNode(ValueNode probability, ValueNode condition) {
+    public static BranchProbabilityNode create(ValueNode probability, ValueNode condition) {
+        return USE_GENERATED_NODES ? new BranchProbabilityNodeGen(probability, condition) : new BranchProbabilityNode(probability, condition);
+    }
+
+    BranchProbabilityNode(ValueNode probability, ValueNode condition) {
         super(condition.stamp());
         this.probability = probability;
         this.condition = condition;
