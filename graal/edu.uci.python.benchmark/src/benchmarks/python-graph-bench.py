@@ -24,8 +24,8 @@ def test_accessibility_on_very_deep_graph():
 
 def build_graph():
     gr = graph()
-    gr.add_nodes(range(0,311)) # 2001
-    for i in range(0,310): #2000
+    gr.add_nodes(range(0,291)) # 2001
+    for i in range(0,290): #2000
         gr.add_edge((i,i+1))
     return gr
 
@@ -46,7 +46,7 @@ def measure():
 
 # warm up
 num =  int(sys.argv[1]) # 200
-for i in range(50):
+for i in range(55):
     main(G, 20)
 
 measure()
