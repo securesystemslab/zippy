@@ -34,9 +34,10 @@ import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.CallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.replacements.nodes.*;
@@ -44,7 +45,8 @@ import com.oracle.graal.replacements.nodes.*;
 /**
  * Node for invocation methods defined on the class {@link MethodHandle}.
  */
-public class MethodHandleNode extends MacroNode implements Simplifiable {
+@NodeInfo
+public class MethodHandleNode extends MacroStateSplitNode implements Simplifiable {
 
     /** The method that this node is representing. */
     private final IntrinsicMethod intrinsicMethod;
@@ -52,9 +54,13 @@ public class MethodHandleNode extends MacroNode implements Simplifiable {
     // Replacement method data
     private ResolvedJavaMethod replacementTargetMethod;
     private JavaType replacementReturnType;
-    @Input private final NodeInputList<ValueNode> replacementArguments;
+    @Input NodeInputList<ValueNode> replacementArguments;
 
-    public MethodHandleNode(Invoke invoke) {
+    public static MethodHandleNode create(Invoke invoke) {
+        return USE_GENERATED_NODES ? new MethodHandleNodeGen(invoke) : new MethodHandleNode(invoke);
+    }
+
+    protected MethodHandleNode(Invoke invoke) {
         super(invoke);
 
         MethodCallTargetNode callTarget = (MethodCallTargetNode) invoke.callTarget();
@@ -98,10 +104,10 @@ public class MethodHandleNode extends MacroNode implements Simplifiable {
                 throw GraalInternalError.shouldNotReachHere();
         }
         if (invoke != null) {
-            FixedNode next = next();
+            FixedNode currentNext = next();
             replaceAtUsages(invoke);
             GraphUtil.removeFixedWithUnusedInputs(this);
-            graph().addBeforeFixed(next, invoke);
+            graph().addBeforeFixed(currentNext, invoke);
         }
     }
 
@@ -230,7 +236,7 @@ public class MethodHandleNode extends MacroNode implements Simplifiable {
                 ValueNode argument = arguments.get(index);
                 ResolvedJavaType argumentType = StampTool.typeOrNull(argument.stamp());
                 if (argumentType == null || (argumentType.isAssignableFrom(targetType) && !argumentType.equals(targetType))) {
-                    PiNode piNode = graph().unique(new PiNode(argument, StampFactory.declared(targetType)));
+                    PiNode piNode = graph().unique(PiNode.create(argument, StampFactory.declared(targetType)));
                     arguments.set(index, piNode);
                 }
             }
@@ -269,10 +275,10 @@ public class MethodHandleNode extends MacroNode implements Simplifiable {
         // If there is already replacement information, use that instead.
         MethodCallTargetNode callTarget;
         if (replacementTargetMethod == null) {
-            callTarget = new SelfReplacingMethodCallTargetNode(invokeKind, targetMethod, targetArguments, returnType, getTargetMethod(), originalArguments, getReturnType());
+            callTarget = SelfReplacingMethodCallTargetNode.create(invokeKind, targetMethod, targetArguments, returnType, getTargetMethod(), originalArguments, getReturnType());
         } else {
             ValueNode[] args = replacementArguments.toArray(new ValueNode[replacementArguments.size()]);
-            callTarget = new SelfReplacingMethodCallTargetNode(invokeKind, targetMethod, targetArguments, returnType, replacementTargetMethod, args, replacementReturnType);
+            callTarget = SelfReplacingMethodCallTargetNode.create(invokeKind, targetMethod, targetArguments, returnType, replacementTargetMethod, args, replacementReturnType);
         }
         graph().add(callTarget);
 
@@ -283,9 +289,9 @@ public class MethodHandleNode extends MacroNode implements Simplifiable {
         // (usually java.lang.Object).
         InvokeNode invoke;
         if (stamp() == StampFactory.forVoid()) {
-            invoke = new InvokeNode(callTarget, getBci(), stamp());
+            invoke = InvokeNode.create(callTarget, getBci(), stamp());
         } else {
-            invoke = new InvokeNode(callTarget, getBci());
+            invoke = InvokeNode.create(callTarget, getBci());
         }
         graph().add(invoke);
         invoke.setStateAfter(stateAfter());

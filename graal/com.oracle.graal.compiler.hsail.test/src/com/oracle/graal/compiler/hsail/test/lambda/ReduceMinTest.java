@@ -22,13 +22,17 @@
  */
 package com.oracle.graal.compiler.hsail.test.lambda;
 
-import static com.oracle.graal.hotspot.HotSpotGraalRuntime.runtime;
-import com.oracle.graal.hotspot.HotSpotVMConfig;
+import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 import static org.junit.Assert.*;
-import org.junit.*;
+import static org.junit.Assume.*;
 
 import java.util.*;
-import java.util.stream.IntStream;
+import java.util.stream.*;
+
+import org.junit.*;
+
+import com.amd.okra.*;
+import com.oracle.graal.hotspot.*;
 
 public class ReduceMinTest {
     // The length of the input array
@@ -72,6 +76,10 @@ public class ReduceMinTest {
 
     @Test
     public void testReduce() {
+
+        // The simulator does not support HSA local memory as of June 2014
+        assumeTrue(OkraUtil.okraLibExists() && OkraContext.isSimulator() == false);
+
         // Handmade reduce does not support +UseCompressedOops
         HotSpotVMConfig config = runtime().getConfig();
         if (config.useCompressedOops == true || config.useHSAILDeoptimization == true) {

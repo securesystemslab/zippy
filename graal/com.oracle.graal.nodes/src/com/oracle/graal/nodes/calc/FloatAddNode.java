@@ -26,13 +26,18 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.lir.gen.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 
 @NodeInfo(shortName = "+")
-public final class FloatAddNode extends FloatArithmeticNode {
+public class FloatAddNode extends FloatArithmeticNode {
 
-    public FloatAddNode(ValueNode x, ValueNode y, boolean isStrictFP) {
+    public static FloatAddNode create(ValueNode x, ValueNode y, boolean isStrictFP) {
+        return USE_GENERATED_NODES ? new FloatAddNodeGen(x, y, isStrictFP) : new FloatAddNode(x, y, isStrictFP);
+    }
+
+    protected FloatAddNode(ValueNode x, ValueNode y, boolean isStrictFP) {
         super(x.stamp().unrestricted(), x, y, isStrictFP);
     }
 
@@ -50,12 +55,43 @@ public final class FloatAddNode extends FloatArithmeticNode {
     @Override
     public ValueNode canonical(CanonicalizerTool tool, ValueNode forX, ValueNode forY) {
         if (forX.isConstant() && !forY.isConstant()) {
-            return new FloatAddNode(forY, forX, isStrictFP());
+            return FloatAddNode.create(forY, forX, isStrictFP());
         }
         if (forX.isConstant()) {
             return ConstantNode.forConstant(evalConst(forX.asConstant(), forY.asConstant()), null);
         }
         // Constant 0.0 can't be eliminated since it can affect the sign of the result.
+        // Constant -0.0 is an additive identity.
+        if (forY.isConstant()) {
+            @SuppressWarnings("hiding")
+            Constant y = forY.asConstant();
+            switch (y.getKind()) {
+                case Float:
+                    // use Float.compare because -0.0f == 0.0f
+                    if (Float.compare(y.asFloat(), -0.0f) == 0) {
+                        return forX;
+                    }
+                    break;
+                case Double:
+                    // use Double.compare because -0.0 == 0.0
+                    if (Double.compare(y.asDouble(), -0.0) == 0) {
+                        return forX;
+                    }
+                    break;
+                default:
+                    throw GraalGraphInternalError.shouldNotReachHere();
+            }
+        }
+        /*
+         * JVM spec, Chapter 6, dsub/fsub bytecode: For double subtraction, it is always the case
+         * that a-b produces the same result as a+(-b).
+         */
+        if (forX instanceof NegateNode) {
+            return FloatSubNode.create(forY, ((NegateNode) forX).getValue(), isStrictFP());
+        }
+        if (forY instanceof NegateNode) {
+            return FloatSubNode.create(forX, ((NegateNode) forY).getValue(), isStrictFP());
+        }
         return this;
     }
 

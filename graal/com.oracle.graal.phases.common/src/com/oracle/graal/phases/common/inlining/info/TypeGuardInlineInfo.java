@@ -29,12 +29,12 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.calc.Condition;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.CallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.calc.CompareNode;
 import com.oracle.graal.nodes.extended.LoadHubNode;
 import com.oracle.graal.phases.common.inlining.InliningUtil;
 import com.oracle.graal.phases.common.inlining.info.elem.Inlineable;
 import com.oracle.graal.phases.util.Providers;
-import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 
 /**
  * Represents an inlining opportunity for which profiling information suggests a monomorphic
@@ -104,10 +104,10 @@ public class TypeGuardInlineInfo extends AbstractInlineInfo {
     private void createGuard(StructuredGraph graph, MetaAccessProvider metaAccess) {
         ValueNode nonNullReceiver = InliningUtil.nonNullReceiver(invoke);
         ConstantNode typeHub = ConstantNode.forConstant(type.getEncoding(ResolvedJavaType.Representation.ObjectHub), metaAccess, graph);
-        LoadHubNode receiverHub = graph.unique(new LoadHubNode(nonNullReceiver, typeHub.getKind()));
+        LoadHubNode receiverHub = graph.unique(LoadHubNode.create(nonNullReceiver, typeHub.getKind()));
 
         CompareNode typeCheck = CompareNode.createCompareNode(graph, Condition.EQ, receiverHub, typeHub);
-        FixedGuardNode guard = graph.add(new FixedGuardNode(typeCheck, DeoptimizationReason.TypeCheckedInliningViolated, DeoptimizationAction.InvalidateReprofile));
+        FixedGuardNode guard = graph.add(FixedGuardNode.create(typeCheck, DeoptimizationReason.TypeCheckedInliningViolated, DeoptimizationAction.InvalidateReprofile));
         assert invoke.predecessor() != null;
 
         ValueNode anchoredReceiver = InliningUtil.createAnchoredReceiver(graph, guard, type, nonNullReceiver, true);
@@ -118,7 +118,7 @@ public class TypeGuardInlineInfo extends AbstractInlineInfo {
 
     @Override
     public String toString() {
-        return "type-checked with type " + type.getName() + " and method " + MetaUtil.format("%H.%n(%p):%r", concrete);
+        return "type-checked with type " + type.getName() + " and method " + concrete.format("%H.%n(%p):%r");
     }
 
     public boolean shouldInline() {

@@ -22,9 +22,9 @@
  */
 package com.oracle.graal.hotspot.meta;
 
-import static com.oracle.graal.api.meta.MetaUtil.*;
 import static com.oracle.graal.compiler.common.UnsafeAccess.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
+import static java.util.Objects.*;
 
 import java.lang.annotation.*;
 import java.lang.reflect.*;
@@ -140,7 +140,7 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
     public ResolvedJavaType findUniqueConcreteSubtype() {
         HotSpotVMConfig config = runtime().getConfig();
         if (isArray()) {
-            return getElementalType(this).isFinal() ? this : null;
+            return getElementalType().isFinal() ? this : null;
         } else if (isInterface()) {
             final long implementorMetaspaceKlass = runtime().getCompilerToVM().getKlassImplementor(getMetaspaceKlass());
 
@@ -293,14 +293,12 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
 
     @Override
     public boolean isInitialized() {
-        final int state = getState();
-        return state == runtime().getConfig().klassStateFullyInitialized;
+        return isArray() ? true : getInitState() == runtime().getConfig().instanceKlassStateFullyInitialized;
     }
 
     @Override
     public boolean isLinked() {
-        final int state = getState();
-        return state >= runtime().getConfig().klassStateLinked;
+        return isArray() ? true : getInitState() >= runtime().getConfig().instanceKlassStateLinked;
     }
 
     /**
@@ -309,8 +307,9 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
      *
      * @return state field value of this type
      */
-    private int getState() {
-        return unsafe.getByte(getMetaspaceKlass() + runtime().getConfig().klassStateOffset) & 0xFF;
+    private int getInitState() {
+        assert !isArray() : "_init_state only exists in InstanceKlass";
+        return unsafe.getByte(getMetaspaceKlass() + runtime().getConfig().instanceKlassInitStateOffset) & 0xFF;
     }
 
     @Override
@@ -350,12 +349,33 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
     }
 
     @Override
+    public boolean isJavaLangObject() {
+        return javaClass.equals(Object.class);
+    }
+
+    @Override
     public Kind getKind() {
         return Kind.Object;
     }
 
     @Override
     public ResolvedJavaMethod resolveMethod(ResolvedJavaMethod method, ResolvedJavaType callerType) {
+        ResolvedJavaMethod resolvedMethod = resolveMethodInternal(method, callerType);
+        if (resolvedMethod == null || resolvedMethod.isAbstract()) {
+            return null;
+        }
+        return resolvedMethod;
+    }
+
+    /**
+     * Resolve the method against the current type and return the method found, including any
+     * abstract methods.
+     *
+     * @param method
+     * @param callerType
+     * @return the method found
+     */
+    private ResolvedJavaMethod resolveMethodInternal(ResolvedJavaMethod method, ResolvedJavaType callerType) {
         assert !callerType.isArray();
         if (!method.isAbstract() && method.getDeclaringClass().equals(this) && method.isPublic()) {
             return method;
@@ -369,11 +389,7 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
         if (resolvedMetaspaceMethod == 0) {
             return null;
         }
-        HotSpotResolvedJavaMethod resolvedMethod = HotSpotResolvedJavaMethod.fromMetaspace(resolvedMetaspaceMethod);
-        if (resolvedMethod.isAbstract()) {
-            return null;
-        }
-        return resolvedMethod;
+        return HotSpotResolvedJavaMethod.fromMetaspace(resolvedMetaspaceMethod);
     }
 
     public ConstantPool constantPool() {
@@ -420,6 +436,17 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
         return method;
     }
 
+    public int getVtableLength() {
+        HotSpotVMConfig config = runtime().getConfig();
+        if (isInterface() || isArray()) {
+            /* Everything has the core vtable of java.lang.Object */
+            return config.baseVtableLength;
+        }
+        int result = unsafe.getInt(getMetaspaceKlass() + config.instanceKlassVtableLengthOffset) / (config.vtableEntrySize / config.heapWordSize);
+        assert result >= config.baseVtableLength : unsafe.getInt(getMetaspaceKlass() + config.instanceKlassVtableLengthOffset) + " " + config.vtableEntrySize;
+        return result;
+    }
+
     /**
      * Gets the mask used to filter out HotSpot internal flags for fields when a {@link Field}
      * object is created. This is the value of {@code JVM_RECOGNIZED_FIELD_MODIFIERS} in
@@ -464,21 +491,24 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
         /*
          * Sometimes the receiver type in the graph hasn't stabilized to a subtype of declared
          * holder, usually because of phis, so make sure that the type is related to the declared
-         * type before using it for lookup.
+         * type before using it for lookup. Unlinked types should also be ignored because we can't
+         * resolve the proper method to invoke. Generally unlinked types in invokes should result in
+         * a deopt instead since they can't really be used if they aren't linked yet.
          */
-        if (!declaredHolder.isAssignableFrom(this) || this.isArray() || this.equals(declaredHolder)) {
+        if (!declaredHolder.isAssignableFrom(this) || this.isArray() || this.equals(declaredHolder) || !isLinked() || isInterface()) {
             return hmethod.uniqueConcreteMethod(declaredHolder);
         }
         /*
          * The holder may be a subtype of the decaredHolder so make sure to resolve the method to
          * the correct method for the subtype.
          */
-        HotSpotResolvedJavaMethod newMethod = (HotSpotResolvedJavaMethod) resolveMethod(hmethod, this);
-        if (newMethod != null && !hmethod.equals(newMethod)) {
-            hmethod = newMethod;
+        HotSpotResolvedJavaMethod resolvedMethod = (HotSpotResolvedJavaMethod) resolveMethodInternal(hmethod, this);
+        if (resolvedMethod == null) {
+            // The type isn't known to implement the method.
+            return null;
         }
 
-        return hmethod.uniqueConcreteMethod(this);
+        return resolvedMethod.uniqueConcreteMethod(this);
     }
 
     /**
@@ -680,7 +710,7 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
     @Override
     public String getSourceFileName() {
         HotSpotVMConfig config = runtime().getConfig();
-        final int sourceFileNameIndex = unsafe.getChar(getMetaspaceKlass() + config.klassSourceFileNameIndexOffset);
+        final int sourceFileNameIndex = unsafe.getChar(getMetaspaceKlass() + config.instanceKlassSourceFileNameIndexOffset);
         if (sourceFileNameIndex == 0) {
             return null;
         }
@@ -692,9 +722,38 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
         return mirror().getAnnotation(annotationClass);
     }
 
+    /**
+     * Performs a fast-path check that this type is resolved in the context of a given accessing
+     * class. A negative result does not mean this type is not resolved with respect to
+     * {@code accessingClass}. That can only be determined by
+     * {@linkplain HotSpotGraalRuntime#lookupType(String, HotSpotResolvedObjectType, boolean)
+     * re-resolving} the type.
+     */
+    public boolean isDefinitelyResolvedWithRespectTo(ResolvedJavaType accessingClass) {
+        assert accessingClass != null;
+        ResolvedJavaType elementType = getElementalType();
+        if (elementType.isPrimitive()) {
+            // Primitive type resolution is context free.
+            return true;
+        }
+        if (elementType.getName().startsWith("Ljava/")) {
+            // Classes in a java.* package can only be defined by the
+            // boot class loader. This is enforced by ClassLoader.preDefineClass()
+            assert mirror().getClassLoader() == null;
+            return true;
+        }
+        ClassLoader thisCl = mirror().getClassLoader();
+        ClassLoader accessingClassCl = ((HotSpotResolvedObjectType) accessingClass).mirror().getClassLoader();
+        return thisCl == accessingClassCl;
+    }
+
     @Override
     public ResolvedJavaType resolve(ResolvedJavaType accessingClass) {
-        return this;
+        if (isDefinitelyResolvedWithRespectTo(requireNonNull(accessingClass))) {
+            return this;
+        }
+        HotSpotResolvedObjectType accessingType = (HotSpotResolvedObjectType) accessingClass;
+        return (ResolvedJavaType) runtime().lookupType(getName(), accessingType, true);
     }
 
     /**
@@ -793,5 +852,12 @@ public final class HotSpotResolvedObjectType extends HotSpotResolvedJavaType {
     @Override
     public String toString() {
         return "HotSpotType<" + getName() + ", resolved>";
+    }
+
+    private static final ResolvedJavaType trustedInterfaceType = fromClass(TrustedInterface.class);
+
+    @Override
+    public boolean isTrustedInterfaceType() {
+        return trustedInterfaceType.isAssignableFrom(this);
     }
 }

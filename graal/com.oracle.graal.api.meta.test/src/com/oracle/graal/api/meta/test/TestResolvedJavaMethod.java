@@ -214,6 +214,15 @@ public class TestResolvedJavaMethod extends MethodUniverse {
         assertEquals(1000L, annotation.timeout());
     }
 
+    @Test(timeout = 1000L)
+    public void getAnnotationsTest() throws NoSuchMethodException {
+        ResolvedJavaMethod method = metaAccess.lookupJavaMethod(getClass().getDeclaredMethod("getAnnotationsTest"));
+        Annotation[] annotations = method.getAnnotations();
+        assertNotNull(annotations);
+        assertEquals(1, annotations.length);
+        assertEquals(1000L, ((Test) annotations[0]).timeout());
+    }
+
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.PARAMETER)
     @interface NonNull {
@@ -267,6 +276,18 @@ public class TestResolvedJavaMethod extends MethodUniverse {
         assertTrue(2 <= method2StackSize && method2StackSize <= 4);
     }
 
+    @Test
+    public void isDefaultTest() {
+        for (Map.Entry<Method, ResolvedJavaMethod> e : methods.entrySet()) {
+            ResolvedJavaMethod m = e.getValue();
+            assertEquals(e.getKey().isDefault(), m.isDefault());
+        }
+        for (Map.Entry<Constructor<?>, ResolvedJavaMethod> e : constructors.entrySet()) {
+            ResolvedJavaMethod m = e.getValue();
+            assertFalse(m.isDefault());
+        }
+    }
+
     private Method findTestMethod(Method apiMethod) {
         String testName = apiMethod.getName() + "Test";
         for (Method m : getClass().getDeclaredMethods()) {
@@ -291,7 +312,8 @@ public class TestResolvedJavaMethod extends MethodUniverse {
         "getLineNumberTable",
         "getLocalVariableTable",
         "isInVirtualMethodTable",
-        "isDefault" // tested in TestResolvedJavaMethodJDK8
+        "toParameterTypes",
+        "getParameterAnnotation"
     };
     // @formatter:on
 

@@ -32,7 +32,7 @@ import com.oracle.graal.compiler.match.MatchPattern.MatchResultCode;
 import com.oracle.graal.compiler.match.MatchPattern.Result;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.graph.Node.Verbosity;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 
 /**
@@ -143,5 +143,10 @@ public class MatchStatement {
 
     public String getName() {
         return name;
+    }
+
+    @Override
+    public String toString() {
+        return pattern.toString();
     }
 }

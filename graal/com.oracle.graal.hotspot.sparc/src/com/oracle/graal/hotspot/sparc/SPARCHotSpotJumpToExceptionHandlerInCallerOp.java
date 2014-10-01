@@ -29,12 +29,8 @@ import static com.oracle.graal.sparc.SPARC.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.asm.sparc.*;
-import com.oracle.graal.asm.sparc.SPARCAssembler.CC;
-import com.oracle.graal.asm.sparc.SPARCAssembler.ConditionFlag;
-import com.oracle.graal.asm.sparc.SPARCAssembler.Jmpl;
-import com.oracle.graal.asm.sparc.SPARCAssembler.Lduw;
-import com.oracle.graal.asm.sparc.SPARCAssembler.Movcc;
-import com.oracle.graal.asm.sparc.SPARCMacroAssembler.Cmp;
+import com.oracle.graal.asm.sparc.SPARCAssembler.*;
+import com.oracle.graal.asm.sparc.SPARCMacroAssembler.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
 
@@ -61,6 +57,10 @@ final class SPARCHotSpotJumpToExceptionHandlerInCallerOp extends SPARCHotSpotEpi
 
     @Override
     public void emitCode(CompilationResultBuilder crb, SPARCMacroAssembler masm) {
+        // Move the values up one level to be the input for the next call.
+        new SPARCMacroAssembler.Mov(asRegister(handlerInCallerPc), i2).emit(masm);
+        new SPARCMacroAssembler.Mov(asRegister(exception), i0).emit(masm);
+        new SPARCMacroAssembler.Mov(asRegister(exceptionPc), i1).emit(masm);
         leaveFrame(crb);
 
         // Restore SP from L7 if the exception PC is a method handle call site.
@@ -70,5 +70,6 @@ final class SPARCHotSpotJumpToExceptionHandlerInCallerOp extends SPARCHotSpotEpi
         new Movcc(ConditionFlag.NotZero, CC.Icc, l7, sp).emit(masm);
 
         new Jmpl(asRegister(handlerInCallerPc), 0, g0).emit(masm);
+        new Nop().emit(masm);
     }
 }

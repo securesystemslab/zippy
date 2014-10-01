@@ -86,7 +86,7 @@ public class BasicInductionVariable extends InductionVariable {
             return rawStride;
         }
         if (op instanceof IntegerSubNode) {
-            return graph().unique(new NegateNode(rawStride));
+            return graph().unique(NegateNode.create(rawStride));
         }
         throw GraalInternalError.shouldNotReachHere();
     }
@@ -152,5 +152,9 @@ public class BasicInductionVariable extends InductionVariable {
     @Override
     public long constantExtremum() {
         return constantStride() * (loop.counted().constantMaxTripCount() - 1) + constantInit();
+    }
+
+    @Override
+    public void deleteUnusedNodes() {
     }
 }

@@ -30,6 +30,7 @@ import java.util.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.code.CallingConvention.Type;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.asm.*;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.lir.*;
@@ -58,7 +59,19 @@ public class SPARCHotSpotRegisterConfig implements RegisterConfig {
         ArrayList<Register> list = new ArrayList<>();
         for (Register reg : getAllocatableRegisters()) {
             if (architecture.canStoreValue(reg.getRegisterCategory(), kind)) {
-                list.add(reg);
+                // Special treatment for double precision
+                // TODO: This is wasteful it uses only half of the registers as float.
+                if (kind == Kind.Double) {
+                    if (reg.name.startsWith("d")) {
+                        list.add(reg);
+                    }
+                } else if (kind == Kind.Float) {
+                    if (reg.name.startsWith("f")) {
+                        list.add(reg);
+                    }
+                } else {
+                    list.add(reg);
+                }
             }
         }
 
@@ -76,8 +89,16 @@ public class SPARCHotSpotRegisterConfig implements RegisterConfig {
     private final Register[] cpuCalleeParameterRegisters = {i0, i1, i2, i3, i4, i5};
 
     private final Register[] fpuParameterRegisters = {f0, f1, f2, f3, f4, f5, f6, f7};
-
-    private final Register[] callerSaveRegisters = {g1, g3, g4, g5, o0, o1, o2, o3, o4, o5, o7};
+    // @formatter:off
+    private final Register[] callerSaveRegisters =
+                   {g1, g3, g4, g5, o0, o1, o2, o3, o4, o5, o7,
+                    f0,  f1,  f2,  f3,  f4,  f5,  f6,  f7,
+                    f8,  f9,  f10, f11, f12, f13, f14, f15,
+                    f16, f17, f18, f19, f20, f21, f22, f23,
+                    f24, f25, f26, f27, f28, f29, f30, f31,
+                    d32, d34, d36, d38, d40, d42, d44, d46,
+                    d48, d50, d52, d54, d56, d58, d60, d62};
+    // @formatter:on
 
     /**
      * Registers saved by the callee. This lists all L and I registers which are saved in the
@@ -102,20 +123,34 @@ public class SPARCHotSpotRegisterConfig implements RegisterConfig {
             // @formatter:off
             registers = new Register[]{
                         // TODO this is not complete
-                        o0, o1, o2, o3, o4, o5, /*o6,*/ o7,
+                        // o7 cannot be used as register because it is always overwritten on call
+                        // and the current register handler would ignore this fact if the called
+                        // method still does not modify registers, in fact o7 is modified by the Call instruction
+                        // There would be some extra handlin necessary to be able to handle the o7 properly for local usage
+                        o0, o1, o2, o3, o4, o5, /*o6, o7,*/
                         l0, l1, l2, l3, l4, l5, l6, l7,
                         i0, i1, i2, i3, i4, i5, /*i6,*/ /*i7,*/
-                        f0, f1, f2, f3, f4, f5, f6, f7
+                        //f0, f1, f2, f3, f4, f5, f6, f7,
+                        f8,  f9,  f10, f11, f12, f13, f14, f15,
+                        f16, f17, f18, f19, f20, f21, f22, f23,
+                        f24, f25, f26, f27, f28, f29, f30, f31,
+                        d32, d34, d36, d38, d40, d42, d44, d46,
+                        d48, d50, d52, d54, d56, d58, d60, d62
             };
             // @formatter:on
         } else {
             // @formatter:off
             registers = new Register[]{
                         // TODO this is not complete
-                        o0, o1, o2, o3, o4, o5, /*o6,*/ o7,
+                        o0, o1, o2, o3, o4, o5, /*o6, o7,*/
                         l0, l1, l2, l3, l4, l5, l6, l7,
                         i0, i1, i2, i3, i4, i5, /*i6,*/ /*i7,*/
-                        f0, f1, f2, f3, f4, f5, f6, f7
+//                        f0, f1, f2, f3, f4, f5, f6, f7
+                        f8,  f9,  f10, f11, f12, f13, f14, f15,
+                        f16, f17, f18, f19, f20, f21, f22, f23,
+                        f24, f25, f26, f27, f28, f29, f30, f31,
+                        d32, d34, d36, d38, d40, d42, d44, d46,
+                        d48, d50, d52, d54, d56, d58, d60, d62
             };
             // @formatter:on
         }
@@ -201,8 +236,18 @@ public class SPARCHotSpotRegisterConfig implements RegisterConfig {
                         locations[i] = register.asValue(target.getLIRKind(kind));
                     }
                     break;
-                case Float:
                 case Double:
+                    if (!stackOnly && currentFloating < fpuParameterRegisters.length) {
+                        if (currentFloating % 2 != 0) {
+                            // Make register number even to be a double reg
+                            currentFloating++;
+                        }
+                        Register register = fpuParameterRegisters[currentFloating];
+                        currentFloating += 2; // Only every second is a double register
+                        locations[i] = register.asValue(target.getLIRKind(kind));
+                    }
+                    break;
+                case Float:
                     if (!stackOnly && currentFloating < fpuParameterRegisters.length) {
                         Register register = fpuParameterRegisters[currentFloating++];
                         locations[i] = register.asValue(target.getLIRKind(kind));
@@ -213,8 +258,11 @@ public class SPARCHotSpotRegisterConfig implements RegisterConfig {
             }
 
             if (locations[i] == null) {
+                // Stack slot is always aligned to its size in bytes but minimum wordsize
+                int typeSize = SPARC.spillSlotSize(target, kind);
+                currentStackOffset = NumUtil.roundUp(currentStackOffset, typeSize);
                 locations[i] = StackSlot.get(target.getLIRKind(kind.getStackKind()), currentStackOffset, !type.out);
-                currentStackOffset += Math.max(target.getSizeInBytes(kind), target.wordSize);
+                currentStackOffset += typeSize;
             }
         }
 

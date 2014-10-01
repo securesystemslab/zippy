@@ -41,7 +41,7 @@ public class Difference {
     public static final String VALUE_CHANGED = "changed";
     public static final String VALUE_SAME = "same";
     public static final String VALUE_DELETED = "deleted";
-    public static final String OLD_PREFIX = "OLD_";
+    public static final String NEW_PREFIX = "NEW_";
     public static final String MAIN_PROPERTY = "name";
     public static final double LIMIT = 100.0;
     public static final String[] IGNORE_PROPERTIES = new String[]{"idx", "debug_idx"};
@@ -360,7 +360,7 @@ public class Difference {
             String s = firstNode.getProperties().get(p.getName());
             if (!p.getValue().equals(s)) {
                 difference = true;
-                n.getProperties().setProperty(OLD_PREFIX + p.getName(), p.getValue());
+                n.getProperties().setProperty(NEW_PREFIX + p.getName(), p.getValue());
             }
         }
 
@@ -368,7 +368,7 @@ public class Difference {
             String s = otherNode.getProperties().get(p.getName());
             if (s == null && p.getValue().length() > 0) {
                 difference = true;
-                n.getProperties().setProperty(OLD_PREFIX + p.getName(), "");
+                n.getProperties().setProperty(NEW_PREFIX + p.getName(), "");
             }
         }
 

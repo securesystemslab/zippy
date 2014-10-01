@@ -25,6 +25,7 @@ package com.oracle.graal.replacements.nodes;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
@@ -33,9 +34,14 @@ import com.oracle.graal.nodes.spi.*;
  * Determines the index of the most significant "1" bit. Note that the result is undefined if the
  * input is zero.
  */
+@NodeInfo
 public class BitScanReverseNode extends UnaryNode implements LIRLowerable {
 
-    public BitScanReverseNode(ValueNode value) {
+    public static BitScanReverseNode create(ValueNode value) {
+        return USE_GENERATED_NODES ? new BitScanReverseNodeGen(value) : new BitScanReverseNode(value);
+    }
+
+    protected BitScanReverseNode(ValueNode value) {
         super(StampFactory.forInteger(Kind.Int, 0, ((PrimitiveStamp) value.stamp()).getBits()), value);
         assert value.getKind() == Kind.Int || value.getKind() == Kind.Long;
     }
@@ -61,34 +67,50 @@ public class BitScanReverseNode extends UnaryNode implements LIRLowerable {
     public ValueNode canonical(CanonicalizerTool tool, ValueNode forValue) {
         if (forValue.isConstant()) {
             Constant c = forValue.asConstant();
-            return ConstantNode.forInt(forValue.getKind() == Kind.Int ? scan(c.asInt()) : scan(c.asLong()));
+            if (c.asLong() != 0) {
+                return ConstantNode.forInt(forValue.getKind() == Kind.Int ? scan(c.asInt()) : scan(c.asLong()));
+            }
         }
         return this;
     }
 
-    @NodeIntrinsic
-    public static int scan(int v) {
-        if (v == 0) {
-            return -1;
-        }
-        int index = 31;
-        while (((1 << index) & v) == 0) {
-            --index;
-        }
-        return index;
+    /**
+     * Utility method with defined return value for 0.
+     *
+     * @param v
+     * @return index of first set bit or -1 if {@code v} == 0.
+     */
+    public static int scan(long v) {
+        return 63 - Long.numberOfLeadingZeros(v);
     }
 
-    @NodeIntrinsic
-    public static int scan(long v) {
-        if (v == 0) {
-            return -1;
-        }
-        int index = 63;
-        while (((1L << index) & v) == 0) {
-            --index;
-        }
-        return index;
+    /**
+     * Utility method with defined return value for 0.
+     *
+     * @param v
+     * @return index of first set bit or -1 if {@code v} == 0.
+     */
+    public static int scan(int v) {
+        return 31 - Integer.numberOfLeadingZeros(v);
     }
+
+    /**
+     * Raw intrinsic for bsr instruction.
+     *
+     * @param v
+     * @return index of first set bit or an undefined value if {@code v} == 0.
+     */
+    @NodeIntrinsic
+    public static native int unsafeScan(int v);
+
+    /**
+     * Raw intrinsic for bsr instruction.
+     *
+     * @param v
+     * @return index of first set bit or an undefined value if {@code v} == 0.
+     */
+    @NodeIntrinsic
+    public static native int unsafeScan(long v);
 
     @Override
     public void generate(NodeLIRBuilderTool gen) {

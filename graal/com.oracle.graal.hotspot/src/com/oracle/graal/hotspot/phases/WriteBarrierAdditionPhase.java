@@ -24,6 +24,7 @@ package com.oracle.graal.hotspot.phases;
 
 import static com.oracle.graal.hotspot.replacements.HotSpotReplacementsUtil.*;
 
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.nodes.*;
 import com.oracle.graal.nodes.HeapAccess.BarrierType;
@@ -62,7 +63,7 @@ public class WriteBarrierAdditionPhase extends Phase {
     private static void addReadNodeBarriers(ReadNode node, StructuredGraph graph) {
         if (node.getBarrierType() == BarrierType.PRECISE) {
             assert useG1GC();
-            G1ReferentFieldReadBarrier barrier = graph.add(new G1ReferentFieldReadBarrier(node.object(), node, node.location(), false));
+            G1ReferentFieldReadBarrier barrier = graph.add(G1ReferentFieldReadBarrier.create(node.object(), node, node.location(), false));
             graph.addAfterFixed(node, barrier);
         } else {
             assert node.getBarrierType() == BarrierType.NONE : "Non precise read barrier has been attached to read node.";
@@ -70,7 +71,7 @@ public class WriteBarrierAdditionPhase extends Phase {
     }
 
     protected static void addG1PreWriteBarrier(FixedAccessNode node, ValueNode object, ValueNode value, LocationNode location, boolean doLoad, boolean nullCheck, StructuredGraph graph) {
-        G1PreWriteBarrier preBarrier = graph.add(new G1PreWriteBarrier(object, value, location, doLoad, nullCheck));
+        G1PreWriteBarrier preBarrier = graph.add(G1PreWriteBarrier.create(object, value, location, doLoad, nullCheck));
         preBarrier.setStateBefore(node.stateBefore());
         node.setNullCheck(false);
         node.setStateBefore(null);
@@ -79,98 +80,90 @@ public class WriteBarrierAdditionPhase extends Phase {
 
     protected void addG1PostWriteBarrier(FixedAccessNode node, ValueNode object, ValueNode value, LocationNode location, boolean precise, StructuredGraph graph) {
         final boolean alwaysNull = StampTool.isObjectAlwaysNull(value);
-        graph.addAfterFixed(node, graph.add(new G1PostWriteBarrier(object, value, location, precise, alwaysNull)));
+        graph.addAfterFixed(node, graph.add(G1PostWriteBarrier.create(object, value, location, precise, alwaysNull)));
     }
 
     protected void addSerialPostWriteBarrier(FixedAccessNode node, ValueNode object, ValueNode value, LocationNode location, boolean precise, StructuredGraph graph) {
         final boolean alwaysNull = StampTool.isObjectAlwaysNull(value);
         final LocationNode loc = (precise ? location : null);
-        graph.addAfterFixed(node, graph.add(new SerialWriteBarrier(object, loc, precise, alwaysNull)));
+        graph.addAfterFixed(node, graph.add(SerialWriteBarrier.create(object, loc, precise, alwaysNull)));
     }
 
     private void addWriteNodeBarriers(WriteNode node, StructuredGraph graph) {
         BarrierType barrierType = node.getBarrierType();
-        if (barrierType == BarrierType.PRECISE) {
-            if (useG1GC()) {
-                if (!node.isInitialization()) {
-                    addG1PreWriteBarrier(node, node.object(), null, node.location(), true, node.getNullCheck(), graph);
+        switch (barrierType) {
+            case NONE:
+                // nothing to do
+                break;
+            case IMPRECISE:
+            case PRECISE:
+                boolean precise = barrierType == BarrierType.PRECISE;
+                if (useG1GC()) {
+                    if (!node.isInitialization()) {
+                        addG1PreWriteBarrier(node, node.object(), null, node.location(), true, node.getNullCheck(), graph);
+                    }
+                    addG1PostWriteBarrier(node, node.object(), node.value(), node.location(), precise, graph);
+                } else {
+                    addSerialPostWriteBarrier(node, node.object(), node.value(), node.location(), precise, graph);
                 }
-                addG1PostWriteBarrier(node, node.object(), node.value(), node.location(), true, graph);
-            } else {
-                addSerialPostWriteBarrier(node, node.object(), node.value(), node.location(), true, graph);
-            }
-        } else if (barrierType == BarrierType.IMPRECISE) {
-            if (useG1GC()) {
-                if (!node.isInitialization()) {
-                    addG1PreWriteBarrier(node, node.object(), null, node.location(), true, node.getNullCheck(), graph);
-                }
-                addG1PostWriteBarrier(node, node.object(), node.value(), node.location(), false, graph);
-            } else {
-                addSerialPostWriteBarrier(node, node.object(), node.value(), node.location(), false, graph);
-            }
-        } else {
-            assert barrierType == BarrierType.NONE;
+                break;
+            default:
+                throw new GraalInternalError("unexpected barrier type: " + barrierType);
         }
     }
 
-    private void addAtomicReadWriteNodeBarriers(LoweredAtomicReadAndWriteNode loweredAtomicReadAndWriteNode, StructuredGraph graph) {
-        BarrierType barrierType = loweredAtomicReadAndWriteNode.getBarrierType();
-        if (barrierType == BarrierType.PRECISE) {
-            if (useG1GC()) {
-                addG1PreWriteBarrier(loweredAtomicReadAndWriteNode, loweredAtomicReadAndWriteNode.object(), null, loweredAtomicReadAndWriteNode.location(), true,
-                                loweredAtomicReadAndWriteNode.getNullCheck(), graph);
-                addG1PostWriteBarrier(loweredAtomicReadAndWriteNode, loweredAtomicReadAndWriteNode.object(), loweredAtomicReadAndWriteNode.getNewValue(), loweredAtomicReadAndWriteNode.location(),
-                                true, graph);
-            } else {
-                addSerialPostWriteBarrier(loweredAtomicReadAndWriteNode, loweredAtomicReadAndWriteNode.object(), loweredAtomicReadAndWriteNode.getNewValue(), loweredAtomicReadAndWriteNode.location(),
-                                true, graph);
-            }
-        } else if (barrierType == BarrierType.IMPRECISE) {
-            if (useG1GC()) {
-                addG1PreWriteBarrier(loweredAtomicReadAndWriteNode, loweredAtomicReadAndWriteNode.object(), null, loweredAtomicReadAndWriteNode.location(), true,
-                                loweredAtomicReadAndWriteNode.getNullCheck(), graph);
-                addG1PostWriteBarrier(loweredAtomicReadAndWriteNode, loweredAtomicReadAndWriteNode.object(), loweredAtomicReadAndWriteNode.getNewValue(), loweredAtomicReadAndWriteNode.location(),
-                                false, graph);
-            } else {
-                addSerialPostWriteBarrier(loweredAtomicReadAndWriteNode, loweredAtomicReadAndWriteNode.object(), loweredAtomicReadAndWriteNode.getNewValue(), loweredAtomicReadAndWriteNode.location(),
-                                false, graph);
-            }
-        } else {
-            assert barrierType == BarrierType.NONE;
+    private void addAtomicReadWriteNodeBarriers(LoweredAtomicReadAndWriteNode node, StructuredGraph graph) {
+        BarrierType barrierType = node.getBarrierType();
+        switch (barrierType) {
+            case NONE:
+                // nothing to do
+                break;
+            case IMPRECISE:
+            case PRECISE:
+                boolean precise = barrierType == BarrierType.PRECISE;
+                if (useG1GC()) {
+                    addG1PreWriteBarrier(node, node.object(), null, node.location(), true, node.getNullCheck(), graph);
+                    addG1PostWriteBarrier(node, node.object(), node.getNewValue(), node.location(), precise, graph);
+                } else {
+                    addSerialPostWriteBarrier(node, node.object(), node.getNewValue(), node.location(), precise, graph);
+                }
+                break;
+            default:
+                throw new GraalInternalError("unexpected barrier type: " + barrierType);
         }
     }
 
     private void addCASBarriers(LoweredCompareAndSwapNode node, StructuredGraph graph) {
         BarrierType barrierType = node.getBarrierType();
-        if (barrierType == BarrierType.PRECISE) {
-            if (useG1GC()) {
-                addG1PreWriteBarrier(node, node.object(), node.getExpectedValue(), node.location(), false, false, graph);
-                addG1PostWriteBarrier(node, node.object(), node.getNewValue(), node.location(), true, graph);
-            } else {
-                addSerialPostWriteBarrier(node, node.object(), node.getNewValue(), node.location(), true, graph);
-            }
-        } else if (barrierType == BarrierType.IMPRECISE) {
-            if (useG1GC()) {
-                addG1PreWriteBarrier(node, node.object(), node.getExpectedValue(), node.location(), false, false, graph);
-                addG1PostWriteBarrier(node, node.object(), node.getNewValue(), node.location(), false, graph);
-            } else {
-                addSerialPostWriteBarrier(node, node.object(), node.getNewValue(), node.location(), false, graph);
-            }
-        } else {
-            assert barrierType == BarrierType.NONE;
+        switch (barrierType) {
+            case NONE:
+                // nothing to do
+                break;
+            case IMPRECISE:
+            case PRECISE:
+                boolean precise = barrierType == BarrierType.PRECISE;
+                if (useG1GC()) {
+                    addG1PreWriteBarrier(node, node.object(), node.getExpectedValue(), node.location(), false, false, graph);
+                    addG1PostWriteBarrier(node, node.object(), node.getNewValue(), node.location(), precise, graph);
+                } else {
+                    addSerialPostWriteBarrier(node, node.object(), node.getNewValue(), node.location(), precise, graph);
+                }
+                break;
+            default:
+                throw new GraalInternalError("unexpected barrier type: " + barrierType);
         }
     }
 
     private static void addArrayRangeBarriers(ArrayRangeWriteNode node, StructuredGraph graph) {
         if (useG1GC()) {
             if (!node.isInitialization()) {
-                G1ArrayRangePreWriteBarrier g1ArrayRangePreWriteBarrier = graph.add(new G1ArrayRangePreWriteBarrier(node.getArray(), node.getIndex(), node.getLength()));
+                G1ArrayRangePreWriteBarrier g1ArrayRangePreWriteBarrier = graph.add(G1ArrayRangePreWriteBarrier.create(node.getArray(), node.getIndex(), node.getLength()));
                 graph.addBeforeFixed(node, g1ArrayRangePreWriteBarrier);
             }
-            G1ArrayRangePostWriteBarrier g1ArrayRangePostWriteBarrier = graph.add(new G1ArrayRangePostWriteBarrier(node.getArray(), node.getIndex(), node.getLength()));
+            G1ArrayRangePostWriteBarrier g1ArrayRangePostWriteBarrier = graph.add(G1ArrayRangePostWriteBarrier.create(node.getArray(), node.getIndex(), node.getLength()));
             graph.addAfterFixed(node, g1ArrayRangePostWriteBarrier);
         } else {
-            SerialArrayRangeWriteBarrier serialArrayRangeWriteBarrier = graph.add(new SerialArrayRangeWriteBarrier(node.getArray(), node.getIndex(), node.getLength()));
+            SerialArrayRangeWriteBarrier serialArrayRangeWriteBarrier = graph.add(SerialArrayRangeWriteBarrier.create(node.getArray(), node.getIndex(), node.getLength()));
             graph.addAfterFixed(node, serialArrayRangeWriteBarrier);
         }
     }

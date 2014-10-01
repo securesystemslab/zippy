@@ -134,7 +134,7 @@ public abstract class GetIteratorNode extends UnaryOpNode {
         return doSpecialMethodCall(frame, "__iter__", value);
     }
 
-    @Generic
+    @Fallback
     public PIterator doGeneric(Object value) {
         throw new RuntimeException("tuple does not support iterable object " + value);
     }

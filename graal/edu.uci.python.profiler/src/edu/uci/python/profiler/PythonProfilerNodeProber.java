@@ -1,5 +1,3 @@
-package edu.uci.python.profiler;
-
 /*
  * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
@@ -24,6 +22,7 @@ package edu.uci.python.profiler;
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package edu.uci.python.profiler;
 
 import java.util.*;
 
@@ -37,9 +36,9 @@ import edu.uci.python.runtime.*;
  * @author Gulfem
  */
 
-public class PythonProfilerNodeProber implements ASTNodeProber {
+public final class PythonProfilerNodeProber implements ASTNodeProber {
 
-    private final static PythonProfilerNodeProber INSTANCE = new PythonProfilerNodeProber();
+    private static final PythonProfilerNodeProber INSTANCE = new PythonProfilerNodeProber();
 
     private List<MethodBodyInstrument> methodBodyInstruments;
     private List<PNode> builtinBodies;
@@ -72,7 +71,7 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         return INSTANCE;
     }
 
-    public Node probeAs(Node astNode, PhylumTag tag, Object... args) {
+    public Node probeAs(Node astNode, SyntaxTag tag, Object... args) {
         return astNode;
     }
 
@@ -89,7 +88,7 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
 
     public PythonWrapperNode probeAsCall(PNode node, PythonContext context) {
         PythonWrapperNode wrapper = createWrapper(node, context);
-        wrapper.getProbe().tagAs(StandardTag.CALL);
+        wrapper.getProbe().tagAs(StandardSyntaxTag.CALL);
         TimeProfilerInstrument profilerInstrument = createAttachTimeProfilerInstrument(wrapper);
         callInstruments.add(profilerInstrument);
         return wrapper;

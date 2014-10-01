@@ -685,6 +685,16 @@ public class TestResolvedJavaType extends TypeUniverse {
         }
     }
 
+    @Test
+    public void isTrustedInterfaceTypeTest() {
+        for (Class<?> c : classes) {
+            ResolvedJavaType type = metaAccess.lookupJavaType(c);
+            if (TrustedInterface.class.isAssignableFrom(c)) {
+                assertTrue(type.isTrustedInterfaceType());
+            }
+        }
+    }
+
     private Method findTestMethod(Method apiMethod) {
         String testName = apiMethod.getName() + "Test";
         for (Method m : getClass().getDeclaredMethods()) {
@@ -709,7 +719,9 @@ public class TestResolvedJavaType extends TypeUniverse {
         "getSourceFileName",
         "getClassFilePath",
         "isLocal",
+        "isJavaLangObject",
         "isMember",
+        "getElementalType",
         "getEnclosingType"
     };
     // @formatter:on
@@ -729,5 +741,4 @@ public class TestResolvedJavaType extends TypeUniverse {
             }
         }
     }
-
 }

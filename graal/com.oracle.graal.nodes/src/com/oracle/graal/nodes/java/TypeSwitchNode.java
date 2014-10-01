@@ -28,6 +28,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.meta.ResolvedJavaType.Representation;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
@@ -37,26 +38,46 @@ import com.oracle.graal.nodes.util.*;
  * The {@code TypeSwitchNode} performs a lookup based on the type of the input value. The type
  * comparison is an exact type comparison, not an instanceof.
  */
-public final class TypeSwitchNode extends SwitchNode implements LIRLowerable, Simplifiable {
+@NodeInfo
+public class TypeSwitchNode extends SwitchNode implements LIRLowerable, Simplifiable {
 
     private final ResolvedJavaType[] keys;
 
     /**
      * Constructs a type switch instruction. The keyProbabilities array contain key.length + 1
      * entries. The last entry in every array describes the default case.
-     * 
+     *
      * @param value the instruction producing the value being switched on, the object hub
      * @param successors the list of successors
      * @param keys the list of types
      * @param keyProbabilities the probabilities of the keys
      * @param keySuccessors the successor index for each key
      */
-    public TypeSwitchNode(ValueNode value, BeginNode[] successors, ResolvedJavaType[] keys, double[] keyProbabilities, int[] keySuccessors) {
+    public static TypeSwitchNode create(ValueNode value, BeginNode[] successors, ResolvedJavaType[] keys, double[] keyProbabilities, int[] keySuccessors) {
+        return USE_GENERATED_NODES ? new TypeSwitchNodeGen(value, successors, keys, keyProbabilities, keySuccessors) : new TypeSwitchNode(value, successors, keys, keyProbabilities, keySuccessors);
+    }
+
+    TypeSwitchNode(ValueNode value, BeginNode[] successors, ResolvedJavaType[] keys, double[] keyProbabilities, int[] keySuccessors) {
         super(value, successors, keySuccessors, keyProbabilities);
         assert successors.length <= keys.length + 1;
         assert keySuccessors.length == keyProbabilities.length;
         this.keys = keys;
         assert assertValues();
+        assert assertKeys();
+    }
+
+    /**
+     * Don't allow duplicate keys
+     */
+    private boolean assertKeys() {
+        for (int i = 0; i < keys.length; i++) {
+            for (int j = 0; j < keys.length; j++) {
+                if (i == j)
+                    continue;
+                assert !keys[i].equals(keys[j]);
+            }
+        }
+        return true;
     }
 
     @Override
@@ -85,6 +106,15 @@ public final class TypeSwitchNode extends SwitchNode implements LIRLowerable, Si
     @Override
     public Constant keyAt(int index) {
         return keys[index].getEncoding(Representation.ObjectHub);
+    }
+
+    @Override
+    public boolean equalKeys(SwitchNode switchNode) {
+        if (!(switchNode instanceof TypeSwitchNode)) {
+            return false;
+        }
+        TypeSwitchNode other = (TypeSwitchNode) switchNode;
+        return Arrays.equals(keys, other.keys);
     }
 
     public ResolvedJavaType typeAt(int index) {
@@ -175,7 +205,7 @@ public final class TypeSwitchNode extends SwitchNode implements LIRLowerable, Si
                     }
 
                     BeginNode[] successorsArray = newSuccessors.toArray(new BeginNode[newSuccessors.size()]);
-                    TypeSwitchNode newSwitch = graph().add(new TypeSwitchNode(value(), successorsArray, newKeys, newKeyProbabilities, newKeySuccessors));
+                    TypeSwitchNode newSwitch = graph().add(TypeSwitchNode.create(value(), successorsArray, newKeys, newKeyProbabilities, newKeySuccessors));
                     ((FixedWithNextNode) predecessor()).setNext(newSwitch);
                     GraphUtil.killWithUnusedFloatingInputs(this);
                 }

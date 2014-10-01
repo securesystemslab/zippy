@@ -32,10 +32,10 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodes.CallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
-import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
@@ -446,12 +446,12 @@ public class ConditionalEliminationPhase extends Phase {
         }
 
         private GuardedStamp computeGuardedStamp(GuardNode guard) {
-            if (guard.condition() instanceof IntegerBelowThanNode) {
+            if (guard.condition() instanceof IntegerBelowNode) {
                 if (guard.negated()) {
                     // Not sure how to reason about negated guards
                     return null;
                 }
-                IntegerBelowThanNode below = (IntegerBelowThanNode) guard.condition();
+                IntegerBelowNode below = (IntegerBelowNode) guard.condition();
                 if (below.getX().getKind() == Kind.Int && below.getX().isConstant() && !below.getY().isConstant()) {
                     Stamp stamp = StampTool.unsignedCompare(below.getX().stamp(), below.getY().stamp());
                     if (stamp != null) {
@@ -520,8 +520,8 @@ public class ConditionalEliminationPhase extends Phase {
             }
 
             GuardNode existingGuard = null;
-            if (guard.condition() instanceof IntegerBelowThanNode) {
-                IntegerBelowThanNode below = (IntegerBelowThanNode) guard.condition();
+            if (guard.condition() instanceof IntegerBelowNode) {
+                IntegerBelowNode below = (IntegerBelowNode) guard.condition();
                 IntegerStamp xStamp = (IntegerStamp) below.getX().stamp();
                 IntegerStamp yStamp = (IntegerStamp) below.getY().stamp();
                 GuardedStamp cstamp = state.valueConstraints.get(below.getX());
@@ -716,9 +716,9 @@ public class ConditionalEliminationPhase extends Phase {
                     PiNode piNode;
                     if (isNull) {
                         ConstantNode nullObject = ConstantNode.defaultForKind(Kind.Object, graph);
-                        piNode = graph.unique(new PiNode(nullObject, StampFactory.forConstant(nullObject.getValue(), metaAccess), replacementAnchor.asNode()));
+                        piNode = graph.unique(PiNode.create(nullObject, StampFactory.forConstant(nullObject.getValue(), metaAccess), replacementAnchor.asNode()));
                     } else {
-                        piNode = graph.unique(new PiNode(object, StampFactory.declared(type, nonNull), replacementAnchor.asNode()));
+                        piNode = graph.unique(PiNode.create(object, StampFactory.declared(type, nonNull, true), replacementAnchor.asNode()));
                     }
                     checkCast.replaceAtUsages(piNode);
                     graph.removeFixed(checkCast);
@@ -769,8 +769,8 @@ public class ConditionalEliminationPhase extends Phase {
                 }
 
                 if (replacement != null) {
-                    if (!(replacementAnchor instanceof BeginNode)) {
-                        ValueAnchorNode anchor = graph.add(new ValueAnchorNode(replacementAnchor));
+                    if (replacementAnchor != null && !(replacementAnchor instanceof BeginNode)) {
+                        ValueAnchorNode anchor = graph.add(ValueAnchorNode.create(replacementAnchor));
                         graph.addBeforeFixed(ifNode, anchor);
                     }
                     for (Node n : survivingSuccessor.usages().snapshot()) {
@@ -832,9 +832,6 @@ public class ConditionalEliminationPhase extends Phase {
         }
 
         private GuardingNode searchAnchor(ValueNode value, ResolvedJavaType type) {
-            if (!value.recordsUsages()) {
-                return null;
-            }
             for (Node n : value.usages()) {
                 if (n instanceof InstanceOfNode) {
                     InstanceOfNode instanceOfNode = (InstanceOfNode) n;

@@ -29,8 +29,8 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.graph.Node.Verbosity;
 import com.oracle.graal.lir.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.util.*;
 import com.oracle.graal.options.*;
@@ -38,17 +38,17 @@ import com.oracle.graal.options.*;
 public class GraalDebugConfig implements DebugConfig {
 
     // @formatter:off
-    @Option(help = "Pattern for scope(s) to in which dumping is enabled (see DebugFilter and Debug.dump)")
+    @Option(help = "Pattern for scope(s) in which dumping is enabled (see DebugFilter and Debug.dump)")
     public static final OptionValue<String> Dump = new OptionValue<>(null);
-    @Option(help = "Pattern for scope(s) to in which metering is enabled (see DebugFilter and Debug.metric)")
+    @Option(help = "Pattern for scope(s) in which metering is enabled (see DebugFilter and Debug.metric)")
     public static final OptionValue<String> Meter = new OptionValue<>(null);
-    @Option(help = "Pattern for scope(s) to in which verification is enabled (see DebugFilter and Debug.verify)")
+    @Option(help = "Pattern for scope(s) in which verification is enabled (see DebugFilter and Debug.verify)")
     public static final OptionValue<String> Verify = new OptionValue<>(null);
-    @Option(help = "Pattern for scope(s) to in which memory use tracking is enabled (see DebugFilter and Debug.metric)")
+    @Option(help = "Pattern for scope(s) in which memory use tracking is enabled (see DebugFilter and Debug.metric)")
     public static final OptionValue<String> TrackMemUse = new OptionValue<>(null);
-    @Option(help = "Pattern for scope(s) to in which timing is enabled (see DebugFilter and Debug.timer)")
+    @Option(help = "Pattern for scope(s) in which timing is enabled (see DebugFilter and Debug.timer)")
     public static final OptionValue<String> Time = new OptionValue<>(null);
-    @Option(help = "Pattern for scope(s) to in which logging is enabled (see DebugFilter and Debug.log)")
+    @Option(help = "Pattern for scope(s) in which logging is enabled (see DebugFilter and Debug.log)")
     public static final OptionValue<String> Log = new OptionValue<>(null);
     @Option(help = "Pattern for filtering debug scope output based on method context (see MethodFilter)")
     public static final OptionValue<String> MethodFilter = new OptionValue<>(null);
@@ -121,8 +121,8 @@ public class GraalDebugConfig implements DebugConfig {
         this.output = output;
     }
 
-    public boolean isLogEnabled() {
-        return isEnabled(logFilter);
+    public int getLogLevel() {
+        return getLevel(logFilter);
     }
 
     public boolean isLogEnabledForMethod() {
@@ -137,8 +137,8 @@ public class GraalDebugConfig implements DebugConfig {
         return isEnabled(trackMemUseFilter);
     }
 
-    public boolean isDumpEnabled() {
-        return isEnabled(dumpFilter);
+    public int getDumpLevel() {
+        return getLevel(dumpFilter);
     }
 
     public boolean isDumpEnabledForMethod() {
@@ -162,15 +162,27 @@ public class GraalDebugConfig implements DebugConfig {
     }
 
     private boolean isEnabled(DebugFilter filter) {
-        return checkDebugFilter(Debug.currentScope(), filter) && checkMethodFilter();
+        return getLevel(filter) > 0;
+    }
+
+    private int getLevel(DebugFilter filter) {
+        int level = checkDebugFilter(Debug.currentScope(), filter);
+        if (level > 0 && !checkMethodFilter()) {
+            level = 0;
+        }
+        return level;
     }
 
     private boolean isEnabledForMethod(DebugFilter filter) {
         return filter != null && checkMethodFilter();
     }
 
-    private static boolean checkDebugFilter(String currentScope, DebugFilter filter) {
-        return filter != null && filter.matches(currentScope);
+    private static int checkDebugFilter(String currentScope, DebugFilter filter) {
+        if (filter == null) {
+            return 0;
+        } else {
+            return filter.matchLevel(currentScope);
+        }
     }
 
     /**
@@ -241,20 +253,20 @@ public class GraalDebugConfig implements DebugConfig {
         if (e instanceof BailoutException) {
             return null;
         }
-        Debug.setConfig(Debug.fixedConfig(true, true, false, false, false, false, dumpHandlers, verifyHandlers, output));
+        Debug.setConfig(Debug.fixedConfig(Debug.DEFAULT_LOG_LEVEL, Debug.DEFAULT_LOG_LEVEL, false, false, false, false, dumpHandlers, verifyHandlers, output));
         Debug.log(String.format("Exception occurred in scope: %s", Debug.currentScope()));
         for (Object o : Debug.context()) {
             if (o instanceof Graph) {
                 Debug.log("Context obj %s", o);
                 if (DumpOnError.getValue()) {
-                    Debug.dump(o, "Exception graph");
+                    Debug.dump(o, "Exception graph: " + e);
                 } else {
                     Debug.log("Use -G:+DumpOnError to enable dumping of graphs on this error");
                 }
             } else if (o instanceof LIR) {
                 Debug.log("Context obj %s", o);
                 if (DumpOnError.getValue()) {
-                    Debug.dump(o, "LIR");
+                    Debug.dump(o, "Exception LIR: " + e);
                 } else {
                     Debug.log("Use -G:+DumpOnError to enable dumping of graphs on this error");
                 }

@@ -57,6 +57,7 @@ void graal_compute_offsets();
   start_class(InstalledCode)                                                                                                                                   \
     long_field(InstalledCode, address)                                                                                                                         \
     long_field(InstalledCode, version)                                                                                                                         \
+    oop_field(InstalledCode, name, "Ljava/lang/String;")                                                                                                       \
   end_class                                                                                                                                                    \
   start_class(HotSpotInstalledCode)                                                                                                                            \
     int_field(HotSpotInstalledCode, size)                                                                                                                      \
@@ -66,7 +67,6 @@ void graal_compute_offsets();
   start_class(HotSpotNmethod)                                                                                                                                  \
     boolean_field(HotSpotNmethod, isDefault)                                                                                                                   \
     boolean_field(HotSpotNmethod, isExternal)                                                                                                                  \
-    oop_field(HotSpotNmethod, name, "Ljava/lang/String;")                                                                                                      \
   end_class                                                                                                                                                    \
   start_class(HotSpotCompiledCode)                                                                                                                             \
     oop_field(HotSpotCompiledCode, comp, "Lcom/oracle/graal/api/code/CompilationResult;")                                                                      \
@@ -205,7 +205,12 @@ void graal_compute_offsets();
   start_class(PrimitiveConstant)                                                                                                                               \
     long_field(PrimitiveConstant, primitive)                                                                                                                   \
   end_class                                                                                                                                                    \
+  start_class(RawConstant)                                                                                                                                     \
+    long_field(RawConstant, primitive)                                                                                                                         \
+  end_class                                                                                                                                                    \
   start_class(NullConstant)                                                                                                                                    \
+  end_class                                                                                                                                                    \
+  start_class(HotSpotCompressedNullConstant)                                                                                                                                    \
   end_class                                                                                                                                                    \
   start_class(HotSpotObjectConstant)                                                                                                                           \
     oop_field(HotSpotObjectConstant, object, "Ljava/lang/Object;")                                                                                             \
@@ -223,15 +228,27 @@ void graal_compute_offsets();
     static_oop_field(Kind, Int, "Lcom/oracle/graal/api/meta/Kind;");                                                                                           \
     static_oop_field(Kind, Long, "Lcom/oracle/graal/api/meta/Kind;");                                                                                          \
   end_class                                                                                                                                                    \
+  start_class(LIRKind)                                                                                                                                         \
+    oop_field(LIRKind, platformKind, "Lcom/oracle/graal/api/meta/PlatformKind;")                                                                               \
+    int_field(LIRKind, referenceMask)                                                                                                                          \
+  end_class                                                                                                                                                    \
   start_class(Value)                                                                                                                                           \
     oop_field(Value, kind, "Lcom/oracle/graal/api/meta/Kind;")                                                                                                 \
+    oop_field(Value, lirKind, "Lcom/oracle/graal/api/meta/LIRKind;")                                                                                           \
     static_oop_field(Value, ILLEGAL, "Lcom/oracle/graal/api/meta/AllocatableValue;");                                                                          \
   end_class                                                                                                                                                    \
   start_class(RegisterValue)                                                                                                                                   \
     oop_field(RegisterValue, reg, "Lcom/oracle/graal/api/code/Register;")                                                                                      \
   end_class                                                                                                                                                    \
+  start_class(RegisterCategory)                                                                                                                                \
+    oop_field(RegisterCategory, name, "Ljava/lang/String;")                                                                                                    \
+    int_field(RegisterCategory, referenceMapOffset)                                                                                                            \
+    int_field(RegisterCategory, referenceMapShift)                                                                                                             \
+  end_class                                                                                                                                                    \
   start_class(code_Register)                                                                                                                                   \
     int_field(code_Register, number)                                                                                                                           \
+    int_field(code_Register, encoding)                                                                                                                         \
+    oop_field(code_Register, registerCategory, "Lcom/oracle/graal/api/code/Register$RegisterCategory;")                                                        \
   end_class                                                                                                                                                    \
   start_class(StackSlot)                                                                                                                                       \
     int_field(StackSlot, offset)                                                                                                                               \

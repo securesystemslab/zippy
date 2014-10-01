@@ -34,6 +34,23 @@ public class BC_irem extends JTTTest {
         return a % b;
     }
 
+    // Left as constant
+    public static int test2(int b) {
+        return 13 % b;
+    }
+
+    // Right as constant
+    public static int test3(int a) {
+        return a % 13;
+    }
+
+    // Tests if the zero extension works fine with 64 bit registers behind
+    public static long test4(int a, int b) {
+        int ra = Math.abs(a % b);
+        int rb = Math.abs(a) % b;
+        return ra << 32 | rb;
+    }
+
     @Test
     public void run0() throws Throwable {
         runTest("test", 1, 2);
@@ -54,4 +71,48 @@ public class BC_irem extends JTTTest {
         runTest("test", 135, 7);
     }
 
+    @Test
+    public void run20() throws Throwable {
+        runTest("test2", 2);
+    }
+
+    @Test
+    public void run21() throws Throwable {
+        runTest("test2", 20000000);
+    }
+
+    @Test
+    public void run22() throws Throwable {
+        runTest("test2", -20000000);
+    }
+
+    @Test
+    public void run30() throws Throwable {
+        runTest("test3", 2);
+    }
+
+    @Test
+    public void run31() throws Throwable {
+        runTest("test3", 200000000);
+    }
+
+    @Test
+    public void run32() throws Throwable {
+        runTest("test3", -200000000);
+    }
+
+    @Test
+    public void run41() throws Throwable {
+        runTest("test4", -100000, 3000000);
+    }
+
+    @Test
+    public void run42() throws Throwable {
+        runTest("test4", -100000, 30);
+    }
+
+    @Test
+    public void run43() throws Throwable {
+        runTest("test4", -1000000, -30);
+    }
 }

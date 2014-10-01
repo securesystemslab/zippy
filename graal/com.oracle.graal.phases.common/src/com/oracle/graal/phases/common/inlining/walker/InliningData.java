@@ -46,12 +46,10 @@ import com.oracle.graal.phases.common.inlining.info.elem.Inlineable;
 import com.oracle.graal.phases.common.inlining.info.elem.InlineableGraph;
 import com.oracle.graal.phases.common.inlining.info.elem.InlineableMacroNode;
 import com.oracle.graal.phases.common.inlining.policy.InliningPolicy;
-import com.oracle.graal.phases.graph.FixedNodeProbabilityCache;
 import com.oracle.graal.phases.tiers.HighTierContext;
 import com.oracle.graal.phases.util.Providers;
 
 import java.util.*;
-import java.util.function.ToDoubleFunction;
 
 import static com.oracle.graal.compiler.common.GraalOptions.*;
 import static com.oracle.graal.phases.common.inlining.walker.CallsiteHolderDummy.DUMMY_CALLSITE_HOLDER;
@@ -95,7 +93,6 @@ public class InliningData {
      */
     private final ArrayDeque<CallsiteHolder> graphQueue = new ArrayDeque<>();
     private final ArrayDeque<MethodInvocation> invocationQueue = new ArrayDeque<>();
-    private final ToDoubleFunction<FixedNode> probabilities = new FixedNodeProbabilityCache();
 
     private final HighTierContext context;
     private final int maxMethodPerInlining;
@@ -166,11 +163,11 @@ public class InliningData {
         MethodCallTargetNode callTarget = (MethodCallTargetNode) invoke.callTarget();
         ResolvedJavaMethod targetMethod = callTarget.targetMethod();
 
-        if (callTarget.invokeKind() == MethodCallTargetNode.InvokeKind.Special || targetMethod.canBeStaticallyBound()) {
+        if (callTarget.invokeKind() == CallTargetNode.InvokeKind.Special || targetMethod.canBeStaticallyBound()) {
             return getExactInlineInfo(invoke, targetMethod);
         }
 
-        assert callTarget.invokeKind() == MethodCallTargetNode.InvokeKind.Virtual || callTarget.invokeKind() == MethodCallTargetNode.InvokeKind.Interface;
+        assert callTarget.invokeKind() == CallTargetNode.InvokeKind.Virtual || callTarget.invokeKind() == CallTargetNode.InvokeKind.Interface;
 
         ResolvedJavaType holder = targetMethod.getDeclaringClass();
         if (!(callTarget.receiver().stamp() instanceof ObjectStamp)) {
@@ -426,7 +423,7 @@ public class InliningData {
         Assumptions callerAssumptions = parentInvocation.assumptions();
         metricInliningConsidered.increment();
 
-        if (inliningPolicy.isWorthInlining(probabilities, context.getReplacements(), calleeInvocation, inliningDepth, true)) {
+        if (inliningPolicy.isWorthInlining(context.getReplacements(), calleeInvocation, inliningDepth, true)) {
             doInline(callerCallsiteHolder, calleeInvocation, callerAssumptions);
             return true;
         }
@@ -683,7 +680,7 @@ public class InliningData {
 
         final MethodInvocation currentInvocation = currentInvocation();
 
-        final boolean backtrack = (!currentInvocation.isRoot() && !inliningPolicy.isWorthInlining(probabilities, context.getReplacements(), currentInvocation, inliningDepth(), false));
+        final boolean backtrack = (!currentInvocation.isRoot() && !inliningPolicy.isWorthInlining(context.getReplacements(), currentInvocation, inliningDepth(), false));
         if (backtrack) {
             int remainingGraphs = currentInvocation.totalGraphs() - currentInvocation.processedGraphs();
             assert remainingGraphs > 0;

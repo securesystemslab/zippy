@@ -22,7 +22,6 @@
  */
 package com.oracle.graal.jtt;
 
-import static com.oracle.graal.api.meta.MetaUtil.*;
 import static java.lang.reflect.Modifier.*;
 
 import java.lang.reflect.*;
@@ -58,12 +57,12 @@ public class JTTTest extends GraalCompilerTest {
     }
 
     @Override
-    protected StructuredGraph parse(Method m) {
-        StructuredGraph graph = super.parse(m);
+    protected StructuredGraph parseEager(Method m) {
+        StructuredGraph graph = super.parseEager(m);
         if (argsToBind != null) {
             Object receiver = isStatic(m.getModifiers()) ? null : this;
             Object[] args = argsWithReceiver(receiver, argsToBind);
-            JavaType[] parameterTypes = signatureToTypes(getMetaAccess().lookupJavaMethod(m));
+            JavaType[] parameterTypes = getMetaAccess().lookupJavaMethod(m).toParameterTypes();
             assert parameterTypes.length == args.length;
             for (int i = 0; i < args.length; i++) {
                 ParameterNode param = graph.getParameter(i);

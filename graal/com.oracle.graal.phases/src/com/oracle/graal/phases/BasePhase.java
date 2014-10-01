@@ -38,6 +38,9 @@ import com.oracle.graal.nodes.*;
  */
 public abstract class BasePhase<C> {
 
+    public static final int PHASE_DUMP_LEVEL = 1;
+    public static final int BEFORE_PHASE_DUMP_LEVEL = 3;
+
     private CharSequence name;
 
     /**
@@ -94,14 +97,17 @@ public abstract class BasePhase<C> {
 
     public final void apply(final StructuredGraph graph, final C context, final boolean dumpGraph) {
         try (TimerCloseable a = timer.start(); Scope s = Debug.scope(getClass(), this); Closeable c = memUseTracker.start()) {
+            if (dumpGraph && Debug.isDumpEnabled(BEFORE_PHASE_DUMP_LEVEL)) {
+                Debug.dump(BEFORE_PHASE_DUMP_LEVEL, graph, "Before phase %s", getName());
+            }
             this.run(graph, context);
             executionCount.increment();
             inputNodesCount.add(graph.getNodeCount());
-            if (dumpGraph && Debug.isDumpEnabled()) {
-                Debug.dump(graph, "After phase %s", getName());
+            if (dumpGraph && Debug.isDumpEnabled(PHASE_DUMP_LEVEL)) {
+                Debug.dump(PHASE_DUMP_LEVEL, graph, "After phase %s", getName());
             }
             if (Debug.isVerifyEnabled()) {
-                Debug.verify(graph, this, "After phase " + getName());
+                Debug.verify(graph, "After phase %s", getName());
             }
             assert graph.verify();
         } catch (Throwable t) {
@@ -110,7 +116,8 @@ public abstract class BasePhase<C> {
     }
 
     protected CharSequence createName() {
-        String s = BasePhase.this.getClass().getSimpleName();
+        String className = BasePhase.this.getClass().getName();
+        String s = className.substring(className.lastIndexOf(".") + 1); // strip the package name
         if (s.endsWith("Phase")) {
             s = s.substring(0, s.length() - "Phase".length());
         }

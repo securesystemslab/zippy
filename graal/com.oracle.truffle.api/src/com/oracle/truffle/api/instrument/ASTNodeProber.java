@@ -27,11 +27,10 @@ package com.oracle.truffle.api.instrument;
 import com.oracle.truffle.api.nodes.*;
 
 /**
- * Implementation of a policy for <em>instrumenting</em> inserting a {@link Probe} at a Truffle AST
- * node.
+ * Methods for inserting a {@link Probe} at a Truffle AST node.
  * <p>
- * Note that this interface is guest language agnostic, but current extensions are
- * language-specific. This will be revisited.
+ * This interface is guest language agnostic, but current extensions are language-specific. This
+ * will be revisited.
  * <p>
  * <strong>Disclaimer:</strong> experimental interface under development. Really!
  */
@@ -47,7 +46,7 @@ public interface ASTNodeProber {
      * {@link ExecutionEvents} at the wrapped AST node.</li>
      * <li>if the argument is itself a {@link Wrapper}, i.e. if the AST node at this site has
      * already been wrapped, then the wrapper is returned (with the possible addition of a
-     * {@linkplain PhylumTag tag}).</li>
+     * {@linkplain SyntaxTag tag}).</li>
      * </ul>
      *
      * @param astNode an AST node to which instrumentation might be applied
@@ -59,5 +58,5 @@ public interface ASTNodeProber {
      *         {@code astNode}) with an associated {@link Probe} .
      */
 
-    Node probeAs(Node astNode, PhylumTag tag, Object... args);
+    Node probeAs(Node astNode, SyntaxTag tag, Object... args);
 }

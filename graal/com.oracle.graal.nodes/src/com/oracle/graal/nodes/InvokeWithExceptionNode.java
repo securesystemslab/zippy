@@ -26,6 +26,7 @@ import java.util.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
@@ -36,18 +37,22 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Invoke,
 
     private static final double EXCEPTION_PROBA = 1e-5;
 
-    @Successor private BeginNode next;
-    @Successor private BeginNode exceptionEdge;
-    @Input(InputType.Extension) private CallTargetNode callTarget;
-    @Input(InputType.State) private FrameState stateDuring;
-    @Input(InputType.State) private FrameState stateAfter;
-    @Input(InputType.Guard) private GuardingNode guard;
+    @Successor BeginNode next;
+    @Successor BeginNode exceptionEdge;
+    @Input(InputType.Extension) CallTargetNode callTarget;
+    @OptionalInput(InputType.State) FrameState stateDuring;
+    @OptionalInput(InputType.State) FrameState stateAfter;
+    @OptionalInput(InputType.Guard) GuardingNode guard;
     private final int bci;
     private boolean polymorphic;
     private boolean useForInlining;
     private double exceptionProbability;
 
-    public InvokeWithExceptionNode(CallTargetNode callTarget, BeginNode exceptionEdge, int bci) {
+    public static InvokeWithExceptionNode create(CallTargetNode callTarget, BeginNode exceptionEdge, int bci) {
+        return USE_GENERATED_NODES ? new InvokeWithExceptionNodeGen(callTarget, exceptionEdge, bci) : new InvokeWithExceptionNode(callTarget, exceptionEdge, bci);
+    }
+
+    protected InvokeWithExceptionNode(CallTargetNode callTarget, BeginNode exceptionEdge, int bci) {
         super(callTarget.returnStamp());
         this.exceptionEdge = exceptionEdge;
         this.bci = bci;
@@ -201,12 +206,6 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Invoke,
     }
 
     @Override
-    public void setProbability(BeginNode successor, double value) {
-        assert successor == next || successor == exceptionEdge;
-        this.exceptionProbability = successor == next ? 1 - value : value;
-    }
-
-    @Override
     public boolean canDeoptimize() {
         return true;
     }
@@ -231,13 +230,5 @@ public class InvokeWithExceptionNode extends ControlSplitNode implements Invoke,
     public void setGuard(GuardingNode guard) {
         updateUsagesInterface(this.guard, guard);
         this.guard = guard;
-    }
-
-    public MemoryCheckpoint asMemoryCheckpoint() {
-        return this;
-    }
-
-    public MemoryPhiNode asMemoryPhi() {
-        return null;
     }
 }

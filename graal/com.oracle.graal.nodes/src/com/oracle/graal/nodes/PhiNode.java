@@ -22,14 +22,24 @@
  */
 package com.oracle.graal.nodes;
 
+import java.util.*;
+
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.calc.*;
 
-public abstract class PhiNode extends FloatingNode {
+/**
+ * {@code PhiNode}s represent the merging of edges at a control flow merges ({@link MergeNode} or
+ * {@link LoopBeginNode}). For a {@link MergeNode}, the order of the values corresponds to the order
+ * of the ends. For {@link LoopBeginNode}s, the first value corresponds to the loop's predecessor,
+ * while the rest of the values correspond to the {@link LoopEndNode}s.
+ */
+@NodeInfo
+public abstract class PhiNode extends FloatingNode implements Simplifiable {
 
-    @Input(InputType.Association) private MergeNode merge;
+    @Input(InputType.Association) protected MergeNode merge;
 
     protected PhiNode(Stamp stamp, MergeNode merge) {
         super(stamp);
@@ -129,39 +139,69 @@ public abstract class PhiNode extends FloatingNode {
         values().remove(index);
     }
 
+    @NodeInfo
+    static class MultipleValuesNode extends ValueNode {
+
+        public static MultipleValuesNode create() {
+            return USE_GENERATED_NODES ? new PhiNode_MultipleValuesNodeGen() : new MultipleValuesNode();
+        }
+
+        protected MultipleValuesNode() {
+            super(null);
+        }
+
+    }
+
+    public static final ValueNode MULTIPLE_VALUES = MultipleValuesNode.create();
+
+    /**
+     * If all inputs are the same value, this value is returned, otherwise {@link #MULTIPLE_VALUES}.
+     * Note that {@code null} is a valid return value, since {@link GuardPhiNode}s can have
+     * {@code null} inputs.
+     */
     public ValueNode singleValue() {
-        ValueNode differentValue = null;
-        for (ValueNode n : values()) {
-            assert n != null : "Must have input value!";
-            if (n != this) {
-                if (differentValue == null) {
-                    differentValue = n;
-                } else if (differentValue != n) {
-                    return null;
+        Iterator<ValueNode> iterator = values().iterator();
+        ValueNode singleValue = iterator.next();
+        while (iterator.hasNext()) {
+            ValueNode value = iterator.next();
+            if (value != this) {
+                if (value != singleValue) {
+                    return MULTIPLE_VALUES;
                 }
             }
         }
-        return differentValue;
+        return singleValue;
     }
 
+    /**
+     * If all inputs (but the first one) are the same value, this value is returned, otherwise
+     * {@link #MULTIPLE_VALUES}. Note that {@code null} is a valid return value, since
+     * {@link GuardPhiNode}s can have {@code null} inputs.
+     */
     public ValueNode singleBackValue() {
         assert merge() instanceof LoopBeginNode;
-        ValueNode differentValue = null;
-        for (ValueNode n : values().subList(merge().forwardEndCount(), values().size())) {
-            if (differentValue == null) {
-                differentValue = n;
-            } else if (differentValue != n) {
-                return null;
+        Iterator<ValueNode> iterator = values().iterator();
+        iterator.next();
+        ValueNode singleValue = iterator.next();
+        while (iterator.hasNext()) {
+            if (iterator.next() != singleValue) {
+                return MULTIPLE_VALUES;
             }
         }
-        return differentValue;
+        return singleValue;
     }
 
     @Override
     public void simplify(SimplifierTool tool) {
-        ValueNode singleValue = singleValue();
+        ValueNode singleValue;
 
-        if (singleValue != null) {
+        if (isLoopPhi() && singleBackValue() == this) {
+            singleValue = firstValue();
+        } else {
+            singleValue = singleValue();
+        }
+
+        if (singleValue != MULTIPLE_VALUES) {
             for (Node node : usages().snapshot()) {
                 if (node instanceof ProxyNode && ((ProxyNode) node).proxyPoint() instanceof LoopExitNode && ((LoopExitNode) ((ProxyNode) node).proxyPoint()).loopBegin() == merge) {
                     tool.addToWorkList(node.usages());

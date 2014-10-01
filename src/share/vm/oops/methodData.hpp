@@ -1910,7 +1910,7 @@ public:
   // Whole-method sticky bits and flags
   enum {
 #ifdef GRAAL
-    _trap_hist_limit    = 18,   // decoupled from Deoptimization::Reason_LIMIT
+    _trap_hist_limit    = 19,   // decoupled from Deoptimization::Reason_LIMIT
 #else
     _trap_hist_limit    = 17,   // decoupled from Deoptimization::Reason_LIMIT
 #endif

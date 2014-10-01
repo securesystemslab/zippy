@@ -23,10 +23,12 @@
 package com.oracle.truffle.sl.builtins;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.frame.FrameInstance.FrameAccess;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.source.*;
 
 /**
  * This builtin sets the variable named "hello" in the caller frame to the string "world".
@@ -34,9 +36,14 @@ import com.oracle.truffle.api.nodes.*;
 @NodeInfo(shortName = "helloEqualsWorld")
 public abstract class SLHelloEqualsWorldBuiltin extends SLBuiltinNode {
 
+    public SLHelloEqualsWorldBuiltin() {
+        super(new NullSourceSection("SL builtin", "helloEqualsWorld"));
+    }
+
     @Specialization
+    @SlowPath
     public String change() {
-        FrameInstance frameInstance = Truffle.getRuntime().getStackTrace().iterator().next();
+        FrameInstance frameInstance = Truffle.getRuntime().getCallerFrame();
         Frame frame = frameInstance.getFrame(FrameAccess.READ_WRITE, false);
         FrameSlot slot = frame.getFrameDescriptor().findOrAddFrameSlot("hello");
         frame.setObject(slot, "world");

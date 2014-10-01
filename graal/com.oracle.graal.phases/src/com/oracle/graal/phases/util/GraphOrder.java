@@ -160,8 +160,8 @@ public final class GraphOrder {
                     FrameState pendingStateAfter = null;
                     for (final ScheduledNode node : list) {
                         FrameState stateAfter = node instanceof StateSplit ? ((StateSplit) node).stateAfter() : null;
-                        if (node instanceof InfopointNode) {
-                            stateAfter = ((InfopointNode) node).getState();
+                        if (node instanceof FullInfopointNode) {
+                            stateAfter = ((FullInfopointNode) node).getState();
                         }
 
                         if (pendingStateAfter != null && node instanceof FixedNode) {
@@ -188,7 +188,7 @@ public final class GraphOrder {
                                 }
                             }
                         } else if (node instanceof LoopExitNode) {
-                            if (!graph.isAfterFloatingReadPhase()) {
+                            if (graph.hasValueProxies()) {
                                 // loop contents are only accessible via proxies at the exit
                                 currentState.clearAll();
                                 currentState.markAll(loopEntryStates.get(((LoopExitNode) node).loopBegin()));

@@ -27,6 +27,7 @@ import java.util.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.StructuredGraph.GuardsStage;
 import com.oracle.graal.nodes.calc.*;
@@ -129,9 +130,13 @@ public class UseTrappingNullChecksPhase extends BasePhase<LowTierContext> {
 
     private static void checkPredecessor(AbstractDeoptimizeNode deopt, Node predecessor, DeoptimizationReason deoptimizationReason) {
         Node current = predecessor;
-        Node branch = null;
+        BeginNode branch = null;
         while (current instanceof BeginNode) {
-            branch = current;
+            branch = (BeginNode) current;
+            if (branch.anchored().isNotEmpty()) {
+                // some input of the deopt framestate is anchored to this branch
+                return;
+            }
             current = current.predecessor();
         }
         if (current instanceof IfNode) {
@@ -157,7 +162,7 @@ public class UseTrappingNullChecksPhase extends BasePhase<LowTierContext> {
         IsNullNode isNullNode = (IsNullNode) condition;
         BeginNode nonTrappingContinuation = ifNode.falseSuccessor();
         BeginNode trappingContinuation = ifNode.trueSuccessor();
-        NullCheckNode trappingNullCheck = deopt.graph().add(new NullCheckNode(isNullNode.getValue()));
+        NullCheckNode trappingNullCheck = deopt.graph().add(NullCheckNode.create(isNullNode.getValue()));
         trappingNullCheck.setStateBefore(deopt.stateBefore());
         deopt.graph().replaceSplit(ifNode, trappingNullCheck, nonTrappingContinuation);
 
@@ -167,10 +172,14 @@ public class UseTrappingNullChecksPhase extends BasePhase<LowTierContext> {
          * then remove the Begin from the graph.
          */
         nonTrappingContinuation.replaceAtUsages(InputType.Guard, trappingNullCheck);
-        FixedNode next = nonTrappingContinuation.next();
-        nonTrappingContinuation.clearSuccessors();
-        trappingNullCheck.setNext(next);
-        nonTrappingContinuation.safeDelete();
+        if (nonTrappingContinuation.getNodeClass().is(BeginNode.class)) {
+            FixedNode next = nonTrappingContinuation.next();
+            nonTrappingContinuation.clearSuccessors();
+            trappingNullCheck.setNext(next);
+            nonTrappingContinuation.safeDelete();
+        } else {
+            trappingNullCheck.setNext(nonTrappingContinuation);
+        }
 
         GraphUtil.killCFG(trappingContinuation);
         if (isNullNode.usages().isEmpty()) {

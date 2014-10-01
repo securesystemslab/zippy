@@ -24,6 +24,7 @@ package com.oracle.graal.nodes.util;
 
 import java.util.*;
 
+import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
@@ -32,6 +33,7 @@ import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
+import com.oracle.graal.nodes.virtual.*;
 
 public class GraphUtil {
 
@@ -39,7 +41,7 @@ public class GraphUtil {
 
         @Override
         public final boolean apply(Node n) {
-            return n instanceof FloatingNode || n instanceof VirtualState || n instanceof CallTargetNode;
+            return n instanceof FloatingNode || n instanceof VirtualState || n instanceof CallTargetNode || n instanceof VirtualObjectNode;
         }
     };
 
@@ -133,17 +135,13 @@ public class GraphUtil {
     }
 
     public static void killWithUnusedFloatingInputs(Node node) {
-        if (node.recordsUsages()) {
-            List<Node> floatingInputs = node.inputs().filter(isFloatingNode()).snapshot();
-            node.safeDelete();
+        List<Node> floatingInputs = node.inputs().filter(isFloatingNode()).snapshot();
+        node.safeDelete();
 
-            for (Node in : floatingInputs) {
-                if (in.isAlive() && (!in.recordsUsages() || in.usages().isEmpty())) {
-                    killWithUnusedFloatingInputs(in);
-                }
+        for (Node in : floatingInputs) {
+            if (in.isAlive() && in.usages().isEmpty()) {
+                killWithUnusedFloatingInputs(in);
             }
-        } else {
-            assert node.inputs().isEmpty();
         }
     }
 
@@ -155,10 +153,15 @@ public class GraphUtil {
                 killWithUnusedFloatingInputs(stateAfter);
             }
         }
+        unlinkFixedNode(fixed);
+        killWithUnusedFloatingInputs(fixed);
+    }
+
+    public static void unlinkFixedNode(FixedWithNextNode fixed) {
+        assert fixed.next() != null && fixed.predecessor() != null && fixed.isAlive();
         FixedNode next = fixed.next();
         fixed.setNext(null);
         fixed.replaceAtPredecessor(next);
-        killWithUnusedFloatingInputs(fixed);
     }
 
     public static void checkRedundantPhi(PhiNode phiNode) {
@@ -167,7 +170,7 @@ public class GraphUtil {
         }
 
         ValueNode singleValue = phiNode.singleValue();
-        if (singleValue != null) {
+        if (singleValue != PhiNode.MULTIPLE_VALUES) {
             Collection<PhiNode> phiUsages = phiNode.usages().filter(PhiNode.class).snapshot();
             Collection<ProxyNode> proxyUsages = phiNode.usages().filter(ProxyNode.class).snapshot();
             phiNode.graph().replaceFloating(phiNode, singleValue);
@@ -336,6 +339,9 @@ public class GraphUtil {
                 v = ((ValueProxy) v).getOriginalNode();
             } else if (v instanceof PhiNode) {
                 v = ((PhiNode) v).singleValue();
+                if (v == PhiNode.MULTIPLE_VALUES) {
+                    v = null;
+                }
             } else {
                 break;
             }
@@ -348,7 +354,7 @@ public class GraphUtil {
     }
 
     public static boolean tryKillUnused(Node node) {
-        if (node.isAlive() && isFloatingNode().apply(node) && node.recordsUsages() && node.usages().isEmpty()) {
+        if (node.isAlive() && isFloatingNode().apply(node) && node.usages().isEmpty()) {
             killWithUnusedFloatingInputs(node);
             return true;
         }
@@ -439,5 +445,54 @@ public class GraphUtil {
                 };
             }
         };
+    }
+
+    private static final class DefaultSimplifierTool implements SimplifierTool {
+        private final Assumptions assumptions;
+        private final MetaAccessProvider metaAccess;
+        private final ConstantReflectionProvider constantReflection;
+        private final boolean canonicalizeReads;
+
+        public DefaultSimplifierTool(Assumptions assumptions, MetaAccessProvider metaAccess, ConstantReflectionProvider constantReflection, boolean canonicalizeReads) {
+            this.assumptions = assumptions;
+            this.metaAccess = metaAccess;
+            this.constantReflection = constantReflection;
+            this.canonicalizeReads = canonicalizeReads;
+        }
+
+        public Assumptions assumptions() {
+            return assumptions;
+        }
+
+        public MetaAccessProvider getMetaAccess() {
+            return metaAccess;
+        }
+
+        public ConstantReflectionProvider getConstantReflection() {
+            return constantReflection;
+        }
+
+        public boolean canonicalizeReads() {
+            return canonicalizeReads;
+        }
+
+        public void deleteBranch(Node branch) {
+            branch.predecessor().replaceFirstSuccessor(branch, null);
+            GraphUtil.killCFG(branch, this);
+        }
+
+        public void removeIfUnused(Node node) {
+            GraphUtil.tryKillUnused(node);
+        }
+
+        public void addToWorkList(Node node) {
+        }
+
+        public void addToWorkList(Iterable<? extends Node> nodes) {
+        }
+    }
+
+    public static SimplifierTool getDefaultSimplifier(Assumptions assumptions, MetaAccessProvider metaAccess, ConstantReflectionProvider constantReflection, boolean canonicalizeReads) {
+        return new DefaultSimplifierTool(assumptions, metaAccess, constantReflection, canonicalizeReads);
     }
 }

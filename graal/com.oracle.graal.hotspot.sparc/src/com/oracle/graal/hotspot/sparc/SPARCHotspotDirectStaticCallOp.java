@@ -28,7 +28,7 @@ import com.oracle.graal.hotspot.meta.HotSpotCodeCacheProvider.MarkId;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
 import com.oracle.graal.lir.sparc.SPARCCall.DirectCallOp;
-import com.oracle.graal.nodes.java.MethodCallTargetNode.InvokeKind;
+import com.oracle.graal.nodes.CallTargetNode.InvokeKind;
 
 /**
  * A direct call that complies with the conventions for such calls in HotSpot. It doesn't use an
@@ -46,8 +46,7 @@ final class SPARCHotspotDirectStaticCallOp extends DirectCallOp {
     }
 
     @Override
-    public void emitCode(CompilationResultBuilder crb, SPARCMacroAssembler masm) {
+    public void emitCallPrefixCode(CompilationResultBuilder crb, SPARCMacroAssembler masm) {
         MarkId.recordMark(crb, invokeKind == InvokeKind.Static ? MarkId.INVOKESTATIC : MarkId.INVOKESPECIAL);
-        super.emitCode(crb, masm);
     }
 }

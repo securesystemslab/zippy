@@ -24,11 +24,13 @@ package com.oracle.graal.nodes;
 
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.nodeinfo.*;
 
 /**
  * The {@code ControlSplitNode} is a base class for all instructions that split the control flow
  * (ie. have more than one successor).
  */
+@NodeInfo
 public abstract class ControlSplitNode extends FixedNode implements IterableNodeType {
 
     public ControlSplitNode(Stamp stamp) {
@@ -36,6 +38,4 @@ public abstract class ControlSplitNode extends FixedNode implements IterableNode
     }
 
     public abstract double probability(BeginNode successor);
-
-    public abstract void setProbability(BeginNode successor, double value);
 }

@@ -188,9 +188,9 @@ public abstract class PartialEscapeClosure<BlockT extends PartialEscapeBlockStat
                             }
                         }
                     }
-                    v = new VirtualObjectState(obj.virtual, fieldState);
+                    v = VirtualObjectState.create(obj.virtual, fieldState);
                 } else {
-                    v = new MaterializedObjectState(obj.virtual, obj.getMaterializedValue());
+                    v = MaterializedObjectState.create(obj.virtual, obj.getMaterializedValue());
                 }
                 effects.addVirtualMapping(frameState, v);
             }
@@ -229,33 +229,35 @@ public abstract class PartialEscapeClosure<BlockT extends PartialEscapeBlockStat
                 proxies.put(obj.virtual, proxy);
             }
         }
-        for (ObjectState obj : exitState.getStates()) {
-            ObjectState initialObj = initialState.getObjectStateOptional(obj.virtual);
-            if (obj.isVirtual()) {
-                for (int i = 0; i < obj.getEntries().length; i++) {
-                    ValueNode value = obj.getEntry(i);
-                    if (!(value instanceof VirtualObjectNode || value.isConstant())) {
-                        if (exitNode.loopBegin().isPhiAtMerge(value) || initialObj == null || !initialObj.isVirtual() || initialObj.getEntry(i) != value) {
-                            ProxyNode proxy = new ValueProxyNode(value, exitNode);
-                            obj.setEntry(i, proxy);
-                            effects.addFloatingNode(proxy, "virtualProxy");
+        if (exitNode.graph().hasValueProxies()) {
+            for (ObjectState obj : exitState.getStates()) {
+                ObjectState initialObj = initialState.getObjectStateOptional(obj.virtual);
+                if (obj.isVirtual()) {
+                    for (int i = 0; i < obj.getEntries().length; i++) {
+                        ValueNode value = obj.getEntry(i);
+                        if (!(value instanceof VirtualObjectNode || value.isConstant())) {
+                            if (exitNode.loopBegin().isPhiAtMerge(value) || initialObj == null || !initialObj.isVirtual() || initialObj.getEntry(i) != value) {
+                                ProxyNode proxy = ValueProxyNode.create(value, exitNode);
+                                obj.setEntry(i, proxy);
+                                effects.addFloatingNode(proxy, "virtualProxy");
+                            }
                         }
                     }
-                }
-            } else {
-                if (initialObj == null || initialObj.isVirtual()) {
-                    ProxyNode proxy = proxies.get(obj.virtual);
-                    if (proxy == null) {
-                        proxy = new ValueProxyNode(obj.getMaterializedValue(), exitNode);
-                        effects.addFloatingNode(proxy, "proxy");
-                    } else {
-                        effects.replaceFirstInput(proxy, proxy.value(), obj.getMaterializedValue());
-                        // nothing to do - will be handled in processNode
-                    }
-                    obj.updateMaterializedValue(proxy);
                 } else {
-                    if (initialObj.getMaterializedValue() == obj.getMaterializedValue()) {
-                        Debug.log("materialized value changes within loop: %s vs. %s at %s", initialObj.getMaterializedValue(), obj.getMaterializedValue(), exitNode);
+                    if (initialObj == null || initialObj.isVirtual()) {
+                        ProxyNode proxy = proxies.get(obj.virtual);
+                        if (proxy == null) {
+                            proxy = ValueProxyNode.create(obj.getMaterializedValue(), exitNode);
+                            effects.addFloatingNode(proxy, "proxy");
+                        } else {
+                            effects.replaceFirstInput(proxy, proxy.value(), obj.getMaterializedValue());
+                            // nothing to do - will be handled in processNode
+                        }
+                        obj.updateMaterializedValue(proxy);
+                    } else {
+                        if (initialObj.getMaterializedValue() == obj.getMaterializedValue()) {
+                            Debug.log("materialized value changes within loop: %s vs. %s at %s", initialObj.getMaterializedValue(), obj.getMaterializedValue(), exitNode);
+                        }
                     }
                 }
             }
@@ -280,7 +282,7 @@ public abstract class PartialEscapeClosure<BlockT extends PartialEscapeBlockStat
         protected <T> PhiNode getCachedPhi(T virtual, Stamp stamp) {
             ValuePhiNode result = materializedPhis.get(virtual);
             if (result == null) {
-                result = new ValuePhiNode(stamp, merge);
+                result = ValuePhiNode.create(stamp, merge);
                 materializedPhis.put(virtual, result);
             }
             return result;
@@ -454,8 +456,11 @@ public abstract class PartialEscapeClosure<BlockT extends PartialEscapeBlockStat
                     for (int i = 1; i < objStates.length; i++) {
                         ValueNode[] fields = objStates[i].getEntries();
                         if (phis[valueIndex] == null && values[valueIndex] != fields[valueIndex]) {
-                            phis[valueIndex] = new ValuePhiNode(values[valueIndex].stamp().unrestricted(), merge);
+                            phis[valueIndex] = ValuePhiNode.create(values[valueIndex].stamp().unrestricted(), merge);
                         }
+                    }
+                    if (phis[valueIndex] != null && !phis[valueIndex].stamp().isCompatible(values[valueIndex].stamp())) {
+                        phis[valueIndex] = ValuePhiNode.create(values[valueIndex].stamp().unrestricted(), merge);
                     }
                     if (twoSlotKinds != null && twoSlotKinds[valueIndex] != null) {
                         // skip an entry after a long/double value that occupies two int slots

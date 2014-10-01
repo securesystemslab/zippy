@@ -78,6 +78,7 @@ public class StructuredGraph extends Graph {
     private final int entryBCI;
     private GuardsStage guardsStage = GuardsStage.FLOATING_GUARDS;
     private boolean isAfterFloatingReadPhase = false;
+    private boolean hasValueProxies = true;
 
     /**
      * Creates a new Graph containing a single {@link BeginNode} as the {@link #start() start} node.
@@ -103,7 +104,7 @@ public class StructuredGraph extends Graph {
 
     private StructuredGraph(String name, ResolvedJavaMethod method, long graphId, int entryBCI) {
         super(name);
-        this.setStart(add(new StartNode()));
+        this.setStart(add(StartNode.create()));
         this.method = method;
         this.graphId = graphId;
         this.entryBCI = entryBCI;
@@ -258,9 +259,7 @@ public class StructuredGraph extends Graph {
             ((BeginNode) node).prepareDelete();
         }
         assert node.usages().isEmpty() : node + " " + node.usages();
-        FixedNode next = node.next();
-        node.setNext(null);
-        node.replaceAtPredecessor(next);
+        GraphUtil.unlinkFixedNode(node);
         node.safeDelete();
     }
 
@@ -287,9 +286,7 @@ public class StructuredGraph extends Graph {
 
     public void replaceFixedWithFloating(FixedWithNextNode node, FloatingNode replacement) {
         assert node != null && replacement != null && node.isAlive() && replacement.isAlive() : "cannot replace " + node + " with " + replacement;
-        FixedNode next = node.next();
-        node.setNext(null);
-        node.replaceAtPredecessor(next);
+        GraphUtil.unlinkFixedNode(node);
         node.replaceAtUsages(replacement);
         node.safeDelete();
     }
@@ -377,7 +374,7 @@ public class StructuredGraph extends Graph {
         if (begin.forwardEndCount() == 1) { // bypass merge and remove
             reduceTrivialMerge(begin);
         } else { // convert to merge
-            MergeNode merge = this.add(new MergeNode());
+            MergeNode merge = this.add(MergeNode.create());
             this.replaceFixedWithFixed(begin, merge);
         }
     }
@@ -428,5 +425,14 @@ public class StructuredGraph extends Graph {
     public void setAfterFloatingReadPhase(boolean state) {
         assert state : "cannot 'unapply' floating read phase on graph";
         isAfterFloatingReadPhase = state;
+    }
+
+    public boolean hasValueProxies() {
+        return hasValueProxies;
+    }
+
+    public void setHasValueProxies(boolean state) {
+        assert !state : "cannot 'unapply' value proxy removal on graph";
+        hasValueProxies = state;
     }
 }

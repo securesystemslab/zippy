@@ -86,8 +86,8 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, Baseli
     @Override
     protected void build() {
         if (PrintProfilingInformation.getValue()) {
-            TTY.println("Profiling info for " + MetaUtil.format("%H.%n(%p)", method));
-            TTY.println(MetaUtil.indent(MetaUtil.profileToString(profilingInfo, method, CodeUtil.NEW_LINE), "  "));
+            TTY.println("Profiling info for " + method.format("%H.%n(%p)"));
+            TTY.println(MetaUtil.indent(profilingInfo.toString(method, CodeUtil.NEW_LINE), "  "));
         }
 
         try (Indent indent = Debug.logAndIndent("build graph for %s", method)) {
@@ -95,7 +95,7 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, Baseli
             BciBlockMapping blockMap;
             try (Scope ds = Debug.scope("BciBlockMapping")) {
                 // compute the block map, setup exception handlers and get the entrypoint(s)
-                blockMap = BciBlockMapping.create(method);
+                blockMap = BciBlockMapping.create(method, graphBuilderConfig.doLivenessAnalysis());
             } catch (Throwable e) {
                 throw Debug.handle(e);
             }
@@ -158,7 +158,7 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, Baseli
                 try (Scope s = Debug.scope("Allocator")) {
 
                     if (backend.shouldAllocateRegisters()) {
-                        new LinearScan(target, lir, frameMap).allocate();
+                        LinearScan.allocate(target, lir, frameMap);
                     }
                 } catch (Throwable e) {
                     throw Debug.handle(e);
@@ -400,20 +400,7 @@ public class BaselineBytecodeParser extends AbstractBytecodeParser<Value, Baseli
             return;
         }
 
-        double probability = profilingInfo.getBranchTakenProbability(bci());
-        if (probability < 0) {
-            assert probability == -1 : "invalid probability";
-            Debug.log("missing probability in %s at bci %d", method, bci());
-            probability = 0.5;
-        }
-
-        if (!optimisticOpts.removeNeverExecutedCode()) {
-            if (probability == 0) {
-                probability = 0.0000001;
-            } else if (probability == 1) {
-                probability = 0.999999;
-            }
-        }
+        double probability = branchProbability();
 
         LabelRef trueDestination = getSuccessor(0);
         LabelRef falseDestination = getSuccessor(1);

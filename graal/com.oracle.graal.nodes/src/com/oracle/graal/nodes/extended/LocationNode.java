@@ -24,9 +24,9 @@ package com.oracle.graal.nodes.extended;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.Node.ValueNumberable;
 import com.oracle.graal.lir.gen.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
 
@@ -64,4 +64,9 @@ public abstract class LocationNode extends FloatingNode implements LIRLowerable,
     }
 
     public abstract Value generateAddress(NodeMappableLIRBuilder builder, LIRGeneratorTool gen, Value base);
+
+    /**
+     * @return the range of the displacement as a 64-bit integer stamp
+     */
+    public abstract IntegerStamp getDisplacementStamp();
 }

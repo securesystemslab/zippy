@@ -25,6 +25,7 @@ package com.oracle.graal.hotspot.sourcegen;
 import java.io.*;
 import java.lang.reflect.*;
 import java.util.*;
+import java.util.stream.*;
 import java.util.zip.*;
 
 import com.oracle.graal.api.runtime.*;
@@ -37,25 +38,42 @@ import com.oracle.graal.options.*;
  */
 public class GenGraalRuntimeInlineHpp {
 
-    private static final ZipFile graalJar;
+    public static class GraalJars implements Iterable<ZipEntry> {
+        private final List<ZipFile> jars = new ArrayList<>(2);
 
-    static {
-        String path = null;
-        String classPath = System.getProperty("java.class.path");
-        for (String e : classPath.split(File.pathSeparator)) {
-            if (e.endsWith("graal.jar")) {
-                path = e;
-                break;
+        public GraalJars() {
+            String classPath = System.getProperty("java.class.path");
+            for (String e : classPath.split(File.pathSeparator)) {
+                if (e.endsWith(File.separatorChar + "graal.jar") || e.endsWith(File.separatorChar + "graal-truffle.jar")) {
+                    try {
+                        jars.add(new ZipFile(e));
+                    } catch (IOException ioe) {
+                        throw new InternalError(ioe);
+                    }
+                }
+            }
+            if (jars.size() != 2) {
+                throw new InternalError("Could not find graal.jar or graal-truffle.jar on class path: " + classPath);
             }
         }
-        ZipFile zipFile = null;
-        try {
-            zipFile = new ZipFile(Objects.requireNonNull(path, "Could not find graal.jar on class path: " + classPath));
-        } catch (IOException e) {
-            throw new InternalError(e);
+
+        public Iterator<ZipEntry> iterator() {
+            Stream<ZipEntry> entries = jars.stream().flatMap(ZipFile::stream);
+            return entries.iterator();
         }
-        graalJar = zipFile;
+
+        public InputStream getInputStream(String classFilePath) throws IOException {
+            for (ZipFile jar : jars) {
+                ZipEntry entry = jar.getEntry(classFilePath);
+                if (entry != null) {
+                    return jar.getInputStream(entry);
+                }
+            }
+            return null;
+        }
     }
+
+    private static final GraalJars graalJars = new GraalJars();
 
     public static void main(String[] args) {
         PrintStream out = System.out;
@@ -73,8 +91,7 @@ public class GenGraalRuntimeInlineHpp {
      */
     private static void genGetServiceImpls(PrintStream out) throws Exception {
         final List<Class<? extends Service>> services = new ArrayList<>();
-        for (final Enumeration<? extends ZipEntry> e = graalJar.entries(); e.hasMoreElements();) {
-            final ZipEntry zipEntry = e.nextElement();
+        for (ZipEntry zipEntry : graalJars) {
             String name = zipEntry.getName();
             if (name.startsWith("META-INF/services/")) {
                 String serviceName = name.substring("META-INF/services/".length());
@@ -129,7 +146,8 @@ public class GenGraalRuntimeInlineHpp {
     }
 
     /**
-     * Generates code for {@code GraalRuntime::set_option()}.
+     * Generates code for {@code GraalRuntime::set_option()} and
+     * {@code GraalRuntime::set_option_bool()}.
      */
     private static void genSetOption(PrintStream out) throws Exception {
         SortedMap<String, OptionDescriptor> options = getOptions();
@@ -140,21 +158,20 @@ public class GenGraalRuntimeInlineHpp {
         }
         lengths.add("PrintFlags".length());
 
-        out.println("bool GraalRuntime::set_option(KlassHandle hotSpotOptionsClass, char* name, int name_len, const char* value, TRAPS) {");
+        out.println("bool GraalRuntime::set_option_bool(KlassHandle hotSpotOptionsClass, char* name, size_t name_len, char value, TRAPS) {");
         out.println("  bool check_only = hotSpotOptionsClass.is_null();");
-        out.println("  if (value != NULL && (value[0] == '+' || value[0] == '-')) {");
-        out.println("    // boolean options");
         genMatchers(out, lengths, options, true);
-        out.println("  } else {");
-        out.println("    // non-boolean options");
+        out.println("  return false;");
+        out.println("}");
+        out.println("bool GraalRuntime::set_option(KlassHandle hotSpotOptionsClass, char* name, size_t name_len, const char* value, TRAPS) {");
+        out.println("  bool check_only = hotSpotOptionsClass.is_null();");
         genMatchers(out, lengths, options, false);
-        out.println("  }");
         out.println("  return false;");
         out.println("}");
     }
 
     protected static void genMatchers(PrintStream out, Set<Integer> lengths, SortedMap<String, OptionDescriptor> options, boolean isBoolean) throws Exception {
-        out.println("    switch (name_len) {");
+        out.println("  switch (name_len) {");
         for (int len : lengths) {
             boolean printedCase = false;
 
@@ -162,56 +179,56 @@ public class GenGraalRuntimeInlineHpp {
             // null terminated for <name>=<value> style options.
             if (len == "PrintFlags".length() && isBoolean) {
                 printedCase = true;
-                out.println("    case " + len + ":");
-                out.printf("      if (strncmp(name, \"PrintFlags\", %d) == 0) {%n", len);
-                out.println("        if (value[0] == '+') {");
-                out.println("          if (check_only) {");
-                out.println("            TempNewSymbol name = SymbolTable::new_symbol(\"Lcom/oracle/graal/hotspot/HotSpotOptions;\", THREAD);");
-                out.println("            hotSpotOptionsClass = SystemDictionary::resolve_or_fail(name, true, CHECK_(true));");
-                out.println("          }");
-                out.println("          set_option_helper(hotSpotOptionsClass, name, name_len, Handle(), '?', Handle(), 0L);");
+                out.println("  case " + len + ":");
+                out.printf("    if (strncmp(name, \"PrintFlags\", %d) == 0) {%n", len);
+                out.println("      if (value == '+') {");
+                out.println("        if (check_only) {");
+                out.println("          TempNewSymbol name = SymbolTable::new_symbol(\"Lcom/oracle/graal/hotspot/HotSpotOptions;\", CHECK_(true));");
+                out.println("          hotSpotOptionsClass = SystemDictionary::resolve_or_fail(name, true, CHECK_(true));");
                 out.println("        }");
-                out.println("        return true;");
+                out.println("        set_option_helper(hotSpotOptionsClass, name, name_len, Handle(), '?', Handle(), 0L);");
                 out.println("      }");
+                out.println("      return true;");
+                out.println("    }");
             }
             for (Map.Entry<String, OptionDescriptor> e : options.entrySet()) {
                 OptionDescriptor desc = e.getValue();
                 if (e.getKey().length() == len && ((desc.getType() == Boolean.class) == isBoolean)) {
                     if (!printedCase) {
                         printedCase = true;
-                        out.println("    case " + len + ":");
+                        out.println("  case " + len + ":");
                     }
-                    out.printf("      if (strncmp(name, \"%s\", %d) == 0) {%n", e.getKey(), len);
+                    out.printf("    if (strncmp(name, \"%s\", %d) == 0) {%n", e.getKey(), len);
                     Class<?> declaringClass = desc.getDeclaringClass();
                     if (isBoolean) {
-                        out.printf("        Handle option = get_OptionValue(\"L%s;\", \"%s\", \"L%s;\", CHECK_(true));%n", toInternalName(declaringClass), desc.getFieldName(),
+                        out.printf("      Handle option = get_OptionValue(\"L%s;\", \"%s\", \"L%s;\", CHECK_(true));%n", toInternalName(declaringClass), desc.getFieldName(),
                                         toInternalName(getFieldType(desc)));
-                        out.println("        if (!check_only) {");
-                        out.println("          set_option_helper(hotSpotOptionsClass, name, name_len, option, value[0], Handle(), 0L);");
-                        out.println("        }");
+                        out.println("      if (!check_only) {");
+                        out.println("        set_option_helper(hotSpotOptionsClass, name, name_len, option, value, Handle(), 0L);");
+                        out.println("      }");
                     } else if (desc.getType() == String.class) {
-                        out.println("        check_required_value(name, name_len, value, CHECK_(true));");
-                        out.printf("        Handle option = get_OptionValue(\"L%s;\", \"%s\", \"L%s;\", CHECK_(true));%n", toInternalName(declaringClass), desc.getFieldName(),
+                        out.println("      check_required_value(name, name_len, value, CHECK_(true));");
+                        out.printf("      Handle option = get_OptionValue(\"L%s;\", \"%s\", \"L%s;\", CHECK_(true));%n", toInternalName(declaringClass), desc.getFieldName(),
                                         toInternalName(getFieldType(desc)));
-                        out.println("        if (!check_only) {");
-                        out.println("          Handle stringValue = java_lang_String::create_from_str(value, CHECK_(true));");
-                        out.println("          set_option_helper(hotSpotOptionsClass, name, name_len, option, 's', stringValue, 0L);");
-                        out.println("        }");
+                        out.println("      if (!check_only) {");
+                        out.println("        Handle stringValue = java_lang_String::create_from_str(value, CHECK_(true));");
+                        out.println("        set_option_helper(hotSpotOptionsClass, name, name_len, option, 's', stringValue, 0L);");
+                        out.println("      }");
                     } else {
                         char spec = getPrimitiveSpecChar(desc);
-                        out.println("        jlong primitiveValue = parse_primitive_option_value('" + spec + "', name, name_len, value, CHECK_(true));");
-                        out.println("        if (!check_only) {");
-                        out.printf("          Handle option = get_OptionValue(\"L%s;\", \"%s\", \"L%s;\", CHECK_(true));%n", toInternalName(declaringClass), desc.getFieldName(),
+                        out.println("      jlong primitiveValue = parse_primitive_option_value('" + spec + "', name, name_len, value, CHECK_(true));");
+                        out.println("      if (!check_only) {");
+                        out.printf("        Handle option = get_OptionValue(\"L%s;\", \"%s\", \"L%s;\", CHECK_(true));%n", toInternalName(declaringClass), desc.getFieldName(),
                                         toInternalName(getFieldType(desc)));
-                        out.println("          set_option_helper(hotSpotOptionsClass, name, name_len, option, '" + spec + "', Handle(), primitiveValue);");
-                        out.println("        }");
+                        out.println("        set_option_helper(hotSpotOptionsClass, name, name_len, option, '" + spec + "', Handle(), primitiveValue);");
+                        out.println("      }");
                     }
-                    out.println("        return true;");
-                    out.println("      }");
+                    out.println("      return true;");
+                    out.println("    }");
                 }
             }
         }
-        out.println("    }");
+        out.println("  }");
     }
 
     @SuppressWarnings("unchecked")
@@ -223,7 +240,7 @@ public class GenGraalRuntimeInlineHpp {
         Set<Class<?>> checked = new HashSet<>();
         for (final OptionDescriptor option : options.values()) {
             Class<?> cls = option.getDeclaringClass();
-            OptionsVerifier.checkClass(cls, option, checked, graalJar);
+            OptionsVerifier.checkClass(cls, option, checked, graalJars);
         }
         return options;
     }

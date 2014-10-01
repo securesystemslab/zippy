@@ -84,7 +84,7 @@ public final class HotSpotMethodData extends CompilerObject {
     /**
      * Returns the size of the extra data records. This method does the same calculation as
      * MethodData::extra_data_size().
-     * 
+     *
      * @return size of extra data records
      */
     private int extraDataSize() {
@@ -488,11 +488,24 @@ public final class HotSpotMethodData extends CompilerObject {
             long totalCount = 0;
             int entries = 0;
 
-            for (int i = 0; i < typeProfileWidth; i++) {
+            outer: for (int i = 0; i < typeProfileWidth; i++) {
                 long receiverKlass = data.readWord(position, getTypeOffset(i));
                 if (receiverKlass != 0) {
-                    types[entries] = HotSpotResolvedObjectType.fromMetaspaceKlass(receiverKlass);
+                    ResolvedJavaType klass = HotSpotResolvedObjectType.fromMetaspaceKlass(receiverKlass);
                     long count = data.readUnsignedInt(position, getTypeCountOffset(i));
+                    /*
+                     * Because of races in the profile collection machinery it's possible for a
+                     * class to appear multiple times so merge them to make the profile look
+                     * rational.
+                     */
+                    for (int j = 0; j < entries; j++) {
+                        if (types[j].equals(klass)) {
+                            totalCount += count;
+                            counts[j] += count;
+                            continue outer;
+                        }
+                    }
+                    types[entries] = klass;
                     totalCount += count;
                     counts[entries] = count;
                     entries++;
@@ -543,7 +556,7 @@ public final class HotSpotMethodData extends CompilerObject {
                             getTypesNotRecordedExecutionCount(data, pos), profile.entries));
             for (int i = 0; i < profile.entries; i++) {
                 long count = profile.counts[i];
-                sb.append(format("%n  %s (%d, %4.2f)", MetaUtil.toJavaName(profile.items[i]), count, (double) count / profile.totalCount));
+                sb.append(format("%n  %s (%d, %4.2f)", profile.items[i].toJavaName(), count, (double) count / profile.totalCount));
             }
             return sb;
         }
@@ -664,7 +677,7 @@ public final class HotSpotMethodData extends CompilerObject {
             super.appendTo(sb.append(format("exception_seen(%s) ", getExceptionSeen(data, pos))), data, pos).append(format("%nmethod_entries(%d)", profile.entries));
             for (int i = 0; i < profile.entries; i++) {
                 long count = profile.counts[i];
-                sb.append(format("%n  %s (%d, %4.2f)", MetaUtil.format("%H.%n(%p)", profile.items[i]), count, (double) count / profile.totalCount));
+                sb.append(format("%n  %s (%d, %4.2f)", profile.items[i].format("%H.%n(%p)"), count, (double) count / profile.totalCount));
             }
             return sb;
         }

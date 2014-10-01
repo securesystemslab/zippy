@@ -32,7 +32,7 @@ import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 
@@ -47,7 +47,11 @@ public class MembarNode extends FixedWithNextNode implements LIRLowerable, Memor
     /**
      * @param barriers a mask of the barrier constants defined in {@link MemoryBarriers}
      */
-    public MembarNode(int barriers) {
+    public static MembarNode create(int barriers) {
+        return USE_GENERATED_NODES ? new MembarNodeGen(barriers) : new MembarNode(barriers);
+    }
+
+    MembarNode(int barriers) {
         super(StampFactory.forVoid());
         this.barriers = barriers;
     }
@@ -60,14 +64,6 @@ public class MembarNode extends FixedWithNextNode implements LIRLowerable, Memor
     @Override
     public void generate(NodeLIRBuilderTool generator) {
         generator.getLIRGeneratorTool().emitMembar(barriers);
-    }
-
-    public MemoryCheckpoint asMemoryCheckpoint() {
-        return this;
-    }
-
-    public MemoryPhiNode asMemoryPhi() {
-        return null;
     }
 
     @SuppressWarnings("unused")

@@ -1,5 +1,3 @@
-package edu.uci.python.profiler;
-
 /*
  * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
@@ -24,6 +22,7 @@ package edu.uci.python.profiler;
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package edu.uci.python.profiler;
 
 import java.math.*;
 
@@ -69,7 +68,7 @@ public class PythonWrapperNode extends PNode implements Wrapper {
          * context.getProbe will either generate a probe for this source section, or return the
          * existing probe for this section. There can be only one probe for the same source section.
          */
-        this.probe = context.getProbe(child.getSourceSection());
+        this.probe = context.createProbe(child.getSourceSection());
     }
 
     @Override
@@ -872,13 +871,13 @@ public class PythonWrapperNode extends PNode implements Wrapper {
     }
 
     @SlowPath
-    public boolean isTaggedAs(PhylumTag tag) {
+    public boolean isTaggedAs(SyntaxTag tag) {
         return probe.isTaggedAs(tag);
     }
 
     @SlowPath
-    public Iterable<PhylumTag> getPhylumTags() {
-        return probe.getPhylumTags();
+    public Iterable<SyntaxTag> getSyntaxTags() {
+        return probe.getSyntaxTags();
     }
 
 }

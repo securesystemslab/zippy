@@ -1393,7 +1393,12 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
       trap_bci = 0;
       Thread::current()->set_pending_monitorenter(true);
     }
+
+    if (reason == Deoptimization::Reason_transfer_to_interpreter) {
+      thread->set_pending_transfer_to_interpreter(true);
+    }
 #endif
+
     Bytecodes::Code trap_bc     = trap_method->java_code_at(trap_bci);
 
     if (trap_scope->rethrow_exception()) {
@@ -1487,8 +1492,8 @@ JRT_ENTRY(void, Deoptimization::uncommon_trap_inner(JavaThread* thread, jint tra
         oop installedCode = nm->graal_installed_code();
         if (installedCode != NULL) {
           oop installedCodeName = NULL;
-          if (installedCode->is_a(HotSpotNmethod::klass())) {
-            installedCodeName = HotSpotNmethod::name(installedCode);
+          if (installedCode->is_a(InstalledCode::klass())) {
+            installedCodeName = InstalledCode::name(installedCode);
           }
           if (installedCodeName != NULL) {
             tty->print(" (Graal: installedCodeName=%s) ", java_lang_String::as_utf8_string(installedCodeName));
@@ -1996,7 +2001,10 @@ const char* Deoptimization::_trap_reason_name[Reason_LIMIT] = {
   "age" GRAAL_ONLY("_or_jsr_mismatch"),
   "predicate",
   "loop_limit_check",
-  GRAAL_ONLY("aliasing")
+#ifdef GRAAL
+  "aliasing",
+  "transfer_to_interpreter",
+#endif
 };
 const char* Deoptimization::_trap_action_name[Action_LIMIT] = {
   // Note:  Keep this in sync. with enum DeoptAction.

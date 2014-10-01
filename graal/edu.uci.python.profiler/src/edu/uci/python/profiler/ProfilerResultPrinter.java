@@ -1,5 +1,3 @@
-package edu.uci.python.profiler;
-
 /*
  * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
@@ -24,6 +22,7 @@ package edu.uci.python.profiler;
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package edu.uci.python.profiler;
 
 import java.io.*;
 import java.util.*;
@@ -41,6 +40,7 @@ import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
 import edu.uci.python.nodes.call.PythonCallNode.ConstructorCallNode;
 import edu.uci.python.nodes.call.PythonCallNode.UnboxedCallNode;
 import edu.uci.python.nodes.control.*;
+import edu.uci.python.nodes.control.LoopNode;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.runtime.*;
 

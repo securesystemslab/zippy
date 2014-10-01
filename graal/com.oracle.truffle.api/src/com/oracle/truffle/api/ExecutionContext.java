@@ -45,6 +45,9 @@ public abstract class ExecutionContext {
     protected ExecutionContext() {
     }
 
+    /**
+     * Sets up the {@link SourceCallback} for this execution context.
+     */
     public void initialize() {
         setSourceCallback(new SourceCallback() {
 
@@ -99,39 +102,21 @@ public abstract class ExecutionContext {
     }
 
     /**
-     * Return the (possibly newly created) {@link Probe} uniquely associated with a particular
-     * source code location. A newly created probe carries no tags.
+     * Return a newly created, untagged, {@link Probe} associated with a particular source section,
+     * with no requirement that the association be unique.
      *
-     * @return a probe uniquely associated with an extent of guest language source code.
+     * @return a probe associated with an extent of guest language source code.
      */
-    public final Probe getProbe(SourceSection sourceSection) {
-        return probeManager.getProbe(sourceSection);
-    }
-
-    /**
-     * Has a {@link Probe} been created that is uniquely associated with a particular source code
-     * location.
-     *
-     * @return a probe uniquely associated with an extent of guest language source code.
-     */
-    public final boolean hasProbe(SourceSection sourceSection) {
-        return probeManager.hasProbe(sourceSection);
+    public final Probe createProbe(SourceSection source) {
+        return probeManager.createProbe(source);
     }
 
     /**
      * Returns all existing probes with specific tag, or all probes if {@code tag = null}; empty
      * collection if no probes found.
      */
-    public final Collection<Probe> findProbesTaggedAs(PhylumTag tag) {
+    public final Collection<Probe> findProbesTaggedAs(SyntaxTag tag) {
         return probeManager.findProbesTaggedAs(tag);
-    }
-
-    /**
-     * Returns all existing probes with first character on a specified line; empty collection if no
-     * probes found.
-     */
-    public final Collection<Probe> findProbesByLine(LineLocation lineLocation) {
-        return probeManager.findProbesByLine(lineLocation);
     }
 
     /**
@@ -140,9 +125,9 @@ public abstract class ExecutionContext {
      *
      * @throws IllegalStateException if a trap is already set
      */
-    public final void setPhylumTrap(PhylumTrap trap) throws IllegalStateException {
+    public final void setTagTrap(SyntaxTagTrap trap) throws IllegalStateException {
         // TODO (mlvdv) consider allowing multiple traps (without inhibiting Truffle inlining)
-        probeManager.setPhylumTrap(trap);
+        probeManager.setTagTrap(trap);
     }
 
     /**
@@ -150,8 +135,8 @@ public abstract class ExecutionContext {
      *
      * @throws IllegalStateException if no trap is set.
      */
-    public final void clearPhylumTrap() {
-        probeManager.clearPhylumTrap();
+    public final void clearTagTrap() {
+        probeManager.clearTagTrap();
     }
 
     /**

@@ -643,7 +643,21 @@ public:
 
   // (thomaswue) When using graal, the address might be off by 5 (because this is the size of the call instruction.
   // (thomaswue) TODO: Replace this by a more general mechanism.
-  bool is_deopt_entry   (address pc) { return pc == deopt_handler_begin() GRAAL_ONLY( || pc == deopt_handler_begin() + 5); }
+  // (sanzinger) SPARC has another offset, looked for some variable existing in HotSpot which describes this offset, but i have not
+  // found anything.
+  bool is_deopt_entry   (address pc) {
+    return pc == deopt_handler_begin()
+#ifdef GRAAL
+      || pc == deopt_handler_begin() +
+#ifdef TARGET_ARCH_sparc
+  8
+#endif // sparc
+#ifdef TARGET_ARCH_x86
+  5
+#endif // x86
+#endif // GRAAL
+      ;
+  }
   bool is_deopt_mh_entry(address pc) { return pc == deopt_mh_handler_begin(); }
   // Accessor/mutator for the original pc of a frame before a frame was deopted.
   address get_original_pc(const frame* fr) { return *orig_pc_addr(fr); }

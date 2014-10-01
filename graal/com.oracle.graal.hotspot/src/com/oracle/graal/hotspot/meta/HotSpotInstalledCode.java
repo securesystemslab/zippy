@@ -49,6 +49,10 @@ public abstract class HotSpotInstalledCode extends InstalledCode {
      */
     @SuppressFBWarnings(value = "UWF_UNWRITTEN_FIELD", justification = "field is set by the native part") private int codeSize;
 
+    public HotSpotInstalledCode(String name) {
+        super(name);
+    }
+
     /**
      * @return the total size of this code blob
      */
@@ -76,6 +80,7 @@ public abstract class HotSpotInstalledCode extends InstalledCode {
         return codeStart;
     }
 
+    @Override
     public long getCodeSize() {
         return codeSize;
     }

@@ -24,8 +24,7 @@
  */
 package edu.uci.python.nodes.subscript;
 
-import com.oracle.truffle.api.dsl.Generic;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
@@ -103,7 +102,7 @@ public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
     }
 
     @SuppressWarnings("unused")
-    @Generic
+    @Fallback
     public Object doGeneric(Object primary, Object slice) {
         throw new RuntimeException("Unsupported primary Type " + primary.getClass().getSimpleName());
     }

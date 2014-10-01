@@ -26,8 +26,7 @@ package edu.uci.python.nodes.expression;
 
 import java.math.*;
 
-import com.oracle.truffle.api.dsl.Generic;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -143,7 +142,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         /**
          * This is a fix for comparisons involving a PyInteger.
          */
-        @Generic
+        @Fallback
         public boolean doGeneric(Object left, Object right) {
             return left.equals(right);
         }
@@ -393,7 +392,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
             return left == PNone.NONE;
         }
 
-        @Generic
+        @Fallback
         public boolean doGeneric(Object left, Object right) {
             return left.equals(right);
         }
@@ -429,7 +428,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
             return left != PNone.NONE;
         }
 
-        @Generic
+        @Fallback
         public boolean doGeneric(Object left, Object right) {
             return !left.equals(right);
         }

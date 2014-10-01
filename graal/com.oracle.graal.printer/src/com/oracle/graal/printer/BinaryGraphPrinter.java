@@ -33,8 +33,8 @@ import java.util.function.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.cfg.*;
+import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.graph.NodeClass.Position;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.phases.graph.*;
@@ -129,10 +129,13 @@ public class BinaryGraphPrinter implements GraphPrinter {
     private void writeGraph(Graph graph, SchedulePhase predefinedSchedule) throws IOException {
         SchedulePhase schedule = predefinedSchedule;
         if (schedule == null) {
-            try {
-                schedule = new SchedulePhase();
-                schedule.apply((StructuredGraph) graph);
-            } catch (Throwable t) {
+            // Also provide a schedule when an error occurs
+            if (PrintIdealGraphSchedule.getValue() || Debug.contextLookup(Throwable.class) != null) {
+                try {
+                    schedule = new SchedulePhase();
+                    schedule.apply((StructuredGraph) graph);
+                } catch (Throwable t) {
+                }
             }
         }
         ControlFlowGraph cfg = schedule == null ? null : schedule.getCFG();
@@ -287,7 +290,7 @@ public class BinaryGraphPrinter implements GraphPrinter {
         } else if (object instanceof JavaType) {
             JavaType type = (JavaType) object;
             writeByte(POOL_CLASS);
-            writeString(MetaUtil.toJavaName(type));
+            writeString(type.toJavaName());
             writeByte(KLASS);
         } else if (object instanceof NodeClass) {
             NodeClass nodeClass = (NodeClass) object;
@@ -297,14 +300,14 @@ public class BinaryGraphPrinter implements GraphPrinter {
             Collection<Position> directInputPositions = nodeClass.getFirstLevelInputPositions();
             writeShort((char) directInputPositions.size());
             for (Position pos : directInputPositions) {
-                writeByte(pos.getSubIndex() == NodeClass.NOT_ITERABLE ? 0 : 1);
+                writeByte(pos.getSubIndex() == Node.NOT_ITERABLE ? 0 : 1);
                 writePoolObject(nodeClass.getName(pos));
                 writePoolObject(nodeClass.getInputType(pos));
             }
             Collection<Position> directSuccessorPositions = nodeClass.getFirstLevelSuccessorPositions();
             writeShort((char) directSuccessorPositions.size());
             for (Position pos : directSuccessorPositions) {
-                writeByte(pos.getSubIndex() == NodeClass.NOT_ITERABLE ? 0 : 1);
+                writeByte(pos.getSubIndex() == Node.NOT_ITERABLE ? 0 : 1);
                 writePoolObject(nodeClass.getName(pos));
             }
         } else if (object instanceof ResolvedJavaMethod) {
@@ -410,7 +413,11 @@ public class BinaryGraphPrinter implements GraphPrinter {
             NodeClass nodeClass = node.getNodeClass();
             node.getDebugProperties(props);
             if (probabilities != null && node instanceof FixedNode) {
-                props.put("probability", probabilities.applyAsDouble((FixedNode) node));
+                try {
+                    props.put("probability", probabilities.applyAsDouble((FixedNode) node));
+                } catch (Throwable t) {
+                    props.put("probability", t);
+                }
             }
             writeInt(getNodeId(node));
             writePoolObject(nodeClass);
@@ -434,7 +441,7 @@ public class BinaryGraphPrinter implements GraphPrinter {
     private void writeEdges(Node node, Collection<Position> positions) throws IOException {
         NodeClass nodeClass = node.getNodeClass();
         for (Position pos : positions) {
-            if (pos.getSubIndex() == NodeClass.NOT_ITERABLE) {
+            if (pos.getSubIndex() == Node.NOT_ITERABLE) {
                 Node edge = nodeClass.get(node, pos);
                 writeNodeRef(edge);
             } else {

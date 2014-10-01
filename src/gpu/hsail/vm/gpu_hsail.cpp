@@ -66,24 +66,25 @@
 JNINativeMethod Hsail::HSAIL_methods[] = {
   {CC"initialize",       CC"()Z",                               FN_PTR(Hsail::initialize)},
   {CC"generateKernel",   CC"([B" STRING ")J",                   FN_PTR(Hsail::generate_kernel)},
-  {CC"executeKernel0",   CC"("HS_INSTALLED_CODE"I["OBJECT"["JLTHREAD"I[I)Z",  FN_PTR(Hsail::execute_kernel_void_1d)},
+  {CC"executeKernel0",   CC"("HS_INSTALLED_CODE"I["OBJECT"II[I)Z",  FN_PTR(Hsail::execute_kernel_void_1d)},
 };
 
 void* Hsail::_device_context = NULL;
 jint  Hsail::_notice_safepoints = false;
 
-Hsail::okra_create_context_func_t  Hsail::_okra_create_context;
+Hsail::okra_get_context_func_t     Hsail::_okra_get_context;
 Hsail::okra_create_kernel_func_t   Hsail::_okra_create_kernel;
-Hsail::okra_push_object_func_t     Hsail::_okra_push_object;
+Hsail::okra_push_pointer_func_t    Hsail::_okra_push_pointer;
 Hsail::okra_push_boolean_func_t    Hsail::_okra_push_boolean;
 Hsail::okra_push_byte_func_t       Hsail::_okra_push_byte;
 Hsail::okra_push_double_func_t     Hsail::_okra_push_double;
 Hsail::okra_push_float_func_t      Hsail::_okra_push_float;
 Hsail::okra_push_int_func_t        Hsail::_okra_push_int;
 Hsail::okra_push_long_func_t       Hsail::_okra_push_long;
-Hsail::okra_execute_with_range_func_t    Hsail::_okra_execute_with_range;
-Hsail::okra_clearargs_func_t       Hsail::_okra_clearargs;
-Hsail::okra_register_heap_func_t   Hsail::_okra_register_heap;
+Hsail::okra_execute_kernel_func_t  Hsail::_okra_execute_kernel;
+Hsail::okra_clear_args_func_t      Hsail::_okra_clear_args;
+Hsail::okra_dispose_kernel_func_t  Hsail::_okra_dispose_kernel;
+Hsail::okra_dispose_context_func_t Hsail::_okra_dispose_context;
 
 //static jint in_kernel = 0;
 
@@ -98,18 +99,8 @@ void Hsail::ignore_safepoints() {
   _notice_safepoints = false;
 }
 
-void Hsail::register_heap() {
-  // After the okra functions are set up and the heap is initialized, register the java heap with HSA
-  guarantee(Universe::heap() != NULL, "heap should be there by now.");
-  if (TraceGPUInteraction) {
-    tty->print_cr("[HSAIL] heap=" PTR_FORMAT, Universe::heap());
-    tty->print_cr("[HSAIL] base=0x%08x, capacity=%ld", Universe::heap()->base(), Universe::heap()->capacity());
-  }
-  _okra_register_heap(Universe::heap()->base(), Universe::heap()->capacity());
-}
-
 GPU_VMENTRY(jboolean, Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobject kernel_handle, jint dimX, jobject args,
-                                                      jobject donor_threads, jint allocBytesPerWorkitem, jobject oop_map_array))
+                                                      jint num_tlabs, jint allocBytesPerWorkitem, jobject oop_map_array))
 
   ResourceMark rm;
   jlong nmethodValue = InstalledCode::address(kernel_handle);
@@ -125,7 +116,7 @@ GPU_VMENTRY(jboolean, Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobje
     SharedRuntime::throw_and_post_jvmti_exception(JavaThread::current(), vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException(), NULL);
   }
 
-return execute_kernel_void_1d_internal((address) kernel, dimX, args, mh, nm, donor_threads, allocBytesPerWorkitem, oop_map_array, CHECK_0);
+return execute_kernel_void_1d_internal((address) kernel, dimX, args, mh, nm, num_tlabs, allocBytesPerWorkitem, oop_map_array, CHECK_0);
 GPU_END
 
 static void showRanges(jboolean* a, int len) {
@@ -146,17 +137,19 @@ static void showRanges(jboolean* a, int len) {
 }
 
 jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod* nm,
-                                                jobject donor_threads, int allocBytesPerWorkitem, jobject oop_map_array, TRAPS) {
+                                                jint num_tlabs, int allocBytesPerWorkitem, jobject oop_map_array, TRAPS) {
   ResourceMark rm(THREAD);
   objArrayOop argsArray = (objArrayOop) JNIHandles::resolve(args);
+  // Note this length does not include the iteration variable since it is replaced by the HSA workitemid
+  int argsArrayLength = argsArray->length();
   assert(THREAD->is_Java_thread(), "must be a JavaThread");
 
   // We avoid HSAILAllocationInfo logic if kernel does not allocate
-  // in which case the donor_thread array passed in will be null
-  HSAILAllocationInfo* allocInfo = (donor_threads == NULL ? NULL : new HSAILAllocationInfo(donor_threads, dimX, allocBytesPerWorkitem));
+  // in which case the num_tlabs passed in will be 0
+  HSAILAllocationInfo* allocInfo = (num_tlabs == 0 ?  NULL : new HSAILAllocationInfo(num_tlabs, dimX, allocBytesPerWorkitem));
   
   // Reset the kernel arguments
-  _okra_clearargs(kernel);
+  _okra_clear_args(kernel);
 
   JavaThread* thread = (JavaThread*)THREAD;
   HSAILDeoptimizationInfo* e;
@@ -194,13 +187,16 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
   }
 
   // Run the kernel
-  bool success = false;
+  jboolean success = false;
   {
     TraceTime t("execute kernel", TraceGPUInteraction);
+    graal_okra_range_t kernel_range = {0};
 
     //in_kernel = 1;
     // Run the kernel
-    success = _okra_execute_with_range(kernel, dimX);
+    kernel_range.dimension = 1;
+    kernel_range.global_size[0] = dimX;
+    success = _okra_execute_kernel(_device_context, kernel, &kernel_range);
     //in_kernel = 0;
   }
 
@@ -253,6 +249,7 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
             int myActionReason = Deoptimization::make_trap_request(Deoptimization::trap_request_reason(pdeopt->reason()), Deoptimization::Action_none);
             javaArgs.push_int(myActionReason);
             javaArgs.push_oop((oop) NULL);
+            javaArgs.push_int(mh->size_of_parameters());
             if (TraceGPUInteraction) {
               tty->print_cr("[HSAIL] Deoptimizing to host for workitem=%d (slot=%d) with deoptId=%d, frame=" INTPTR_FORMAT ", actionAndReason=%d", workitem, k, deoptId, hsailFrame, myActionReason);
               // show the $d registers or stack slots containing references
@@ -302,7 +299,8 @@ jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobjec
             KlassHandle methKlass = mh->method_holder();
             Thread* THREAD = Thread::current();
             JavaValue result(T_VOID);
-            JavaCallArguments javaArgs;
+            // Add the iteration variable to the HSA args length
+            JavaCallArguments javaArgs(argsArrayLength + 1);
             // re-resolve the args_handle here
             objArrayOop resolvedArgsArray = (objArrayOop) JNIHandles::resolve(args);
 
@@ -347,14 +345,15 @@ GPU_ENTRY(jlong, Hsail::generate_kernel, (JNIEnv* env, jclass, jbyteArray code_h
   env->GetByteArrayRegion(code_handle, 0, code_len, (jbyte*) code);
   env->GetStringUTFRegion(name_handle, 0, name_len, name);
 
-  register_heap();
-
   // The kernel entrypoint is always run for the time being  
   const char* entryPointName = "&run";
-
-  _device_context = _okra_create_context();
-
-  return (jlong) _okra_create_kernel(_device_context, code, entryPointName);
+  jlong okra_kernel;
+  {
+    TraceTime t("generate kernel ", TraceGPUInteraction);
+    jint okra_status = _okra_create_kernel(_device_context, code, entryPointName, (void**)&okra_kernel);
+    guarantee(okra_status==0, "_okra_create_kernel failed");
+  }
+  return (jlong) okra_kernel;
 GPU_END
 
 #if defined(LINUX)
@@ -410,25 +409,30 @@ GPU_ENTRY(jboolean, Hsail::initialize, (JNIEnv* env, jclass))
     return false;
   }
   
-  guarantee(_okra_create_context == NULL, "cannot repeat GPU initialization");
+  guarantee(_okra_get_context == NULL, "cannot repeat GPU initialization");
 
   // At this point we know  okra_lib_handle is valid whether we loaded
   // here or earlier.  In either case, we can lookup the functions.
-  LOOKUP_OKRA_FUNCTION(okra_create_context, okra_create_context);
+  LOOKUP_OKRA_FUNCTION(okra_get_context, okra_get_context);
   LOOKUP_OKRA_FUNCTION(okra_create_kernel, okra_create_kernel);
-  LOOKUP_OKRA_FUNCTION(okra_push_object, okra_push_object);
+  LOOKUP_OKRA_FUNCTION(okra_push_pointer, okra_push_pointer);
   LOOKUP_OKRA_FUNCTION(okra_push_boolean, okra_push_boolean);
   LOOKUP_OKRA_FUNCTION(okra_push_byte, okra_push_byte);
   LOOKUP_OKRA_FUNCTION(okra_push_double, okra_push_double);
   LOOKUP_OKRA_FUNCTION(okra_push_float, okra_push_float);
   LOOKUP_OKRA_FUNCTION(okra_push_int, okra_push_int);
   LOOKUP_OKRA_FUNCTION(okra_push_long, okra_push_long);
-  LOOKUP_OKRA_FUNCTION(okra_execute_with_range, okra_execute_with_range);
-  LOOKUP_OKRA_FUNCTION(okra_clearargs, okra_clearargs);
-  LOOKUP_OKRA_FUNCTION(okra_register_heap, okra_register_heap);
+  LOOKUP_OKRA_FUNCTION(okra_execute_kernel, okra_execute_kernel);
+  LOOKUP_OKRA_FUNCTION(okra_clear_args, okra_clear_args);
+  LOOKUP_OKRA_FUNCTION(okra_dispose_kernel, okra_dispose_kernel);
+  LOOKUP_OKRA_FUNCTION(okra_dispose_context, okra_dispose_context);
   // if we made it this far, real success
 
   Gpu::initialized_gpu(new Hsail());
+
+    // There is 1 context per process
+  jint result = _okra_get_context(&_device_context);
+  guarantee(result==0, "get context failed");
 
   return true;
 GPU_END

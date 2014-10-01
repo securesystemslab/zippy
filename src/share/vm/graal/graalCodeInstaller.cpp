@@ -57,22 +57,6 @@ Method* getMethodFromHotSpotMethod(oop hotspot_method) {
   return asMethod(HotSpotResolvedJavaMethod::metaspaceMethod(hotspot_method));
 }
 
-// convert Graal register indices (as used in oop maps) to HotSpot registers
-VMReg get_hotspot_reg(jint graal_reg) {
-  if (graal_reg < RegisterImpl::number_of_registers) {
-    return as_Register(graal_reg)->as_VMReg();
-  } else {
-    int remainder = graal_reg - RegisterImpl::number_of_registers;
-#ifdef TARGET_ARCH_x86
-    if (remainder < XMMRegisterImpl::number_of_registers) {
-      return as_XMMRegister(remainder)->as_VMReg();
-    }
-#endif
-    ShouldNotReachHere();
-    return NULL;
-  }
-}
-
 const int MapWordBits = 64;
 
 static bool is_bit_set(oop bitset, int i) {
@@ -129,6 +113,13 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
       }
     }
 #endif
+#ifdef TARGET_ARCH_sparc
+    for (jint i = 0; i < FloatRegisterImpl::number_of_registers; i++) {
+      VMReg reg = as_FloatRegister(i)->as_VMReg();
+      int idx = RegisterImpl::number_of_registers + i;
+      set_vmreg_oops(map, reg, register_map, idx);
+    }
+#endif
   }
 
   for (jint i = 0; i < bitset_size(frame_map) / 3; i++) {
@@ -143,7 +134,7 @@ static OopMap* create_oop_map(jint total_frame_size, jint parameter_count, oop d
     for (jint i = 0; i < slots->length(); i++) {
       oop graal_reg = registers->obj_at(i);
       jint graal_reg_number = code_Register::number(graal_reg);
-      VMReg hotspot_reg = get_hotspot_reg(graal_reg_number);
+      VMReg hotspot_reg = CodeInstaller::get_hotspot_reg(graal_reg_number);
       // HotSpot stack slots are 4 bytes
       jint graal_slot = ((jint*) slots->base(T_INT))[i];
       jint hotspot_slot = graal_slot * VMRegImpl::slots_per_word;
@@ -204,87 +195,112 @@ ScopeValue* CodeInstaller::get_scope_value(oop value, int total_frame_size, Grow
     return new LocationValue(Location::new_stk_loc(Location::invalid, 0));
   }
 
-  BasicType type = GraalRuntime::kindToBasicType(Kind::typeChar(Value::kind(value)));
-  Location::Type locationType = Location::normal;
-  if (type == T_OBJECT || type == T_ARRAY) locationType = Location::oop;
+  oop lirKind = Value::lirKind(value);
+  oop platformKind = LIRKind::platformKind(lirKind);
+  jint referenceMask = LIRKind::referenceMask(lirKind);
+  assert(referenceMask == 0 || referenceMask == 1, "unexpected referenceMask");
+  bool reference = referenceMask == 1;
+
+  BasicType type = GraalRuntime::kindToBasicType(Kind::typeChar(platformKind));
 
   if (value->is_a(RegisterValue::klass())) {
-    jint number = code_Register::number(RegisterValue::reg(value));
-    if (number < RegisterImpl::number_of_registers) {
-      if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE || type == T_ADDRESS) {
+    oop reg = RegisterValue::reg(value);
+    jint number = code_Register::number(reg);
+    VMReg hotspotRegister = get_hotspot_reg(number);
+    if (is_general_purpose_reg(hotspotRegister)) {
+      Location::Type locationType;
+      if (type == T_INT) {
+        locationType = reference ? Location::narrowoop : Location::int_in_long;
+      } else if(type == T_SHORT || type == T_CHAR || type == T_BYTE || type == T_BOOLEAN) {
+        locationType = Location::int_in_long;
+      } else if (type == T_FLOAT) {
         locationType = Location::int_in_long;
       } else if (type == T_LONG) {
-        locationType = Location::lng;
+        locationType = reference ? Location::oop : Location::lng;
       } else {
-        assert(type == T_OBJECT || type == T_ARRAY, "unexpected type in cpu register");
+        assert(type == T_OBJECT && reference, "unexpected type in cpu register");
+        locationType = Location::oop;
       }
-      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_Register(number)->as_VMReg()));
-      if (type == T_LONG) {
+      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, hotspotRegister));
+      if (type == T_LONG && !reference) {
         second = value;
       }
       return value;
     } else {
       assert(type == T_FLOAT || type == T_DOUBLE, "only float and double expected in xmm register");
+      Location::Type locationType;
       if (type == T_FLOAT) {
         // this seems weird, but the same value is used in c1_LinearScan
         locationType = Location::normal;
       } else {
         locationType = Location::dbl;
       }
-#ifdef TARGET_ARCH_x86
-      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_XMMRegister(number - 16)->as_VMReg()));
+      assert(!reference, "unexpected type in floating point register");
+      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, hotspotRegister));
       if (type == T_DOUBLE) {
         second = value;
       }
       return value;
-#else
-#ifdef TARGET_ARCH_sparc
-      ScopeValue* value = new LocationValue(Location::new_reg_loc(locationType, as_FloatRegister(number)->as_VMReg()));
-      if (type == T_DOUBLE) {
-        second = value;
-      }
-      return value;
-#else
-      ShouldNotReachHere("Platform currently does not support floating point values.");
-#endif
-#endif
     }
   } else if (value->is_a(StackSlot::klass())) {
-    if (type == T_DOUBLE) {
+      Location::Type locationType;
+    if (type == T_LONG) {
+      locationType = reference ? Location::oop : Location::lng;
+    } else if (type == T_INT) {
+      locationType = reference ? Location::narrowoop : Location::normal;
+    } else if(type == T_SHORT || type == T_CHAR || type == T_BYTE || type == T_BOOLEAN) {
+      locationType = Location::normal;
+    } else if (type == T_FLOAT) {
+      assert(!reference, "unexpected type in stack slot");
+      locationType = Location::normal;
+    } else if (type == T_DOUBLE) {
+      assert(!reference, "unexpected type in stack slot");
       locationType = Location::dbl;
-    } else if (type == T_LONG) {
-      locationType = Location::lng;
+    } else {
+      assert(type == T_OBJECT && reference, "unexpected type in stack slot");
+      locationType = Location::oop;
     }
     jint offset = StackSlot::offset(value);
+#ifdef TARGET_ARCH_sparc
+    if(offset >= 0) {
+      offset += 128;
+    }
+#endif
     if (StackSlot::addFrameSize(value)) {
       offset += total_frame_size;
     }
     ScopeValue* value = new LocationValue(Location::new_stk_loc(locationType, offset));
-    if (type == T_DOUBLE || type == T_LONG) {
+    if (type == T_DOUBLE || (type == T_LONG && !reference)) {
       second = value;
     }
     return value;
   } else if (value->is_a(Constant::klass())){
     record_metadata_in_constant(value, oop_recorder);
-    if (type == T_INT || type == T_FLOAT || type == T_SHORT || type == T_CHAR || type == T_BOOLEAN || type == T_BYTE) {
-      jlong prim = PrimitiveConstant::primitive(value);
-      return new ConstantIntValue(*(jint*)&prim);
-    } else if (type == T_LONG || type == T_DOUBLE) {
-      jlong prim = PrimitiveConstant::primitive(value);
-      second = new ConstantIntValue(0);
-      return new ConstantLongValue(prim);
-    } else if (type == T_OBJECT) {
-      if (value->is_a(NullConstant::klass())) {
+    if (value->is_a(PrimitiveConstant::klass())) {
+      assert(!reference, "unexpected primitive constant type");
+      if(value->is_a(RawConstant::klass())) {
+        jlong prim = PrimitiveConstant::primitive(value);
+        return new ConstantLongValue(prim);
+      } else if (type == T_INT || type == T_FLOAT) {
+        jint prim = (jint)PrimitiveConstant::primitive(value);
+        return new ConstantIntValue(prim);
+      } else {
+        assert(type == T_LONG || type == T_DOUBLE, "unexpected primitive constant type");
+        jlong prim = PrimitiveConstant::primitive(value);
+        second = new ConstantIntValue(0);
+        return new ConstantLongValue(prim);
+      }
+    } else {
+        assert(reference, "unexpected object constant type");
+      if (value->is_a(NullConstant::klass()) || value->is_a(HotSpotCompressedNullConstant::klass())) {
         return new ConstantOopWriteValue(NULL);
       } else {
+        assert(value->is_a(HotSpotObjectConstant::klass()), "unexpected constant type");
         oop obj = HotSpotObjectConstant::object(value);
         assert(obj != NULL, "null value must be in NullConstant");
         return new ConstantOopWriteValue(JNIHandles::make_local(obj));
       }
-    } else if (type == T_ADDRESS) {
-      ShouldNotReachHere();
     }
-    tty->print("%i", type);
   } else if (value->is_a(VirtualObject::klass())) {
     oop type = VirtualObject::type(value);
     int id = VirtualObject::id(value);
@@ -545,7 +561,7 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
       ShouldNotReachHere();
     }
   }
-
+  jint last_pc_offset = -1;
   for (int i = 0; i < _sites->length(); i++) {
     oop site = ((objArrayOop) (_sites))->obj_at(i);
     jint pc_offset = CompilationResult_Site::pcOffset(site);
@@ -563,6 +579,7 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
         // if the infopoint is not an actual safepoint, it must have one of the other reasons
         // (safeguard against new safepoint types that require handling above)
         assert(InfopointReason::METHOD_START() == reason || InfopointReason::METHOD_END() == reason || InfopointReason::LINE_NUMBER() == reason, "");
+        site_Infopoint(buffer, pc_offset, site);
       }
     } else if (site->is_a(CompilationResult_DataPatch::klass())) {
       TRACE_graal_4("datapatch at %i", pc_offset);
@@ -573,6 +590,7 @@ bool CodeInstaller::initialize_buffer(CodeBuffer& buffer) {
     } else {
       fatal("unexpected Site subclass");
     }
+    last_pc_offset = pc_offset;
   }
 
 #ifndef PRODUCT
@@ -670,83 +688,95 @@ static bool bytecode_should_reexecute(Bytecodes::Code code) {
   return true;
 }
 
-void CodeInstaller::record_scope(jint pc_offset, oop frame, GrowableArray<ScopeValue*>* objects) {
-  assert(frame->klass() == BytecodeFrame::klass(), "BytecodeFrame expected");
-  oop caller_frame = BytecodePosition::caller(frame);
+void CodeInstaller::record_scope(jint pc_offset, oop position, GrowableArray<ScopeValue*>* objects) {
+  oop frame = NULL;
+  if (position->is_a(BytecodeFrame::klass())) {
+    frame = position;
+  }
+  oop caller_frame = BytecodePosition::caller(position);
   if (caller_frame != NULL) {
     record_scope(pc_offset, caller_frame, objects);
   }
 
-  oop hotspot_method = BytecodePosition::method(frame);
+  oop hotspot_method = BytecodePosition::method(position);
   Method* method = getMethodFromHotSpotMethod(hotspot_method);
-  jint bci = BytecodePosition::bci(frame);
+  jint bci = BytecodePosition::bci(position);
   if (bci == BytecodeFrame::BEFORE_BCI()) {
     bci = SynchronizationEntryBCI;
-  }
-  bool reexecute;
-  if (bci == SynchronizationEntryBCI){
-     reexecute = false;
-  } else {
-    Bytecodes::Code code = Bytecodes::java_code_at(method, method->bcp_from(bci));
-    reexecute = bytecode_should_reexecute(code);
-    if (frame != NULL) {
-      reexecute = (BytecodeFrame::duringCall(frame) == JNI_FALSE);
-    }
   }
 
   if (TraceGraal >= 2) {
     tty->print_cr("Recording scope pc_offset=%d bci=%d method=%s", pc_offset, bci, method->name_and_sig_as_C_string());
   }
 
-  jint local_count = BytecodeFrame::numLocals(frame);
-  jint expression_count = BytecodeFrame::numStack(frame);
-  jint monitor_count = BytecodeFrame::numLocks(frame);
-  arrayOop values = (arrayOop) BytecodeFrame::values(frame);
-
-  assert(local_count + expression_count + monitor_count == values->length(), "unexpected values length");
-
-  GrowableArray<ScopeValue*>* locals = new GrowableArray<ScopeValue*> ();
-  GrowableArray<ScopeValue*>* expressions = new GrowableArray<ScopeValue*> ();
-  GrowableArray<MonitorValue*>* monitors = new GrowableArray<MonitorValue*> ();
-
-  if (TraceGraal >= 2) {
-    tty->print_cr("Scope at bci %d with %d values", bci, values->length());
-    tty->print_cr("%d locals %d expressions, %d monitors", local_count, expression_count, monitor_count);
-  }
-
-  for (jint i = 0; i < values->length(); i++) {
-    ScopeValue* second = NULL;
-    oop value=((objArrayOop) (values))->obj_at(i);
-    if (i < local_count) {
-      ScopeValue* first = get_scope_value(value, _total_frame_size, objects, second, _oop_recorder);
-      if (second != NULL) {
-        locals->append(second);
-      }
-      locals->append(first);
-    } else if (i < local_count + expression_count) {
-      ScopeValue* first = get_scope_value(value, _total_frame_size, objects, second, _oop_recorder);
-      if (second != NULL) {
-        expressions->append(second);
-      }
-      expressions->append(first);
+  bool reexecute = false;
+  if (frame != NULL) {
+    if (bci == SynchronizationEntryBCI){
+       reexecute = false;
     } else {
-      monitors->append(get_monitor_value(value, _total_frame_size, objects, _oop_recorder));
-    }
-    if (second != NULL) {
-      i++;
-      assert(i < values->length(), "double-slot value not followed by Value.ILLEGAL");
-      assert(((objArrayOop) (values))->obj_at(i) == Value::ILLEGAL(), "double-slot value not followed by Value.ILLEGAL");
+      Bytecodes::Code code = Bytecodes::java_code_at(method, method->bcp_from(bci));
+      reexecute = bytecode_should_reexecute(code);
+      if (frame != NULL) {
+        reexecute = (BytecodeFrame::duringCall(frame) == JNI_FALSE);
+      }
     }
   }
 
+  DebugToken* locals_token = NULL;
+  DebugToken* expressions_token = NULL;
+  DebugToken* monitors_token = NULL;
+  bool throw_exception = false;
 
-  _debug_recorder->dump_object_pool(objects);
+  if (frame != NULL) {
+    jint local_count = BytecodeFrame::numLocals(frame);
+    jint expression_count = BytecodeFrame::numStack(frame);
+    jint monitor_count = BytecodeFrame::numLocks(frame);
+    arrayOop values = (arrayOop) BytecodeFrame::values(frame);
 
-  DebugToken* locals_token = _debug_recorder->create_scope_values(locals);
-  DebugToken* expressions_token = _debug_recorder->create_scope_values(expressions);
-  DebugToken* monitors_token = _debug_recorder->create_monitor_values(monitors);
+    assert(local_count + expression_count + monitor_count == values->length(), "unexpected values length");
 
-  bool throw_exception = BytecodeFrame::rethrowException(frame) == JNI_TRUE;
+    GrowableArray<ScopeValue*>* locals = new GrowableArray<ScopeValue*> ();
+    GrowableArray<ScopeValue*>* expressions = new GrowableArray<ScopeValue*> ();
+    GrowableArray<MonitorValue*>* monitors = new GrowableArray<MonitorValue*> ();
+
+    if (TraceGraal >= 2) {
+      tty->print_cr("Scope at bci %d with %d values", bci, values->length());
+      tty->print_cr("%d locals %d expressions, %d monitors", local_count, expression_count, monitor_count);
+    }
+
+    for (jint i = 0; i < values->length(); i++) {
+      ScopeValue* second = NULL;
+      oop value=((objArrayOop) (values))->obj_at(i);
+      if (i < local_count) {
+        ScopeValue* first = get_scope_value(value, _total_frame_size, objects, second, _oop_recorder);
+        if (second != NULL) {
+          locals->append(second);
+        }
+        locals->append(first);
+      } else if (i < local_count + expression_count) {
+        ScopeValue* first = get_scope_value(value, _total_frame_size, objects, second, _oop_recorder);
+        if (second != NULL) {
+          expressions->append(second);
+        }
+        expressions->append(first);
+      } else {
+        monitors->append(get_monitor_value(value, _total_frame_size, objects, _oop_recorder));
+      }
+      if (second != NULL) {
+        i++;
+        assert(i < values->length(), "double-slot value not followed by Value.ILLEGAL");
+        assert(((objArrayOop) (values))->obj_at(i) == Value::ILLEGAL(), "double-slot value not followed by Value.ILLEGAL");
+      }
+    }
+
+    _debug_recorder->dump_object_pool(objects);
+
+    locals_token = _debug_recorder->create_scope_values(locals);
+    expressions_token = _debug_recorder->create_scope_values(expressions);
+    monitors_token = _debug_recorder->create_monitor_values(monitors);
+
+    throw_exception = BytecodeFrame::rethrowException(frame) == JNI_TRUE;
+  }
 
   _debug_recorder->describe_scope(pc_offset, method, NULL, bci, reexecute, throw_exception, false, false, locals_token, expressions_token, monitors_token);
 }
@@ -767,6 +797,20 @@ void CodeInstaller::site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site)
   }
 
   _debug_recorder->end_safepoint(pc_offset);
+}
+
+void CodeInstaller::site_Infopoint(CodeBuffer& buffer, jint pc_offset, oop site) {
+  oop debug_info = CompilationResult_Infopoint::debugInfo(site);
+  assert(debug_info != NULL, "debug info expected");
+
+  _debug_recorder->add_non_safepoint(pc_offset);
+
+  oop position = DebugInfo::bytecodePosition(debug_info);
+  if (position != NULL) {
+    record_scope(pc_offset, position, NULL);
+  }
+
+  _debug_recorder->end_non_safepoint(pc_offset);
 }
 
 void CodeInstaller::site_Call(CodeBuffer& buffer, jint pc_offset, oop site) {

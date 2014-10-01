@@ -3805,6 +3805,11 @@ ExtendedPC os::get_thread_pc(Thread* thread) {
   return fetcher.result();
 }
 
+address os::get_pc(void* context) {
+  ucontext_t *uc = (ucontext_t*)context;
+  return os::Bsd::ucontext_get_pc(uc);
+}
+
 int os::Bsd::safe_cond_timedwait(pthread_cond_t *_cond, pthread_mutex_t *_mutex, const struct timespec *_abstime)
 {
   return pthread_cond_timedwait(_cond, _mutex, _abstime);

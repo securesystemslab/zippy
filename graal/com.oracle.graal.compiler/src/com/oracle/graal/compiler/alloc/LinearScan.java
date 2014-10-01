@@ -25,6 +25,7 @@ package com.oracle.graal.compiler.alloc;
 import static com.oracle.graal.api.code.CodeUtil.*;
 import static com.oracle.graal.api.code.ValueUtil.*;
 import static com.oracle.graal.compiler.GraalDebugConfig.*;
+import static com.oracle.graal.compiler.common.cfg.AbstractControlFlowGraph.*;
 import static com.oracle.graal.lir.LIRValueUtil.*;
 
 import java.util.*;
@@ -41,13 +42,11 @@ import com.oracle.graal.compiler.gen.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.lir.*;
-import com.oracle.graal.lir.LIRInstruction.InstructionValueProcedure;
 import com.oracle.graal.lir.LIRInstruction.OperandFlag;
 import com.oracle.graal.lir.LIRInstruction.OperandMode;
-import com.oracle.graal.lir.LIRInstruction.StateProcedure;
-import com.oracle.graal.lir.LIRInstruction.ValueProcedure;
 import com.oracle.graal.lir.StandardOp.MoveOp;
 import com.oracle.graal.nodes.*;
+import com.oracle.graal.options.*;
 import com.oracle.graal.phases.util.*;
 
 /**
@@ -66,7 +65,15 @@ public final class LinearScan {
 
     boolean callKillsRegisters;
 
+    public static final int DOMINATOR_SPILL_MOVE_ID = -2;
     private static final int SPLIT_INTERVALS_CAPACITY_RIGHT_SHIFT = 1;
+
+    public static class Options {
+        // @formatter:off
+        @Option(help = "Enable spill position optimization")
+        public static final OptionValue<Boolean> LSRAOptimizeSpillPosition = new OptionValue<>(true);
+        // @formatter:on
+    }
 
     public static class BlockData {
 
@@ -441,9 +448,14 @@ public final class LinearScan {
 
                 if (defLoopDepth < spillLoopDepth) {
                     // the loop depth of the spilling position is higher then the loop depth
-                    // at the definition of the interval . move write to memory out of loop
-                    // by storing at definitin of the interval
-                    interval.setSpillState(SpillState.StoreAtDefinition);
+                    // at the definition of the interval . move write to memory out of loop.
+                    if (Options.LSRAOptimizeSpillPosition.getValue()) {
+                        // find best spill position in dominator the tree
+                        interval.setSpillState(SpillState.SpillInDominator);
+                    } else {
+                        // store at definition of the interval
+                        interval.setSpillState(SpillState.StoreAtDefinition);
+                    }
                 } else {
                     // the interval is currently spilled only once, so for now there is no
                     // reason to store the interval at the definition
@@ -453,12 +465,18 @@ public final class LinearScan {
             }
 
             case OneSpillStore: {
-                // the interval is spilled more then once, so it is better to store it to
-                // memory at the definition
-                interval.setSpillState(SpillState.StoreAtDefinition);
+                if (Options.LSRAOptimizeSpillPosition.getValue()) {
+                    // the interval is spilled more then once
+                    interval.setSpillState(SpillState.SpillInDominator);
+                } else {
+                    // it is better to store it to
+                    // memory at the definition
+                    interval.setSpillState(SpillState.StoreAtDefinition);
+                }
                 break;
             }
 
+            case SpillInDominator:
             case StoreAtDefinition:
             case StartInMemory:
             case NoOptimization:
@@ -594,14 +612,13 @@ public final class LinearScan {
         intervalsSize = operandSize();
         intervals = new Interval[intervalsSize + (intervalsSize >> SPLIT_INTERVALS_CAPACITY_RIGHT_SHIFT)];
 
-        ValueProcedure setVariableProc = new ValueProcedure() {
+        ValueConsumer setVariableConsumer = new ValueConsumer() {
 
             @Override
-            public Value doValue(Value value) {
+            public void visitValue(Value value) {
                 if (isVariable(value)) {
                     getOrCreateInterval(asVariable(value));
                 }
-                return value;
             }
         };
 
@@ -631,8 +648,8 @@ public final class LinearScan {
                 opIdToBlockMap[index] = block;
                 assert instructionForId(opId) == op : "must match";
 
-                op.forEachTemp(setVariableProc);
-                op.forEachOutput(setVariableProc);
+                op.visitEachTemp(setVariableConsumer);
+                op.visitEachOutput(setVariableConsumer);
 
                 index++;
                 opId += 2; // numbering of lirOps by two
@@ -661,10 +678,10 @@ public final class LinearScan {
                 List<LIRInstruction> instructions = ir.getLIRforBlock(block);
                 int numInst = instructions.size();
 
-                ValueProcedure useProc = new ValueProcedure() {
+                ValueConsumer useConsumer = new ValueConsumer() {
 
                     @Override
-                    protected Value doValue(Value operand) {
+                    protected void visitValue(Value operand) {
                         if (isVariable(operand)) {
                             int operandNum = operandNumber(operand);
                             if (!liveKill.get(operandNum)) {
@@ -679,25 +696,23 @@ public final class LinearScan {
                         if (DetailedAsserts.getValue()) {
                             verifyInput(block, liveKill, operand);
                         }
-                        return operand;
                     }
                 };
-                ValueProcedure stateProc = new ValueProcedure() {
+                ValueConsumer stateConsumer = new ValueConsumer() {
 
                     @Override
-                    public Value doValue(Value operand) {
+                    public void visitValue(Value operand) {
                         int operandNum = operandNumber(operand);
                         if (!liveKill.get(operandNum)) {
                             liveGen.set(operandNum);
                             Debug.log("liveGen in state for operand %d", operandNum);
                         }
-                        return operand;
                     }
                 };
-                ValueProcedure defProc = new ValueProcedure() {
+                ValueConsumer defConsumer = new ValueConsumer() {
 
                     @Override
-                    public Value doValue(Value operand) {
+                    public void visitValue(Value operand) {
                         if (isVariable(operand)) {
                             int varNum = operandNumber(operand);
                             liveKill.set(varNum);
@@ -713,7 +728,6 @@ public final class LinearScan {
                             // process them only in debug mode so that this can be checked
                             verifyTemp(liveKill, operand);
                         }
-                        return operand;
                     }
                 };
 
@@ -722,13 +736,13 @@ public final class LinearScan {
                     final LIRInstruction op = instructions.get(j);
 
                     try (Indent indent2 = Debug.logAndIndent("handle op %d", op.id())) {
-                        op.forEachInput(useProc);
-                        op.forEachAlive(useProc);
+                        op.visitEachInput(useConsumer);
+                        op.visitEachAlive(useConsumer);
                         // Add uses of live locals from interpreter's point of view for proper debug
                         // information generation
-                        op.forEachState(stateProc);
-                        op.forEachTemp(defProc);
-                        op.forEachOutput(defProc);
+                        op.visitEachState(stateConsumer);
+                        op.visitEachTemp(defConsumer);
+                        op.visitEachOutput(defConsumer);
                     }
                 } // end of instruction iteration
 
@@ -880,15 +894,26 @@ public final class LinearScan {
                 BitSet startBlockLiveIn = blockData.get(ir.getControlFlowGraph().getStartBlock()).liveIn;
                 try (Indent indent2 = Debug.logAndIndent("Error: liveIn set of first block must be empty (when this fails, variables are used before they are defined):")) {
                     for (int operandNum = startBlockLiveIn.nextSetBit(0); operandNum >= 0; operandNum = startBlockLiveIn.nextSetBit(operandNum + 1)) {
-                        Value operand = intervalFor(operandNum).operand;
-                        Debug.log("var %d; operand=%s; node=%s", operandNum, operand, getValueForOperandFromDebugContext(operand));
+                        Interval interval = intervalFor(operandNum);
+                        if (interval != null) {
+                            Value operand = interval.operand;
+                            Debug.log("var %d; operand=%s; node=%s", operandNum, operand, getValueForOperandFromDebugContext(operand));
+                        } else {
+                            Debug.log("var %d; missing operand", operandNum);
+                        }
                     }
                 }
 
                 // print some additional information to simplify debugging
                 for (int operandNum = startBlockLiveIn.nextSetBit(0); operandNum >= 0; operandNum = startBlockLiveIn.nextSetBit(operandNum + 1)) {
-                    Value operand = intervalFor(operandNum).operand;
-                    try (Indent indent2 = Debug.logAndIndent("---- Detailed information for var %d; operand=%s; node=%s ----", operandNum, operand, getValueForOperandFromDebugContext(operand))) {
+                    Interval interval = intervalFor(operandNum);
+                    Value operand = null;
+                    ValueNode valueForOperandFromDebugContext = null;
+                    if (interval != null) {
+                        operand = interval.operand;
+                        valueForOperandFromDebugContext = getValueForOperandFromDebugContext(operand);
+                    }
+                    try (Indent indent2 = Debug.logAndIndent("---- Detailed information for var %d; operand=%s; node=%s ----", operandNum, operand, valueForOperandFromDebugContext)) {
 
                         Deque<AbstractBlock<?>> definedIn = new ArrayDeque<>();
                         HashSet<AbstractBlock<?>> usedIn = new HashSet<>();
@@ -1124,34 +1149,32 @@ public final class LinearScan {
     void buildIntervals() {
 
         try (Indent indent = Debug.logAndIndent("build intervals")) {
-            InstructionValueProcedure outputProc = new InstructionValueProcedure() {
+            InstructionValueConsumer outputConsumer = new InstructionValueConsumer() {
 
                 @Override
-                public Value doValue(LIRInstruction op, Value operand, OperandMode mode, EnumSet<OperandFlag> flags) {
+                public void visitValue(LIRInstruction op, Value operand, OperandMode mode, EnumSet<OperandFlag> flags) {
                     if (isVariableOrRegister(operand)) {
                         addDef((AllocatableValue) operand, op, registerPriorityOfOutputOperand(op), operand.getLIRKind());
                         addRegisterHint(op, operand, mode, flags, true);
                     }
-                    return operand;
                 }
             };
 
-            InstructionValueProcedure tempProc = new InstructionValueProcedure() {
+            InstructionValueConsumer tempConsumer = new InstructionValueConsumer() {
 
                 @Override
-                public Value doValue(LIRInstruction op, Value operand, OperandMode mode, EnumSet<OperandFlag> flags) {
+                public void visitValue(LIRInstruction op, Value operand, OperandMode mode, EnumSet<OperandFlag> flags) {
                     if (isVariableOrRegister(operand)) {
                         addTemp((AllocatableValue) operand, op.id(), RegisterPriority.MustHaveRegister, operand.getLIRKind());
                         addRegisterHint(op, operand, mode, flags, false);
                     }
-                    return operand;
                 }
             };
 
-            InstructionValueProcedure aliveProc = new InstructionValueProcedure() {
+            InstructionValueConsumer aliveConsumer = new InstructionValueConsumer() {
 
                 @Override
-                public Value doValue(LIRInstruction op, Value operand, OperandMode mode, EnumSet<OperandFlag> flags) {
+                public void visitValue(LIRInstruction op, Value operand, OperandMode mode, EnumSet<OperandFlag> flags) {
                     if (isVariableOrRegister(operand)) {
                         RegisterPriority p = registerPriorityOfInputOperand(flags);
                         final int opId = op.id();
@@ -1159,14 +1182,13 @@ public final class LinearScan {
                         addUse((AllocatableValue) operand, blockFrom, opId + 1, p, operand.getLIRKind());
                         addRegisterHint(op, operand, mode, flags, false);
                     }
-                    return operand;
                 }
             };
 
-            InstructionValueProcedure inputProc = new InstructionValueProcedure() {
+            InstructionValueConsumer inputConsumer = new InstructionValueConsumer() {
 
                 @Override
-                public Value doValue(LIRInstruction op, Value operand, OperandMode mode, EnumSet<OperandFlag> flags) {
+                public void visitValue(LIRInstruction op, Value operand, OperandMode mode, EnumSet<OperandFlag> flags) {
                     if (isVariableOrRegister(operand)) {
                         final int opId = op.id();
                         final int blockFrom = getFirstLirInstructionId((blockForId(opId)));
@@ -1174,18 +1196,16 @@ public final class LinearScan {
                         addUse((AllocatableValue) operand, blockFrom, opId, p, operand.getLIRKind());
                         addRegisterHint(op, operand, mode, flags, false);
                     }
-                    return operand;
                 }
             };
 
-            InstructionValueProcedure stateProc = new InstructionValueProcedure() {
+            InstructionValueConsumer stateProc = new InstructionValueConsumer() {
 
                 @Override
-                public Value doValue(LIRInstruction op, Value operand) {
+                public void visitValue(LIRInstruction op, Value operand) {
                     final int opId = op.id();
                     final int blockFrom = getFirstLirInstructionId((blockForId(opId)));
                     addUse((AllocatableValue) operand, blockFrom, opId + 1, RegisterPriority.None, operand.getLIRKind());
-                    return operand;
                 }
             };
 
@@ -1242,17 +1262,17 @@ public final class LinearScan {
                                 Debug.log("operation destroys all caller-save registers");
                             }
 
-                            op.forEachOutput(outputProc);
-                            op.forEachTemp(tempProc);
-                            op.forEachAlive(aliveProc);
-                            op.forEachInput(inputProc);
+                            op.visitEachOutput(outputConsumer);
+                            op.visitEachTemp(tempConsumer);
+                            op.visitEachAlive(aliveConsumer);
+                            op.visitEachInput(inputConsumer);
 
                             // Add uses of live locals from interpreter's point of view for proper
                             // debug information generation
                             // Treat these operands as temp values (if the live range is extended
                             // to a call site, the value would be in a register at
                             // the call otherwise)
-                            op.forEachState(stateProc);
+                            op.visitEachState(stateProc);
 
                             // special steps for some instructions (especially moves)
                             handleMethodArguments(op);
@@ -1662,6 +1682,9 @@ public final class LinearScan {
         // included in the oop map
         iw.walkBefore(op.id());
 
+        // TODO(je) we could pass this as parameter
+        AbstractBlock<?> block = blockForId(op.id());
+
         // Iterate through active intervals
         for (Interval interval = iw.activeLists.get(RegisterBinding.Fixed); interval != Interval.EndMarker; interval = interval.next) {
             Value operand = interval.operand;
@@ -1684,11 +1707,25 @@ public final class LinearScan {
                 // Spill optimization: when the stack value is guaranteed to be always correct,
                 // then it must be added to the oop map even if the interval is currently in a
                 // register
-                if (interval.alwaysInMemory() && op.id() > interval.spillDefinitionPos() && !interval.location().equals(interval.spillSlot())) {
-                    assert interval.spillDefinitionPos() > 0 : "position not set correctly";
-                    assert interval.spillSlot() != null : "no spill slot assigned";
-                    assert !isRegister(interval.operand) : "interval is on stack :  so stack slot is registered twice";
-                    info.markLocation(interval.spillSlot(), frameMap);
+                int spillPos = interval.spillDefinitionPos();
+                if (interval.spillState() != SpillState.SpillInDominator) {
+                    if (interval.alwaysInMemory() && op.id() > interval.spillDefinitionPos() && !interval.location().equals(interval.spillSlot())) {
+                        assert interval.spillDefinitionPos() > 0 : "position not set correctly";
+                        assert spillPos > 0 : "position not set correctly";
+                        assert interval.spillSlot() != null : "no spill slot assigned";
+                        assert !isRegister(interval.operand) : "interval is on stack :  so stack slot is registered twice";
+                        info.markLocation(interval.spillSlot(), frameMap);
+                    }
+                } else {
+                    AbstractBlock<?> spillBlock = blockForId(spillPos);
+                    if (interval.alwaysInMemory() && !interval.location().equals(interval.spillSlot())) {
+                        if ((spillBlock.equals(block) && op.id() > spillPos) || dominates(spillBlock, block)) {
+                            assert spillPos > 0 : "position not set correctly";
+                            assert interval.spillSlot() != null : "no spill slot assigned";
+                            assert !isRegister(interval.operand) : "interval is on stack :  so stack slot is registered twice";
+                            info.markLocation(interval.spillSlot(), frameMap);
+                        }
+                    }
                 }
             }
         }
@@ -1753,6 +1790,13 @@ public final class LinearScan {
                 return operand;
             }
         };
+        InstructionStateProcedure stateProc = new InstructionStateProcedure() {
+
+            @Override
+            protected void doState(LIRInstruction op, LIRFrameState state) {
+                computeDebugInfo(iw, op, state);
+            }
+        };
 
         for (int j = 0; j < numInst; j++) {
             final LIRInstruction op = instructions.get(j);
@@ -1784,13 +1828,7 @@ public final class LinearScan {
             op.forEachOutput(assignProc);
 
             // compute reference map and debug information
-            op.forEachState(new StateProcedure() {
-
-                @Override
-                protected void doState(LIRFrameState state) {
-                    computeDebugInfo(iw, op, state);
-                }
-            });
+            op.forEachState(stateProc);
 
             // remove useless moves
             if (move != null) {
@@ -1818,7 +1856,11 @@ public final class LinearScan {
         }
     }
 
-    public void allocate() {
+    public static void allocate(TargetDescription target, LIR lir, FrameMap frameMap) {
+        new LinearScan(target, lir, frameMap).allocate();
+    }
+
+    private void allocate() {
 
         /*
          * This is the point to enable debug logging for the whole register allocation.
@@ -1843,6 +1885,14 @@ public final class LinearScan {
                 throw Debug.handle(e);
             }
 
+            if (Options.LSRAOptimizeSpillPosition.getValue()) {
+                try (Scope s = Debug.scope("OptimizeSpillPosition")) {
+                    optimizeSpillPosition();
+                } catch (Throwable e) {
+                    throw Debug.handle(e);
+                }
+            }
+
             try (Scope s = Debug.scope("ResolveDataFlow")) {
                 resolveDataFlow();
             } catch (Throwable e) {
@@ -1861,8 +1911,17 @@ public final class LinearScan {
                     verify();
                 }
 
-                eliminateSpillMoves();
-                assignLocations();
+                try (Scope s1 = Debug.scope("EliminateSpillMove")) {
+                    eliminateSpillMoves();
+                } catch (Throwable e) {
+                    throw Debug.handle(e);
+                }
+
+                try (Scope s1 = Debug.scope("AssignLocations")) {
+                    assignLocations();
+                } catch (Throwable e) {
+                    throw Debug.handle(e);
+                }
 
                 if (DetailedAsserts.getValue()) {
                     verifyIntervals();
@@ -1873,6 +1932,161 @@ public final class LinearScan {
 
             printLir("After register number assignment", true);
         }
+    }
+
+    private DebugMetric betterSpillPos = Debug.metric("BetterSpillPosition");
+    private DebugMetric betterSpillPosWithLowerProbability = Debug.metric("BetterSpillPositionWithLowerProbability");
+
+    private void optimizeSpillPosition() {
+        LIRInsertionBuffer[] insertionBuffers = new LIRInsertionBuffer[ir.linearScanOrder().size()];
+        for (Interval interval : intervals) {
+            if (interval != null && interval.isSplitParent() && interval.spillState() == SpillState.SpillInDominator) {
+                AbstractBlock<?> defBlock = blockForId(interval.spillDefinitionPos());
+                AbstractBlock<?> spillBlock = null;
+                Interval firstSpillChild = null;
+                try (Indent indent = Debug.logAndIndent("interval %s (%s)", interval, defBlock)) {
+                    for (Interval splitChild : interval.getSplitChildren()) {
+                        if (isStackSlot(splitChild.location())) {
+                            if (firstSpillChild == null || splitChild.from() < firstSpillChild.from()) {
+                                firstSpillChild = splitChild;
+                            } else {
+                                assert firstSpillChild.from() < splitChild.from();
+                            }
+                            // iterate all blocks where the interval has use positions
+                            for (AbstractBlock<?> splitBlock : blocksForInterval(splitChild)) {
+                                if (dominates(defBlock, splitBlock)) {
+                                    Debug.log("Split interval %s, block %s", splitChild, splitBlock);
+                                    if (spillBlock == null) {
+                                        spillBlock = splitBlock;
+                                    } else {
+                                        spillBlock = commonDominator(spillBlock, splitBlock);
+                                        assert spillBlock != null;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (spillBlock == null) {
+                        // no spill interval
+                        interval.setSpillState(SpillState.StoreAtDefinition);
+                    } else {
+                        // move out of loops
+                        if (defBlock.getLoopDepth() < spillBlock.getLoopDepth()) {
+                            spillBlock = moveSpillOutOfLoop(defBlock, spillBlock);
+                        }
+
+                        /*
+                         * If the spill block is the begin of the first split child (aka the value
+                         * is on the stack) spill in the dominator.
+                         */
+                        assert firstSpillChild != null;
+                        if (!defBlock.equals(spillBlock) && spillBlock.equals(blockForId(firstSpillChild.from()))) {
+                            AbstractBlock<?> dom = spillBlock.getDominator();
+                            Debug.log("Spill block (%s) is the beginning of a spill child -> use dominator (%s)", spillBlock, dom);
+                            spillBlock = dom;
+                        }
+
+                        if (!defBlock.equals(spillBlock)) {
+                            assert dominates(defBlock, spillBlock);
+                            betterSpillPos.increment();
+                            Debug.log("Better spill position found (Block %s)", spillBlock);
+
+                            if (defBlock.probability() <= spillBlock.probability()) {
+                                // better spill block has the same probability -> do nothing
+                                interval.setSpillState(SpillState.StoreAtDefinition);
+                            } else {
+                                LIRInsertionBuffer insertionBuffer = insertionBuffers[spillBlock.getId()];
+                                if (insertionBuffer == null) {
+                                    insertionBuffer = new LIRInsertionBuffer();
+                                    insertionBuffers[spillBlock.getId()] = insertionBuffer;
+                                    insertionBuffer.init(ir.getLIRforBlock(spillBlock));
+                                }
+                                int spillOpId = getFirstLirInstructionId(spillBlock);
+                                // insert spill move
+                                AllocatableValue fromLocation = interval.getSplitChildAtOpId(spillOpId, OperandMode.DEF, this).location();
+                                AllocatableValue toLocation = canonicalSpillOpr(interval);
+                                LIRInstruction move = ir.getSpillMoveFactory().createMove(toLocation, fromLocation);
+                                move.setId(DOMINATOR_SPILL_MOVE_ID);
+                                /*
+                                 * We can use the insertion buffer directly because we always insert
+                                 * at position 1.
+                                 */
+                                insertionBuffer.append(1, move);
+
+                                betterSpillPosWithLowerProbability.increment();
+                                interval.setSpillDefinitionPos(spillOpId);
+                            }
+                        } else {
+                            // definition is the best choice
+                            interval.setSpillState(SpillState.StoreAtDefinition);
+                        }
+                    }
+                }
+            }
+        }
+        for (LIRInsertionBuffer insertionBuffer : insertionBuffers) {
+            if (insertionBuffer != null) {
+                assert insertionBuffer.initialized() : "Insertion buffer is nonnull but not initialized!";
+                insertionBuffer.finish();
+            }
+        }
+    }
+
+    /**
+     * Iterate over all {@link AbstractBlock blocks} of an interval.
+     */
+    private class IntervalBlockIterator implements Iterator<AbstractBlock<?>> {
+
+        Range range;
+        AbstractBlock<?> block;
+
+        public IntervalBlockIterator(Interval interval) {
+            range = interval.first();
+            block = blockForId(range.from);
+        }
+
+        public AbstractBlock<?> next() {
+            AbstractBlock<?> currentBlock = block;
+            int nextBlockIndex = block.getLinearScanNumber() + 1;
+            if (nextBlockIndex < sortedBlocks.size()) {
+                block = sortedBlocks.get(nextBlockIndex);
+                if (range.to <= getFirstLirInstructionId(block)) {
+                    range = range.next;
+                    if (range == Range.EndMarker) {
+                        block = null;
+                    } else {
+                        block = blockForId(range.from);
+                    }
+                }
+            } else {
+                block = null;
+            }
+            return currentBlock;
+        }
+
+        public boolean hasNext() {
+            return block != null;
+        }
+    }
+
+    private Iterable<AbstractBlock<?>> blocksForInterval(Interval interval) {
+        return new Iterable<AbstractBlock<?>>() {
+            public Iterator<AbstractBlock<?>> iterator() {
+                return new IntervalBlockIterator(interval);
+            }
+        };
+    }
+
+    private static AbstractBlock<?> moveSpillOutOfLoop(AbstractBlock<?> defBlock, AbstractBlock<?> spillBlock) {
+        int defLoopDepth = defBlock.getLoopDepth();
+        for (AbstractBlock<?> block = spillBlock.getDominator(); !defBlock.equals(block); block = block.getDominator()) {
+            assert block != null : "spill block not dominated by definition block?";
+            if (block.getLoopDepth() <= defLoopDepth) {
+                assert block.getLoopDepth() == defLoopDepth : "Cannot spill an interval outside of the loop where it is defined!";
+                return block;
+            }
+        }
+        return defBlock;
     }
 
     void printIntervals(String label) {
@@ -1991,25 +2205,24 @@ public final class LinearScan {
         }
     }
 
-    class CheckProcedure extends ValueProcedure {
+    class CheckConsumer extends ValueConsumer {
 
         boolean ok;
         Interval curInterval;
 
         @Override
-        protected Value doValue(Value operand) {
+        protected void visitValue(Value operand) {
             if (isRegister(operand)) {
                 if (intervalFor(operand) == curInterval) {
                     ok = true;
                 }
             }
-            return operand;
         }
     }
 
     void verifyNoOopsInFixedIntervals() {
         try (Indent indent = Debug.logAndIndent("verifying that no oops are in fixed intervals *")) {
-            CheckProcedure checkProc = new CheckProcedure();
+            CheckConsumer checkConsumer = new CheckConsumer();
 
             Interval fixedIntervals;
             Interval otherIntervals;
@@ -2038,15 +2251,15 @@ public final class LinearScan {
                                     // This interval is live out of this op so make sure
                                     // that this interval represents some value that's
                                     // referenced by this op either as an input or output.
-                                    checkProc.curInterval = interval;
-                                    checkProc.ok = false;
+                                    checkConsumer.curInterval = interval;
+                                    checkConsumer.ok = false;
 
-                                    op.forEachInput(checkProc);
-                                    op.forEachAlive(checkProc);
-                                    op.forEachTemp(checkProc);
-                                    op.forEachOutput(checkProc);
+                                    op.visitEachInput(checkConsumer);
+                                    op.visitEachAlive(checkConsumer);
+                                    op.visitEachTemp(checkConsumer);
+                                    op.visitEachOutput(checkConsumer);
 
-                                    assert checkProc.ok : "fixed intervals should never be live across an oopmap point";
+                                    assert checkConsumer.ok : "fixed intervals should never be live across an oopmap point";
                                 }
                             }
                         }

@@ -94,7 +94,7 @@ static void* verify_byte_codes_fn() {
 // Methods in Verifier
 
 bool Verifier::should_verify_for(oop class_loader, bool should_verify_class) {
-  return (class_loader == NULL || !should_verify_class) ?
+  return (class_loader == NULL GRAAL_ONLY(|| class_loader == SystemDictionary::graal_loader()) || !should_verify_class) ?
     BytecodeVerificationLocal : BytecodeVerificationRemote;
 }
 

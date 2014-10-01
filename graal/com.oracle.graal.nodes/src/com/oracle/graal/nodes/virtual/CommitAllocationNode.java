@@ -24,23 +24,27 @@ package com.oracle.graal.nodes.virtual;
 
 import java.util.*;
 
-import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
 
 @NodeInfo(nameTemplate = "Alloc {i#virtualObjects}", allowedUsageTypes = {InputType.Extension})
-public final class CommitAllocationNode extends FixedWithNextNode implements VirtualizableAllocation, Lowerable, Simplifiable {
+public class CommitAllocationNode extends FixedWithNextNode implements VirtualizableAllocation, Lowerable, Simplifiable {
 
-    @Input private final NodeInputList<VirtualObjectNode> virtualObjects = new NodeInputList<>(this);
-    @Input private final NodeInputList<ValueNode> values = new NodeInputList<>(this);
-    @Input(InputType.Association) private final NodeInputList<MonitorIdNode> locks = new NodeInputList<>(this);
+    @Input NodeInputList<VirtualObjectNode> virtualObjects = new NodeInputList<>(this);
+    @Input NodeInputList<ValueNode> values = new NodeInputList<>(this);
+    @Input(InputType.Association) NodeInputList<MonitorIdNode> locks = new NodeInputList<>(this);
     private ArrayList<Integer> lockIndexes = new ArrayList<>(Arrays.asList(0));
 
-    public CommitAllocationNode() {
+    public static CommitAllocationNode create() {
+        return USE_GENERATED_NODES ? new CommitAllocationNodeGen() : new CommitAllocationNode();
+    }
+
+    CommitAllocationNode() {
         super(StampFactory.forVoid());
     }
 
@@ -102,7 +106,7 @@ public final class CommitAllocationNode extends FixedWithNextNode implements Vir
         for (int objIndex = 0; objIndex < virtualObjects.size(); objIndex++) {
             VirtualObjectNode virtual = virtualObjects.get(objIndex);
             StringBuilder s = new StringBuilder();
-            s.append(MetaUtil.toJavaName(virtual.type(), false)).append("[");
+            s.append(virtual.type().toJavaName(false)).append("[");
             for (int i = 0; i < virtual.entryCount(); i++) {
                 ValueNode value = values.get(valuePos++);
                 s.append(i == 0 ? "" : ",").append(value == null ? "_" : value.toString(Verbosity.Id));

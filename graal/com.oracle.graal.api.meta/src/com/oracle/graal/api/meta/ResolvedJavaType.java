@@ -141,6 +141,14 @@ public interface ResolvedJavaType extends JavaType, ModifiersProvider {
     boolean isAssignableFrom(ResolvedJavaType other);
 
     /**
+     * Returns true if this type is exactly the type {@link java.lang.Object}.
+     */
+    default boolean isJavaLangObject() {
+        // Removed assertion due to https://bugs.eclipse.org/bugs/show_bug.cgi?id=434442
+        return getSuperclass() == null && !isInterface() && getKind() == Kind.Object;
+    }
+
+    /**
      * Checks whether the specified object is an instance of this type.
      *
      * @param obj the object to test
@@ -157,9 +165,9 @@ public interface ResolvedJavaType extends JavaType, ModifiersProvider {
     ResolvedJavaType asExactType();
 
     /**
-     * Gets the super class of this type. If this type represents either the {@code Object} class, a
-     * primitive type, or void, then null is returned. If this object represents an array class or
-     * an interface then the type object representing the {@code Object} class is returned.
+     * Gets the super class of this type. If this type represents either the {@code Object} class,
+     * an interface, a primitive type, or void, then null is returned. If this object represents an
+     * array class then the type object representing the {@code Object} class is returned.
      */
     ResolvedJavaType getSuperclass();
 
@@ -183,8 +191,8 @@ public interface ResolvedJavaType extends JavaType, ModifiersProvider {
      * Attempts to get a unique concrete subclass of this type.
      * <p>
      * For an {@linkplain #isArray() array} type A, the unique concrete subclass is A if the
-     * {@linkplain MetaUtil#getElementalType(ResolvedJavaType) elemental} type of A is final (which
-     * includes primitive types). Otherwise {@code null} is returned for A.
+     * {@linkplain #getElementalType() elemental} type of A is final (which includes primitive
+     * types). Otherwise {@code null} is returned for A.
      * <p>
      * For a non-array type T, the result is the unique concrete type in the current hierarchy of T.
      * <p>
@@ -201,6 +209,14 @@ public interface ResolvedJavaType extends JavaType, ModifiersProvider {
     ResolvedJavaType findUniqueConcreteSubtype();
 
     ResolvedJavaType getComponentType();
+
+    default ResolvedJavaType getElementalType() {
+        ResolvedJavaType t = this;
+        while (t.isArray()) {
+            t = t.getComponentType();
+        }
+        return t;
+    }
 
     ResolvedJavaType getArrayClass();
 
@@ -320,4 +336,10 @@ public interface ResolvedJavaType extends JavaType, ModifiersProvider {
      * method is similar to {@link Array#newInstance(Class, int)}.
      */
     Constant newArray(int length);
+
+    /**
+     * Returns true if this type represents and interface and it should be trusted even in places
+     * where the JVM verifier would not give any guarantees other than {@link Object}.
+     */
+    boolean isTrustedInterfaceType();
 }

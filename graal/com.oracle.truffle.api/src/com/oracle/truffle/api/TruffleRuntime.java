@@ -24,6 +24,8 @@
  */
 package com.oracle.truffle.api;
 
+import java.util.*;
+
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -57,6 +59,11 @@ public interface TruffleRuntime {
      * @return the new call node
      */
     DirectCallNode createDirectCallNode(CallTarget target);
+
+    /**
+     * Experimental API. May change without notice.
+     */
+    LoopNode createLoopNode(RepeatingNode body);
 
     /**
      * Creates a new runtime specific version of {@link IndirectCallNode}.
@@ -109,14 +116,37 @@ public interface TruffleRuntime {
      * {@link CallTarget}s. Iteration starts at the caller frame, i.e., it does not include the
      * current frame.
      *
-     * @return a lazy collection of {@link FrameInstance}.
+     * Iteration continues as long as {@link FrameInstanceVisitor#visitFrame}, which is invoked for
+     * every {@link FrameInstance}, returns null. Any non-null result of the visitor indicates that
+     * frame iteration should stop.
+     *
+     * @param visitor the visitor that is called for every matching frame.
+     * @return the last result returned by the visitor (which is non-null to indicate that iteration
+     *         should stop), or null if the whole stack was iterated.
      */
-    Iterable<FrameInstance> getStackTrace();
+    <T> T iterateFrames(FrameInstanceVisitor<T> visitor);
+
+    /**
+     * Accesses the caller frame. This is a convenience method that returns the first frame that is
+     * passed to the visitor of {@link #iterateFrames}.
+     */
+    FrameInstance getCallerFrame();
 
     /**
      * Accesses the current frame, i.e., the frame of the closest {@link CallTarget}. It is
      * important to note that this {@link FrameInstance} supports only slow path access.
      */
     FrameInstance getCurrentFrame();
+
+    /**
+     * Returns a list of all still referenced {@link RootCallTarget} instances that were created
+     * using {@link #createCallTarget(RootNode)}.
+     */
+    Collection<RootCallTarget> getCallTargets();
+
+    /**
+     * Internal API method. Do not use.
+     */
+    void notifyTransferToInterpreter();
 
 }

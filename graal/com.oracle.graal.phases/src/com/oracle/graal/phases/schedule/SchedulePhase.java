@@ -24,8 +24,7 @@ package com.oracle.graal.phases.schedule;
 
 import static com.oracle.graal.api.meta.LocationIdentity.*;
 import static com.oracle.graal.compiler.common.GraalOptions.*;
-import static com.oracle.graal.nodes.cfg.ControlFlowGraph.*;
-import static com.oracle.graal.compiler.common.cfg.AbstractBlock.*;
+import static com.oracle.graal.compiler.common.cfg.AbstractControlFlowGraph.*;
 
 import java.util.*;
 
@@ -34,7 +33,7 @@ import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.cfg.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.graph.Node.Verbosity;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.cfg.*;
 import com.oracle.graal.nodes.extended.*;
@@ -626,10 +625,8 @@ public final class SchedulePhase extends Phase {
             cdbc.apply(cfg.getNodeToBlock().get(succ));
         }
         ensureScheduledUsages(node, strategy);
-        if (node.recordsUsages()) {
-            for (Node usage : node.usages()) {
-                blocksForUsage(node, usage, cdbc, strategy);
-            }
+        for (Node usage : node.usages()) {
+            blocksForUsage(node, usage, cdbc, strategy);
         }
 
         if (assertionEnabled()) {
@@ -654,7 +651,7 @@ public final class SchedulePhase extends Phase {
 
         @Override
         public void apply(Block newBlock) {
-            this.block = commonDominator(this.block, newBlock);
+            this.block = commonDominatorTyped(this.block, newBlock);
         }
     }
 
@@ -821,10 +818,8 @@ public final class SchedulePhase extends Phase {
     }
 
     private void ensureScheduledUsages(Node node, SchedulingStrategy strategy) {
-        if (node.recordsUsages()) {
-            for (Node usage : node.usages().filter(ScheduledNode.class)) {
-                assignBlockToNode((ScheduledNode) usage, strategy);
-            }
+        for (Node usage : node.usages().filter(ScheduledNode.class)) {
+            assignBlockToNode((ScheduledNode) usage, strategy);
         }
         // now true usages are ready
     }
@@ -1050,7 +1045,7 @@ public final class SchedulePhase extends Phase {
             LocationIdentity readLocation = frn.location().getLocationIdentity();
             assert readLocation != FINAL_LOCATION;
             if (frn.getLastLocationAccess() == node) {
-                assert identity == ANY_LOCATION || readLocation == identity : "location doesn't match: " + readLocation + ", " + identity;
+                assert identity == ANY_LOCATION || readLocation == identity || node instanceof MemoryCheckpoint.Multi : "location doesn't match: " + readLocation + ", " + identity;
                 state.clearBeforeLastLocation(frn);
             } else if (!state.isBeforeLastLocation(frn) && (readLocation == identity || (node != getCFG().graph.start() && ANY_LOCATION == identity))) {
                 state.removeRead(frn);
@@ -1150,16 +1145,14 @@ public final class SchedulePhase extends Phase {
             }
 
             visited.mark(instruction);
-            if (instruction.recordsUsages()) {
-                for (Node usage : instruction.usages()) {
-                    if (usage instanceof VirtualState) {
-                        // only fixed nodes can have VirtualState -> no need to schedule them
+            for (Node usage : instruction.usages()) {
+                if (usage instanceof VirtualState) {
+                    // only fixed nodes can have VirtualState -> no need to schedule them
+                } else {
+                    if (instruction instanceof LoopExitNode && usage instanceof ProxyNode) {
+                        // value proxies should be scheduled before the loopexit, not after
                     } else {
-                        if (instruction instanceof LoopExitNode && usage instanceof ProxyNode) {
-                            // value proxies should be scheduled before the loopexit, not after
-                        } else {
-                            addToEarliestSorting(b, (ScheduledNode) usage, sortedInstructions, visited);
-                        }
+                        addToEarliestSorting(b, (ScheduledNode) usage, sortedInstructions, visited);
                     }
                 }
             }

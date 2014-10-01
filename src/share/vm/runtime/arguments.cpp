@@ -1448,7 +1448,10 @@ void Arguments::set_use_compressed_oops() {
   // the only value that can override MaxHeapSize if we are
   // to use UseCompressedOops is InitialHeapSize.
   size_t max_heap_size = MAX2(MaxHeapSize, InitialHeapSize);
-
+  // Set default on graal with sparc to not use compressed oops as long they are not implemented
+#if defined(GRAAL) && defined(TARGET_ARCH_sparc)
+  FLAG_SET_DEFAULT(UseCompressedOops, false);
+#else // if !(GRAAL && SOLARIS)
   if (max_heap_size <= max_heap_for_compressed_oops()) {
 #if !defined(COMPILER1) || defined(TIERED)
     if (FLAG_IS_DEFAULT(UseCompressedOops)) {
@@ -1473,6 +1476,7 @@ void Arguments::set_use_compressed_oops() {
   }
 #endif // _LP64
 #endif // ZERO
+#endif // !(GRAAL && SOLARIS)
 }
 
 
@@ -3247,6 +3251,15 @@ jint Arguments::parse_each_vm_init_arg(const JavaVMInitArgs* args,
 jint Arguments::finalize_vm_init_args(SysClassPath* scp_p, bool scp_assembly_required) {
   // This must be done after all -D arguments have been processed.
   scp_p->expand_endorsed();
+
+#ifdef GRAAL
+  if (!UseGraalClassLoader) {
+    // Append graal.jar to boot class path
+    const char* home = Arguments::get_java_home();
+    scp_p->add_suffix(os::format_boot_path("%/lib/graal.jar:%/lib/graal-truffle.jar", home, (int)strlen(home), os::file_separator()[0], os::path_separator()[0]));
+    scp_assembly_required = true;
+  }
+#endif
 
   if (scp_assembly_required || scp_p->get_endorsed() != NULL) {
     // Assemble the bootclasspath elements into the final path.

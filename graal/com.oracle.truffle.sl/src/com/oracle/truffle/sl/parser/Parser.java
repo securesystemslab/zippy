@@ -133,8 +133,10 @@ public class Parser {
 	void Function() {
 		Expect(4);
 		Expect(1);
-		factory.startFunction(t);
+		Token identifierToken = t;
 		Expect(5);
+		int bodyStartPos = t.charPos;
+		factory.startFunction(identifierToken, bodyStartPos);
 		if (la.kind == 1) {
 			Get();
 			factory.addFormalParameter(t);
@@ -154,12 +156,14 @@ public class Parser {
 		factory.startBlock();
 		List<SLStatementNode> body = new ArrayList<>();
 		Expect(8);
+		int start = t.charPos;
 		while (StartOf(1)) {
 			SLStatementNode s = Statement(inLoop);
 			body.add(s);
 		}
 		Expect(9);
-		result = factory.finishBlock(body);
+		int length = (t.charPos + t.val.length()) - start;
+		result = factory.finishBlock(body, start, length);
 		return result;
 	}
 
@@ -204,8 +208,8 @@ public class Parser {
 	SLStatementNode  WhileStatement() {
 		SLStatementNode  result;
 		Expect(13);
-		Expect(5);
 		Token whileToken = t;
+		Expect(5);
 		SLExpressionNode condition = Expression();
 		Expect(7);
 		SLStatementNode body = Block(true);
@@ -216,8 +220,8 @@ public class Parser {
 	SLStatementNode  IfStatement(boolean inLoop) {
 		SLStatementNode  result;
 		Expect(14);
-		Expect(5);
 		Token ifToken = t;
+		Expect(5);
 		SLExpressionNode condition = Expression();
 		Expect(7);
 		SLStatementNode thenPart = Block(inLoop);
@@ -355,8 +359,9 @@ public class Parser {
 						parameters.add(parameter);
 					}
 				}
-				result = factory.createCall(nameToken, parameters);
 				Expect(7);
+				Token finalToken = t;
+				result = factory.createCall(nameToken, parameters, finalToken);
 			} else if (la.kind == 29) {
 				Get();
 				SLExpressionNode value = Expression();
@@ -372,8 +377,12 @@ public class Parser {
 			result = factory.createNumericLiteral(t);
 		} else if (la.kind == 5) {
 			Get();
+			int start = t.charPos;
 			result = Expression();
+			SLExpressionNode expr = result;
 			Expect(7);
+			int length = (t.charPos + t.val.length()) - start;
+			result = factory.createParenExpression(expr, start, length);
 		} else SynErr(33);
 		return result;
 	}

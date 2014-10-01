@@ -25,6 +25,7 @@ package com.oracle.truffle.sl.nodes.controlflow;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.source.*;
 import com.oracle.truffle.api.utilities.*;
 import com.oracle.truffle.sl.nodes.*;
 
@@ -45,14 +46,16 @@ public final class SLIfNode extends SLStatementNode {
     @Child private SLStatementNode elsePartNode;
 
     /**
-     * Profiling information, collected by the interpreter, capturing whether the then-branch was
-     * used (analogously for the {@link #elseTaken else-branch}). This allows the compiler to
-     * generate better code for conditions that are always true or always false.
+     * Profiling information, collected by the interpreter, capturing the profiling information of
+     * the condition. This allows the compiler to generate better code for conditions that are
+     * always true or always false. Additionally the {@link CountingConditionProfile} implementation
+     * (as opposed to {@link BinaryConditionProfile} implementation) transmits the probability of
+     * the condition to be true to the compiler.
      */
-    private final BranchProfile thenTaken = new BranchProfile();
-    private final BranchProfile elseTaken = new BranchProfile();
+    private final ConditionProfile condition = ConditionProfile.createCountingProfile();
 
-    public SLIfNode(SLExpressionNode conditionNode, SLStatementNode thenPartNode, SLStatementNode elsePartNode) {
+    public SLIfNode(SourceSection src, SLExpressionNode conditionNode, SLStatementNode thenPartNode, SLStatementNode elsePartNode) {
+        super(src);
         this.conditionNode = conditionNode;
         this.thenPartNode = thenPartNode;
         this.elsePartNode = elsePartNode;
@@ -60,14 +63,14 @@ public final class SLIfNode extends SLStatementNode {
 
     @Override
     public void executeVoid(VirtualFrame frame) {
-        if (evaluateCondition(frame)) {
-            /* In the interpreter, record profiling information that the then-branch was used. */
-            thenTaken.enter();
+        /*
+         * In the interpreter, record profiling information that the condition was executed and with
+         * which outcome.
+         */
+        if (condition.profile(evaluateCondition(frame))) {
             /* Execute the then-branch. */
             thenPartNode.executeVoid(frame);
         } else {
-            /* In the interpreter, record profiling information that the else-branch was used. */
-            elseTaken.enter();
             /* Execute the else-branch (which is optional according to the SL syntax). */
             if (elsePartNode != null) {
                 elsePartNode.executeVoid(frame);

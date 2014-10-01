@@ -86,12 +86,15 @@ private:
   void pd_relocate_JavaMethod(oop method, jint pc_offset);
   void pd_relocate_poll(address pc, jint mark);
 
+
 public:
 
   CodeInstaller() {};
   GraalEnv::CodeInstallResult install(Handle& compiled_code, CodeBlob*& cb, Handle installed_code, Handle speculation_log);
 
   static address runtime_call_target_address(oop runtime_call);
+  static VMReg get_hotspot_reg(jint graalRegisterNumber);
+  static bool is_general_purpose_reg(VMReg hotspotRegister);
 
 protected:
 
@@ -115,6 +118,7 @@ private:
   void assumption_CallSiteTargetValue(Handle assumption);
 
   void site_Safepoint(CodeBuffer& buffer, jint pc_offset, oop site);
+  void site_Infopoint(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_Call(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_DataPatch(CodeBuffer& buffer, jint pc_offset, oop site);
   void site_Mark(CodeBuffer& buffer, jint pc_offset, oop site);
@@ -129,5 +133,7 @@ private:
  * Gets the Method metaspace object from a HotSpotResolvedJavaMethod Java object.
  */
 Method* getMethodFromHotSpotMethod(oop hotspot_method);
+
+
 
 #endif // SHARE_VM_GRAAL_GRAAL_CODE_INSTALLER_HPP

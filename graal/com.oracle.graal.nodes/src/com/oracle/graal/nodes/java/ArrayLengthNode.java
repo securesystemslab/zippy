@@ -25,6 +25,7 @@ package com.oracle.graal.nodes.java;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.util.*;
@@ -32,9 +33,10 @@ import com.oracle.graal.nodes.util.*;
 /**
  * The {@code ArrayLength} instruction gets the length of an array.
  */
-public final class ArrayLengthNode extends FixedWithNextNode implements Canonicalizable.Unary<ValueNode>, Lowerable, Virtualizable {
+@NodeInfo
+public class ArrayLengthNode extends FixedWithNextNode implements Canonicalizable.Unary<ValueNode>, Lowerable, Virtualizable {
 
-    @Input private ValueNode array;
+    @Input ValueNode array;
 
     public ValueNode array() {
         return array;
@@ -44,7 +46,11 @@ public final class ArrayLengthNode extends FixedWithNextNode implements Canonica
         return array;
     }
 
-    public ArrayLengthNode(ValueNode array) {
+    public static ArrayLengthNode create(ValueNode array) {
+        return USE_GENERATED_NODES ? new ArrayLengthNodeGen(array) : new ArrayLengthNode(array);
+    }
+
+    ArrayLengthNode(ValueNode array) {
         super(StampFactory.positiveInt());
         this.array = array;
     }
@@ -58,32 +64,42 @@ public final class ArrayLengthNode extends FixedWithNextNode implements Canonica
     }
 
     /**
+     * Replicate the {@link ValueProxyNode}s from {@code originalValue} onto {@code value}.
+     *
+     * @param originalValue a possibly proxied value
+     * @param value a value needing proxies
+     * @return proxies wrapping {@code value}
+     */
+    private static ValueNode reproxyValue(ValueNode originalValue, ValueNode value) {
+        if (value.isConstant()) {
+            // No proxy needed
+            return value;
+        }
+        if (originalValue instanceof ValueProxyNode) {
+            ValueProxyNode proxy = (ValueProxyNode) originalValue;
+            return ValueProxyNode.create(reproxyValue(proxy.getOriginalNode(), value), proxy.proxyPoint());
+        } else if (originalValue instanceof ValueProxy) {
+            ValueProxy proxy = (ValueProxy) originalValue;
+            return reproxyValue(proxy.getOriginalNode(), value);
+        } else {
+            return value;
+        }
+    }
+
+    /**
      * Gets the length of an array if possible.
      *
      * @return a node representing the length of {@code array} or null if it is not available
      */
     public static ValueNode readArrayLength(ValueNode originalArray, ConstantReflectionProvider constantReflection) {
-        ArrayLengthProvider foundArrayLengthProvider = null;
-        ValueNode result = originalArray;
-        while (true) {
-            if (result instanceof ArrayLengthProvider) {
-                foundArrayLengthProvider = (ArrayLengthProvider) result;
-                break;
-            }
-            if (result instanceof ValueProxy) {
-                result = ((ValueProxy) result).getOriginalNode();
-            } else {
-                break;
-            }
-        }
-
-        if (foundArrayLengthProvider != null) {
-            ValueNode length = foundArrayLengthProvider.length();
-            if (length != null) {
-                return length;
-            }
-        }
         ValueNode array = GraphUtil.unproxify(originalArray);
+        if (array instanceof ArrayLengthProvider) {
+            ValueNode length = ((ArrayLengthProvider) array).length();
+            if (length != null) {
+                // Ensure that any proxies on the original value end up on the length value
+                return reproxyValue(originalArray, length);
+            }
+        }
         if (constantReflection != null && array.isConstant() && !array.isNullConstant()) {
             Constant constantValue = array.asConstant();
             if (constantValue != null && constantValue.isNonNull()) {

@@ -35,7 +35,8 @@ import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.nodes.*;
 import com.oracle.graal.replacements.*;
-import com.oracle.graal.replacements.Snippet.*;
+import com.oracle.graal.replacements.Snippet.ConstantParameter;
+import com.oracle.graal.replacements.Snippet.Fold;
 import com.oracle.graal.word.*;
 
 /**
@@ -76,6 +77,8 @@ import com.oracle.graal.word.*;
  * allocation.</b>
  */
 public class UncommonTrapStub extends SnippetStub {
+
+    public static final LocationIdentity STACK_BANG_LOCATION = new NamedLocationIdentity("stack bang");
 
     private final TargetDescription target;
 
@@ -152,7 +155,7 @@ public class UncommonTrapStub extends SnippetStub {
         Word stackPointer = readRegister(stackPointerRegister);
 
         for (int i = 1; i < bangPages; i++) {
-            stackPointer.writeInt((-i * pageSize()) + stackBias(), 0);
+            stackPointer.writeInt((-i * pageSize()) + stackBias(), 0, STACK_BANG_LOCATION);
         }
 
         // Load number of interpreter frames.

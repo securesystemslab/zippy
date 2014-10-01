@@ -25,6 +25,7 @@ package com.oracle.graal.nodes.java;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
@@ -32,6 +33,7 @@ import com.oracle.graal.nodes.spi.*;
 /**
  * The {@code InstanceOfNode} represents an instanceof test.
  */
+@NodeInfo
 public class InstanceOfNode extends UnaryOpLogicNode implements Lowerable, Virtualizable {
 
     private final ResolvedJavaType type;
@@ -43,7 +45,11 @@ public class InstanceOfNode extends UnaryOpLogicNode implements Lowerable, Virtu
      * @param type the target type of the instanceof check
      * @param object the object being tested by the instanceof
      */
-    public InstanceOfNode(ResolvedJavaType type, ValueNode object, JavaTypeProfile profile) {
+    public static InstanceOfNode create(ResolvedJavaType type, ValueNode object, JavaTypeProfile profile) {
+        return USE_GENERATED_NODES ? new InstanceOfNodeGen(type, object, profile) : new InstanceOfNode(type, object, profile);
+    }
+
+    protected InstanceOfNode(ResolvedJavaType type, ValueNode object, JavaTypeProfile profile) {
         super(object);
         this.type = type;
         this.profile = profile;
@@ -68,36 +74,54 @@ public class InstanceOfNode extends UnaryOpLogicNode implements Lowerable, Virtu
 
         ResolvedJavaType stampType = objectStamp.type();
         if (stampType != null) {
-            boolean subType = type().isAssignableFrom(stampType);
-            if (subType) {
-                if (objectStamp.nonNull()) {
-                    // the instanceOf matches, so return true
-                    return LogicConstantNode.tautology();
-                }
-            } else {
-                if (objectStamp.isExactType()) {
-                    // since this type check failed for an exact type we know that it can never
-                    // succeed at run time. we also don't care about null values, since they will
-                    // also make the check fail.
-                    return LogicConstantNode.contradiction();
-                } else {
-                    boolean superType = stampType.isAssignableFrom(type());
-                    if (!superType && !stampType.isInterface() && !type().isInterface()) {
-                        return LogicConstantNode.contradiction();
-                    }
-                    // since the subtype comparison was only performed on a declared type we don't
-                    // really know if it might be true at run time...
-                }
+            ValueNode result = checkInstanceOf(forValue, stampType, objectStamp.nonNull(), objectStamp.isExactType());
+            if (result != null) {
+                return result;
             }
-        }
-        if (stampType != null && type().isAssignableFrom(stampType)) {
-            if (!objectStamp.nonNull()) {
-                // the instanceof matches if the object is non-null, so return true
-                // depending on the null-ness.
-                return new LogicNegationNode(new IsNullNode(forValue));
+            if (tool.assumptions() != null && tool.assumptions().useOptimisticAssumptions()) {
+                ResolvedJavaType exact = stampType.findUniqueConcreteSubtype();
+                if (exact != null) {
+                    result = checkInstanceOf(forValue, exact, objectStamp.nonNull(), true);
+                    if (result != null) {
+                        tool.assumptions().recordConcreteSubtype(stampType, exact);
+                        return result;
+                    }
+                }
             }
         }
         return this;
+    }
+
+    private ValueNode checkInstanceOf(ValueNode forValue, ResolvedJavaType inputType, boolean nonNull, boolean exactType) {
+        boolean subType = type().isAssignableFrom(inputType);
+        if (subType) {
+            if (nonNull) {
+                // the instanceOf matches, so return true
+                return LogicConstantNode.tautology();
+            }
+        } else {
+            if (exactType) {
+                // since this type check failed for an exact type we know that it can never
+                // succeed at run time. we also don't care about null values, since they will
+                // also make the check fail.
+                return LogicConstantNode.contradiction();
+            } else {
+                boolean superType = inputType.isAssignableFrom(type());
+                if (!superType && !inputType.isInterface() && !type().isInterface()) {
+                    return LogicConstantNode.contradiction();
+                }
+                // since the subtype comparison was only performed on a declared type we don't
+                // really know if it might be true at run time...
+            }
+        }
+        if (type().isAssignableFrom(inputType)) {
+            if (!nonNull) {
+                // the instanceof matches if the object is non-null, so return true
+                // depending on the null-ness.
+                return LogicNegationNode.create(IsNullNode.create(forValue));
+            }
+        }
+        return null;
     }
 
     /**

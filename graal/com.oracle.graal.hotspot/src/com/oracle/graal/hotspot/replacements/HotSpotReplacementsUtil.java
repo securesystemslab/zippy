@@ -26,7 +26,6 @@ import static com.oracle.graal.compiler.common.UnsafeAccess.*;
 import static com.oracle.graal.hotspot.HotSpotGraalRuntime.*;
 import static com.oracle.graal.hotspot.meta.HotSpotForeignCallsProviderImpl.*;
 import static com.oracle.graal.nodes.extended.BranchProbabilityNode.*;
-import sun.misc.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
@@ -260,7 +259,7 @@ public class HotSpotReplacementsUtil {
 
     @Fold
     public static int pageSize() {
-        return Unsafe.getUnsafe().pageSize();
+        return unsafe.pageSize();
     }
 
     @Fold
@@ -586,21 +585,26 @@ public class HotSpotReplacementsUtil {
     public static final LocationIdentity CLASS_STATE_LOCATION = new NamedLocationIdentity("ClassState");
 
     @Fold
-    public static int klassStateOffset() {
-        return config().klassStateOffset;
+    public static int instanceKlassInitStateOffset() {
+        return config().instanceKlassInitStateOffset;
     }
 
     @Fold
-    public static int klassStateFullyInitialized() {
-        return config().klassStateFullyInitialized;
+    public static int instanceKlassStateFullyInitialized() {
+        return config().instanceKlassStateFullyInitialized;
     }
 
-    public static boolean isKlassFullyInitialized(Word hub) {
-        return readKlassState(hub) == klassStateFullyInitialized();
+    /**
+     *
+     * @param hub the hub of an InstanceKlass
+     * @return true is the InstanceKlass represented by hub is fully initialized
+     */
+    public static boolean isInstanceKlassFullyInitialized(Word hub) {
+        return readInstanceKlassState(hub) == instanceKlassStateFullyInitialized();
     }
 
-    public static byte readKlassState(Word hub) {
-        return hub.readByte(klassStateOffset(), CLASS_STATE_LOCATION);
+    private static byte readInstanceKlassState(Word hub) {
+        return hub.readByte(instanceKlassInitStateOffset(), CLASS_STATE_LOCATION);
     }
 
     @Fold
@@ -621,8 +625,8 @@ public class HotSpotReplacementsUtil {
     public static final LocationIdentity KLASS_NODE_CLASS = new NamedLocationIdentity("KlassNodeClass");
 
     @Fold
-    public static int klassNodeClassOffset() {
-        return config().klassNodeClassOffset;
+    public static int instanceKlassNodeClassOffset() {
+        return config().instanceKlassNodeClassOffset;
     }
 
     @Fold

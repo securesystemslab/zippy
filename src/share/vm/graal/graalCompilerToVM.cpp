@@ -234,11 +234,13 @@ C2V_VMENTRY(jlong, lookupType, (JNIEnv*, jobject, jstring jname, jclass accessin
   Klass* resolved_klass = NULL;
   Handle class_loader;
   Handle protection_domain;
-  if (JNIHandles::resolve(accessing_class) != NULL) {
-    Klass* accessing_klass = java_lang_Class::as_Klass(JNIHandles::resolve(accessing_class));
-    class_loader = accessing_klass->class_loader();
-    protection_domain = accessing_klass->protection_domain();
+  if (JNIHandles::resolve(accessing_class) == NULL) {
+    THROW_(vmSymbols::java_lang_NullPointerException(), 0L);
   }
+  Klass* accessing_klass = java_lang_Class::as_Klass(JNIHandles::resolve(accessing_class));
+  class_loader = accessing_klass->class_loader();
+  protection_domain = accessing_klass->protection_domain();
+
 
   if (resolve) {
     resolved_klass = SystemDictionary::resolve_or_fail(class_name, class_loader, protection_domain, true, THREAD);
@@ -587,7 +589,23 @@ C2V_VMENTRY(jobject, executeCompiledMethodVarargs, (JNIEnv*, jobject, jobject ar
   } else if (jap.get_ret_type() == T_OBJECT || jap.get_ret_type() == T_ARRAY) {
     return JNIHandles::make_local((oop) result.get_jobject());
   } else {
-    oop o = java_lang_boxing_object::create(jap.get_ret_type(), (jvalue *) result.get_value_addr(), CHECK_NULL);
+    jvalue *value = (jvalue *) result.get_value_addr();
+    // Narrow the value down if required (Important on big endian machines)
+    switch (jap.get_ret_type()) {
+      case T_BOOLEAN:
+       value->z = (jboolean) value->i;
+       break;
+      case T_BYTE:
+       value->b = (jbyte) value->i;
+       break;
+      case T_CHAR:
+       value->c = (jchar) value->i;
+       break;
+      case T_SHORT:
+       value->s = (jshort) value->i;
+       break;
+     }
+    oop o = java_lang_boxing_object::create(jap.get_ret_type(), value, CHECK_NULL);
     return JNIHandles::make_local(o);
   }
 C2V_END
@@ -981,6 +999,14 @@ C2V_VMENTRY(void, materializeVirtualObjects, (JNIEnv*, jobject, jobject hs_frame
   }
 C2V_END
 
+C2V_VMENTRY(void, writeDebugOutput, (JNIEnv*, jobject, jbyteArray bytes, jint offset, jint length))
+  while (length > 0) {
+    jbyte* start = ((typeArrayOop) JNIHandles::resolve(bytes))->byte_at_addr(offset);
+    tty->write((char*) start, MIN2(length, O_BUFLEN));
+    length -= O_BUFLEN;
+    offset += O_BUFLEN;
+  }
+C2V_END
 
 
 #define CC (char*)  /*cast a literal from (const char*)*/
@@ -1061,6 +1087,7 @@ JNINativeMethod CompilerToVM_methods[] = {
   {CC"getNextStackFrame",                            CC"("HS_STACK_FRAME_REF "[JI)"HS_STACK_FRAME_REF,                         FN_PTR(getNextStackFrame)},
   {CC"materializeVirtualObjects",                    CC"("HS_STACK_FRAME_REF"Z)V",                                             FN_PTR(materializeVirtualObjects)},
   {CC"shouldDebugNonSafepoints",                     CC"()Z",                                                                  FN_PTR(shouldDebugNonSafepoints)},
+  {CC"writeDebugOutput",                             CC"([BII)V",                                                              FN_PTR(writeDebugOutput)},
 };
 
 int CompilerToVM_methods_count() {

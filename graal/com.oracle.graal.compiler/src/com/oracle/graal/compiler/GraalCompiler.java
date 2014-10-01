@@ -25,6 +25,7 @@ package com.oracle.graal.compiler;
 import static com.oracle.graal.compiler.GraalCompiler.Options.*;
 import static com.oracle.graal.compiler.MethodFilter.*;
 import static com.oracle.graal.compiler.common.GraalOptions.*;
+import static com.oracle.graal.phases.common.DeadCodeEliminationPhase.Optionality.*;
 
 import java.util.*;
 
@@ -41,6 +42,7 @@ import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.debug.internal.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
+import com.oracle.graal.lir.constopt.*;
 import com.oracle.graal.lir.gen.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.cfg.*;
@@ -166,7 +168,7 @@ public class GraalCompiler {
             HighTierContext highTierContext = new HighTierContext(providers, assumptions, cache, graphBuilderSuite, optimisticOpts);
             if (graph.start().next() == null) {
                 graphBuilderSuite.apply(graph, highTierContext);
-                new DeadCodeEliminationPhase().apply(graph);
+                new DeadCodeEliminationPhase(Optional).apply(graph);
             } else {
                 Debug.dump(graph, "initial state");
             }
@@ -256,9 +258,18 @@ public class GraalCompiler {
                 throw Debug.handle(e);
             }
 
+            if (ConstantLoadOptimization.Options.ConstantLoadOptimization.getValue()) {
+                try (Scope s = Debug.scope("ConstantLoadOptimization", lir)) {
+                    ConstantLoadOptimization.optimize(lirGenRes.getLIR(), lirGen);
+                    Debug.dump(lir, "After constant load optimization");
+                } catch (Throwable e) {
+                    throw Debug.handle(e);
+                }
+            }
+
             try (Scope s = Debug.scope("Allocator", nodeLirGen)) {
                 if (backend.shouldAllocateRegisters()) {
-                    new LinearScan(target, lir, frameMap).allocate();
+                    LinearScan.allocate(target, lir, frameMap);
                 }
             } catch (Throwable e) {
                 throw Debug.handle(e);

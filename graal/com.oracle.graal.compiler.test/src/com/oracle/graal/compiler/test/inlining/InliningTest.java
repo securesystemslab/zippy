@@ -23,6 +23,7 @@
 package com.oracle.graal.compiler.test.inlining;
 
 import static org.junit.Assert.*;
+
 import java.lang.reflect.*;
 
 import org.junit.*;
@@ -231,8 +232,8 @@ public class InliningTest extends GraalCompilerTest {
     private StructuredGraph getGraph(final String snippet, final boolean eagerInfopointMode) {
         try (Scope s = Debug.scope("InliningTest", new DebugDumpScope(snippet))) {
             Method method = getMethod(snippet);
-            StructuredGraph graph = eagerInfopointMode ? parseDebug(method) : parse(method);
-            PhaseSuite<HighTierContext> graphBuilderSuite = eagerInfopointMode ? getCustomGraphBuilderSuite(GraphBuilderConfiguration.getEagerInfopointDefault()) : getDefaultGraphBuilderSuite();
+            StructuredGraph graph = eagerInfopointMode ? parseDebug(method) : parseEager(method);
+            PhaseSuite<HighTierContext> graphBuilderSuite = eagerInfopointMode ? getCustomGraphBuilderSuite(GraphBuilderConfiguration.getFullDebugDefault()) : getDefaultGraphBuilderSuite();
             Assumptions assumptions = new Assumptions(true);
             HighTierContext context = new HighTierContext(getProviders(), assumptions, null, graphBuilderSuite, OptimisticOptimizations.ALL);
             Debug.dump(graph, "Graph");
@@ -277,10 +278,10 @@ public class InliningTest extends GraalCompilerTest {
     private static int[] countMethodInfopoints(StructuredGraph graph) {
         int start = 0;
         int end = 0;
-        for (InfopointNode ipn : graph.getNodes().filter(InfopointNode.class)) {
-            if (ipn.reason == InfopointReason.METHOD_START) {
+        for (FullInfopointNode ipn : graph.getNodes().filter(FullInfopointNode.class)) {
+            if (ipn.getReason() == InfopointReason.METHOD_START) {
                 ++start;
-            } else if (ipn.reason == InfopointReason.METHOD_END) {
+            } else if (ipn.getReason() == InfopointReason.METHOD_END) {
                 ++end;
             }
         }

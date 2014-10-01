@@ -23,6 +23,7 @@
 package com.oracle.graal.compiler.phases;
 
 import static com.oracle.graal.compiler.common.GraalOptions.*;
+import static com.oracle.graal.phases.common.DeadCodeEliminationPhase.Optionality.*;
 
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.options.*;
@@ -54,8 +55,15 @@ public class LowTier extends PhaseSuite<LowTierContext> {
 
         appendPhase(new ExpandLogicPhase());
 
+        /* Cleanup IsNull checks resulting from MID_TIER/LOW_TIER lowering and ExpandLogic phase. */
+        if (ConditionalElimination.getValue() && OptCanonicalizer.getValue()) {
+            appendPhase(new IterativeConditionalEliminationPhase(canonicalizer));
+            /* Canonicalizer may create some new ShortCircuitOrNodes so clean them up. */
+            appendPhase(new ExpandLogicPhase());
+        }
+
         appendPhase(new UseTrappingNullChecksPhase());
 
-        appendPhase(new DeadCodeEliminationPhase());
+        appendPhase(new DeadCodeEliminationPhase(Required));
     }
 }

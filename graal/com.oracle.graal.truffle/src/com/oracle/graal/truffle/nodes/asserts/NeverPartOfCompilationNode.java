@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,23 +22,34 @@
  */
 package com.oracle.graal.truffle.nodes.asserts;
 
+import com.oracle.graal.graph.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.replacements.nodes.*;
 
-public class NeverPartOfCompilationNode extends MacroNode implements com.oracle.graal.graph.IterableNodeType {
+@NodeInfo
+public class NeverPartOfCompilationNode extends MacroStateSplitNode implements IterableNodeType {
 
     private final String message;
 
-    public NeverPartOfCompilationNode(Invoke invoke) {
+    public static NeverPartOfCompilationNode create(Invoke invoke) {
+        return USE_GENERATED_NODES ? new NeverPartOfCompilationNodeGen(invoke) : new NeverPartOfCompilationNode(invoke);
+    }
+
+    protected NeverPartOfCompilationNode(Invoke invoke) {
         this(invoke, "This code path should never be part of a compilation.");
     }
 
-    public NeverPartOfCompilationNode(Invoke invoke, String message) {
+    public static NeverPartOfCompilationNode create(Invoke invoke, String message) {
+        return USE_GENERATED_NODES ? new NeverPartOfCompilationNodeGen(invoke, message) : new NeverPartOfCompilationNode(invoke, message);
+    }
+
+    protected NeverPartOfCompilationNode(Invoke invoke, String message) {
         super(invoke);
         this.message = message;
     }
 
     public final String getMessage() {
-        return message;
+        return message + " " + arguments.toString();
     }
 }

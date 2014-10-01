@@ -25,6 +25,7 @@ package com.oracle.graal.truffle.nodes.arithmetic;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
@@ -36,9 +37,14 @@ import com.oracle.truffle.api.*;
  * Node representing an exact integer substraction that will throw an {@link ArithmeticException} in
  * case the addition would overflow the 32 bit range.
  */
+@NodeInfo
 public class IntegerSubExactNode extends IntegerSubNode implements IntegerExactArithmeticNode {
 
-    public IntegerSubExactNode(ValueNode x, ValueNode y) {
+    public static IntegerSubExactNode create(ValueNode x, ValueNode y) {
+        return USE_GENERATED_NODES ? new IntegerSubExactNodeGen(x, y) : new IntegerSubExactNode(x, y);
+    }
+
+    protected IntegerSubExactNode(ValueNode x, ValueNode y) {
         super(x, y);
         assert x.stamp().isCompatible(y.stamp()) && x.stamp() instanceof IntegerStamp;
     }
@@ -55,19 +61,7 @@ public class IntegerSubExactNode extends IntegerSubNode implements IntegerExactA
             return ConstantNode.forIntegerStamp(stamp(), 0);
         }
         if (forX.isConstant() && forY.isConstant()) {
-            Constant xConst = forX.asConstant();
-            Constant yConst = forY.asConstant();
-            assert xConst.getKind() == yConst.getKind();
-            try {
-                if (xConst.getKind() == Kind.Int) {
-                    return ConstantNode.forInt(ExactMath.subtractExact(xConst.asInt(), yConst.asInt()));
-                } else {
-                    assert xConst.getKind() == Kind.Long;
-                    return ConstantNode.forLong(ExactMath.subtractExact(xConst.asLong(), yConst.asLong()));
-                }
-            } catch (ArithmeticException ex) {
-                // The operation will result in an overflow exception, so do not canonicalize.
-            }
+            return canonicalXYconstant(forX, forY);
         } else if (forY.isConstant()) {
             long c = forY.asConstant().asLong();
             if (c == 0) {
@@ -77,9 +71,26 @@ public class IntegerSubExactNode extends IntegerSubNode implements IntegerExactA
         return this;
     }
 
+    private ValueNode canonicalXYconstant(ValueNode forX, ValueNode forY) {
+        Constant xConst = forX.asConstant();
+        Constant yConst = forY.asConstant();
+        assert xConst.getKind() == yConst.getKind();
+        try {
+            if (xConst.getKind() == Kind.Int) {
+                return ConstantNode.forInt(ExactMath.subtractExact(xConst.asInt(), yConst.asInt()));
+            } else {
+                assert xConst.getKind() == Kind.Long;
+                return ConstantNode.forLong(ExactMath.subtractExact(xConst.asLong(), yConst.asLong()));
+            }
+        } catch (ArithmeticException ex) {
+            // The operation will result in an overflow exception, so do not canonicalize.
+        }
+        return this;
+    }
+
     @Override
     public IntegerExactArithmeticSplitNode createSplit(BeginNode next, BeginNode deopt) {
-        return graph().add(new IntegerSubExactSplitNode(stamp(), getX(), getY(), next, deopt));
+        return graph().add(IntegerSubExactSplitNode.create(stamp(), getX(), getY(), next, deopt));
     }
 
     @Override

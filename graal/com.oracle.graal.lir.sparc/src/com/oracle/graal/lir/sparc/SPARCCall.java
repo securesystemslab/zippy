@@ -34,6 +34,7 @@ import com.oracle.graal.asm.sparc.SPARCAssembler.Jmpl;
 import com.oracle.graal.asm.sparc.SPARCMacroAssembler.Jmp;
 import com.oracle.graal.asm.sparc.SPARCMacroAssembler.Nop;
 import com.oracle.graal.asm.sparc.SPARCMacroAssembler.Sethix;
+import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.lir.*;
 import com.oracle.graal.lir.asm.*;
 
@@ -72,15 +73,46 @@ public class SPARCCall {
     }
 
     @Opcode("CALL_DIRECT")
-    public static class DirectCallOp extends MethodCallOp {
+    public static class DirectCallOp extends MethodCallOp implements DelaySlotHolder {
+        private boolean emitted = false;
+        private int before = -1;
 
         public DirectCallOp(ResolvedJavaMethod callTarget, Value result, Value[] parameters, Value[] temps, LIRFrameState state) {
             super(callTarget, result, parameters, temps, state);
         }
 
         @Override
-        public void emitCode(CompilationResultBuilder crb, SPARCMacroAssembler masm) {
-            directCall(crb, masm, callTarget, null, true, state);
+        public final void emitCode(CompilationResultBuilder crb, SPARCMacroAssembler masm) {
+            if (!emitted) {
+                emitCallPrefixCode(crb, masm);
+                directCall(crb, masm, callTarget, null, true, state);
+            } else {
+                int after = masm.position();
+                if (after - before == 4) {
+                    new Nop().emit(masm);
+                } else if (after - before == 8) {
+                    // everything is fine;
+                } else {
+                    GraalInternalError.shouldNotReachHere("" + (after - before));
+                }
+                after = masm.position();
+                crb.recordDirectCall(before, after, callTarget, state);
+                crb.recordExceptionHandlers(after, state);
+                masm.ensureUniquePC();
+            }
+        }
+
+        @SuppressWarnings("unused")
+        public void emitCallPrefixCode(CompilationResultBuilder crb, SPARCMacroAssembler masm) {
+            //
+        }
+
+        public void emitForDelay(CompilationResultBuilder crb, SPARCMacroAssembler masm) {
+            assert !emitted;
+            emitCallPrefixCode(crb, masm);
+            before = masm.position();
+            new Call(0).emit(masm);
+            emitted = true;
         }
     }
 
@@ -160,10 +192,10 @@ public class SPARCCall {
         } else {
             new Call(0).emit(masm);
         }
+        new Nop().emit(masm);  // delay slot
         int after = masm.position();
         crb.recordDirectCall(before, after, callTarget, info);
         crb.recordExceptionHandlers(after, info);
-        new Nop().emit(masm);  // delay slot
         masm.ensureUniquePC();
     }
 
@@ -171,19 +203,19 @@ public class SPARCCall {
         int before = masm.position();
         new Sethix(0L, dst, true).emit(masm);
         new Jmp(new SPARCAddress(dst, 0)).emit(masm);
+        new Nop().emit(masm);  // delay slot
         int after = masm.position();
         crb.recordIndirectCall(before, after, target, null);
-        new Nop().emit(masm);  // delay slot
         masm.ensureUniquePC();
     }
 
     public static void indirectCall(CompilationResultBuilder crb, SPARCMacroAssembler masm, Register dst, InvokeTarget callTarget, LIRFrameState info) {
         int before = masm.position();
         new Jmpl(dst, 0, o7).emit(masm);
+        new Nop().emit(masm);  // delay slot
         int after = masm.position();
         crb.recordIndirectCall(before, after, callTarget, info);
         crb.recordExceptionHandlers(after, info);
-        new Nop().emit(masm);  // delay slot
         masm.ensureUniquePC();
     }
 }

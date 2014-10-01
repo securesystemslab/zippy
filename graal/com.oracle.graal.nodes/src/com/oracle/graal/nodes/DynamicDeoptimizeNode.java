@@ -25,13 +25,19 @@ package com.oracle.graal.nodes;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.spi.*;
 
-public class DynamicDeoptimizeNode extends AbstractDeoptimizeNode implements LIRLowerable, Canonicalizable {
-    @Input private ValueNode actionAndReason;
-    @Input private ValueNode speculation;
+@NodeInfo
+public class DynamicDeoptimizeNode extends AbstractDeoptimizeNode implements LIRLowerable, Lowerable, Canonicalizable {
+    @Input ValueNode actionAndReason;
+    @Input ValueNode speculation;
 
-    public DynamicDeoptimizeNode(ValueNode actionAndReason, ValueNode speculation) {
+    public static DynamicDeoptimizeNode create(ValueNode actionAndReason, ValueNode speculation) {
+        return USE_GENERATED_NODES ? new DynamicDeoptimizeNodeGen(actionAndReason, speculation) : new DynamicDeoptimizeNode(actionAndReason, speculation);
+    }
+
+    protected DynamicDeoptimizeNode(ValueNode actionAndReason, ValueNode speculation) {
         this.actionAndReason = actionAndReason;
         this.speculation = speculation;
     }
@@ -54,6 +60,11 @@ public class DynamicDeoptimizeNode extends AbstractDeoptimizeNode implements LIR
         return getSpeculation();
     }
 
+    @Override
+    public void lower(LoweringTool tool) {
+        tool.getLowerer().lower(this, tool);
+    }
+
     public void generate(NodeLIRBuilderTool generator) {
         generator.getLIRGeneratorTool().emitDeoptimize(generator.operand(actionAndReason), generator.operand(speculation), generator.state(this));
     }
@@ -63,8 +74,8 @@ public class DynamicDeoptimizeNode extends AbstractDeoptimizeNode implements LIR
         if (actionAndReason.isConstant() && speculation.isConstant()) {
             Constant constant = actionAndReason.asConstant();
             Constant speculationConstant = speculation.asConstant();
-            DeoptimizeNode newDeopt = new DeoptimizeNode(tool.getMetaAccess().decodeDeoptAction(constant), tool.getMetaAccess().decodeDeoptReason(constant), tool.getMetaAccess().decodeDebugId(
-                            constant), speculationConstant, stateBefore());
+            DeoptimizeNode newDeopt = DeoptimizeNode.create(tool.getMetaAccess().decodeDeoptAction(constant), tool.getMetaAccess().decodeDeoptReason(constant),
+                            tool.getMetaAccess().decodeDebugId(constant), speculationConstant, stateBefore());
             return newDeopt;
         }
         return this;

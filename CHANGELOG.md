@@ -2,18 +2,51 @@
 
 ## `tip`
 ### Graal
-* Made initialization of Graal runtime lazy in hosted mode.
-* Added supported for new 'jrelibrary' dependency type in mx/projects.
-* Java projects with compliance level higher than the JDKs specified by JAVA_HOME and EXTRA_JAVA_HOMES are ignored once mx/projects has been processed.
-* ResolvedJavaType.resolveMethod now takes a context type used to perform access checks. It now works correctly regarding default methods.
-
-### Truffle
-* `truffle.jar`: strip out build-time only dependency into a seperated JAR file (`truffle-dsl-processor.jar`)
-* New flag -G:+TraceTruffleCompilationAST to print the AST before compilation.
 * ...
 
+### Truffle
+* ...
+
+## Version 0.5
+23-Sep-2014, [Repository Revision](http://hg.openjdk.java.net/graal/graal/shortlog/graal-0.5)
+### Graal
+* New register allocator optimization: `-G:+ConstantLoadOptimization`.
+* SPARC backend is able to run benchmark and passing most of the JTTs.
+* Fix: Stamp: interface types can not be trusted except after explicit runtime checks.
+
+### Truffle
+* Added `TruffleRuntime#getCallTargets()` to get all call targets that were created and are still referenced.
+* Added `NeverValidAssumption` to complement `AlwaysValidAssumption`.
+* Fixed a bug in `AssumedValue` that may not invalidate correctly.
+* New option, `-G:+/-TruffleCompilationExceptionsAreThrown`, that will throw an `OptimizationFailedException` for compiler errors.
+
+## Version 0.4
+19-Aug-2014, [Repository Revision](http://hg.openjdk.java.net/graal/graal/shortlog/graal-0.4)
+### Graal
+* Made initialization of Graal runtime lazy in hosted mode.
+* Added supported for new `jrelibrary` dependency type in `mx/projects`.
+* Java projects with compliance level higher than the JDKs specified by `JAVA_HOME` and `EXTRA_JAVA_HOMES` are ignored once `mx/projects` has been processed.
+* `ResolvedJavaType.resolveMethod` now takes a context type used to perform access checks. It now works correctly regarding default methods.
+* Removed Java based compilation queue (`CompilationQueue.java`).
+* Enabled use of separate class loader (via `-XX:+UseGraalClassLoader`) for classes loaded from `graal.jar` to hide them from application classes.
+
+### Truffle
+* Change API for stack walking to a visitor: `TruffleRuntime#iterateFrames` replaces `TruffleRuntime#getStackTrace`
+* New flag `-G:+TraceTruffleCompilationCallTree` to print the tree of inlined calls before compilation.
+* `truffle.jar`: strip out build-time only dependency into a seperated JAR file (`truffle-dsl-processor.jar`)
+* New flag `-G:+TraceTruffleCompilationAST` to print the AST before compilation.
+* New experimental `TypedObject` interface added.
+* Renamed flag `-G:+TruffleSplittingEnabled` to `-G:+TruffleSplitting`
+* New flag `-G:+TruffleSplittingNew` to enable the experimental splitting mode based on function arguments.
+* New flag `-G:+TruffleSplittingTypedInstanceStamps` to enable splitting for `TypedObject` instances.
+* New flag `-G:+TruffleSplittingClassInstanceStamps` to enable splitting for Java object instances except `TypedObject`.
+* New flag `-G:TruffleSplittingStartCallCount=3` which sets the number of minimal calls until splitting is performed.
+* New flag `-G:-TruffleSplittingAggressive` if enabled splits every function call.
+* Added `isVisited` method for `BranchProfile`.
+* Added new `ConditionProfile`, `BinaryConditionProfile` and `CountingConditionProfile` utility classes to profile if conditions.
+
 ## Version 0.3
-9-May-2014, [Repository Revision](http://hg.openjdk.java.net/graal/graal/rev/graal-0.3)
+9-May-2014, [Repository Revision](http://hg.openjdk.java.net/graal/graal/shortlog/graal-0.3)
 
 ### Graal
 * Explicit support for oop compression/uncompression in high level graph.
@@ -35,7 +68,7 @@
 * Removed deprecated `Node#adoptChild`.
 
 ## Version 0.2
-25-Mar-2014, [Repository Revision](http://hg.openjdk.java.net/graal/graal/rev/graal-0.2)
+25-Mar-2014, [Repository Revision](http://hg.openjdk.java.net/graal/graal/shortlog/graal-0.2)
 
 ### Graal
 * Use HotSpot stubs for certain array copy operations.
@@ -66,7 +99,7 @@
 
 
 ## Version 0.1
-5-Feb-2014, [Repository Revision](http://hg.openjdk.java.net/graal/graal/rev/graal-0.1)
+5-Feb-2014, [Repository Revision](http://hg.openjdk.java.net/graal/graal/shortlog/graal-0.1)
 
 ### Graal
 

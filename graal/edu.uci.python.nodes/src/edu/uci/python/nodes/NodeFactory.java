@@ -48,6 +48,7 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.control.*;
+import edu.uci.python.nodes.control.LoopNode;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.expression.BinaryBooleanNodeFactory.*;
 import edu.uci.python.nodes.expression.BinaryArithmeticNodeFactory.*;

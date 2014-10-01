@@ -27,6 +27,7 @@ import java.util.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.util.*;
@@ -35,21 +36,27 @@ import com.oracle.graal.nodes.util.*;
  * The {@code IntegerSwitchNode} represents a switch on integer keys, with a sorted array of key
  * values. The actual implementation of the switch will be decided by the backend.
  */
-public final class IntegerSwitchNode extends SwitchNode implements LIRLowerable, Simplifiable {
+@NodeInfo
+public class IntegerSwitchNode extends SwitchNode implements LIRLowerable, Simplifiable {
 
     private final int[] keys;
 
     /**
      * Constructs a integer switch instruction. The keyProbabilities and keySuccessors array contain
      * key.length + 1 entries, the last entry describes the default (fall through) case.
-     * 
+     *
      * @param value the instruction producing the value being switched on
      * @param successors the list of successors
      * @param keys the sorted list of keys
      * @param keyProbabilities the probabilities of the keys
      * @param keySuccessors the successor index for each key
      */
-    public IntegerSwitchNode(ValueNode value, BeginNode[] successors, int[] keys, double[] keyProbabilities, int[] keySuccessors) {
+    public static IntegerSwitchNode create(ValueNode value, BeginNode[] successors, int[] keys, double[] keyProbabilities, int[] keySuccessors) {
+        return USE_GENERATED_NODES ? new IntegerSwitchNodeGen(value, successors, keys, keyProbabilities, keySuccessors) : new IntegerSwitchNode(value, successors, keys, keyProbabilities,
+                        keySuccessors);
+    }
+
+    IntegerSwitchNode(ValueNode value, BeginNode[] successors, int[] keys, double[] keyProbabilities, int[] keySuccessors) {
         super(value, successors, keySuccessors, keyProbabilities);
         assert keySuccessors.length == keys.length + 1;
         assert keySuccessors.length == keyProbabilities.length;
@@ -68,14 +75,19 @@ public final class IntegerSwitchNode extends SwitchNode implements LIRLowerable,
     /**
      * Constructs a integer switch instruction. The keyProbabilities and keySuccessors array contain
      * key.length + 1 entries, the last entry describes the default (fall through) case.
-     * 
+     *
      * @param value the instruction producing the value being switched on
      * @param successorCount the number of successors
      * @param keys the sorted list of keys
      * @param keyProbabilities the probabilities of the keys
      * @param keySuccessors the successor index for each key
      */
-    public IntegerSwitchNode(ValueNode value, int successorCount, int[] keys, double[] keyProbabilities, int[] keySuccessors) {
+    public static IntegerSwitchNode create(ValueNode value, int successorCount, int[] keys, double[] keyProbabilities, int[] keySuccessors) {
+        return USE_GENERATED_NODES ? new IntegerSwitchNodeGen(value, successorCount, keys, keyProbabilities, keySuccessors) : new IntegerSwitchNode(value, successorCount, keys, keyProbabilities,
+                        keySuccessors);
+    }
+
+    IntegerSwitchNode(ValueNode value, int successorCount, int[] keys, double[] keyProbabilities, int[] keySuccessors) {
         this(value, new BeginNode[successorCount], keys, keyProbabilities, keySuccessors);
     }
 
@@ -86,7 +98,7 @@ public final class IntegerSwitchNode extends SwitchNode implements LIRLowerable,
 
     /**
      * Gets the key at the specified index.
-     * 
+     *
      * @param i the index
      * @return the key at that index
      */
@@ -98,6 +110,15 @@ public final class IntegerSwitchNode extends SwitchNode implements LIRLowerable,
     @Override
     public int keyCount() {
         return keys.length;
+    }
+
+    @Override
+    public boolean equalKeys(SwitchNode switchNode) {
+        if (!(switchNode instanceof IntegerSwitchNode)) {
+            return false;
+        }
+        IntegerSwitchNode other = (IntegerSwitchNode) switchNode;
+        return Arrays.equals(keys, other.keys);
     }
 
     @Override
@@ -180,7 +201,7 @@ public final class IntegerSwitchNode extends SwitchNode implements LIRLowerable,
                     }
 
                     BeginNode[] successorsArray = newSuccessors.toArray(new BeginNode[newSuccessors.size()]);
-                    IntegerSwitchNode newSwitch = graph().add(new IntegerSwitchNode(value(), successorsArray, newKeys, newKeyProbabilities, newKeySuccessors));
+                    IntegerSwitchNode newSwitch = graph().add(IntegerSwitchNode.create(value(), successorsArray, newKeys, newKeyProbabilities, newKeySuccessors));
                     ((FixedWithNextNode) predecessor()).setNext(newSwitch);
                     GraphUtil.killWithUnusedFloatingInputs(this);
                 }

@@ -71,7 +71,9 @@ public class WriteBarrierVerificationPhase extends Phase {
         Iterator<Node> iterator = frontier.iterator();
         while (iterator.hasNext()) {
             Node currentNode = iterator.next();
-            assert !isSafepoint(currentNode) : "Write barrier must be present " + write;
+            if (isSafepoint(currentNode)) {
+                throw new AssertionError("Write barrier must be present " + write);
+            }
             if (useG1GC()) {
                 if (!(currentNode instanceof G1PostWriteBarrier) || (!validateBarrier((FixedAccessNode) write, (WriteBarrier) currentNode))) {
                     expandFrontier(frontier, currentNode);
@@ -128,7 +130,7 @@ public class WriteBarrierVerificationPhase extends Phase {
     }
 
     private static boolean validateBarrier(FixedAccessNode write, WriteBarrier barrier) {
-        assert write instanceof WriteNode || write instanceof LoweredCompareAndSwapNode : "Node must be of type requiring a write barrier";
+        assert write instanceof WriteNode || write instanceof LoweredCompareAndSwapNode || write instanceof LoweredAtomicReadAndWriteNode : "Node must be of type requiring a write barrier " + write;
         if ((barrier.getObject() == write.object()) && (!barrier.usePrecise() || (barrier.usePrecise() && barrier.getLocation() == write.location()))) {
             return true;
         }

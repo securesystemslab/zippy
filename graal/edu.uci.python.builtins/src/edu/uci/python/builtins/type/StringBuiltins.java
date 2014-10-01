@@ -124,7 +124,8 @@ public final class StringBuiltins extends PythonBuiltins {
         }
 
         @ExplodeLoop
-        @Specialization(order = 6)
+        // FIXME: Disabled for merge
+        // @Specialization(order = 6)
         public String join(String string, PCharArray array) {
             StringBuilder sb = new StringBuilder();
             char[] stringList = array.getSequence();
@@ -156,7 +157,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @Generic
+        @Fallback
         public String join(Object self, Object arg) {
             throw new RuntimeException("invalid arguments type for join(): self " + self + ", arg " + arg);
         }

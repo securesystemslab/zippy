@@ -484,11 +484,6 @@ void before_exit(JavaThread * thread) {
   }
 
 #ifdef GRAAL
-#ifdef COMPILERGRAAL
-  if (GraalCompiler::instance() != NULL) {
-    GraalCompiler::instance()->shutdown();
-  }
-#endif
   GraalRuntime::shutdown();
 #endif
 
