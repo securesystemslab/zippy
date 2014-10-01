@@ -265,6 +265,6 @@ def measure(num):
 
 # warm up
 for i in range(100):
-    main(10)
+    main(20)
 
 measure(int(sys.argv[1]))
