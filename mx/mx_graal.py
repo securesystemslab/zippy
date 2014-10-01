@@ -901,6 +901,9 @@ def build(args, vm=None):
                 setMakeVar('GRAAL_VERSION', version)
                 setMakeVar('INCLUDE_GRAAL', 'true')
             setMakeVar('INSTALL', 'y', env=env)
+            if mx.get_os() == 'darwin' and platform.mac_ver()[0] != '':
+                # Force use of clang on MacOS
+                setMakeVar('USE_CLANG', 'true')
             if mx.get_os() == 'solaris':
                 # If using sparcWorks, setup flags to avoid make complaining about CC version
                 cCompilerVersion = subprocess.Popen('CC -V', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True).stderr.readlines()[0]
