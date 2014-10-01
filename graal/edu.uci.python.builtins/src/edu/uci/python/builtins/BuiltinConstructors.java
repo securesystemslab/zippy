@@ -390,7 +390,8 @@ public final class BuiltinConstructors extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization
+        // TODO: Disabled after merge.
+        // @Specialization
         public Object mapClassIterable(PythonClass clazz, PIterable iterable, PTuple iterators) {
             PIterator iter = iterable.__iter__();
             PList list = new PList();
