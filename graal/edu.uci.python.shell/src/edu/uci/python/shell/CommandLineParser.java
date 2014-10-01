@@ -108,7 +108,6 @@ public class CommandLineParser {
                 PythonOptions.ProfileTypeDistribution = true;
                 PythonOptions.ProfileVariableAccesses = true;
                 PythonOptions.ProfileOperations = true;
-                PythonOptions.ProfileCollectionOperations = true;
                 continue;
             }
 

@@ -52,7 +52,6 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
 
     private List<TypeDistributionProfilerInstrument> variableAccessTypeDistributionInstruments;
     private List<TypeDistributionProfilerInstrument> operationTypeDistributionInstruments;
-    private List<TypeDistributionProfilerInstrument> collectionOperationTypeDistributionInstruments;
 
     private Map<ProfilerInstrument, List<ProfilerInstrument>> ifInstruments;
 
@@ -66,7 +65,6 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
         collectionOperationsInstruments = new ArrayList<>();
         variableAccessTypeDistributionInstruments = new ArrayList<>();
         operationTypeDistributionInstruments = new ArrayList<>();
-        collectionOperationTypeDistributionInstruments = new ArrayList<>();
         ifInstruments = new LinkedHashMap<>();
     }
 
@@ -176,15 +174,8 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
 
     public PythonWrapperNode probeAsCollectionOperation(PNode node, PythonContext context) {
         PythonWrapperNode wrapper = createWrapper(node, context);
-
-        if (PythonOptions.ProfileTypeDistribution) {
-            TypeDistributionProfilerInstrument profilerInstrument = createAttachTypeDistributionProfilerInstrument(wrapper);
-            collectionOperationTypeDistributionInstruments.add(profilerInstrument);
-        } else {
-            ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
-            collectionOperationsInstruments.add(profilerInstrument);
-        }
-
+        ProfilerInstrument profilerInstrument = createAttachProfilerInstrument(wrapper);
+        collectionOperationsInstruments.add(profilerInstrument);
         return wrapper;
     }
 
@@ -268,10 +259,6 @@ public class PythonProfilerNodeProber implements ASTNodeProber {
 
     public List<TypeDistributionProfilerInstrument> getOperationTypeDistributionInstruments() {
         return operationTypeDistributionInstruments;
-    }
-
-    public List<TypeDistributionProfilerInstrument> getCollectionOperationsTypeDistributionInstruments() {
-        return collectionOperationTypeDistributionInstruments;
     }
 
 }

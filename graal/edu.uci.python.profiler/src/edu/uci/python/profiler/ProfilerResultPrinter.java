@@ -394,11 +394,7 @@ public class ProfilerResultPrinter {
     }
 
     public void printCollectionOperationsProfilerResults() {
-        if (PythonOptions.ProfileTypeDistribution) {
-            printProfilerTypeDistributionResults("Collection Operations Profiling Results", profilerProber.getCollectionOperationsTypeDistributionInstruments());
-        } else {
-            printProfilerResults("Collection Operations Profiling Results", getInstruments(profilerProber.getCollectionOperationsInstruments()));
-        }
+        printProfilerResults("Collection Operations Profiling Results", getInstruments(profilerProber.getCollectionOperationsInstruments()));
     }
 
     private static List<ProfilerInstrument> getInstruments(List<ProfilerInstrument> instruments) {
