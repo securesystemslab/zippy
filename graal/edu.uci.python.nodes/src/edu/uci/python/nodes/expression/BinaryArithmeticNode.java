@@ -55,15 +55,15 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization
-        int doBoolean(int left, boolean right) {
+        int doIntBoolean(int left, boolean right) {
             final int rightInt = right ? 1 : 0;
-            return ExactMath.addExact(left, rightInt);
+            return doInteger(left, rightInt);
         }
 
         @Specialization
-        int doBoolean(boolean left, int right) {
+        int doBooleanInt(boolean left, int right) {
             final int leftInt = left ? 1 : 0;
-            return ExactMath.addExact(leftInt, right);
+            return doInteger(leftInt, right);
         }
 
         @Specialization(rewriteOn = ArithmeticException.class)
@@ -202,7 +202,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
     }
 
-    @NodeInfo(shortName = "-")
+    @NodeInfo(shortName = "__sub__")
     public abstract static class SubNode extends BinaryArithmeticNode {
 
         @Specialization(rewriteOn = ArithmeticException.class, order = 0)
@@ -258,7 +258,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
     }
 
-    @NodeInfo(shortName = "*")
+    @NodeInfo(shortName = "__mul__")
     public abstract static class MulNode extends BinaryArithmeticNode {
 
         @Specialization(rewriteOn = ArithmeticException.class, order = 0)
@@ -368,7 +368,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
     }
 
-    @NodeInfo(shortName = "/")
+    @NodeInfo(shortName = "__div__")
     public abstract static class DivNode extends BinaryArithmeticNode {
 
         /*
@@ -438,7 +438,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
     }
 
-    @NodeInfo(shortName = "//")
+    @NodeInfo(shortName = "__floordiv__")
     public abstract static class FloorDivNode extends BinaryArithmeticNode {
 
         @Specialization
@@ -467,7 +467,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
     }
 
-    @NodeInfo(shortName = "%")
+    @NodeInfo(shortName = "__mod__")
     public abstract static class ModuloNode extends BinaryArithmeticNode {
 
         @Specialization(order = 0, guards = "isLeftPositive")
@@ -522,7 +522,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
     }
 
-    @NodeInfo(shortName = "**")
+    @NodeInfo(shortName = "__pow__")
     public abstract static class PowerNode extends BinaryArithmeticNode {
 
         @Specialization
