@@ -29,10 +29,10 @@ import java.util.*;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.java.*;
 import com.oracle.graal.lir.gen.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 
@@ -40,6 +40,7 @@ import com.oracle.graal.nodes.spi.*;
  * Performs a tail call to the specified target compiled method, with the parameter taken from the
  * supplied FrameState.
  */
+@NodeInfo
 public class TailcallNode extends FixedWithNextNode implements LIRLowerable {
 
     @Input(InputType.State) private FrameState frameState;

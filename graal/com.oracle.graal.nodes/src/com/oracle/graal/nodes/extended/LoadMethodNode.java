@@ -26,6 +26,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -33,7 +34,8 @@ import com.oracle.graal.nodes.type.*;
 /**
  * Loads a method from the virtual method table of a given hub.
  */
-public final class LoadMethodNode extends FixedWithNextNode implements Lowerable, Canonicalizable {
+@NodeInfo
+public class LoadMethodNode extends FixedWithNextNode implements Lowerable, Canonicalizable {
 
     @Input private ValueNode hub;
     private final ResolvedJavaMethod method;

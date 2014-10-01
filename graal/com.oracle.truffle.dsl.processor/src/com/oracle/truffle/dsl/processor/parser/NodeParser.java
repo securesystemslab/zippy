@@ -138,13 +138,17 @@ public class NodeParser extends AbstractParser<NodeData> {
         if (!ElementUtils.isAssignable(templateType.asType(), context.getTruffleTypes().getNode())) {
             return null;
         }
-        List<? extends Element> elements = CompilerFactory.getCompiler(templateType).getAllMembersInDeclarationOrder(context.getEnvironment(), templateType);
+        List<Element> elements = new ArrayList<>(CompilerFactory.getCompiler(templateType).getAllMembersInDeclarationOrder(context.getEnvironment(), templateType));
 
         NodeData node = parseNodeData(templateType, elements, lookupTypes);
+
+        parseImportGuards(node, lookupTypes, elements);
+
         if (node.hasErrors()) {
             return node; // error sync point
         }
 
+        node.setExecutableTypes(groupExecutableTypes(new ExecutableTypeMethodParser(context, node).parse(elements)));
         initializeChildren(node);
 
         node.getSpecializations().addAll(new SpecializationMethodParser(context, node).parse(elements));
@@ -166,6 +170,46 @@ public class NodeParser extends AbstractParser<NodeData> {
         verifyNamingConvention(node.getShortCircuits(), "needs");
         verifySpecializationThrows(node);
         return node;
+    }
+
+    private void parseImportGuards(NodeData node, List<TypeElement> lookupTypes, List<Element> elements) {
+        for (TypeElement lookupType : lookupTypes) {
+            AnnotationMirror importAnnotation = ElementUtils.findAnnotationMirror(processingEnv, lookupType, ImportGuards.class);
+            if (importAnnotation == null) {
+                continue;
+            }
+            AnnotationValue importClassesValue = ElementUtils.getAnnotationValue(importAnnotation, "value");
+            List<TypeMirror> importClasses = ElementUtils.getAnnotationValueList(TypeMirror.class, importAnnotation, "value");
+            if (importClasses.isEmpty()) {
+                node.addError(importAnnotation, importClassesValue, "At least import guard classes must be specified.");
+                continue;
+            }
+            for (TypeMirror importGuardClass : importClasses) {
+                if (importGuardClass.getKind() != TypeKind.DECLARED) {
+                    node.addError(importAnnotation, importClassesValue, "The specified import guard class '%s' is not a declared type.", ElementUtils.getQualifiedName(importGuardClass));
+                    continue;
+                }
+                TypeElement typeElement = ElementUtils.fromTypeMirror(importGuardClass);
+
+                // hack to reload type is necessary for incremental compiling in eclipse.
+                // otherwise methods inside of import guard types are just not found.
+                typeElement = ElementUtils.fromTypeMirror(context.reloadType(typeElement.asType()));
+
+                if (typeElement.getEnclosingElement().getKind().isClass() && !typeElement.getModifiers().contains(Modifier.PUBLIC)) {
+                    node.addError(importAnnotation, importClassesValue, "The specified import guard class '%s' must be public.", ElementUtils.getQualifiedName(importGuardClass));
+                    continue;
+                }
+
+                List<? extends ExecutableElement> importMethods = ElementFilter.methodsIn(processingEnv.getElementUtils().getAllMembers(typeElement));
+
+                for (ExecutableElement importMethod : importMethods) {
+                    if (!importMethod.getModifiers().contains(Modifier.PUBLIC) || !importMethod.getModifiers().contains(Modifier.STATIC)) {
+                        continue;
+                    }
+                    elements.add(importMethod);
+                }
+            }
+        }
     }
 
     private NodeData parseNodeData(TypeElement templateType, List<? extends Element> elements, List<TypeElement> typeHierarchy) {
@@ -209,7 +253,6 @@ public class NodeParser extends AbstractParser<NodeData> {
         List<NodeExecutionData> executions = parseExecutions(children, elements);
 
         NodeData nodeData = new NodeData(context, templateType, shortName, typeSystem, children, executions, fields, assumptionsList);
-        nodeData.setExecutableTypes(groupExecutableTypes(new ExecutableTypeMethodParser(context, nodeData).parse(elements)));
 
         parsedNodes.put(ElementUtils.getQualifiedName(templateType), nodeData);
 
@@ -846,53 +889,70 @@ public class NodeParser extends AbstractParser<NodeData> {
     }
 
     private void initializeGuards(List<? extends Element> elements, NodeData node) {
-        Map<String, List<GuardData>> guards = new HashMap<>();
+        Map<String, List<ExecutableElement>> potentialGuards = new HashMap<>();
         for (SpecializationData specialization : node.getSpecializations()) {
             for (GuardExpression exp : specialization.getGuards()) {
-                guards.put(exp.getGuardName(), null);
+                potentialGuards.put(exp.getGuardName(), null);
             }
         }
 
-        GuardParser parser = new GuardParser(context, node, null, guards.keySet());
-        List<GuardData> resolvedGuards = parser.parse(elements);
-        for (GuardData guard : resolvedGuards) {
-            List<GuardData> groupedGuards = guards.get(guard.getMethodName());
-            if (groupedGuards == null) {
-                groupedGuards = new ArrayList<>();
-                guards.put(guard.getMethodName(), groupedGuards);
+        TypeMirror booleanType = context.getType(boolean.class);
+        for (ExecutableElement potentialGuard : ElementFilter.methodsIn(elements)) {
+            if (potentialGuard.getModifiers().contains(Modifier.PRIVATE)) {
+                continue;
             }
-            groupedGuards.add(guard);
+            String methodName = potentialGuard.getSimpleName().toString();
+            if (!potentialGuards.containsKey(methodName)) {
+                continue;
+            }
+
+            if (!ElementUtils.typeEquals(potentialGuard.getReturnType(), booleanType)) {
+                continue;
+            }
+
+            List<ExecutableElement> potentialMethods = potentialGuards.get(methodName);
+            if (potentialMethods == null) {
+                potentialMethods = new ArrayList<>();
+                potentialGuards.put(methodName, potentialMethods);
+            }
+            potentialMethods.add(potentialGuard);
         }
 
         for (SpecializationData specialization : node.getSpecializations()) {
             for (GuardExpression exp : specialization.getGuards()) {
-                resolveGuardExpression(node, specialization, guards, exp);
+                resolveGuardExpression(node, specialization, potentialGuards, exp);
             }
         }
     }
 
-    private void resolveGuardExpression(NodeData node, TemplateMethod source, Map<String, List<GuardData>> guards, GuardExpression expression) {
-        List<GuardData> availableGuards = guards.get(expression.getGuardName());
+    private void resolveGuardExpression(NodeData node, TemplateMethod source, Map<String, List<ExecutableElement>> guards, GuardExpression expression) {
+        List<ExecutableElement> availableGuards = guards.get(expression.getGuardName());
         if (availableGuards == null) {
-            source.addError("No compatible guard with method name '%s' found. Please note that all signature types of the method guard must be declared in the type system.", expression.getGuardName());
+            source.addError("No compatible guard with method name '%s' found.", expression.getGuardName());
             return;
         }
-        List<ExecutableElement> guardMethods = new ArrayList<>();
-        for (GuardData guard : availableGuards) {
-            guardMethods.add(guard.getMethod());
+
+        String[] childNames = expression.getChildNames();
+        if (childNames != null) {
+            NodeExecutionData[] resolvedExecutions = new NodeExecutionData[childNames.length];
+            for (int i = 0; i < childNames.length; i++) {
+                String childName = childNames[i];
+                NodeExecutionData execution = node.findExecutionByExpression(childName);
+                if (execution == null) {
+                    source.addError("Guard parameter '%s' for guard '%s' could not be mapped to a declared child node.", childName, expression.getGuardName());
+                    return;
+                }
+                resolvedExecutions[i] = execution;
+            }
+            expression.setResolvedChildren(resolvedExecutions);
         }
-        GuardParser parser = new GuardParser(context, node, source, new HashSet<>(Arrays.asList(expression.getGuardName())));
-        List<GuardData> matchingGuards = parser.parse(guardMethods);
+
+        GuardParser parser = new GuardParser(context, node, source, expression);
+        List<GuardData> matchingGuards = parser.parse(availableGuards);
         if (!matchingGuards.isEmpty()) {
             GuardData guard = matchingGuards.get(0);
             // use the shared instance of the guard data
-            for (GuardData guardData : availableGuards) {
-                if (guardData.getMethod() == guard.getMethod()) {
-                    expression.setGuard(guardData);
-                    return;
-                }
-            }
-            throw new AssertionError("Should not reach here.");
+            expression.setResolvedGuard(guard);
         } else {
             MethodSpec spec = parser.createSpecification(source.getMethod(), source.getMarkerAnnotation());
             spec.applyTypeDefinitions("types");

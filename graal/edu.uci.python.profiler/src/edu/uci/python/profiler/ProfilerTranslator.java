@@ -298,10 +298,6 @@ public class ProfilerTranslator implements NodeVisitor {
 
     private boolean checkSourceSection(PNode node) {
         if (hasSourceSection(node)) {
-            if (context.hasProbe(node.getSourceSection())) {
-                resultPrinter.addNodeUsingExistingProbe(node);
-            }
-
             return true;
         }
 

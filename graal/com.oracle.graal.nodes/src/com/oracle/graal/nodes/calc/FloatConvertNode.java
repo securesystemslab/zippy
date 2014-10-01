@@ -28,6 +28,7 @@ import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.lir.gen.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 
@@ -35,6 +36,7 @@ import com.oracle.graal.nodes.spi.*;
  * A {@code FloatConvert} converts between integers and floating point numbers according to Java
  * semantics.
  */
+@NodeInfo
 public class FloatConvertNode extends ConvertNode implements Lowerable, ArithmeticLIRLowerable {
 
     private final FloatConvert op;

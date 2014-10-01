@@ -27,6 +27,7 @@ import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.extended.*;
@@ -39,6 +40,7 @@ import com.oracle.truffle.api.*;
  *
  * Substitution for method {@link CompilerDirectives#unsafeGetFinalObject} and friends.
  */
+@NodeInfo
 public class CustomizedUnsafeLoadFinalNode extends FixedWithNextNode implements Canonicalizable, Virtualizable, Lowerable {
     @Input private ValueNode object;
     @Input private ValueNode offset;

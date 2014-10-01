@@ -26,7 +26,7 @@ import static com.oracle.graal.compiler.common.UnsafeAccess.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
@@ -35,6 +35,7 @@ import com.oracle.graal.nodes.spi.*;
  * Load of a value from a location specified as an offset relative to an object. No null check is
  * performed before the load.
  */
+@NodeInfo
 public class UnsafeLoadNode extends UnsafeAccessNode implements Lowerable, Virtualizable {
     @OptionalInput(InputType.Condition) private LogicNode guardingCondition;
 
@@ -81,7 +82,7 @@ public class UnsafeLoadNode extends UnsafeAccessNode implements Lowerable, Virtu
 
     @Override
     protected ValueNode cloneAsArrayAccess(ValueNode location, LocationIdentity identity) {
-        return new UnsafeLoadNode(object(), location, accessKind(), identity);
+        return new UnsafeLoadNode(object(), location, accessKind(), identity, guardingCondition);
     }
 
     @SuppressWarnings({"unchecked", "unused"})

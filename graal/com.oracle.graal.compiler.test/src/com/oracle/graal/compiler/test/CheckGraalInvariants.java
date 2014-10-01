@@ -38,7 +38,9 @@ import com.oracle.graal.api.runtime.*;
 import com.oracle.graal.compiler.*;
 import com.oracle.graal.compiler.CompilerThreadFactory.DebugConfigAccess;
 import com.oracle.graal.debug.*;
+import com.oracle.graal.graph.*;
 import com.oracle.graal.java.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.phases.*;
 import com.oracle.graal.phases.VerifyPhase.VerificationError;
@@ -113,6 +115,14 @@ public class CheckGraalInvariants extends GraalTest {
         for (String className : classNames) {
             try {
                 Class<?> c = Class.forName(className, false, CheckGraalInvariants.class.getClassLoader());
+                executor.execute(() -> {
+                    try {
+                        checkClass(c, metaAccess);
+                    } catch (Throwable e) {
+                        errors.add(String.format("Error while checking %s:%n%s", className, printStackTraceToString(e)));
+                    }
+                });
+
                 for (Method m : c.getDeclaredMethods()) {
                     if (Modifier.isNative(m.getModifiers()) || Modifier.isAbstract(m.getModifiers())) {
                         // ignore
@@ -135,9 +145,7 @@ public class CheckGraalInvariants extends GraalTest {
                                     // Graal bail outs on certain patterns in Java bytecode (e.g.,
                                     // unbalanced monitors introduced by jacoco).
                                 } catch (Throwable e) {
-                                    StringWriter sw = new StringWriter();
-                                    e.printStackTrace(new PrintWriter(sw));
-                                    errors.add(String.format("Error while checking %s:%n%s", methodName, sw));
+                                    errors.add(String.format("Error while checking %s:%n%s", methodName, printStackTraceToString(e)));
                                 }
                             });
                         }
@@ -169,6 +177,27 @@ public class CheckGraalInvariants extends GraalTest {
     }
 
     /**
+     * @param metaAccess
+     */
+    private static void checkClass(Class<?> c, MetaAccessProvider metaAccess) {
+        if (Node.class.isAssignableFrom(c)) {
+            if (c.getAnnotation(GeneratedNode.class) == null) {
+                if (Modifier.isFinal(c.getModifiers())) {
+                    throw new AssertionError(String.format("Node subclass %s must not be final", c.getName()));
+                }
+                if (c.getAnnotation(NodeInfo.class) == null) {
+                    throw new AssertionError(String.format("Node subclass %s requires %s annotation", c.getName(), NodeClass.class.getSimpleName()));
+                }
+                try {
+                    Class.forName(c.getName() + "Gen");
+                } catch (ClassNotFoundException e) {
+                    throw new AssertionError(String.format("Missing generated Node class %s", c.getName() + "Gen"));
+                }
+            }
+        }
+    }
+
+    /**
      * Checks the invariants for a single graph.
      */
     private static void checkGraph(HighTierContext context, StructuredGraph graph, boolean verifyEquals) {
@@ -193,5 +222,11 @@ public class CheckGraalInvariants extends GraalTest {
             }
         }
         return false;
+    }
+
+    private static String printStackTraceToString(Throwable t) {
+        StringWriter sw = new StringWriter();
+        t.printStackTrace(new PrintWriter(sw));
+        return sw.toString();
     }
 }

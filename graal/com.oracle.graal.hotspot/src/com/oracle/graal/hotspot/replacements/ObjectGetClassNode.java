@@ -28,6 +28,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.api.meta.ResolvedJavaType.Representation;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -37,6 +38,7 @@ import com.oracle.graal.replacements.nodes.*;
  * This macro node will replace itself with the correct Java {@link Class} as soon as the object's
  * type is known (exact).
  */
+@NodeInfo
 public class ObjectGetClassNode extends MacroNode implements Virtualizable, Canonicalizable {
 
     public ObjectGetClassNode(Invoke invoke) {

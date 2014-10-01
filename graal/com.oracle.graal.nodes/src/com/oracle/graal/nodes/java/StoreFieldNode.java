@@ -24,7 +24,7 @@ package com.oracle.graal.nodes.java;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.virtual.*;
@@ -33,7 +33,7 @@ import com.oracle.graal.nodes.virtual.*;
  * The {@code StoreFieldNode} represents a write to a static or instance field.
  */
 @NodeInfo(nameTemplate = "StoreField#{p#field/s}")
-public final class StoreFieldNode extends AccessFieldNode implements StateSplit, VirtualizableRoot {
+public class StoreFieldNode extends AccessFieldNode implements StateSplit, VirtualizableRoot {
 
     @Input private ValueNode value;
     @OptionalInput(InputType.State) private FrameState stateAfter;

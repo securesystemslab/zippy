@@ -34,6 +34,7 @@ import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
@@ -43,7 +44,8 @@ import com.oracle.graal.nodes.util.*;
  * The {@code IfNode} represents a branch that can go one of two directions depending on the outcome
  * of a comparison.
  */
-public final class IfNode extends ControlSplitNode implements Simplifiable, LIRLowerable {
+@NodeInfo
+public class IfNode extends ControlSplitNode implements Simplifiable, LIRLowerable {
 
     @Successor private BeginNode trueSuccessor;
     @Successor private BeginNode falseSuccessor;

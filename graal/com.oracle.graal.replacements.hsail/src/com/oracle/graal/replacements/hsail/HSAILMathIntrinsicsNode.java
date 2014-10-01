@@ -30,6 +30,7 @@ import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.lir.gen.*;
 import com.oracle.graal.lir.hsail.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
@@ -37,6 +38,7 @@ import com.oracle.graal.nodes.spi.*;
 /**
  * This node implements HSAIL intrinsics for specific {@link Math} routines.
  */
+@NodeInfo
 public class HSAILMathIntrinsicsNode extends FloatingNode implements Canonicalizable, ArithmeticLIRLowerable {
 
     /**

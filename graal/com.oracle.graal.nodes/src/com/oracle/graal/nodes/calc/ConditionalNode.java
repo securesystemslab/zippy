@@ -27,8 +27,8 @@ import static com.oracle.graal.nodes.calc.CompareNode.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
@@ -37,7 +37,8 @@ import com.oracle.graal.nodes.spi.*;
  * The {@code ConditionalNode} class represents a comparison that yields one of two values. Note
  * that these nodes are not built directly from the bytecode but are introduced by canonicalization.
  */
-public final class ConditionalNode extends FloatingNode implements Canonicalizable, LIRLowerable {
+@NodeInfo
+public class ConditionalNode extends FloatingNode implements Canonicalizable, LIRLowerable {
 
     @Input(InputType.Condition) private LogicNode condition;
     @Input private ValueNode trueValue;

@@ -25,13 +25,13 @@ package com.oracle.graal.nodes.calc;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.calc.*;
 import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.util.*;
 
 @NodeInfo(shortName = "<")
-public final class FloatLessThanNode extends CompareNode {
+public class FloatLessThanNode extends CompareNode {
 
     private final boolean unorderedIsTrue;
 

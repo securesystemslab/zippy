@@ -26,6 +26,7 @@ import java.util.*;
 
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.word.*;
@@ -33,9 +34,10 @@ import com.oracle.graal.word.*;
 /**
  * Node that is used to maintain a stack based counter of how many locks are currently held.
  */
-public final class MonitorCounterNode extends FloatingNode implements LIRLowerable {
+@NodeInfo
+public class MonitorCounterNode extends FloatingNode implements LIRLowerable {
 
-    private MonitorCounterNode() {
+    MonitorCounterNode() {
         super(null);
     }
 

@@ -28,12 +28,12 @@ import javax.lang.model.type.*;
 
 import com.oracle.truffle.dsl.processor.java.*;
 import com.oracle.truffle.dsl.processor.model.MethodSpec.TypeDef;
-import com.oracle.truffle.dsl.processor.parser.*;
 
 public class ParameterSpec {
 
     private final String name;
     private final List<TypeMirror> allowedTypes;
+    private final Set<String> allowedTypesIdentifier;
 
     /** Type is bound to local final variable. */
     private boolean local;
@@ -43,22 +43,24 @@ public class ParameterSpec {
     private NodeExecutionData execution;
     private TypeDef typeDefinition;
 
-    public ParameterSpec(String name, List<TypeMirror> allowedTypes) {
+    public ParameterSpec(String name, List<TypeMirror> allowedTypes, Set<String> typeIdentifiers) {
         this.name = name;
         this.allowedTypes = allowedTypes;
+        this.allowedTypesIdentifier = typeIdentifiers;
     }
 
     public ParameterSpec(String name, TypeMirror type) {
-        this(name, Arrays.asList(type));
+        this(name, Arrays.asList(type), new HashSet<>(Arrays.asList(ElementUtils.getUniqueIdentifier(type))));
     }
 
-    public ParameterSpec(ParameterSpec o, List<TypeMirror> allowedTypes) {
+    public ParameterSpec(ParameterSpec o, List<TypeMirror> allowedTypes, Set<String> typeIdentifiers) {
         this.name = o.name;
         this.local = o.local;
         this.typeDefinition = o.typeDefinition;
         this.execution = o.execution;
         this.signature = o.signature;
         this.allowedTypes = allowedTypes;
+        this.allowedTypesIdentifier = typeIdentifiers;
     }
 
     public NodeExecutionData getExecution() {
@@ -103,12 +105,7 @@ public class ParameterSpec {
     }
 
     public boolean matches(TypeMirror actualType) {
-        for (TypeMirror mirror : allowedTypes) {
-            if (ElementUtils.typeEquals(actualType, mirror)) {
-                return true;
-            }
-        }
-        return false;
+        return allowedTypesIdentifier.contains(ElementUtils.getUniqueIdentifier(actualType));
     }
 
     @Override

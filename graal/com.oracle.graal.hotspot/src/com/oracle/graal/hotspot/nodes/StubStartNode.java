@@ -23,11 +23,13 @@
 package com.oracle.graal.hotspot.nodes;
 
 import com.oracle.graal.hotspot.stubs.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 
 /**
  * Start node for a {@link Stub}'s graph.
  */
+@NodeInfo
 public class StubStartNode extends StartNode {
 
     private final Stub stub;

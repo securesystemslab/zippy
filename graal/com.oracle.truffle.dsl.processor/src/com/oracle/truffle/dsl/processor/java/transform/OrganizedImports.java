@@ -43,6 +43,7 @@ public final class OrganizedImports {
     private final Set<String> declaredStaticFields = new HashSet<>();
     private final Set<String> ambiguousStaticMethods = new HashSet<>();
     private final Set<String> ambiguousStaticFields = new HashSet<>();
+    private final Map<String, Set<String>> autoImportCache = new HashMap<>();
 
     private final CodeTypeElement topLevelClass;
 
@@ -223,8 +224,9 @@ public final class OrganizedImports {
         return allAmbiguous;
     }
 
-    private boolean needsImport(Element enclosedElement, TypeMirror importType) {
+    private boolean needsImport(Element enclosed, TypeMirror importType) {
         String importPackagName = getPackageName(importType);
+        TypeElement enclosedElement = findNearestEnclosingType(enclosed);
         if (importPackagName == null) {
             return false;
         } else if (importPackagName.equals("java.lang")) {
@@ -233,14 +235,18 @@ public final class OrganizedImports {
             return false; // same package name -> no import
         }
 
-        List<Element> elements = ElementUtils.getElementHierarchy(enclosedElement);
+        Set<String> autoImportedTypes = autoImportCache.get(enclosedElement.toString());
+        if (autoImportedTypes == null) {
+            List<Element> elements = ElementUtils.getElementHierarchy(enclosedElement);
+            autoImportedTypes = new HashSet<>();
+            for (Element element : elements) {
 
-        Set<String> autoImportedTypes = new HashSet<>();
-        for (Element element : elements) {
-            if (element.getKind().isClass()) {
-                collectSuperTypeImports((TypeElement) element, autoImportedTypes);
-                collectInnerTypeImports((TypeElement) element, autoImportedTypes);
+                if (element.getKind().isClass()) {
+                    collectSuperTypeImports((TypeElement) element, autoImportedTypes);
+                    collectInnerTypeImports((TypeElement) element, autoImportedTypes);
+                }
             }
+            autoImportCache.put(enclosedElement.toString(), autoImportedTypes);
         }
 
         String qualifiedName = getQualifiedName(importType);
@@ -481,7 +487,9 @@ public final class OrganizedImports {
 
         @Override
         public void visitTypeReference(Element enclosedType, TypeMirror type) {
-            createTypeReference(enclosedType, type);
+            if (type != null) {
+                createTypeReference(enclosedType, type);
+            }
         }
 
     }

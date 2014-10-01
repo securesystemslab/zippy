@@ -27,10 +27,8 @@ import java.lang.annotation.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.debug.*;
-import com.oracle.graal.lir.LIRInstruction.InstructionValueProcedure;
 import com.oracle.graal.lir.LIRInstruction.OperandFlag;
 import com.oracle.graal.lir.LIRInstruction.OperandMode;
-import com.oracle.graal.lir.LIRInstruction.ValuePositionProcedure;
 
 /**
  * Base class to represent values that need to be stored in more than one register.
@@ -56,11 +54,11 @@ public abstract class CompositeValue extends Value implements Cloneable {
         valueClass = CompositeValueClass.get(getClass());
     }
 
-    public final CompositeValue forEachComponent(LIRInstruction inst, OperandMode mode, InstructionValueProcedure proc) {
+    final CompositeValue forEachComponent(LIRInstruction inst, OperandMode mode, InstructionValueProcedureBase proc) {
         return valueClass.forEachComponent(inst, this, mode, proc);
     }
 
-    public final void forEachComponent(LIRInstruction inst, OperandMode mode, ValuePositionProcedure proc, ValuePosition outerPosition) {
+    final void forEachComponent(LIRInstruction inst, OperandMode mode, ValuePositionProcedure proc, ValuePosition outerPosition) {
         valueClass.forEachComponent(inst, this, mode, proc, outerPosition);
     }
 

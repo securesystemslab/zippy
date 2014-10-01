@@ -37,7 +37,7 @@ import com.oracle.truffle.dsl.processor.model.MessageContainer.Message;
 /**
  * THIS IS NOT PUBLIC API.
  */
-public abstract class AbstractParser<M extends Template> {
+public abstract class AbstractParser<M extends MessageContainer> {
 
     protected final ProcessorContext context;
     protected final ProcessingEnvironment processingEnv;
@@ -83,7 +83,7 @@ public abstract class AbstractParser<M extends Template> {
                 // redirect message
                 MessageContainer original = message.getOriginalContainer();
                 String text = wrapText(original.getMessageElement(), original.getMessageAnnotation(), message.getText());
-                Message redirectedMessage = new Message(null, baseContainer, text, message.getKind());
+                Message redirectedMessage = new Message(null, null, baseContainer, text, message.getKind());
                 model.getMessages().remove(i);
                 baseContainer.getMessages().add(redirectedMessage);
             }

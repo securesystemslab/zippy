@@ -24,18 +24,22 @@ package com.oracle.graal.nodes.calc;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.lir.gen.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 import com.oracle.graal.nodes.util.*;
 
 @NodeInfo(shortName = "&")
-public final class AndNode extends BitLogicNode implements NarrowableArithmeticNode {
+public class AndNode extends BitLogicNode implements NarrowableArithmeticNode {
 
-    public AndNode(ValueNode x, ValueNode y) {
+    public static AndNode create(ValueNode x, ValueNode y) {
+        return new AndNodeGen(x, y);
+    }
+
+    AndNode(ValueNode x, ValueNode y) {
         super(StampTool.and(x.stamp(), y.stamp()), x, y);
         assert x.stamp().isCompatible(y.stamp());
     }

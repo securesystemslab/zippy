@@ -26,6 +26,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -34,7 +35,8 @@ import com.oracle.graal.nodes.virtual.*;
 /**
  * Reads an {@linkplain FixedAccessNode accessed} value.
  */
-public final class ReadNode extends FloatableAccessNode implements LIRLowerable, Canonicalizable, PiPushable, Virtualizable, GuardingNode {
+@NodeInfo
+public class ReadNode extends FloatableAccessNode implements LIRLowerable, Canonicalizable, PiPushable, Virtualizable, GuardingNode {
 
     public ReadNode(ValueNode object, ValueNode location, Stamp stamp, BarrierType barrierType) {
         super(object, location, stamp, null, barrierType);

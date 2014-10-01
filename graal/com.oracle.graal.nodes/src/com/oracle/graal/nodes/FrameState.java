@@ -29,6 +29,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.virtual.*;
 
@@ -39,7 +40,7 @@ import com.oracle.graal.nodes.virtual.*;
  * This can be used as debug or deoptimization information.
  */
 @NodeInfo(nameTemplate = "FrameState@{p#method/s}:{p#bci}")
-public final class FrameState extends VirtualState implements IterableNodeType {
+public class FrameState extends VirtualState implements IterableNodeType {
 
     private static final DebugMetric METRIC_FRAMESTATE_COUNT = Debug.metric("FrameStateCount");
 

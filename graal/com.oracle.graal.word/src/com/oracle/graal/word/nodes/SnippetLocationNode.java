@@ -31,6 +31,7 @@ import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.lir.gen.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
@@ -42,7 +43,8 @@ import com.oracle.graal.nodes.spi.*;
  * nodes. Both scale and disp must eventually canonicalize to {@link ConstantNode constants} so that
  * this node can be canonicalized to a {@link IndexedLocationNode} or {@link ConstantLocationNode}.
  */
-public final class SnippetLocationNode extends LocationNode implements Canonicalizable {
+@NodeInfo
+public class SnippetLocationNode extends LocationNode implements Canonicalizable {
 
     private final SnippetReflectionProvider snippetReflection;
 
@@ -57,12 +59,11 @@ public final class SnippetLocationNode extends LocationNode implements Canonical
         return graph.unique(new SnippetLocationNode(snippetReflection, identity, kind, displacement, index, indexScaling));
     }
 
-    private SnippetLocationNode(@InjectedNodeParameter SnippetReflectionProvider snippetReflection, ValueNode locationIdentity, ValueNode kind, ValueNode displacement) {
+    SnippetLocationNode(@InjectedNodeParameter SnippetReflectionProvider snippetReflection, ValueNode locationIdentity, ValueNode kind, ValueNode displacement) {
         this(snippetReflection, locationIdentity, kind, displacement, null, null);
     }
 
-    private SnippetLocationNode(@InjectedNodeParameter SnippetReflectionProvider snippetReflection, ValueNode locationIdentity, ValueNode kind, ValueNode displacement, ValueNode index,
-                    ValueNode indexScaling) {
+    SnippetLocationNode(@InjectedNodeParameter SnippetReflectionProvider snippetReflection, ValueNode locationIdentity, ValueNode kind, ValueNode displacement, ValueNode index, ValueNode indexScaling) {
         super(StampFactory.object());
         this.snippetReflection = snippetReflection;
         this.valueKind = kind;

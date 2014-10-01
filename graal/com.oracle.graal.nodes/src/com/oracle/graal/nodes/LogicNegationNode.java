@@ -22,12 +22,13 @@
  */
 package com.oracle.graal.nodes;
 
-import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 
 /**
  * Logic node that negates its argument.
  */
+@NodeInfo
 public class LogicNegationNode extends LogicNode implements Canonicalizable.Unary<LogicNode> {
 
     @Input(InputType.Condition) private LogicNode value;

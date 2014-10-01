@@ -68,7 +68,7 @@ public class PythonWrapperNode extends PNode implements Wrapper {
          * context.getProbe will either generate a probe for this source section, or return the
          * existing probe for this section. There can be only one probe for the same source section.
          */
-        this.probe = context.getProbe(child.getSourceSection());
+        this.probe = context.createProbe(child.getSourceSection());
     }
 
     @Override

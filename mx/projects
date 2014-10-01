@@ -247,7 +247,6 @@ project@com.oracle.graal.hotspotvmconfig@sourceDirs=src
 project@com.oracle.graal.hotspotvmconfig@dependencies=com.oracle.graal.compiler.common
 project@com.oracle.graal.hotspotvmconfig@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.hotspotvmconfig@annotationProcessors=com.oracle.graal.service.processor
-project@com.oracle.graal.hotspotvmconfig@annotationProcessorForDependents=true
 project@com.oracle.graal.hotspotvmconfig@javaCompliance=1.8
 project@com.oracle.graal.hotspotvmconfig@workingSets=Graal,HotSpot
 
@@ -351,7 +350,6 @@ project@com.oracle.graal.options@subDir=graal
 project@com.oracle.graal.options@sourceDirs=src
 project@com.oracle.graal.options@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.options@javaCompliance=1.8
-project@com.oracle.graal.options@annotationProcessorForDependents=true
 project@com.oracle.graal.options@workingSets=Graal,Codegen
 
 # graal.options.test
@@ -362,11 +360,27 @@ project@com.oracle.graal.options.test@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.options.test@javaCompliance=1.8
 project@com.oracle.graal.options.test@workingSets=Graal
 
+# graal.nodeinfo
+project@com.oracle.graal.nodeinfo@subDir=graal
+project@com.oracle.graal.nodeinfo@sourceDirs=src
+project@com.oracle.graal.nodeinfo@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.nodeinfo@javaCompliance=1.8
+project@com.oracle.graal.nodeinfo@workingSets=Graal,Graph
+
+# graal.nodeinfo.processor
+project@com.oracle.graal.nodeinfo.processor@subDir=graal
+project@com.oracle.graal.nodeinfo.processor@sourceDirs=src
+project@com.oracle.graal.nodeinfo.processor@checkstyle=com.oracle.graal.graph
+project@com.oracle.graal.nodeinfo.processor@dependencies=com.oracle.graal.nodeinfo,com.oracle.truffle.dsl.processor
+project@com.oracle.graal.nodeinfo.processor@javaCompliance=1.8
+project@com.oracle.graal.nodeinfo.processor@workingSets=Graal,Graph
+
 # graal.graph
 project@com.oracle.graal.graph@subDir=graal
 project@com.oracle.graal.graph@sourceDirs=src
-project@com.oracle.graal.graph@dependencies=com.oracle.graal.debug,com.oracle.graal.compiler.common,com.oracle.graal.api.collections,com.oracle.graal.api.runtime,FINDBUGS
+project@com.oracle.graal.graph@dependencies=com.oracle.graal.nodeinfo,com.oracle.graal.debug,com.oracle.graal.compiler.common,com.oracle.graal.api.collections,com.oracle.graal.api.runtime,FINDBUGS
 project@com.oracle.graal.graph@javaCompliance=1.8
+project@com.oracle.graal.graph@annotationProcessors=com.oracle.graal.nodeinfo.processor
 project@com.oracle.graal.graph@workingSets=Graal,Graph
 
 # graal.graph.test
@@ -546,7 +560,6 @@ project@com.oracle.graal.compiler@dependencies=com.oracle.graal.virtual,com.orac
 project@com.oracle.graal.compiler@checkstyle=com.oracle.graal.graph
 project@com.oracle.graal.compiler@javaCompliance=1.8
 project@com.oracle.graal.compiler@annotationProcessors=com.oracle.graal.service.processor
-project@com.oracle.graal.compiler@annotationProcessorForDependents=true
 project@com.oracle.graal.compiler@workingSets=Graal
 
 # graal.compiler.amd64

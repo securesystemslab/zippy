@@ -26,6 +26,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.lir.gen.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -33,7 +34,8 @@ import com.oracle.graal.nodes.type.*;
 /**
  * Binary negation of long or integer values.
  */
-public final class NotNode extends UnaryNode implements ArithmeticLIRLowerable, NarrowableArithmeticNode {
+@NodeInfo
+public class NotNode extends UnaryNode implements ArithmeticLIRLowerable, NarrowableArithmeticNode {
 
     @Override
     public boolean inferStamp() {

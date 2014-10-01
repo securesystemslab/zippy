@@ -26,6 +26,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.stubs.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.word.*;
@@ -34,6 +35,7 @@ import com.oracle.graal.word.*;
  * Emits code to leave (pop) the current low-level stack frame which is being deoptimized. This node
  * is only used in {@link DeoptimizationStub}.
  */
+@NodeInfo
 public class LeaveDeoptimizedStackFrameNode extends FixedWithNextNode implements LIRLowerable {
 
     @Input private ValueNode frameSize;

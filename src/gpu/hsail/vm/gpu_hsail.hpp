@@ -185,10 +185,10 @@ private:
 
   // static native boolean executeKernel0(HotSpotInstalledCode kernel, int jobSize, Object[] args);
   JNIEXPORT static jboolean execute_kernel_void_1d(JNIEnv* env, jclass, jobject hotspotInstalledCode, jint dimX, jobject args,
-                                                   jobject donorThreads, int allocBytesPerWorkitem, jobject oop_map_array);
+                                                   jint num_tlabs, int allocBytesPerWorkitem, jobject oop_map_array);
 
   static jboolean execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod* nm,
-                                                  jobject donorThreads, int allocBytesPerWorkitem, jobject oop_map_array, TRAPS);
+                                                  jint num_tlabs, int allocBytesPerWorkitem, jobject oop_map_array, TRAPS);
 
   static GraalEnv::CodeInstallResult install_code(Handle& compiled_code, CodeBlob*& cb, Handle installed_code, Handle triggered_deoptimizations);
 

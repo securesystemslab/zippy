@@ -32,6 +32,7 @@ import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.Graph.Mark;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.cfg.*;
@@ -45,6 +46,30 @@ import com.oracle.graal.phases.tiers.*;
  * Processes all {@link Lowerable} nodes to do their lowering.
  */
 public class LoweringPhase extends BasePhase<PhaseContext> {
+
+    @NodeInfo
+    static class DummyGuardHandle extends ValueNode implements GuardedNode {
+        @Input(InputType.Guard) private GuardingNode guard;
+
+        public DummyGuardHandle(GuardingNode guard) {
+            super(StampFactory.forVoid());
+            this.guard = guard;
+        }
+
+        public GuardingNode getGuard() {
+            return guard;
+        }
+
+        public void setGuard(GuardingNode guard) {
+            updateUsagesInterface(this.guard, guard);
+            this.guard = guard;
+        }
+
+        @Override
+        public ValueNode asNode() {
+            return this;
+        }
+    }
 
     final class LoweringToolImpl implements LoweringTool {
 
@@ -100,30 +125,6 @@ public class LoweringPhase extends BasePhase<PhaseContext> {
         @Override
         public Assumptions assumptions() {
             return context.getAssumptions();
-        }
-
-        private class DummyGuardHandle extends ValueNode implements GuardedNode {
-            @Input(InputType.Guard) private GuardingNode guard;
-
-            public DummyGuardHandle(GuardingNode guard) {
-                super(StampFactory.forVoid());
-                this.guard = guard;
-            }
-
-            public GuardingNode getGuard() {
-                return guard;
-            }
-
-            public void setGuard(GuardingNode guard) {
-                updateUsagesInterface(this.guard, guard);
-                this.guard = guard;
-            }
-
-            @Override
-            public ValueNode asNode() {
-                return this;
-            }
-
         }
 
         @Override

@@ -26,6 +26,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.lir.gen.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -33,6 +34,7 @@ import com.oracle.graal.nodes.type.*;
 /**
  * The {@code NarrowNode} converts an integer to a narrower integer.
  */
+@NodeInfo
 public class NarrowNode extends IntegerConvertNode {
 
     public NarrowNode(ValueNode input, int resultBits) {

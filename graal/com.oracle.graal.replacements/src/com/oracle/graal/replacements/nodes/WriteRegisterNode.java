@@ -25,7 +25,7 @@ package com.oracle.graal.replacements.nodes;
 import com.oracle.graal.api.code.*;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 
@@ -33,7 +33,7 @@ import com.oracle.graal.nodes.spi.*;
  * Changes the value of a specific register.
  */
 @NodeInfo(nameTemplate = "WriteRegister %{p#register}")
-public final class WriteRegisterNode extends FixedWithNextNode implements LIRLowerable {
+public class WriteRegisterNode extends FixedWithNextNode implements LIRLowerable {
 
     /**
      * The fixed register to access.

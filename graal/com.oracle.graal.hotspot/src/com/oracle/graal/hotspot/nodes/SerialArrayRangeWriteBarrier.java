@@ -22,9 +22,11 @@
  */
 package com.oracle.graal.hotspot.nodes;
 
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 
-public final class SerialArrayRangeWriteBarrier extends ArrayRangeWriteBarrier {
+@NodeInfo
+public class SerialArrayRangeWriteBarrier extends ArrayRangeWriteBarrier {
 
     public SerialArrayRangeWriteBarrier(ValueNode object, ValueNode startIndex, ValueNode length) {
         super(object, startIndex, length);

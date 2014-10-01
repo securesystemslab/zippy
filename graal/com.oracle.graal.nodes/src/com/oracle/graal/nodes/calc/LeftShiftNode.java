@@ -23,15 +23,15 @@
 package com.oracle.graal.nodes.calc;
 
 import com.oracle.graal.api.meta.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.lir.gen.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
 
 @NodeInfo(shortName = "<<")
-public final class LeftShiftNode extends ShiftNode {
+public class LeftShiftNode extends ShiftNode {
 
     public LeftShiftNode(ValueNode x, ValueNode y) {
         super(x, y);

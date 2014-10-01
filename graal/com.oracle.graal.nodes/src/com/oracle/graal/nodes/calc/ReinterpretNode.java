@@ -27,6 +27,7 @@ import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.lir.gen.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 
@@ -35,6 +36,7 @@ import com.oracle.graal.nodes.spi.*;
  * of a primitive value to some other incompatible stamp. The new stamp must have the same width as
  * the old stamp.
  */
+@NodeInfo
 public class ReinterpretNode extends UnaryNode implements ArithmeticLIRLowerable {
 
     private ReinterpretNode(Kind to, ValueNode value) {

@@ -23,11 +23,12 @@
 package com.oracle.graal.hotspot.nodes;
 
 import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.nodes.spi.*;
 
+@NodeInfo
 public abstract class WriteBarrier extends FixedWithNextNode implements Lowerable {
 
     @Input private ValueNode object;

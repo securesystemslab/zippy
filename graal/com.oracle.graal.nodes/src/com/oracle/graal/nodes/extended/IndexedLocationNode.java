@@ -28,6 +28,7 @@ import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.lir.gen.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 import com.oracle.graal.nodes.type.*;
@@ -38,7 +39,7 @@ import com.oracle.graal.nodes.type.*;
  * constants.
  */
 @NodeInfo(nameTemplate = "IdxLoc {p#locationIdentity/s}")
-public final class IndexedLocationNode extends LocationNode implements Canonicalizable {
+public class IndexedLocationNode extends LocationNode implements Canonicalizable {
 
     private final Kind valueKind;
     private final LocationIdentity locationIdentity;

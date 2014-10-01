@@ -26,6 +26,7 @@ import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.replacements.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.replacements.nodes.*;
 
@@ -35,6 +36,7 @@ import com.oracle.graal.replacements.nodes.*;
  * @see ClassSubstitutions#getClassLoader0(Class)
  */
 @SuppressWarnings("javadoc")
+@NodeInfo
 public class ClassGetClassLoader0Node extends MacroStateSplitNode implements Canonicalizable {
 
     public ClassGetClassLoader0Node(Invoke invoke) {

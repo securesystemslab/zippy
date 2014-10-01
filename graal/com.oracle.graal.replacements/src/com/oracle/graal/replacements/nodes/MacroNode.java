@@ -30,8 +30,9 @@ import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.debug.Debug.Scope;
 import com.oracle.graal.graph.*;
-import com.oracle.graal.nodes.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.CallTargetNode.InvokeKind;
+import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.StructuredGraph.GuardsStage;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
@@ -55,6 +56,7 @@ import com.oracle.graal.replacements.*;
  * possible if the macro node is a {@link MacroStateSplitNode}.</li>
  * </ul>
  */
+@NodeInfo
 public class MacroNode extends FixedWithNextNode implements Lowerable {
 
     @Input protected final NodeInputList<ValueNode> arguments;

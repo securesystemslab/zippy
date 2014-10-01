@@ -25,6 +25,7 @@ package com.oracle.graal.nodes.java;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.graph.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.spi.*;
 
@@ -35,6 +36,7 @@ import com.oracle.graal.nodes.spi.*;
  * This node is used for method handle call nodes which have a constant call target but are not
  * inlined.
  */
+@NodeInfo
 public class SelfReplacingMethodCallTargetNode extends MethodCallTargetNode implements Lowerable {
 
     // Replacement method data

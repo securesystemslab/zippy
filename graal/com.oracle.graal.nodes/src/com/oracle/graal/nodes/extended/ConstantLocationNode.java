@@ -26,6 +26,7 @@ import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.lir.gen.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.spi.*;
 
 /**
@@ -33,7 +34,7 @@ import com.oracle.graal.nodes.spi.*;
  * where base is a node and disp is a constant.
  */
 @NodeInfo(nameTemplate = "Loc {p#locationIdentity/s}")
-public final class ConstantLocationNode extends LocationNode {
+public class ConstantLocationNode extends LocationNode {
 
     private final Kind valueKind;
     private final LocationIdentity locationIdentity;
@@ -47,7 +48,7 @@ public final class ConstantLocationNode extends LocationNode {
         return new ConstantLocationNode(identity, kind, displacement);
     }
 
-    private ConstantLocationNode(LocationIdentity identity, Kind kind, long displacement) {
+    ConstantLocationNode(LocationIdentity identity, Kind kind, long displacement) {
         super(StampFactory.forVoid());
         assert kind != Kind.Illegal && kind != Kind.Void;
         this.valueKind = kind;

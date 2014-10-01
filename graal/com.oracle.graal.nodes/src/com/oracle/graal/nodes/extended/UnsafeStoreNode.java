@@ -26,7 +26,7 @@ import static com.oracle.graal.compiler.common.UnsafeAccess.*;
 
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.graph.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.java.*;
 import com.oracle.graal.nodes.spi.*;
@@ -35,6 +35,7 @@ import com.oracle.graal.nodes.spi.*;
  * Store of a value at a location specified as an offset relative to an object. No null check is
  * performed before the store.
  */
+@NodeInfo
 public class UnsafeStoreNode extends UnsafeAccessNode implements StateSplit, Lowerable, Virtualizable, MemoryCheckpoint.Single {
 
     @Input private ValueNode value;
@@ -113,7 +114,7 @@ public class UnsafeStoreNode extends UnsafeAccessNode implements StateSplit, Low
 
     @Override
     protected ValueNode cloneAsArrayAccess(ValueNode location, LocationIdentity identity) {
-        return new UnsafeStoreNode(object(), location, value, accessKind(), identity);
+        return new UnsafeStoreNode(object(), location, value, accessKind(), identity, stateAfter());
     }
 
     public FrameState getState() {

@@ -25,12 +25,12 @@ package com.oracle.graal.hotspot.nodes;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.compiler.common.*;
 import com.oracle.graal.compiler.common.type.*;
-import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
 import com.oracle.graal.hotspot.*;
 import com.oracle.graal.hotspot.HotSpotVMConfig.CompressEncoding;
 import com.oracle.graal.hotspot.meta.*;
 import com.oracle.graal.hotspot.nodes.type.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
@@ -40,9 +40,9 @@ import com.oracle.graal.nodes.type.*;
  * Compress or uncompress an oop or metaspace pointer.
  */
 @NodeInfo(nameTemplate = "{p#op/s}")
-public final class CompressionNode extends ConvertNode implements LIRLowerable {
+public class CompressionNode extends ConvertNode implements LIRLowerable {
 
-    private enum CompressionOp {
+    enum CompressionOp {
         Compress,
         Uncompress
     }
@@ -50,7 +50,7 @@ public final class CompressionNode extends ConvertNode implements LIRLowerable {
     private final CompressionOp op;
     private final CompressEncoding encoding;
 
-    private CompressionNode(CompressionOp op, ValueNode input, CompressEncoding encoding) {
+    CompressionNode(CompressionOp op, ValueNode input, CompressEncoding encoding) {
         super(mkStamp(op, input.stamp(), encoding), input);
         this.op = op;
         this.encoding = encoding;

@@ -25,9 +25,11 @@ package com.oracle.graal.nodes;
 import java.util.*;
 
 import com.oracle.graal.graph.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.spi.*;
 
-public final class LoopEndNode extends AbstractEndNode {
+@NodeInfo
+public class LoopEndNode extends AbstractEndNode {
 
     @Input(InputType.Association) private LoopBeginNode loopBegin;
     private boolean canSafepoint;

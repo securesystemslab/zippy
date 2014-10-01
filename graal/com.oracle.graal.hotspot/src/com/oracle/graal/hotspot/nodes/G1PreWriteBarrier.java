@@ -22,10 +22,11 @@
  */
 package com.oracle.graal.hotspot.nodes;
 
-import com.oracle.graal.graph.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
 
+@NodeInfo
 public class G1PreWriteBarrier extends WriteBarrier implements DeoptimizingNode.DeoptBefore {
 
     @OptionalInput(InputType.State) private FrameState stateBefore;

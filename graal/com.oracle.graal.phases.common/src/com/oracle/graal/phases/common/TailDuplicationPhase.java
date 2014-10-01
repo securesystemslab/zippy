@@ -35,6 +35,7 @@ import com.oracle.graal.graph.Graph.Mark;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.NodeClass.NodeClassIterator;
 import com.oracle.graal.graph.NodeClass.Position;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.VirtualState.NodeClosure;
 import com.oracle.graal.nodes.extended.*;
@@ -61,7 +62,8 @@ public class TailDuplicationPhase extends BasePhase<PhaseContext> {
 
     private final CanonicalizerPhase canonicalizer;
 
-    private static final class DummyAnchorNode extends FixedWithNextNode implements GuardingNode {
+    @NodeInfo
+    static class DummyAnchorNode extends FixedWithNextNode implements GuardingNode {
         public DummyAnchorNode() {
             super(StampFactory.forVoid());
         }

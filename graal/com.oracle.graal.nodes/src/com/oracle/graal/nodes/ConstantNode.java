@@ -30,6 +30,7 @@ import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.debug.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.iterators.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.calc.*;
 import com.oracle.graal.nodes.spi.*;
 
@@ -37,7 +38,7 @@ import com.oracle.graal.nodes.spi.*;
  * The {@code ConstantNode} represents a {@link Constant constant}.
  */
 @NodeInfo(shortName = "Const", nameTemplate = "Const({p#rawvalue})")
-public final class ConstantNode extends FloatingNode implements LIRLowerable {
+public class ConstantNode extends FloatingNode implements LIRLowerable {
 
     private static final DebugMetric ConstantNodes = Debug.metric("ConstantNodes");
 

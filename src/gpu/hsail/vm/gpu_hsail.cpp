@@ -66,7 +66,7 @@
 JNINativeMethod Hsail::HSAIL_methods[] = {
   {CC"initialize",       CC"()Z",                               FN_PTR(Hsail::initialize)},
   {CC"generateKernel",   CC"([B" STRING ")J",                   FN_PTR(Hsail::generate_kernel)},
-  {CC"executeKernel0",   CC"("HS_INSTALLED_CODE"I["OBJECT"["JLTHREAD"I[I)Z",  FN_PTR(Hsail::execute_kernel_void_1d)},
+  {CC"executeKernel0",   CC"("HS_INSTALLED_CODE"I["OBJECT"II[I)Z",  FN_PTR(Hsail::execute_kernel_void_1d)},
 };
 
 void* Hsail::_device_context = NULL;
@@ -100,7 +100,7 @@ void Hsail::ignore_safepoints() {
 }
 
 GPU_VMENTRY(jboolean, Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobject kernel_handle, jint dimX, jobject args,
-                                                      jobject donor_threads, jint allocBytesPerWorkitem, jobject oop_map_array))
+                                                      jint num_tlabs, jint allocBytesPerWorkitem, jobject oop_map_array))
 
   ResourceMark rm;
   jlong nmethodValue = InstalledCode::address(kernel_handle);
@@ -116,7 +116,7 @@ GPU_VMENTRY(jboolean, Hsail::execute_kernel_void_1d, (JNIEnv* env, jclass, jobje
     SharedRuntime::throw_and_post_jvmti_exception(JavaThread::current(), vmSymbols::com_oracle_graal_api_code_InvalidInstalledCodeException(), NULL);
   }
 
-return execute_kernel_void_1d_internal((address) kernel, dimX, args, mh, nm, donor_threads, allocBytesPerWorkitem, oop_map_array, CHECK_0);
+return execute_kernel_void_1d_internal((address) kernel, dimX, args, mh, nm, num_tlabs, allocBytesPerWorkitem, oop_map_array, CHECK_0);
 GPU_END
 
 static void showRanges(jboolean* a, int len) {
@@ -137,14 +137,14 @@ static void showRanges(jboolean* a, int len) {
 }
 
 jboolean Hsail::execute_kernel_void_1d_internal(address kernel, int dimX, jobject args, methodHandle& mh, nmethod* nm,
-                                                jobject donor_threads, int allocBytesPerWorkitem, jobject oop_map_array, TRAPS) {
+                                                jint num_tlabs, int allocBytesPerWorkitem, jobject oop_map_array, TRAPS) {
   ResourceMark rm(THREAD);
   objArrayOop argsArray = (objArrayOop) JNIHandles::resolve(args);
   assert(THREAD->is_Java_thread(), "must be a JavaThread");
 
   // We avoid HSAILAllocationInfo logic if kernel does not allocate
-  // in which case the donor_thread array passed in will be null
-  HSAILAllocationInfo* allocInfo = (donor_threads == NULL ? NULL : new HSAILAllocationInfo(donor_threads, dimX, allocBytesPerWorkitem));
+  // in which case the num_tlabs passed in will be 0
+  HSAILAllocationInfo* allocInfo = (num_tlabs == 0 ?  NULL : new HSAILAllocationInfo(num_tlabs, dimX, allocBytesPerWorkitem));
   
   // Reset the kernel arguments
   _okra_clear_args(kernel);

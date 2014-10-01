@@ -25,6 +25,7 @@ package com.oracle.graal.truffle.nodes.typesystem;
 import com.oracle.graal.api.meta.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.nodes.extended.*;
 import com.oracle.graal.truffle.nodes.*;
@@ -34,6 +35,7 @@ import com.oracle.truffle.api.*;
 /**
  * Macro node for method {@link CompilerDirectives#unsafeCast(Object, Class, boolean)}.
  */
+@NodeInfo
 public class CustomizedUnsafeStoreMacroNode extends NeverPartOfCompilationNode implements Canonicalizable, StateSplit {
     private static final int ARGUMENT_COUNT = 4;
     private static final int OBJECT_ARGUMENT_INDEX = 0;

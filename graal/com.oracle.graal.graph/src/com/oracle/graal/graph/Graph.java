@@ -646,8 +646,13 @@ public class Graph {
         };
     }
 
-    private static final Node PLACE_HOLDER = new Node() {
-    };
+    // Fully qualified annotation name is required to satisfy javac
+    @com.oracle.graal.nodeinfo.NodeInfo
+    static class PlaceHolderNode extends Node {
+
+    }
+
+    private static final Node PLACE_HOLDER = new PlaceHolderNode();
 
     /**
      * When the percent of live nodes in {@link #nodes} fall below this number, a call to

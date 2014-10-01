@@ -25,13 +25,15 @@ package com.oracle.graal.replacements.nodes;
 import com.oracle.graal.compiler.common.type.*;
 import com.oracle.graal.graph.*;
 import com.oracle.graal.graph.spi.*;
+import com.oracle.graal.nodeinfo.*;
 import com.oracle.graal.nodes.*;
 import com.oracle.graal.replacements.Snippet.VarargsParameter;
 
 /**
  * Implements the semantics of {@link VarargsParameter}.
  */
-public final class LoadSnippetVarargParameterNode extends FixedWithNextNode implements Canonicalizable {
+@NodeInfo
+public class LoadSnippetVarargParameterNode extends FixedWithNextNode implements Canonicalizable {
 
     @Input private ValueNode index;
 

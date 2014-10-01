@@ -40,6 +40,42 @@ import com.oracle.truffle.dsl.processor.java.model.CodeTypeMirror.DeclaredCodeTy
  */
 public class ElementUtils {
 
+    public static TypeMirror getType(ProcessingEnvironment processingEnv, Class<?> element) {
+        if (element.isPrimitive()) {
+            if (element == void.class) {
+                return processingEnv.getTypeUtils().getNoType(TypeKind.VOID);
+            }
+            TypeKind typeKind;
+            if (element == boolean.class) {
+                typeKind = TypeKind.BOOLEAN;
+            } else if (element == byte.class) {
+                typeKind = TypeKind.BYTE;
+            } else if (element == short.class) {
+                typeKind = TypeKind.SHORT;
+            } else if (element == char.class) {
+                typeKind = TypeKind.CHAR;
+            } else if (element == int.class) {
+                typeKind = TypeKind.INT;
+            } else if (element == long.class) {
+                typeKind = TypeKind.LONG;
+            } else if (element == float.class) {
+                typeKind = TypeKind.FLOAT;
+            } else if (element == double.class) {
+                typeKind = TypeKind.DOUBLE;
+            } else {
+                assert false;
+                return null;
+            }
+            return processingEnv.getTypeUtils().getPrimitiveType(typeKind);
+        } else {
+            TypeElement typeElement = processingEnv.getElementUtils().getTypeElement(element.getCanonicalName());
+            if (typeElement == null) {
+                return null;
+            }
+            return typeElement.asType();
+        }
+    }
+
     public static ExecutableElement findExecutableElement(DeclaredType type, String name) {
         List<? extends ExecutableElement> elements = ElementFilter.methodsIn(type.asElement().getEnclosedElements());
         for (ExecutableElement executableElement : elements) {
@@ -494,7 +530,7 @@ public class ElementUtils {
     public static boolean isEnclosedIn(Element enclosedIn, Element element) {
         if (element == null) {
             return false;
-        } else if (enclosedIn.equals(element)) {
+        } else if (typeEquals(enclosedIn.asType(), element.asType())) {
             return true;
         } else {
             return isEnclosedIn(enclosedIn, element.getEnclosingElement());
@@ -557,11 +593,16 @@ public class ElementUtils {
         } else if (type.getKind() == TypeKind.ARRAY) {
             return Arrays.asList(type, context.getType(Object.class));
         } else if (type.getKind() == TypeKind.DECLARED) {
-            List<TypeElement> types = getSuperTypes(fromTypeMirror(type));
+            DeclaredType declaredType = (DeclaredType) type;
+            TypeElement typeElement = fromTypeMirror(declaredType);
+            List<TypeElement> types = getSuperTypes(typeElement);
             List<TypeMirror> mirrors = new ArrayList<>(types.size());
             mirrors.add(type);
-            for (TypeElement typeElement : types) {
-                mirrors.add(typeElement.asType());
+            for (TypeElement superTypeElement : types) {
+                mirrors.add(superTypeElement.asType());
+            }
+            if (typeElement.getKind().isInterface()) {
+                mirrors.add(getType(context.getEnvironment(), Object.class));
             }
             return mirrors;
         } else {
@@ -584,7 +625,11 @@ public class ElementUtils {
             TypeElement interfaceElement = fromTypeMirror(interfaceMirror);
             if (interfaceElement != null) {
                 types.add(interfaceElement);
-                superInterfaces = getSuperTypes(interfaceElement);
+                if (superInterfaces == null) {
+                    superInterfaces = getSuperTypes(interfaceElement);
+                } else {
+                    superInterfaces.addAll(getSuperTypes(interfaceElement));
+                }
             }
         }
 
@@ -801,7 +846,7 @@ public class ElementUtils {
         return null;
     }
 
-    private static PackageElement findPackageElement(Element type) {
+    public static PackageElement findPackageElement(Element type) {
         List<Element> hierarchy = getElementHierarchy(type);
         for (Element element : hierarchy) {
             if (element.getKind() == ElementKind.PACKAGE) {
@@ -864,24 +909,25 @@ public class ElementUtils {
     }
 
     public static boolean typeEquals(TypeMirror type1, TypeMirror type2) {
-        if (type1 == null && type2 == null) {
+        if (type1 == type2) {
             return true;
         } else if (type1 == null || type2 == null) {
             return false;
-        } else if (type1 == type2) {
-            return true;
-        }
-        String qualified1 = getQualifiedName(type1);
-        String qualified2 = getQualifiedName(type2);
-
-        if (type1.getKind() == TypeKind.ARRAY || type2.getKind() == TypeKind.ARRAY) {
-            if (type1.getKind() == TypeKind.ARRAY && type2.getKind() == TypeKind.ARRAY) {
-                return typeEquals(((ArrayType) type1).getComponentType(), ((ArrayType) type2).getComponentType());
+        } else {
+            if (type1.getKind() == type2.getKind()) {
+                return getUniqueIdentifier(type1).equals(getUniqueIdentifier(type2));
             } else {
                 return false;
             }
         }
-        return qualified1.equals(qualified2);
+    }
+
+    public static String getUniqueIdentifier(TypeMirror typeMirror) {
+        if (typeMirror.getKind() == TypeKind.ARRAY) {
+            return getUniqueIdentifier(((ArrayType) typeMirror).getComponentType()) + "[]";
+        } else {
+            return getQualifiedName(typeMirror);
+        }
     }
 
     public static int compareByTypeHierarchy(TypeMirror t1, TypeMirror t2) {
