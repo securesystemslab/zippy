@@ -31,6 +31,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
@@ -190,6 +191,39 @@ public abstract class ForNode extends LoopNode {
         }
 
         reportLoopCount(count);
+        return PNone.NONE;
+    }
+
+    @Specialization
+    public Object doGenerator(VirtualFrame frame, PGenerator generator) {
+        int count = 0;
+
+        try {
+            while (true) {
+                loopBodyBranch.enter();
+                ((WriteNode) target).executeWrite(frame, generator.__next__());
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } catch (StopIterationException e) {
+
+        } finally {
+            reportLoopCount(count);
+        }
+
+        if (CompilerDirectives.inInterpreter()) {
+            if (count > 0 && PythonOptions.InlineGeneratorCalls) {
+                CompilerAsserts.neverPartOfCompilation();
+                /**
+                 * TODO zwei: This is probably a better place to peel generators than the
+                 * complicated logic we currently have in FunctionRootNode now.
+                 */
+            }
+        }
+
         return PNone.NONE;
     }
 
