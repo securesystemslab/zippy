@@ -25,7 +25,6 @@
 package edu.uci.python.runtime.function;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.impl.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -86,11 +85,6 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
     @Override
     public RootCallTarget getCallTarget() {
         return callTarget;
-    }
-
-    @Override
-    public FrameDescriptor getFrameDescriptor() {
-        throw new UnsupportedOperationException();
     }
 
     @Override

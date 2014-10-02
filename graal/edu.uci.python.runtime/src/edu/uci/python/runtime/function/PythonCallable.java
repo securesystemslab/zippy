@@ -39,9 +39,13 @@ public interface PythonCallable {
 
     void arityCheck(int numOfArgs, int numOfKeywords, String[] keywords);
 
-    RootCallTarget getCallTarget();
+    default RootCallTarget getCallTarget() {
+        throw new UnsupportedOperationException();
+    }
 
-    FrameDescriptor getFrameDescriptor();
+    default FrameDescriptor getFrameDescriptor() {
+        throw new UnsupportedOperationException();
+    }
 
     default boolean isGeneratorFunction() {
         return false;
