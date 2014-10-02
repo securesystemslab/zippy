@@ -796,13 +796,15 @@ def build(args, vm=None):
         if not mx.ask_yes_no("Warning: building while --installed-jdks is set (" + _installed_jdks + ") is not recommanded - are you sure you want to continue", 'n'):
             mx.abort(1)
 
+    isWindows = platform.system() == 'Windows' or "CYGWIN" in platform.system()
     for build in builds:
         if build == 'ide-build-target':
             build = os.environ.get('IDE_BUILD_TARGET', None)
             if build is None or len(build) == 0:
                 continue
 
-        jdk = _jdk(build, create=True, installJars=vm != 'original' and not opts2.java)
+        installJars = vm != 'original' and (isWindows or not opts2.java)
+        jdk = _jdk(build, create=True, installJars=installJars)
 
         if vm == 'original':
             if build != 'product':
@@ -846,7 +848,7 @@ def build(args, vm=None):
             mx.logv('[all files in src and make directories are older than ' + timestampFile[len(_graal_home) + 1:] + ' - skipping native build]')
             continue
 
-        if platform.system() == 'Windows' or "CYGWIN" in platform.system():
+        if isWindows:
             t_compilelogfile = mx._cygpathU2W(os.path.join(_graal_home, "graalCompile.log"))
             mksHome = mx.get_env('MKS_HOME', 'C:\\cygwin\\bin')
 
