@@ -104,6 +104,7 @@ public class PythonTypes {
         return value;
     }
 
+    @ImplicitCast
     public double bigIntegerToDouble(BigInteger value) {
         return value.doubleValue();
     }

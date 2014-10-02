@@ -60,16 +60,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization
-        BigInteger doIntegerBigInteger(int left, BigInteger right) {
-            return BigInteger.valueOf(left).add(right);
-        }
-
-        @Specialization
-        BigInteger doBigIntegerInteger(BigInteger left, int right) {
-            return left.add(BigInteger.valueOf(right));
-        }
-
-        @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.add(right);
         }
@@ -84,16 +74,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         double doDoubleBoolean(boolean left, double right) {
             final double leftDouble = left ? 1.0 : 0.0;
             return leftDouble + right;
-        }
-
-        @Specialization
-        double doDoubleInt(double left, int right) {
-            return left + right;
-        }
-
-        @Specialization
-        double doDoubleInt(int left, double right) {
-            return left + right;
         }
 
         @Specialization
@@ -124,11 +104,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         PComplex doComplexDouble(PComplex left, double right) {
             PComplex result = new PComplex(left.getReal() + right, left.getImag());
             return result;
-        }
-
-        @Specialization
-        PComplex doComplex(BigInteger left, PComplex right) {
-            return new PComplex(left.doubleValue(), 0).add(right);
         }
 
         @Specialization
@@ -206,16 +181,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization
         double doDouble(double left, double right) {
             return left - right;
-        }
-
-        @Specialization
-        double doBigIntegerDouble(BigInteger left, double right) {
-            return left.doubleValue() - right;
-        }
-
-        @Specialization
-        double doBigIntegerDouble(double left, BigInteger right) {
-            return left - right.doubleValue();
         }
 
         @Specialization
@@ -377,16 +342,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization
         double doDouble(double left, double right) {
             return left / right;
-        }
-
-        @Specialization
-        double doBigIntegerDouble(BigInteger left, double right) {
-            return left.doubleValue() / right;
-        }
-
-        @Specialization
-        double doBigIntegerDouble(double left, BigInteger right) {
-            return left / right.doubleValue();
         }
 
         @Specialization
