@@ -1180,7 +1180,7 @@ def _unittest(args, annotations, prefixCp="", blacklist=None, whitelist=None, ve
             # replaying the VM execution in a native debugger (e.g., gdb).
             vm(prefixArgs + vmArgs + ['-cp', cp, 'com.oracle.graal.test.GraalJUnitCore'] + coreArgs + testclasses)
         else:
-            vm(prefixArgs + vmArgs + ['-cp', cp, 'com.oracle.graal.test.GraalJUnitCore'] + coreArgs + ['@' + testfile])
+            vm(prefixArgs + vmArgs + ['-cp', cp, 'com.oracle.graal.test.GraalJUnitCore'] + coreArgs + ['@' + mx._cygpathU2W(testfile)])
 
     try:
         _run_tests(args, harness, annotations, testfile, blacklist, whitelist, regex)
