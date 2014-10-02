@@ -263,8 +263,11 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
     public void compile() {
         if (!runtime.isCompiling(this)) {
             performInlining();
-            logOptimizingQueued(this);
-            runtime.compile(this, TruffleBackgroundCompilation.getValue());
+
+            if (inliningPerformed) {
+                logOptimizingQueued(this);
+                runtime.compile(this, TruffleBackgroundCompilation.getValue());
+            }
         }
     }
 
@@ -347,10 +350,16 @@ public class OptimizedCallTarget extends InstalledCode implements RootCallTarget
         if (inliningPerformed) {
             return;
         }
+
         TruffleInliningHandler handler = new TruffleInliningHandler(new DefaultInliningPolicy());
         TruffleInliningDecision result = handler.decideInlining(this, 0);
         performInlining(result);
         logInliningDecision(result);
+
+        // zwei
+        if (rootNode.applyGuestTransformation()) {
+            inliningPerformed = false;
+        }
     }
 
     private static void performInlining(TruffleInliningDecision result) {
