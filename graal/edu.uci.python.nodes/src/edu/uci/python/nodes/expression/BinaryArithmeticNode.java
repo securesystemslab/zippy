@@ -54,18 +54,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return leftInt + rightInt;
         }
 
-        @Specialization
-        int doIntBoolean(int left, boolean right) {
-            final int rightInt = right ? 1 : 0;
-            return doInteger(left, rightInt);
-        }
-
-        @Specialization
-        int doBooleanInt(boolean left, int right) {
-            final int leftInt = left ? 1 : 0;
-            return doInteger(leftInt, right);
-        }
-
         @Specialization(rewriteOn = ArithmeticException.class)
         int doInteger(int left, int right) {
             return ExactMath.addExact(left, right);

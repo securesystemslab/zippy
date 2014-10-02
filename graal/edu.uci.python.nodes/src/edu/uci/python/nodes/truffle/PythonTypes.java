@@ -89,31 +89,14 @@ public class PythonTypes {
     /**
      * Type coercion: Python bool to Python int (Integer).
      */
+    @ImplicitCast
     public int booleanToInt(boolean value) {
         return value ? 1 : 0;
-    }
-
-    /**
-     * Type coercion: <br>
-     * Python bool to Python int (BigInteger); <br>
-     * Python int to int (Integer to BigInteger).
-     */
-    public BigInteger booleanToBigInteger(boolean value) {
-        return value ? BigInteger.valueOf(1) : BigInteger.valueOf(0);
     }
 
     @ImplicitCast
     public BigInteger intToBigInteger(int value) {
         return BigInteger.valueOf(value);
-    }
-
-    /**
-     * Type coercion: <br>
-     * Python bool to Python float (double); <br>
-     * Python int to float (Integer or BigInteger to double).
-     */
-    public double booleanToDouble(boolean value) {
-        return value ? 1.0D : 0.0D;
     }
 
     @ImplicitCast
@@ -123,28 +106,6 @@ public class PythonTypes {
 
     public double bigIntegerToDouble(BigInteger value) {
         return value.doubleValue();
-    }
-
-    /**
-     * Type coercion: <br>
-     * Python bool to Python complex; <br>
-     * Python int to Python complex (Integer or BigInteger to PComplex); <br>
-     * Python float to Python complex (double to PComplex).
-     */
-    public PComplex booleanToPComplex(boolean value) {
-        return value ? new PComplex(1, 0) : new PComplex(0, 0);
-    }
-
-    public PComplex intToPComplex(int value) {
-        return new PComplex(value, 0);
-    }
-
-    public PComplex bigIntegerToPComplex(BigInteger value) {
-        return new PComplex(value.doubleValue(), 0);
-    }
-
-    public PComplex doubleToPComplex(double value) {
-        return new PComplex(value, 0);
     }
 
     @ImplicitCast
