@@ -29,7 +29,7 @@
 /*
  * This class handles the conversion from a InstalledCode to a CodeBlob or an nmethod.
  */
-class CodeInstaller {
+class CodeInstaller : public StackObj {
   friend class VMStructs;
 private:
   enum MarkId {
@@ -96,7 +96,7 @@ private:
 
 public:
 
-  CodeInstaller() {};
+  CodeInstaller() {}
   GraalEnv::CodeInstallResult install(Handle& compiled_code, CodeBlob*& cb, Handle installed_code, Handle speculation_log);
 
   static address runtime_call_target_address(oop runtime_call);

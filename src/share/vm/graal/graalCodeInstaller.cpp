@@ -468,16 +468,16 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
     // TODO (ds) not sure if this is correct - only used in OopMap constructor for non-product builds
     _parameter_count = 0;
   }
-  _sites_handle = JNIHandles::make_global(HotSpotCompiledCode::sites(compiled_code));
-  _exception_handlers_handle = JNIHandles::make_global(HotSpotCompiledCode::exceptionHandlers(compiled_code));
+  _sites_handle = JNIHandles::make_local(HotSpotCompiledCode::sites(compiled_code));
+  _exception_handlers_handle = JNIHandles::make_local(HotSpotCompiledCode::exceptionHandlers(compiled_code));
 
-  _code_handle = JNIHandles::make_global(CompilationResult::targetCode(comp_result));
+  _code_handle = JNIHandles::make_local(CompilationResult::targetCode(comp_result));
   _code_size = CompilationResult::targetCodeSize(comp_result);
   _total_frame_size = CompilationResult::totalFrameSize(comp_result);
   _custom_stack_area_offset = CompilationResult::customStackAreaOffset(comp_result);
 
   // Pre-calculate the constants section size.  This is required for PC-relative addressing.
-  _data_section_handle = JNIHandles::make_global(HotSpotCompiledCode::dataSection(compiled_code));
+  _data_section_handle = JNIHandles::make_local(HotSpotCompiledCode::dataSection(compiled_code));
   guarantee(DataSection::sectionAlignment(data_section()) <= _constants->alignment(), "Alignment inside constants section is restricted by alignment of section begin");
   arrayHandle data = (arrayOop) DataSection::data(data_section());
   _constants_size = data->length();
@@ -486,7 +486,7 @@ void CodeInstaller::initialize_fields(oop compiled_code) {
   }
 
 #ifndef PRODUCT
-  _comments_handle = JNIHandles::make_global((arrayOop) HotSpotCompiledCode::comments(compiled_code));
+  _comments_handle = JNIHandles::make_local((arrayOop) HotSpotCompiledCode::comments(compiled_code));
 #endif
 
   _next_call_type = INVOKE_INVALID;
