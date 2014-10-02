@@ -80,8 +80,9 @@ def measure():
     print("spectralnorm: " + duration)
 
 # warm up
-num = int(sys.argv[1])
-for i in range(2000):
-  main(5)
+num = int(sys.argv[1]) 
+for i in range(100000):
+    main(5)
+  
 
 measure()
