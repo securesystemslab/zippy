@@ -26,6 +26,8 @@ package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
@@ -54,9 +56,14 @@ public abstract class PBaseSet extends PythonBuiltinObject implements PIterable 
         }
     }
 
-    public PBaseSet(PBaseSet pBaseSet) {
+    public PBaseSet(PBaseSet baseSet) {
         this();
-        this.set.addAll(pBaseSet.set);
+        addAll(baseSet);
+    }
+
+    @SlowPath
+    private void addAll(PBaseSet baseSet) {
+        this.set.addAll(baseSet.set);
     }
 
     public Set<Object> getSet() {
