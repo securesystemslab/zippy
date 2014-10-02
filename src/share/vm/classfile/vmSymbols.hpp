@@ -356,6 +356,7 @@
   GRAAL_ONLY(template(compileMetaspaceMethod_name,               "compileMetaspaceMethod"))                                                       \
   GRAAL_ONLY(template(compileMetaspaceMethod_signature,          "(JIJI)V"))                                                                      \
   GRAAL_ONLY(template(graal_mirror_name,                         "graal_mirror"))                                                                 \
+  GRAAL_ONLY(template(com_oracle_graal_hotspot_Stable_signature, "Lcom/oracle/graal/hotspot/Stable;"))                                            \
                                                                                                   \
   /* common method and field names */                                                             \
   template(object_initializer_name,                   "<init>")                                   \
