@@ -66,7 +66,7 @@ public abstract class ForNode extends LoopNode {
         }
     }
 
-    @Specialization(order = 1)
+    @Specialization
     public Object doPRange(VirtualFrame frame, PRangeIterator range) {
         final int start = range.getStart();
         final int stop = range.getStop();
@@ -86,7 +86,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 2)
+    @Specialization
     public Object doIntegerSequenceIterator(VirtualFrame frame, PIntegerSequenceIterator iterator) {
         int count = 0;
         int index = 0;
@@ -106,7 +106,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 3)
+    @Specialization
     public Object doIntegerIterator(VirtualFrame frame, PIntegerIterator iterator) {
         int count = 0;
 
@@ -129,7 +129,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 5)
+    @Specialization
     public Object doDoubleIterator(VirtualFrame frame, PDoubleIterator iterator) {
         int count = 0;
 
@@ -152,7 +152,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 6, guards = "isObjectStorageIterator")
+    @Specialization(guards = "isObjectStorageIterator")
     public Object doObjectStorageIterator(VirtualFrame frame, PSequenceIterator iterator) {
         int count = 0;
         int index = 0;
@@ -173,7 +173,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 7)
+    @Specialization
     public Object doIterator(VirtualFrame frame, PSequenceIterator iterator) {
         int count = 0;
         int index = 0;
@@ -193,7 +193,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 8)
+    @Specialization
     public Object doIterator(VirtualFrame frame, PIterator iterator) {
         int count = 0;
 
