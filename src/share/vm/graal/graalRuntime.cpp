@@ -1015,7 +1015,7 @@ void GraalRuntime::call_printStackTrace(Handle exception, Thread* thread) {
 oop GraalRuntime::compute_graal_class_loader(TRAPS) {
   assert(UseGraalClassLoader, "must be");
   TempNewSymbol name = SymbolTable::new_symbol("com/oracle/graal/hotspot/loader/Factory", CHECK_NULL);
-  KlassHandle klass = SystemDictionary::resolve_or_null(name, CHECK_NULL);
+  KlassHandle klass = SystemDictionary::resolve_or_fail(name, true, CHECK_NULL);
 
   TempNewSymbol getClassLoader = SymbolTable::new_symbol("newClassLoader", CHECK_NULL);
   JavaValue result(T_OBJECT);
