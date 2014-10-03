@@ -1857,7 +1857,7 @@ def buildjmh(args):
                 buildOutput.append(x)
         env = os.environ.copy()
         env['JAVA_HOME'] = _jdk(vmToCheck='server')
-        env['MAVEN_OPTS'] = '-server'
+        env['MAVEN_OPTS'] = '-server -XX:-UseGraalClassLoader'
         mx.log("Building benchmarks...")
         cmd = ['mvn']
         if args.settings:
@@ -1883,6 +1883,8 @@ def jmh(args):
         mx.abort(1)
 
     vmArgs, benchmarksAndJsons = _extract_VM_args(args)
+    if '-XX:-UseGraalClassLoader' not in vmArgs:
+        vmArgs = ['-XX:-UseGraalClassLoader'] + vmArgs
 
     benchmarks = [b for b in benchmarksAndJsons if not b.startswith('{')]
     jmhArgJsons = [b for b in benchmarksAndJsons if b.startswith('{')]
