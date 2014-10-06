@@ -81,29 +81,46 @@ public class URLConnectionDownload {
 
         for (String s : urls) {
             try {
-                System.err.println("Downloading " + s + " to  " + path + proxyMsg);
-                URL url = new URL(s);
-                URLConnection conn = url.openConnection();
-                // 10 second timeout to establish connection
-                conn.setConnectTimeout(10000);
-                InputStream in = conn.getInputStream();
-                int size = conn.getContentLength();
-                FileOutputStream out = new FileOutputStream(path);
-                int read = 0;
-                byte[] buf = new byte[8192];
-                int n = 0;
-                while ((read = in.read(buf)) != -1) {
-                    n += read;
-                    if (verbose) {
-                        long percent = ((long) n * 100 / size);
-                        System.err.print("\r " + n + " bytes " + (size == -1 ? "" : " (" + percent + "%)"));
+                while (true) {
+                    System.err.println("Downloading " + s + " to  " + path + proxyMsg);
+                    URL url = new URL(s);
+                    URLConnection conn = url.openConnection();
+                    // 10 second timeout to establish connection
+                    conn.setConnectTimeout(10000);
+
+                    if (conn instanceof HttpURLConnection) {
+                        // HttpURLConnection per default follows redirections,
+                        // but not if it changes the protocol (e.g. http ->
+                        // https).  While this is a sane default, in our
+                        // situation it's okay to follow a protocol transition.
+                        HttpURLConnection httpconn = (HttpURLConnection) conn;
+                        switch (httpconn.getResponseCode()) {
+                            case HttpURLConnection.HTTP_MOVED_PERM:
+                            case HttpURLConnection.HTTP_MOVED_TEMP:
+                                System.err.println("follow redirect...");
+                                s = httpconn.getHeaderField("Location");
+                                continue;
+                        }
                     }
-                    out.write(buf, 0, read);
+                    InputStream in = conn.getInputStream();
+                    int size = conn.getContentLength();
+                    FileOutputStream out = new FileOutputStream(path);
+                    int read = 0;
+                    byte[] buf = new byte[8192];
+                    int n = 0;
+                    while ((read = in.read(buf)) != -1) {
+                        n += read;
+                        if (verbose) {
+                            long percent = ((long) n * 100 / size);
+                            System.err.print("\r " + n + " bytes " + (size == -1 ? "" : " (" + percent + "%)"));
+                        }
+                        out.write(buf, 0, read);
+                    }
+                    System.err.println();
+                    out.close();
+                    in.close();
+                    return;
                 }
-                System.err.println();
-                out.close();
-                in.close();
-                return;
             } catch (MalformedURLException e) {
                 throw new Error("Error in URL " + s, e);
             } catch (IOException e) {
