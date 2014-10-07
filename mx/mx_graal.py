@@ -1001,11 +1001,17 @@ def _parseVmArgs(args, vm=None, cwd=None, vmbuild=None):
     if _jacoco == 'on' or _jacoco == 'append':
         jacocoagent = mx.library("JACOCOAGENT", True)
         # Exclude all compiler tests and snippets
-        excludes = ['com.oracle.graal.compiler.tests.*', 'com.oracle.graal.jtt.*']
-        for p in mx.projects():
-            excludes += _find_classes_with_annotations(p, None, ['@Snippet', '@ClassSubstitution', '@Test'], includeInnerClasses=True).keys()
-            excludes += p.find_classes_with_matching_source_line(None, lambda line: 'JaCoCo Exclude' in line, includeInnerClasses=True).keys()
 
+        baseExcludes = ['com.oracle.graal.compiler.test', 'com.oracle.graal.jtt', 'com.oracle.graal.api.meta.test', 'com.oracle.truffle.api.test', 'com.oracle.truffle.api.dsl.test', 'com.oracle.graal.compiler.hsail.test']
+        def _filter(l):
+            # filter out specific classes which are already covered by a baseExclude package
+            return [clazz for clazz in l if not any([clazz.startswith(package) for package in baseExcludes])]
+        excludes = []
+        for p in mx.projects():
+            excludes += _filter(_find_classes_with_annotations(p, None, ['@Snippet', '@ClassSubstitution', '@Test'], includeInnerClasses=True).keys())
+            excludes += _filter(p.find_classes_with_matching_source_line(None, lambda line: 'JaCoCo Exclude' in line, includeInnerClasses=True).keys())
+
+        excludes += [package + '.*' for package in baseExcludes]
         includes = ['com.oracle.graal.*']
         agentOptions = {
                         'append' : 'true' if _jacoco == 'append' else 'false',
