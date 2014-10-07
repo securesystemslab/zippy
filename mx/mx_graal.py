@@ -1794,12 +1794,18 @@ def makejmhdeps(args):
         graalSuite = mx.suite("graal")
         path = artifactId + '.jar'
         if args.permissive:
+            allDeps = []
             for name in deps:
-                if not mx.project(name, fatalIfMissing=False):
-                    if not mx.library(name, fatalIfMissing=False):
-                        mx.log('Skipping ' + groupId + '.' + artifactId + '.jar as ' + name + ' cannot be resolved')
-                        return
-        d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=deps, mainClass=None, excludedDependencies=[], distDependencies=[])
+                dist = mx.distribution(name, fatalIfMissing=False)
+                if dist:
+                    allDeps = allDeps + [d.name for d in dist.sorted_deps(transitive=True)]
+                else:
+                    if not mx.project(name, fatalIfMissing=False):
+                        if not mx.library(name, fatalIfMissing=False):
+                            mx.log('Skipping dependency ' + groupId + '.' + artifactId + ' as ' + name + ' cannot be resolved')
+                            return
+                    allDeps.append(name)
+        d = mx.Distribution(graalSuite, name=artifactId, path=path, sourcesPath=path, deps=allDeps, mainClass=None, excludedDependencies=[], distDependencies=[], javaCompliance=None)
         d.make_archive()
         cmd = ['mvn', 'install:install-file', '-DgroupId=' + groupId, '-DartifactId=' + artifactId,
                '-Dversion=1.0-SNAPSHOT', '-Dpackaging=jar', '-Dfile=' + d.path]
