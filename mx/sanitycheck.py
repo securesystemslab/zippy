@@ -211,15 +211,15 @@ def getDacapo(name, dacapoArgs=None):
     if not isfile(dacapo) or not dacapo.endswith('.jar'):
         mx.abort('Specified DaCapo jar file does not exist or is not a jar file: ' + dacapo)
 
-    dacapoSuccess = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====$", re.MULTILINE)
-    dacapoFail = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) FAILED (warmup|) =====$", re.MULTILINE)
+    dacapoSuccess = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====", re.MULTILINE)
+    dacapoFail = re.compile(r"^===== DaCapo 9\.12 ([a-zA-Z0-9_]+) FAILED (warmup|) =====", re.MULTILINE)
     dacapoTime = re.compile(r"===== DaCapo 9\.12 (?P<benchmark>[a-zA-Z0-9_]+) PASSED in (?P<time>[0-9]+) msec =====")
     dacapoTime1 = re.compile(r"===== DaCapo 9\.12 (?P<benchmark>[a-zA-Z0-9_]+) completed warmup 1 in (?P<time>[0-9]+) msec =====")
 
     dacapoMatcher = ValuesMatcher(dacapoTime, {'group' : 'DaCapo', 'name' : '<benchmark>', 'score' : '<time>'})
     dacapoMatcher1 = ValuesMatcher(dacapoTime1, {'group' : 'DaCapo-1stRun', 'name' : '<benchmark>', 'score' : '<time>'})
 
-    return Test("DaCapo-" + name, ['-jar', dacapo, name] + _noneAsEmptyList(dacapoArgs), [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:+' + gc, '-XX:-UseCompressedOops'])
+    return Test("DaCapo-" + name, ['-jar', mx._cygpathU2W(dacapo), name] + _noneAsEmptyList(dacapoArgs), [dacapoSuccess], [dacapoFail], [dacapoMatcher, dacapoMatcher1], ['-Xms2g', '-XX:+' + gc, '-XX:-UseCompressedOops'])
 
 def getScalaDacapos(level=SanityCheckLevel.Normal, gateBuildLevel=None, dacapoArgs=None):
     checks = []
@@ -243,13 +243,13 @@ def getScalaDacapo(name, dacapoArgs=None):
     if not isfile(dacapo) or not dacapo.endswith('.jar'):
         mx.abort('Specified Scala DaCapo jar file does not exist or is not a jar file: ' + dacapo)
 
-    dacapoSuccess = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====$", re.MULTILINE)
-    dacapoFail = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) FAILED (warmup|) =====$", re.MULTILINE)
+    dacapoSuccess = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) PASSED in ([0-9]+) msec =====", re.MULTILINE)
+    dacapoFail = re.compile(r"^===== DaCapo 0\.1\.0(-SNAPSHOT)? ([a-zA-Z0-9_]+) FAILED (warmup|) =====", re.MULTILINE)
     dacapoTime = re.compile(r"===== DaCapo 0\.1\.0(-SNAPSHOT)? (?P<benchmark>[a-zA-Z0-9_]+) PASSED in (?P<time>[0-9]+) msec =====")
 
     dacapoMatcher = ValuesMatcher(dacapoTime, {'group' : "Scala-DaCapo", 'name' : '<benchmark>', 'score' : '<time>'})
 
-    return Test("Scala-DaCapo-" + name, ['-jar', dacapo, name] + _noneAsEmptyList(dacapoArgs), [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:+' + gc, '-XX:-UseCompressedOops'])
+    return Test("Scala-DaCapo-" + name, ['-jar', mx._cygpathU2W(dacapo), name] + _noneAsEmptyList(dacapoArgs), [dacapoSuccess], [dacapoFail], [dacapoMatcher], ['-Xms2g', '-XX:+' + gc, '-XX:-UseCompressedOops'])
 
 def getBootstraps():
     time = re.compile(r"Bootstrapping Graal\.+ in (?P<time>[0-9]+) ms( \(compiled (?P<methods>[0-9]+) methods\))?")
