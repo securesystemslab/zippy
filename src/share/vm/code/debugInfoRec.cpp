@@ -37,6 +37,9 @@ class DIR_Chunk {
   int  _offset; // location in the stream of this scope
   int  _length; // number of bytes in the stream
   int  _hash;   // hash of stream bytes (for quicker reuse)
+#ifdef GRAAL
+  DebugInformationRecorder* _DIR;
+#endif
 
   void* operator new(size_t ignore, DebugInformationRecorder* dir) throw() {
     assert(ignore == sizeof(DIR_Chunk), "");
@@ -51,6 +54,9 @@ class DIR_Chunk {
   DIR_Chunk(int offset, int length, DebugInformationRecorder* dir) {
     _offset = offset;
     _length = length;
+#ifdef GRAAL
+    _DIR = dir;
+#endif
     unsigned int hash = 0;
     address p = dir->stream()->buffer() + _offset;
     for (int i = 0; i < length; i++) {
@@ -77,6 +83,25 @@ class DIR_Chunk {
     }
     return NULL;
   }
+
+#ifdef GRAAL
+  static int compare(DIR_Chunk* a, DIR_Chunk* b) {
+    if (b->_hash > a->_hash) {
+      return 1;
+    }
+    if (b->_hash < a->_hash) {
+      return -1;
+    }
+    if (b->_length > a->_length) {
+      return 1;
+    }
+    if (b->_length < a->_length) {
+      return -1;
+    }
+    address buf = a->_DIR->stream()->buffer();
+    return memcmp(buf + b->_offset, buf + a->_offset, a->_length);
+  }
+#endif
 };
 
 static inline bool compute_recording_non_safepoints() {
@@ -113,7 +138,9 @@ DebugInformationRecorder::DebugInformationRecorder(OopRecorder* oop_recorder)
   _oop_recorder = oop_recorder;
 
   _all_chunks    = new GrowableArray<DIR_Chunk*>(300);
+#ifndef GRAAL
   _shared_chunks = new GrowableArray<DIR_Chunk*>(30);
+#endif
   _next_chunk = _next_chunk_limit = NULL;
 
   add_new_pc_offset(PcDesc::lower_offset_limit);  // sentinel record
@@ -250,6 +277,19 @@ int DebugInformationRecorder::find_sharable_decode_offset(int stream_offset) {
 
   DIR_Chunk* ns = new(this) DIR_Chunk(stream_offset, stream_length, this);
 
+#ifdef GRAAL
+  DIR_Chunk* match = _all_chunks->find_insert_binary<DIR_Chunk::compare>(ns);
+  if (match != ns) {
+    // Found an existing chunk
+    NOT_PRODUCT(++dir_stats.chunks_shared);
+    assert(ns+1 == _next_chunk, "");
+    _next_chunk = ns;
+    return match->_offset;
+  } else {
+    // Inserted this chunk, so nothing to do
+    return serialized_null;
+  }
+#else
   // Look in previously shared scopes first:
   DIR_Chunk* ms = ns->find_match(_shared_chunks, 0, this);
   if (ms != NULL) {
@@ -277,6 +317,7 @@ int DebugInformationRecorder::find_sharable_decode_offset(int stream_offset) {
   // No match.  Add this guy to the list, in hopes of future shares.
   _all_chunks->append(ns);
   return serialized_null;
+#endif
 }
 
 

@@ -163,7 +163,9 @@ class DebugInformationRecorder: public ResourceObj {
 
   // Scopes that have been described so far.
   GrowableArray<DIR_Chunk*>* _all_chunks;
+#ifndef GRAAL
   GrowableArray<DIR_Chunk*>* _shared_chunks;
+#endif
   DIR_Chunk* _next_chunk;
   DIR_Chunk* _next_chunk_limit;
 
