@@ -29,13 +29,16 @@
 // It looks up the name and signature symbols without creating new ones, all the symbols of these classes need to be already loaded.
 
 void compute_offset(int &dest_offset, Klass* klass, const char* name, const char* signature, bool static_field) {
+  InstanceKlass* ik = InstanceKlass::cast(klass);
   Symbol* name_symbol = SymbolTable::probe(name, (int)strlen(name));
   Symbol* signature_symbol = SymbolTable::probe(signature, (int)strlen(signature));
   if (name_symbol == NULL || signature_symbol == NULL) {
+#ifndef PRODUCT
+    ik->print_on(tty);
+#endif
     guarantee(false, err_msg("symbol with name %s and signature %s was not found in symbol table (klass=%s)", name, signature, klass->name()->as_C_string()));
   }
 
-  InstanceKlass* ik = InstanceKlass::cast(klass);
   fieldDescriptor fd;
   if (!ik->find_field(name_symbol, signature_symbol, &fd)) {
     ResourceMark rm;
