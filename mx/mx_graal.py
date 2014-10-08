@@ -1358,38 +1358,26 @@ class Task:
 
 def ctw(args):
     """run CompileTheWorld"""
-    from sanitycheck import CTWMode
-    modes = {
-             'noinline' : CTWMode.NoInline,
-             'nocomplex' : CTWMode.NoComplex,
-             'full' : CTWMode.Full
-             }
-    mode = sanitycheck.CTWMode.NoInline
-    vmargs = []
-    for a in args:
-        m = modes.get(a, None)
-        if m:
-            mode = m
-        else:
-            vmargs.append(a)
 
-    jdk = _jdk(installJars=False)
-    rtjar = join(jdk, 'jre', 'lib', 'rt.jar')
+    parser = ArgumentParser(prog='mx ctw')
+    parser.add_argument('--ctwopts', action='store', help='space separated Graal options (without the -G: prefix) used for CTW compilations')
+    parser.add_argument('--jar', action='store', help='jar of classes to compiled instead of rt.jar')
+    parser.add_argument('vmargs', nargs=REMAINDER, metavar='VM options...')
 
-    vm_ = _get_vm()
+    args, vmargs = parser.parse_known_args(args)
 
-    args = vmargs + ['-XX:+CompileTheWorld', '-Xbootclasspath/p:' + rtjar]
-    if vm_ == 'graal':
-        args += ['-XX:+BootstrapGraal']
-    if mode >= CTWMode.NoInline:
-        if not isGraalEnabled(vm_):
-            args.append('-XX:-Inline')
-        else:
-            args.append('-G:-Inline')
-    if mode >= CTWMode.NoComplex:
-        if isGraalEnabled(vm_):
-            args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-NewMemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
-    vm(args)
+    if args.ctwopts:
+        vmargs.append('-G:CompileTheWorldConfig=' + args.ctwopts)
+
+    if args.jar:
+        jar = args.jar
+    else:
+        jar = join(_jdk(installJars=False), 'jre', 'lib', 'rt.jar')
+
+    vmargs += ['-XX:+CompileTheWorld', '-Xbootclasspath/p:' + jar]
+    if _get_vm() == 'graal':
+        vmargs += ['-XX:+BootstrapGraal']
+    vm(vmargs)
 
 def _basic_gate_body(args, tasks):
     t = Task('BuildHotSpotGraal: fastdebug,product')
@@ -1748,8 +1736,6 @@ def bench(args):
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.Full))
     if 'ctw-noinline' in args:
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.NoInline))
-    if 'ctw-nocomplex' in args:
-        benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.NoComplex))
 
     for test in benchmarks:
         for (groupName, res) in test.bench(vm, extraVmOpts=vmArgs).items():

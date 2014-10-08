@@ -264,7 +264,7 @@ def getBootstraps():
     return tests
 
 class CTWMode:
-    Full, NoInline, NoComplex = range(3)
+    Full, NoInline = range(2)
 
 def getCTW(vm, mode):
     time = re.compile(r"CompileTheWorld : Done \([0-9]+ classes, [0-9]+ methods, (?P<time>[0-9]+) ms\)")
@@ -283,10 +283,7 @@ def getCTW(vm, mode):
         if not mx_graal.isGraalEnabled(vm):
             args.append('-XX:-Inline')
         else:
-            args.append('-G:-Inline')
-    if mode >= CTWMode.NoComplex:
-        if mx_graal.isGraalEnabled(vm):
-            args += ['-G:-OptLoopTransform', '-G:-OptTailDuplication', '-G:-FullUnroll', '-G:-MemoryAwareScheduling', '-G:-NewMemoryAwareScheduling', '-G:-PartialEscapeAnalysis']
+            args.append('-G:CompileTheWordConfig=-Inline')
 
     return Test("CompileTheWorld", args, successREs=[time], scoreMatchers=[scoreMatcher], benchmarkCompilationRate=False)
 
