@@ -2381,6 +2381,7 @@ void CompileBroker::print_times(AbstractCompiler* comp) {
                 stats->_standard._time.seconds(), stats->_standard._bytes, stats->_standard._count,
                 stats->_osr._time.seconds(), stats->_osr._bytes, stats->_osr._count,
                 stats->_nmethods_size, stats->_nmethods_code_size);
+  comp->print_timers();
 }
 #endif
 

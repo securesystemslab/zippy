@@ -43,6 +43,8 @@ private:
 
   static GraalCompiler* _instance;
  
+  static elapsedTimer _codeInstallTimer;
+
 public:
 
   GraalCompiler();
@@ -78,6 +80,8 @@ public:
   // Print compilation statistics
   void reset_compilation_stats();
 #endif // COMPILERGRAAL
+
+  static elapsedTimer* codeInstallTimer() { return &_codeInstallTimer; }
 
 #ifndef PRODUCT
   void compile_the_world();
