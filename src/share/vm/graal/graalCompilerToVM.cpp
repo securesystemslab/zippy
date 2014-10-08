@@ -454,6 +454,7 @@ C2V_VMENTRY(jint, installCode0, (JNIEnv *jniEnv, jobject, jobject compiled_code,
   Handle installed_code_handle = JNIHandles::resolve(installed_code);
   Handle speculation_log_handle = JNIHandles::resolve(speculation_log);
 
+  TraceTime install_time("installCode", GraalCompiler::codeInstallTimer());
   CodeInstaller installer;
   GraalEnv::CodeInstallResult result = installer.install(compiled_code_handle, cb, installed_code_handle, speculation_log_handle);
 

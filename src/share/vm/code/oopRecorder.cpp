@@ -34,8 +34,16 @@
 template <class T> int ValueRecorder<T>::_find_index_calls = 0;
 template <class T> int ValueRecorder<T>::_hit_indexes      = 0;
 template <class T> int ValueRecorder<T>::_missed_indexes   = 0;
-#endif //ASSERT
 
+void OopRecorder::check_for_duplicates(int index, jobject h) {
+  oop o = JNIHandles::resolve(h);
+  for (int i = 1; i < oop_count(); i++) {
+    if (o == JNIHandles::resolve(oop_at(i)) && index != i) {
+      assert(false, "duplicate found");
+    }
+  }
+}
+#endif //ASSERT
 
 template <class T> ValueRecorder<T>::ValueRecorder(Arena* arena) {
   _handles  = NULL;
@@ -157,3 +165,49 @@ template <class T> int ValueRecorder<T>::maybe_find_index(T h) {
 // Explicitly instantiate these types
 template class ValueRecorder<Metadata*>;
 template class ValueRecorder<jobject>;
+
+oop ObjectLookup::ObjectEntry::oop_value() { return JNIHandles::resolve(_value); }
+
+ObjectLookup::ObjectLookup(): _gc_count(Universe::heap()->total_collections()), _values(4) {}
+
+void ObjectLookup::maybe_resort() {
+  // The values are kept sorted by address which may be invalidated
+  // after a GC, so resort if a GC has occurred since last time.
+  if (_gc_count != Universe::heap()->total_collections()) {
+    _gc_count = Universe::heap()->total_collections();
+    _values.sort(sort_by_address);
+  }
+}
+
+int ObjectLookup::sort_by_address(oop a, oop b) {
+  if (b > a) return 1;
+  if (a > b) return -1;
+  return 0;
+}
+
+int ObjectLookup::sort_by_address(ObjectEntry* a, ObjectEntry* b) {
+  return sort_by_address(a->oop_value(), b->oop_value());
+}
+
+int ObjectLookup::sort_oop_by_address(oop a, ObjectEntry b) {
+  return sort_by_address(a, b.oop_value());
+}
+  
+int ObjectLookup::find_index(jobject handle, OopRecorder* oop_recorder) {
+  if (handle == NULL) {
+    return 0;
+  }
+  oop object = JNIHandles::resolve(handle);
+  maybe_resort();
+  bool found;
+  int location = _values.find_binary<oop, sort_oop_by_address>(object, found);
+  if (!found) {
+    assert(location <= _values.length(), "out of range");
+    jobject handle = JNIHandles::make_local(object);
+    ObjectEntry r(handle, oop_recorder->allocate_oop_index(handle));
+    _values.insert_binary(location, r);
+    return r.index();
+  }
+  return _values.at(location).index();
+}
+

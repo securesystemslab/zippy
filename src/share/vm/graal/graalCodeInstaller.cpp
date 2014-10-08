@@ -370,7 +370,7 @@ MonitorValue* CodeInstaller::get_monitor_value(oop value, int total_frame_size, 
 }
 
 void CodeInstaller::initialize_assumptions(oop compiled_code) {
-  _oop_recorder = new OopRecorder(&_arena);
+  _oop_recorder = new OopRecorder(&_arena, true);
   _dependencies = new Dependencies(&_arena, _oop_recorder);
   Handle assumptions_handle = CompilationResult::assumptions(HotSpotCompiledCode::comp(compiled_code));
   if (!assumptions_handle.is_null()) {

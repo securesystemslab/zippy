@@ -146,18 +146,61 @@ template <class T> class ValueRecorder : public StackObj {
 #endif
 };
 
+class OopRecorder;
+
+class ObjectLookup : public ResourceObj {
+ private:
+  class ObjectEntry {
+   private:
+    jobject _value;
+    int     _index;
+
+   public:
+    ObjectEntry(jobject value, int index): _value(value), _index(index) {}
+    ObjectEntry() {}
+    oop oop_value(); // { return JNIHandles::resolve(_value); }
+    int index() { return _index; }
+  };
+
+  GrowableArray<ObjectEntry> _values;
+  unsigned int _gc_count;
+
+  // Utility sort functions
+  static int sort_by_address(oop a, oop b);
+  static int sort_by_address(ObjectEntry* a, ObjectEntry* b);
+  static int sort_oop_by_address(oop a, ObjectEntry b);
+
+ public:
+  ObjectLookup();
+  
+  // Resort list if a GC has occurred since the last sort
+  void maybe_resort();
+  int find_index(jobject object, OopRecorder* oop_recorder);
+};
+
 class OopRecorder : public ResourceObj {
  private:
   ValueRecorder<jobject>      _oops;
   ValueRecorder<Metadata*>    _metadata;
+  ObjectLookup*               _object_lookup;
  public:
-  OopRecorder(Arena* arena = NULL): _oops(arena), _metadata(arena) {}
+  OopRecorder(Arena* arena = NULL, bool deduplicate = false): _oops(arena), _metadata(arena) {
+    if (deduplicate) {
+      _object_lookup = new ObjectLookup();
+    } else {
+      _object_lookup = NULL;
+    }
+  }
+
+  void check_for_duplicates(int index, jobject h) NOT_DEBUG_RETURN;
 
   int allocate_oop_index(jobject h) {
     return _oops.allocate_index(h);
   }
   int find_index(jobject h) {
-    return _oops.find_index(h);
+    int result = _object_lookup != NULL ? _object_lookup->find_index(h, this) : _oops.find_index(h);
+    check_for_duplicates(result, h);
+    return result;
   }
   jobject oop_at(int index) {
     return _oops.at(index);

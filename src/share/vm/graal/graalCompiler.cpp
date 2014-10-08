@@ -31,6 +31,7 @@
 #include "runtime/globals_extension.hpp"
 
 GraalCompiler* GraalCompiler::_instance = NULL;
+elapsedTimer GraalCompiler::_codeInstallTimer;
 
 GraalCompiler::GraalCompiler() : AbstractCompiler(graal) {
 #ifdef COMPILERGRAAL
@@ -152,6 +153,7 @@ void GraalCompiler::compile_method(ciEnv* env, ciMethod* target, int entry_bci) 
 // Print compilation timers and statistics
 void GraalCompiler::print_timers() {
   TRACE_graal_1("GraalCompiler::print_timers");
+  tty->print_cr("       Graal code install time:        %6.3f s",    _codeInstallTimer.seconds());
 }
 
 #endif // COMPILERGRAAL

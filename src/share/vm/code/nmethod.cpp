@@ -1044,12 +1044,13 @@ void nmethod::log_new_nmethod() const {
     LOG_OFFSET(xtty, consts);
     LOG_OFFSET(xtty, insts);
     LOG_OFFSET(xtty, stub);
+    LOG_OFFSET(xtty, oops);
+    LOG_OFFSET(xtty, metadata);
     LOG_OFFSET(xtty, scopes_data);
     LOG_OFFSET(xtty, scopes_pcs);
     LOG_OFFSET(xtty, dependencies);
     LOG_OFFSET(xtty, handler_table);
     LOG_OFFSET(xtty, nul_chk_table);
-    LOG_OFFSET(xtty, oops);
 
     xtty->method(method());
     xtty->stamp();
