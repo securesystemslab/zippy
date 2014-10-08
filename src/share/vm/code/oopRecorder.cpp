@@ -34,8 +34,16 @@
 template <class T> int ValueRecorder<T>::_find_index_calls = 0;
 template <class T> int ValueRecorder<T>::_hit_indexes      = 0;
 template <class T> int ValueRecorder<T>::_missed_indexes   = 0;
-#endif //ASSERT
 
+void OopRecorder::check_for_duplicates(int index, jobject h) {
+  oop o = JNIHandles::resolve(h);
+  for (int i = 1; i < oop_count(); i++) {
+    if (o == JNIHandles::resolve(oop_at(i)) && index != i) {
+      assert(false, "duplicate found");
+    }
+  }
+}
+#endif //ASSERT
 
 template <class T> ValueRecorder<T>::ValueRecorder(Arena* arena) {
   _handles  = NULL;
