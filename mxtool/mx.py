@@ -896,8 +896,8 @@ def _load_suite_dict(mxDir):
         # For now fail fast if extra modules were loaded.
         # This can later be relaxed to simply remove the extra modules
         # from the sys.modules name space if necessary.
-        extraModules = snapshot - sys.modules.viewkeys()
-        assert len(extraModules) == 0, 'loading ' + modulePath + ' caused extra modules to be loaded: ' + ', '.join([m.__file__ for m in extraModules])
+        extraModules = sys.modules.viewkeys() - snapshot
+        assert len(extraModules) == 0, 'loading ' + modulePath + ' caused extra modules to be loaded: ' + ', '.join([m for m in extraModules])
 
         # revert the Python path
         del sys.path[0]
