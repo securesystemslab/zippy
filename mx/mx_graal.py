@@ -1370,13 +1370,15 @@ def ctw(args):
         vmargs.append('-G:CompileTheWorldConfig=' + args.ctwopts)
 
     if args.jar:
-        jar = args.jar
+        jar = os.path.abspath(args.jar)
     else:
         jar = join(_jdk(installJars=False), 'jre', 'lib', 'rt.jar')
 
-    vmargs += ['-XX:+CompileTheWorld', '-Xbootclasspath/p:' + jar]
+    vmargs += ['-XX:+CompileTheWorld']
     if _get_vm() == 'graal':
-        vmargs += ['-XX:+BootstrapGraal']
+        vmargs += ['-XX:+BootstrapGraal', '-G:CompileTheWorldClasspath=' + jar]
+    else:
+        vmargs += ['-Xbootclasspath/p:' + jar]
     vm(vmargs)
 
 def _basic_gate_body(args, tasks):
