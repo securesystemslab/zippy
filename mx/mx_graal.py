@@ -1452,8 +1452,9 @@ def _basic_gate_body(args, tasks):
     _jacoco = 'off'
 
     t = Task('CleanAndBuildIdealGraphVisualizer')
+    env = _igvFallbackJDK(os.environ)
     buildxml = mx._cygpathU2W(join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'build.xml'))
-    mx.run(['ant', '-f', buildxml, '-q', 'clean', 'build'])
+    mx.run(['ant', '-f', buildxml, '-q', 'clean', 'build'], env=env)
     tasks.append(t.stop())
 
     # Prevent Graal modifications from breaking the standard builds
@@ -1599,6 +1600,13 @@ def longtests(args):
 
     dacapo(['100', 'eclipse', '-esa'])
 
+def _igvFallbackJDK(env):
+    if mx._java_homes[0].version == mx.VersionSpec("1.8.0_20"):
+        fallbackJDK = mx._java_homes[1]
+        mx.logv("1.8.0_20 has a known javac bug (JDK-8043926), thus falling back to " + str(fallbackJDK.version))
+        env['JAVA_HOME'] = str(fallbackJDK.jdk)
+    return env
+
 def igv(args):
     """run the Ideal Graph Visualizer"""
     with open(join(_graal_home, '.ideal_graph_visualizer.log'), 'w') as fp:
@@ -1613,6 +1621,7 @@ def igv(args):
             proxyName, proxyPort = proxy.split(':', 1)
             proxyEnv = '-DproxyHost="' + proxyName + '" -DproxyPort=' + proxyPort
             env['ANT_OPTS'] = proxyEnv
+        _igvFallbackJDK(env)
 
         mx.logv('[Ideal Graph Visualizer log is in ' + fp.name + ']')
         nbplatform = join(_graal_home, 'src', 'share', 'tools', 'IdealGraphVisualizer', 'nbplatform')
