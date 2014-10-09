@@ -32,15 +32,51 @@ import java.util.regex.*;
  * @param urls the URLs to try, stopping after the first successful one
  */
 public class URLConnectionDownload {
+    /**
+     * Iterate over list of environment variable to find one that correctly specify an proxy.
+     *
+     * @param propPrefix indicates which proxy property to set (i.e., http or https)
+     * @param proxyEnvVariableNames list of environment variable
+     * @return a string specifying the proxy url
+     */
+    private static String setProxy(String[] proxyEnvVariableNames, String propPrefix) {
+        String proxy = null;
+        String proxyEnvVar = "";
+        for (String envvar : proxyEnvVariableNames) {
+            proxy = System.getenv(envvar);
+            if (proxy != null) {
+                proxyEnvVar = envvar;
+                break;
+            }
+        }
+        if (proxy != null) {
+            Pattern p = Pattern.compile("(?:http://)?([^:]+)(:\\d+)?");
+            Matcher m = p.matcher(proxy);
+            if (m.matches()) {
+                String host = m.group(1);
+                String port = m.group(2);
+                System.setProperty(propPrefix + ".proxyHost", host);
+                if (port != null) {
+                    port = port.substring(1); // strip ':'
+                    System.setProperty(propPrefix + ".proxyPort", port);
+                }
+                return proxy;
+            } else {
+                System.err.println("Value of " + proxyEnvVar + " is not valid:  " + proxy);
+            }
+        } else {
+            System.err.println("** If behind a firewall without direct internet access, use the " + proxyEnvVariableNames[0] + "  environment variable (e.g. 'env " + proxyEnvVariableNames[0] +
+                            "=proxy.company.com:80 max ...') or download manually with a web browser.");
+        }
+        return "";
+    }
 
-	/**
-	 * Downloads content from a given URL to a given file.
-	 * 
-	 * @param args
-	 *            arg[0] is the path where to write the content. The remainder
-	 *            of args are the URLs to try, stopping after the first
-	 *            successful one
-	 */
+    /**
+     * Downloads content from a given URL to a given file.
+     *
+     * @param args arg[0] is the path where to write the content. The remainder of args are the URLs
+     *            to try, stopping after the first successful one
+     */
     public static void main(String[] args) {
         File path = new File(args[0]);
         boolean verbose = args[1].equals("-v");
@@ -50,33 +86,21 @@ public class URLConnectionDownload {
 
         File parent = path.getParentFile();
         makeDirectory(parent);
-        
+
         // Enable use of system proxies
         System.setProperty("java.net.useSystemProxies", "true");
 
-        String proxy = System.getenv("HTTP_PROXY");
-        if (proxy == null) {
-            proxy = System.getenv("http_proxy");
-        }
-
+        // Set standard proxy if any
+        String proxy = setProxy(new String[]{"HTTP_PROXY", "http_proxy"}, "http");
+        // Set proxy for secure http if explicitely set, default to http proxy otherwise
+        String secureProxy = setProxy(new String[]{"HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"}, "https");
         String proxyMsg = "";
-        if (proxy != null) {
-            Pattern p = Pattern.compile("(?:http://)?([^:]+)(:\\d+)?");
-            Matcher m = p.matcher(proxy);
-            if (m.matches()) {
-                String host = m.group(1);
-                String port = m.group(2);
-                System.setProperty("http.proxyHost", host);
-                if (port != null) {
-                    port = port.substring(1); // strip ':'
-                    System.setProperty("http.proxyPort", port);
-                }
-                proxyMsg = " via proxy  " + proxy;
-            } else {
-            	System.err.println("Value of HTTP_PROXY is not valid:  " + proxy);
-            }
-        } else {
-        	System.err.println("** If behind a firewall without direct internet access, use the HTTP_PROXY environment variable (e.g. 'env HTTP_PROXY=proxy.company.com:80 max ...') or download manually with a web browser.");
+        if (secureProxy.length() > 0 && proxy.length() > 0 && !secureProxy.equals(proxy)) {
+            proxyMsg = " via " + proxy + " / " + secureProxy;
+        } else if (proxy.length() > 0) {
+            proxyMsg = " via " + proxy;
+        } else if (secureProxy.length() > 0) {
+            proxyMsg = " via " + secureProxy;
         }
 
         for (String s : urls) {
@@ -91,7 +115,7 @@ public class URLConnectionDownload {
                     if (conn instanceof HttpURLConnection) {
                         // HttpURLConnection per default follows redirections,
                         // but not if it changes the protocol (e.g. http ->
-                        // https).  While this is a sane default, in our
+                        // https). While this is a sane default, in our
                         // situation it's okay to follow a protocol transition.
                         HttpURLConnection httpconn = (HttpURLConnection) conn;
                         switch (httpconn.getResponseCode()) {
@@ -137,4 +161,3 @@ public class URLConnectionDownload {
         }
     }
 }
-
