@@ -1,3 +1,5 @@
+from suite_helper import maven
+
 suite = {
   "mxversion" : "1.0",
   "name" : "graal",
@@ -6,14 +8,14 @@ suite = {
       "path" : "lib/junit-4.11.jar",
       "urls" : [
         "http://lafo.ssw.uni-linz.ac.at/graal-external-deps/junit-4.11.jar",
-        "http://repo1.maven.org/maven2/junit/junit/4.11/junit-4.11.jar",
+        maven("junit/junit/4.11/junit-4.11.jar"),
       ],
       "sha1" : "4e031bb61df09069aeb2bffb4019e7a5034a4ee0",
       "eclipse.container" : "org.eclipse.jdt.junit.JUNIT_CONTAINER/4",
       "sourcePath" : "lib/junit-4.11-sources.jar",
       "sourceUrls" : [
         "http://lafo.ssw.uni-linz.ac.at/graal-external-deps/junit-4.11-sources.jar",
-        "http://repo1.maven.org/maven2/junit/junit/4.11/junit-4.11-sources.jar",
+        maven("junit/junit/4.11/junit-4.11-sources.jar"),
       ],
       "sourceSha1" : "28e0ad201304e4a4abf999ca0570b7cffc352c3c",
       "dependencies" : ["HAMCREST"],
@@ -23,13 +25,13 @@ suite = {
       "path" : "lib/hamcrest-core-1.3.jar",
       "urls" : [
         "http://lafo.ssw.uni-linz.ac.at/graal-external-deps/hamcrest-core-1.3.jar",
-        "http://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar",
+        maven("org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar"),
       ],
       "sha1" : "42a25dc3219429f0e5d060061f71acb49bf010a0",
       "sourcePath" : "lib/hamcrest-core-1.3-sources.jar",
       "sourceUrls" : [
         "http://lafo.ssw.uni-linz.ac.at/graal-external-deps/hamcrest-core-1.3-sources.jar",
-        "http://repo1.maven.org/maven2/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3-sources.jar",
+        maven("org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3-sources.jar"),
       ],
       "sourceSha1" : "1dc37250fbc78e23a65a67fbbaf71d2e9cbc3c0b",
     },
@@ -134,14 +136,14 @@ suite = {
       "path" : "lib/asm-5.0.3.jar",
       "urls" : [
         "http://lafo.ssw.uni-linz.ac.at/graal-external-deps/asm-5.0.3.jar",
-        "http://central.maven.org/maven2/org/ow2/asm/asm/5.0.3/asm-5.0.3.jar",
+        maven("org/ow2/asm/asm/5.0.3/asm-5.0.3.jar"),
       ],
       "sha1" : "dcc2193db20e19e1feca8b1240dbbc4e190824fa",
       "sourcePath" : "lib/asm-5.0.3-sources.jar",
       "sourceSha1" : "f0f24f6666c1a15c7e202e91610476bd4ce59368",
       "sourceUrls" : [
         "http://lafo.ssw.uni-linz.ac.at/graal-external-deps/asm-5.0.3-sources.jar",
-        "http://central.maven.org/maven2/org/ow2/asm/asm/5.0.3/asm-5.0.3-sources.jar",
+        maven("org/ow2/asm/asm/5.0.3/asm-5.0.3-sources.jar"),
       ],
     },
 
@@ -157,7 +159,7 @@ suite = {
       "path" : "lib/vecmath-1.3.1.jar",
       "urls" : [
         "http://lafo.ssw.uni-linz.ac.at/graal-external-deps/vecmath-1.3.1.jar",
-        "http://mirrors.ibiblio.org/pub/mirrors/maven/java3d/jars/vecmath-1.3.1.jar",
+        maven("java3d/vecmath/1.3.1/vecmath-1.3.1.jar"),
       ],
       "sha1" : "a0ae4f51da409fa0c20fa0ca59e6bbc9413ae71d",
     }
