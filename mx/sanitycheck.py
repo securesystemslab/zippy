@@ -168,7 +168,7 @@ pythonBenchmarks = {
     'mandelbrot3t'    : '4000',
     'meteor3t'        : '2098',
     'nbody3t'         : '5000000',
-    'spectralnorm3t'  : '5500',
+    'spectralnorm3t'  : '3000',
     'pidigits-timed'  : '0',
     'euler31-timed'   : '200',
     'euler11-timed'   : '10000',
@@ -193,7 +193,7 @@ pythonProfilerBenchmarks = {
     'fannkuchredux3t' : '11',
     'mandelbrot3t'    : '4000',
     'nbody3t'         : '5000000',
-    'spectralnorm3t'  : '5500',
+    'spectralnorm3t'  : '3000',
     'pidigits-timed'  : '0',
     'richards3-timed' : '200'
 }
@@ -205,7 +205,7 @@ python2Benchmarks = {
     'mandelbrot2t'    : '4000',
     'meteor3t'        : '2098',
     'nbody2t'         : '5000000',
-    'spectralnorm2t'  : '5500',
+    'spectralnorm2t'  : '3000',
     'pidigits-timed'  : '0',
     'euler31-timed'   : '200',
     'euler11-timed'   : '10000',

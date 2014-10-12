@@ -69,8 +69,8 @@ def main(n):
         vBv += ue * ve
         vv  += ve * ve
 
-    print("%0.9f" % (sqrt(vBv/vv)))
-
+    #print("%0.9f" % (sqrt(vBv/vv)))
+    sqrt(vBv/vv)
 
 def measure():
     print("Start timing...")
