@@ -31,6 +31,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.iterator.*;
@@ -66,7 +67,7 @@ public abstract class ForNode extends LoopNode {
         }
     }
 
-    @Specialization(order = 1)
+    @Specialization
     public Object doPRange(VirtualFrame frame, PRangeIterator range) {
         final int start = range.getStart();
         final int stop = range.getStop();
@@ -86,7 +87,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 2)
+    @Specialization
     public Object doIntegerSequenceIterator(VirtualFrame frame, PIntegerSequenceIterator iterator) {
         int count = 0;
         int index = 0;
@@ -106,7 +107,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 3)
+    @Specialization
     public Object doIntegerIterator(VirtualFrame frame, PIntegerIterator iterator) {
         int count = 0;
 
@@ -129,7 +130,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 5)
+    @Specialization
     public Object doDoubleIterator(VirtualFrame frame, PDoubleIterator iterator) {
         int count = 0;
 
@@ -152,7 +153,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 6, guards = "isObjectStorageIterator")
+    @Specialization(guards = "isObjectStorageIterator")
     public Object doObjectStorageIterator(VirtualFrame frame, PSequenceIterator iterator) {
         int count = 0;
         int index = 0;
@@ -173,7 +174,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 7)
+    @Specialization
     public Object doIterator(VirtualFrame frame, PSequenceIterator iterator) {
         int count = 0;
         int index = 0;
@@ -193,7 +194,40 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(order = 8)
+    @Specialization
+    public Object doGenerator(VirtualFrame frame, PGenerator generator) {
+        int count = 0;
+
+        try {
+            while (true) {
+                loopBodyBranch.enter();
+                ((WriteNode) target).executeWrite(frame, generator.__next__());
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } catch (StopIterationException e) {
+
+        } finally {
+            reportLoopCount(count);
+        }
+
+        if (CompilerDirectives.inInterpreter()) {
+            if (count > 0 && PythonOptions.InlineGeneratorCalls) {
+                CompilerAsserts.neverPartOfCompilation();
+                /**
+                 * TODO zwei: This is probably a better place to peel generators than the
+                 * complicated logic we currently have in FunctionRootNode now.
+                 */
+            }
+        }
+
+        return PNone.NONE;
+    }
+
+    @Specialization
     public Object doIterator(VirtualFrame frame, PIterator iterator) {
         int count = 0;
 

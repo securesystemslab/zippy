@@ -26,9 +26,6 @@ package edu.uci.python.runtime.builtin;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
-
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -77,16 +74,6 @@ public class PythonBuiltinClass extends PythonClass implements PythonCallable {
     public Arity getArity() {
         PythonCallable init = (PythonCallable) getAttribute("__init__");
         return init.getArity();
-    }
-
-    @Override
-    public RootCallTarget getCallTarget() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public FrameDescriptor getFrameDescriptor() {
-        throw new UnsupportedOperationException();
     }
 
 }

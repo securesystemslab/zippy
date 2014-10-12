@@ -54,31 +54,9 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return leftInt + rightInt;
         }
 
-        @Specialization
-        int doIntBoolean(int left, boolean right) {
-            final int rightInt = right ? 1 : 0;
-            return doInteger(left, rightInt);
-        }
-
-        @Specialization
-        int doBooleanInt(boolean left, int right) {
-            final int leftInt = left ? 1 : 0;
-            return doInteger(leftInt, right);
-        }
-
         @Specialization(rewriteOn = ArithmeticException.class)
         int doInteger(int left, int right) {
             return ExactMath.addExact(left, right);
-        }
-
-        @Specialization
-        BigInteger doIntegerBigInteger(int left, BigInteger right) {
-            return BigInteger.valueOf(left).add(right);
-        }
-
-        @Specialization
-        BigInteger doBigIntegerInteger(BigInteger left, int right) {
-            return left.add(BigInteger.valueOf(right));
         }
 
         @Specialization
@@ -96,16 +74,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         double doDoubleBoolean(boolean left, double right) {
             final double leftDouble = left ? 1.0 : 0.0;
             return leftDouble + right;
-        }
-
-        @Specialization
-        double doDoubleInt(double left, int right) {
-            return left + right;
-        }
-
-        @Specialization
-        double doDoubleInt(int left, double right) {
-            return left + right;
         }
 
         @Specialization
@@ -136,11 +104,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         PComplex doComplexDouble(PComplex left, double right) {
             PComplex result = new PComplex(left.getReal() + right, left.getImag());
             return result;
-        }
-
-        @Specialization
-        PComplex doComplex(BigInteger left, PComplex right) {
-            return new PComplex(left.doubleValue(), 0).add(right);
         }
 
         @Specialization
@@ -205,7 +168,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
     @NodeInfo(shortName = "__sub__")
     public abstract static class SubNode extends BinaryArithmeticNode {
 
-        @Specialization(rewriteOn = ArithmeticException.class, order = 0)
+        @Specialization(rewriteOn = ArithmeticException.class)
         int doInteger(int left, int right) {
             return ExactMath.subtractExact(left, right);
         }
@@ -218,16 +181,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization
         double doDouble(double left, double right) {
             return left - right;
-        }
-
-        @Specialization
-        double doBigIntegerDouble(BigInteger left, double right) {
-            return left.doubleValue() - right;
-        }
-
-        @Specialization
-        double doBigIntegerDouble(double left, BigInteger right) {
-            return left - right.doubleValue();
         }
 
         @Specialization
@@ -252,7 +205,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.difference(right);
         }
 
-        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        @Specialization(guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__sub__", left, right);
         }
@@ -261,21 +214,19 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
     @NodeInfo(shortName = "__mul__")
     public abstract static class MulNode extends BinaryArithmeticNode {
 
-        @Specialization(rewriteOn = ArithmeticException.class, order = 0)
+        @Specialization(rewriteOn = ArithmeticException.class)
         int doInteger(int left, int right) {
             return ExactMath.multiplyExact(left, right);
         }
 
-        @SlowPath
         @Specialization
         BigInteger doIntegerBigInteger(int left, BigInteger right) {
-            return BigInteger.valueOf(left).multiply(right);
+            return doBigInteger(BigInteger.valueOf(left), right);
         }
 
-        @SlowPath
         @Specialization
         BigInteger doIntegerBigInteger(BigInteger left, int right) {
-            return left.multiply(BigInteger.valueOf(right));
+            return doBigInteger(left, BigInteger.valueOf(right));
         }
 
         @SlowPath
@@ -291,14 +242,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization
         PComplex doDoubleComplex(double left, PComplex right) {
-            PComplex result = new PComplex(left * right.getReal(), left * right.getImag());
-            return result;
+            return new PComplex(left * right.getReal(), left * right.getImag());
         }
 
         @Specialization
         PComplex doComplexDouble(PComplex left, double right) {
-            PComplex result = new PComplex(left.getReal() * right, left.getImag() * right);
-            return result;
+            return new PComplex(left.getReal() * right, left.getImag() * right);
         }
 
         @Specialization
@@ -356,7 +305,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return str;
         }
 
-        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        @Specialization(guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__mul__", left, right);
         }
@@ -375,7 +324,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
          * double division by zero in Java doesn't throw an exception, instead it yield Infinity
          * (NaN).
          */
-        @Specialization(rewriteOn = ArithmeticException.class, order = 0)
+        @Specialization(rewriteOn = ArithmeticException.class)
         double doInteger(int left, int right) {
             if (right == 0) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -393,16 +342,6 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization
         double doDouble(double left, double right) {
             return left / right;
-        }
-
-        @Specialization
-        double doBigIntegerDouble(BigInteger left, double right) {
-            return left.doubleValue() / right;
-        }
-
-        @Specialization
-        double doBigIntegerDouble(double left, BigInteger right) {
-            return left / right.doubleValue();
         }
 
         @Specialization
@@ -427,7 +366,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.div(right);
         }
 
-        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        @Specialization(guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__truediv__", left, right);
         }
@@ -456,7 +395,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return Math.floor(left / right);
         }
 
-        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        @Specialization(guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__floordiv__", left, right);
         }
@@ -470,7 +409,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
     @NodeInfo(shortName = "__mod__")
     public abstract static class ModuloNode extends BinaryArithmeticNode {
 
-        @Specialization(order = 0, guards = "isLeftPositive")
+        @Specialization(guards = "isLeftPositive")
         int doInteger(int left, int right) {
             return left % right;
         }
@@ -541,7 +480,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return Math.pow(left, right);
         }
 
-        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        @Specialization(guards = "isEitherOperandPythonObject")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__pow__", left, right);
         }

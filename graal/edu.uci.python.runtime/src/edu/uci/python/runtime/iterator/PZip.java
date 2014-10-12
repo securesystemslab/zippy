@@ -65,7 +65,6 @@ public final class PZip extends PythonBuiltinObject implements PIterable, PItera
     @Override
     public int len() {
         throw Py.AttributeError("'zip'" + " object has no attribute " + "'len'");
-
     }
 
     @Override
