@@ -82,7 +82,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization
-        PComplex doComplexInt(PComplex left, boolean right) {
+        PComplex doComplexBoolean(PComplex left, boolean right) {
             final double rightDouble = right ? 1.0 : 0.0;
             PComplex result = new PComplex(left.getReal() + rightDouble, left.getImag());
             return result;
