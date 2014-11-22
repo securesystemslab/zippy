@@ -160,6 +160,18 @@ suite = {
         "https://search.maven.org/remotecontent?filepath=java3d/vecmath/1.3.1/vecmath-1.3.1.jar",
       ],
       "sha1" : "a0ae4f51da409fa0c20fa0ca59e6bbc9413ae71d",
+    },
+
+    "JLINE09" : {
+      "path" : "lib/jline-0.9.95-SNAPSHOT.jar",
+      "urls" : ["http://mirrors.ibiblio.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar"],
+      "sha1" : "99a18e9a44834afdebc467294e1138364c207402",
+    },
+
+    "JYTHON" : {
+      "path" : "lib/jython-standalone-2.7-b2.jar",
+      "urls" : ["http://repo1.maven.org/maven2/org/python/jython-standalone/2.7-b2/jython-standalone-2.7-b2.jar"],
+      "sha1" : "4c499bd30b0ca84e383368e137c8c86cf48128b2",
     }
   },
 
@@ -1190,6 +1202,120 @@ suite = {
       "javaCompliance" : "1.8",
       "annotationProcessors" : ["com.oracle.graal.service.processor"],
       "workingSets" : "Graal,Truffle",
+    },
+
+    "edu.uci.python.runtime" : {
+      "subDir" : "graal",
+      "sourceDirs" : ["src"],
+      "dependencies" : [
+        "com.oracle.truffle.api",
+        "JYTHON",
+        "ASM",
+      ],
+      "javaCompliance" : "1.8",
+      "workingSets" : "Truffle,Python",
+    },
+
+    "edu.uci.python.nodes" : {
+      "subDir" : "graal",
+      "sourceDirs" : ["src"],
+      "dependencies" : [
+        "edu.uci.python.runtime",
+        "com.oracle.truffle.api",
+        "com.oracle.truffle.api.dsl",
+        "JYTHON",
+      ],
+      "checkstyle" : "edu.uci.python.runtime",
+      "javaCompliance" : "1.8",
+      "annotationProcessors" : ["com.oracle.truffle.dsl.processor"],
+      "workingSets" : "Truffle,Python",
+    },
+
+    "edu.uci.python.profiler" : {
+      "subDir" : "graal",
+      "sourceDirs" : ["src"],
+      "dependencies" : [
+        "edu.uci.python.nodes",
+        "JYTHON",
+      ],
+      "checkstyle" : "edu.uci.python.runtime",
+      "javaCompliance" : "1.8",
+      "workingSets" : "Truffle,Python",
+    },
+
+    "edu.uci.python.parser" : {
+      "subDir" : "graal",
+      "sourceDirs" : ["src"],
+      "dependencies" : [
+        "edu.uci.python.nodes",
+        "edu.uci.python.profiler",
+        "edu.uci.python.builtins",
+        "JYTHON",
+      ],
+      "checkstyle" : "edu.uci.python.runtime",
+      "javaCompliance" : "1.8",
+      "workingSets" : "Truffle,Python",
+    },
+
+    "edu.uci.python.shell" : {
+      "subDir" : "graal",
+      "sourceDirs" : ["src"],
+      "dependencies" : [
+        "JLINE09",
+        "edu.uci.python.nodes",
+        "edu.uci.python.profiler",
+        "edu.uci.python.runtime",
+        "edu.uci.python.parser",
+        "edu.uci.python.builtins",
+        "JYTHON",
+      ],
+      "checkstyle" : "edu.uci.python.runtime",
+      "javaCompliance" : "1.8",
+      "workingSets" : "Truffle,Python",
+    },
+
+    "edu.uci.python.benchmark" : {
+      "subDir" : "graal",
+      "sourceDirs" : ["src"],
+      "dependencies" : [
+        "edu.uci.python.nodes",
+        "edu.uci.python.runtime",
+        "JUNIT",
+      ],
+      "checkstyle" : "edu.uci.python.runtime",
+      "javaCompliance" : "1.8",
+      "workingSets" : "Truffle,Python",
+    },
+
+    "edu.uci.python.test" : {
+      "subDir" : "graal",
+      "sourceDirs" : ["src"],
+      "dependencies" : [
+        "edu.uci.python.nodes",
+        "edu.uci.python.runtime",
+        "edu.uci.python.shell",
+        "JUNIT",
+      ],
+      "checkstyle" : "edu.uci.python.runtime",
+      "javaCompliance" : "1.8",
+      "workingSets" : "Truffle,Python",
+    },
+
+    "edu.uci.python.builtins" : {
+      "subDir" : "graal",
+      "sourceDirs" : ["src"],
+      "dependencies" : [
+        "edu.uci.python.nodes",
+        "edu.uci.python.runtime",
+        "edu.uci.python.profiler",
+        "com.oracle.truffle.api",
+        "com.oracle.truffle.api.dsl",
+        "JYTHON",
+      ],
+      "checkstyle" : "edu.uci.python.runtime",
+      "javaCompliance" : "1.8",
+      "annotationProcessors" : ["com.oracle.truffle.dsl.processor"],
+      "workingSets" : "Truffle,Python",
     }
   },
 
@@ -1249,6 +1375,14 @@ suite = {
       "javaCompliance" : "1.7",
       "dependencies" : ["com.oracle.truffle.dsl.processor"],
       "distDependencies" : ["TRUFFLE"],
+    },
+
+    "ZIPPY" : {
+      "path" : "zippy.jar",
+      "subDir" : "graal",
+      "sourcesPath" : "zippy-sources.jar",
+      "mainClass" : "edu.uci.python.shell.Shell",
+      "dependencies" : ["edu.uci.python.shell"],
     }
   },
 

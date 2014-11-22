@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="ascii"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+          "DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+  <title>Class Hierarchy</title>
+  <link rel="stylesheet" href="epydoc.css" type="text/css" />
+  <script type="text/javascript" src="epydoc.js"></script>
+</head>
+
+<body bgcolor="white" text="black" link="blue" vlink="#204080"
+      alink="#204080">
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="pygraph-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th bgcolor="#70b0f0" class="navbar-select"
+          >&nbsp;&nbsp;&nbsp;Trees&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            ><a class="navbar" target="_top" href="http://code.google.com/p/python-graph/">python-graph</a></th>
+          </tr></table></th>
+  </tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0">
+  <tr valign="top">
+    <td width="100%">&nbsp;</td>
+    <td>
+      <table cellpadding="0" cellspacing="0">
+        <!-- hide/show private -->
+      </table>
+    </td>
+  </tr>
+</table>
+<center><b>
+ [ <a href="module-tree.html">Module Hierarchy</a>
+ | <a href="class-tree.html">Class Hierarchy</a> ]
+</b></center><br />
+<h1 class="epydoc">Class Hierarchy</h1>
+<ul class="nomargin-top">
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.utils.HeapItem-class.html">pygraph.algorithms.utils.HeapItem</a></strong>
+    </li>
+    <li> <strong class="uidlink">object</strong>:
+      <em class="summary">The most base type</em>
+    <ul>
+    <li> <strong class="uidlink">exceptions.BaseException</strong>:
+      <em class="summary">Common base class for all exceptions</em>
+    <ul>
+    <li> <strong class="uidlink">exceptions.Exception</strong>:
+      <em class="summary">Common base class for all non-exit exceptions.</em>
+    <ul>
+    <li> <strong class="uidlink">exceptions.StandardError</strong>:
+      <em class="summary">Base class for all standard Python exceptions that do not represent
+        interpreter exiting.</em>
+    <ul>
+    <li> <strong class="uidlink">exceptions.RuntimeError</strong>:
+      <em class="summary">Unspecified run-time error.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="pygraph.classes.exceptions.AlgorithmError-class.html">pygraph.classes.exceptions.AlgorithmError</a></strong>:
+      <em class="summary">A base-class for the various kinds of errors that occur in the the 
+        algorithms package.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="pygraph.classes.exceptions.NegativeWeightCycleError-class.html">pygraph.classes.exceptions.NegativeWeightCycleError</a></strong>:
+      <em class="summary">Algorithms like the Bellman-Ford algorithm can detect and raise an 
+        exception when they encounter a negative weight cycle.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.classes.exceptions.GraphError-class.html">pygraph.classes.exceptions.GraphError</a></strong>:
+      <em class="summary">A base-class for the various kinds of errors that occur in the the 
+        python-graph class.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="pygraph.classes.exceptions.AdditionError-class.html">pygraph.classes.exceptions.AdditionError</a></strong>:
+      <em class="summary">This error is raised when trying to add a node or edge already 
+        added to the graph or digraph.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.classes.exceptions.InvalidGraphType-class.html">pygraph.classes.exceptions.InvalidGraphType</a></strong>:
+      <em class="summary">Invalid graph type.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.classes.exceptions.NodeUnreachable-class.html">pygraph.classes.exceptions.NodeUnreachable</a></strong>:
+      <em class="summary">Goal could not be reached from start.</em>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.mixins.basegraph.basegraph-class.html">pygraph.mixins.basegraph.basegraph</a></strong>:
+      <em class="summary">An abstract class intended as a common ancestor to all graph 
+        classes.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="pygraph.classes.digraph.digraph-class.html">pygraph.classes.digraph.digraph</a></strong>:
+      <em class="summary">Digraph class.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.classes.graph.graph-class.html">pygraph.classes.graph.graph</a></strong>:
+      <em class="summary">Graph class.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.classes.hypergraph.hypergraph-class.html">pygraph.classes.hypergraph.hypergraph</a></strong>:
+      <em class="summary">Hypergraph class.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.heuristics.chow.chow-class.html">pygraph.algorithms.heuristics.chow.chow</a></strong>:
+      <em class="summary">An implementation of the graph searching heuristic proposed by 
+        Edmond Chow.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.mixins.common.common-class.html">pygraph.mixins.common.common</a></strong>:
+      <em class="summary">Standard methods common to all graph classes.</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="pygraph.classes.digraph.digraph-class.html">pygraph.classes.digraph.digraph</a></strong>:
+      <em class="summary">Digraph class.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.classes.graph.graph-class.html">pygraph.classes.graph.graph</a></strong>:
+      <em class="summary">Graph class.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.classes.hypergraph.hypergraph-class.html">pygraph.classes.hypergraph.hypergraph</a></strong>:
+      <em class="summary">Hypergraph class.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.heuristics.euclidean.euclidean-class.html">pygraph.algorithms.heuristics.euclidean.euclidean</a></strong>:
+      <em class="summary">A* heuristic for Euclidean graphs.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.filters.find.find-class.html">pygraph.algorithms.filters.find.find</a></strong>:
+      <em class="summary">Search filter for finding a specific node.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.mixins.labeling.labeling-class.html">pygraph.mixins.labeling.labeling</a></strong>:
+      <em class="summary">Generic labeling support for graphs</em>
+    <ul>
+    <li> <strong class="uidlink"><a href="pygraph.classes.digraph.digraph-class.html">pygraph.classes.digraph.digraph</a></strong>:
+      <em class="summary">Digraph class.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.classes.graph.graph-class.html">pygraph.classes.graph.graph</a></strong>:
+      <em class="summary">Graph class.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.classes.hypergraph.hypergraph-class.html">pygraph.classes.hypergraph.hypergraph</a></strong>:
+      <em class="summary">Hypergraph class.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.filters.null.null-class.html">pygraph.algorithms.filters.null.null</a></strong>:
+      <em class="summary">Null search filter.</em>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.filters.radius.radius-class.html">pygraph.algorithms.filters.radius.radius</a></strong>:
+      <em class="summary">Radial search filter.</em>
+    </li>
+    </ul>
+    </li>
+    <li> <strong class="uidlink"><a href="pygraph.algorithms.utils.priority_queue-class.html">pygraph.algorithms.utils.priority_queue</a></strong>:
+      <em class="summary">Priority queue.</em>
+    </li>
+</ul>
+<!-- ==================== NAVIGATION BAR ==================== -->
+<table class="navbar" border="0" width="100%" cellpadding="0"
+       bgcolor="#a0c0ff" cellspacing="0">
+  <tr valign="middle">
+  <!-- Home link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="pygraph-module.html">Home</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Tree link -->
+      <th bgcolor="#70b0f0" class="navbar-select"
+          >&nbsp;&nbsp;&nbsp;Trees&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Index link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="identifier-index.html">Indices</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Help link -->
+      <th>&nbsp;&nbsp;&nbsp;<a
+        href="help.html">Help</a>&nbsp;&nbsp;&nbsp;</th>
+
+  <!-- Project homepage -->
+      <th class="navbar" align="right" width="100%">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr><th class="navbar" align="center"
+            ><a class="navbar" target="_top" href="http://code.google.com/p/python-graph/">python-graph</a></th>
+          </tr></table></th>
+  </tr>
+</table>
+<table border="0" cellpadding="0" cellspacing="0" width="100%%">
+  <tr>
+    <td align="left" class="footer">
+    Generated by Epydoc 3.0.1 on Sat Aug 25 09:56:10 2012
+    </td>
+    <td align="right" class="footer">
+      <a target="mainFrame" href="http://epydoc.sourceforge.net"
+        >http://epydoc.sourceforge.net</a>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+  <!--
+  // Private objects are initially displayed (because if
+  // javascript is turned off then we want them to be
+  // visible); but by default, we want to hide them.  So hide
+  // them unless we have a cookie that says to show them.
+  checkCookie();
+  // -->
+</script>
+</body>
+</html>

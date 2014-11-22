@@ -1748,6 +1748,88 @@ def bench(args):
     if 'ctw-noinline' in args:
         benchmarks.append(sanitycheck.getCTW(vm, sanitycheck.CTWMode.NoInline))
 
+    # Python
+    if 'pythontest' in args:
+        benchmarks += sanitycheck.getPythonTestBenchmarks(vm)    
+
+    if 'python' in args:
+        benchmarks += sanitycheck.getPythonBenchmarks(vm)
+
+    if 'python-nopeeling' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksNoPeeling(vm)
+
+    if 'python-profile' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm)
+        
+    if 'python-profile-calls' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-calls")   
+
+    if 'python-profile-control-flow' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-control-flow")   
+        
+    if 'python-profile-variable-accesses' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-variable-accesses")   
+        
+    if 'python-profile-operations' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-operations")       
+
+    if 'python-profile-collection-operations' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-collection-operations")   
+
+    if 'python-profile-type-distribution' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm, "-profile-type-distribution")   
+
+    if 'cpython2' in args:
+        benchmarks += sanitycheck.getPython2Benchmarks(vm)
+        vm = 'cpython2'
+
+    if 'cpython' in args:
+        benchmarks += sanitycheck.getPythonBenchmarks(vm)
+        vm = 'cpython'
+        
+    if 'cpython-profile' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm)
+        vm = 'cpython-profile'
+
+    if 'jython' in args:
+        benchmarks += sanitycheck.getPython2Benchmarks(vm)
+        vm = 'jython'
+
+    if 'pypy' in args:
+        benchmarks += sanitycheck.getPython2Benchmarks(vm)
+        vm = 'pypy'
+
+    if 'pypy3' in args:
+        benchmarks += sanitycheck.getPythonBenchmarks(vm)
+        vm = 'pypy3'
+        
+    if 'pypy-profile' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm)
+        vm = 'pypy-profile'    
+
+    if 'pypy3-profile' in args:
+        benchmarks += sanitycheck.getPythonBenchmarksProfiling(vm)
+        vm = 'pypy3-profile'    
+
+    if 'python-micro' in args:
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
+
+    if 'cpython-micro' in args:
+        benchmarks += sanitycheck.getPython2MicroBenchmarks(vm)
+        vm = 'cpython'
+
+    if 'jython-micro' in args:
+        benchmarks += sanitycheck.getPython2MicroBenchmarks(vm)
+        vm = 'jython'
+
+    if 'pypy-micro' in args:
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
+        vm = 'pypy'
+
+    if 'pypy3-micro' in args:
+        benchmarks += sanitycheck.getPythonMicroBenchmarks(vm)
+        vm = 'pypy3'
+
     for test in benchmarks:
         for (groupName, res) in test.bench(vm, extraVmOpts=vmArgs).items():
             group = results.setdefault(groupName, {})
@@ -2103,6 +2185,22 @@ def sl(args):
 def isGraalEnabled(vm):
     return vm != 'original' and not vm.endswith('nograal')
 
+def pythonShellCp():
+    return mx.classpath("edu.uci.python.shell");
+
+def pythonShellClass():
+    return "edu.uci.python.shell.Shell";
+
+def python(args):
+    """run a Python program or shell
+    
+    VM args should have a @ prefix."""
+    
+    vmArgs = [a[1:] for a in args if a[0] == '@']
+    pythonArgs = [a for a in args if a[0] != '@']
+
+    vm(vmArgs + ['-cp', pythonShellCp(), pythonShellClass()] + pythonArgs)
+
 def jol(args):
     """Java Object Layout"""
     joljar = mx.library('JOL_INTERNALS').get_path(resolve=True)
@@ -2334,6 +2432,7 @@ def mx_init(suite):
         'makejmhdeps' : [makejmhdeps, ''],
         'shortunittest' : [shortunittest, '[unittest options] [--] [VM options] [filters...]', _unittestHelpSuffix],
         'jacocoreport' : [jacocoreport, '[output directory]'],
+        'python' : [python, '[Python args|@VM options]'],
         'site' : [site, '[-options]'],
         'vm': [vm, '[-options] class [args...]'],
         'vmg': [vmg, '[-options] class [args...]'],

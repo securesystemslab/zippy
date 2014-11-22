@@ -1850,7 +1850,6 @@ def run(args, nonZeroIsFatal=True, out=None, err=None, cwd=None, timeout=None, e
     Each line of the standard output and error streams of the subprocess are redirected to
     out and err if they are callable objects.
     """
-
     assert isinstance(args, types.ListType), "'args' must be a list: " + str(args)
     for arg in args:
         assert isinstance(arg, types.StringTypes), 'argument is not a string: ' + str(arg)
