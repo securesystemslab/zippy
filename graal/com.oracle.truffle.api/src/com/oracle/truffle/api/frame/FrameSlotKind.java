@@ -32,5 +32,5 @@ public enum FrameSlotKind {
     Double,
     Float,
     Boolean,
-    Byte,
+    Byte;
 }
