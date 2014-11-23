@@ -126,12 +126,6 @@ public final class FunctionRootNode extends RootNode {
         return body.execute(frame);
     }
 
-    @Override
-    public boolean applyGuestTransformation() {
-        peelingTrialCounter = 0;
-        return optimizeHelper();
-    }
-
     private boolean optimizeHelper() {
         CompilerAsserts.neverPartOfCompilation();
 
