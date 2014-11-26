@@ -93,7 +93,7 @@ suite = {
       "dependencies" : [
         "edu.uci.python.shell",
       ],
-      "sourcesPath" : "/Users/mjj/tmp/split-zippy-rm/zippy/zippy-sources.jar",
+      "sourcesPath" : "zippy-sources.jar",
     },
 
   },
