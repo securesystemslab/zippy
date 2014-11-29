@@ -102,9 +102,9 @@ public class PythonTests {
         final PrintStream printStream = new PrintStream(byteArray);
 
         String path = null;
-        if (Files.isDirectory(Paths.get("graal/edu.uci.python.test/src/tests"))) {
-            path = "graal/edu.uci.python.test/src/tests";
-        } else if (Files.isDirectory(Paths.get("../../graal/edu.uci.python.test/src/tests"))) {
+        if (Files.isDirectory(Paths.get("edu.uci.python.test/src/tests"))) {
+            path = "edu.uci.python.test/src/tests";
+        } else if (Files.isDirectory(Paths.get("../../edu.uci.python.test/src/tests"))) {
             path = "../../graal/edu.uci.python.test/src/tests";
         } else {
             throw new RuntimeException("Unable to locate edu.uci.python.test/src/tests/");
@@ -128,10 +128,10 @@ public class PythonTests {
         final PrintStream printStream = new PrintStream(byteArray);
 
         String path = null;
-        if (Files.isDirectory(Paths.get("graal/edu.uci.python.test/src/tests"))) {
-            path = "graal/edu.uci.python.test/src/tests";
-        } else if (Files.isDirectory(Paths.get("../../graal/edu.uci.python.test/src/tests"))) {
-            path = "../../graal/edu.uci.python.test/src/tests";
+        if (Files.isDirectory(Paths.get("edu.uci.python.test/src/tests"))) {
+            path = "edu.uci.python.test/src/tests";
+        } else if (Files.isDirectory(Paths.get("../../edu.uci.python.test/src/tests"))) {
+            path = "../../edu.uci.python.test/src/tests";
         } else {
             throw new RuntimeException("Unable to locate edu.uci.python.test/src/tests/");
         }
