@@ -10,11 +10,11 @@ suite = {
       "sha1" : "99a18e9a44834afdebc467294e1138364c207402",
     },
     "JYTHON" : {
-      "path" : "lib/jython-standalone-2.7-b2.jar",
+      "path" : "lib/jython-standalone-2.7-b3.jar",
       "urls" : [
-        "http://repo1.maven.org/maven2/org/python/jython-standalone/2.7-b2/jython-standalone-2.7-b2.jar",
+        "http://repo1.maven.org/maven2/org/python/jython-standalone/2.7-b3/jython-standalone-2.7-b3.jar",
       ],
-      "sha1" : "4c499bd30b0ca84e383368e137c8c86cf48128b2",
+      "sha1" : "56411f652bcf4acce8e9fb3bc7d06b4a0e926aaf",
     },
   },
 

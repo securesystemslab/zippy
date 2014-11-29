@@ -214,7 +214,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
 
         @SlowPath
         protected Object slowPathLookup() {
-            Object value = PySystemState.builtins.__finditem__(attributeId);
+            Object value = PySystemState.getDefaultBuiltins().__finditem__(attributeId);
 
             if (value == null) {
                 throw Py.NameError("name \'" + attributeId + "\' is not defined");
