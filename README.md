@@ -1,4 +1,4 @@
-![zippy-logo-200.png](https://bitbucket.org/repo/o5E6dr/images/295604816-zippy-logo-200.png)
+![zippy-logo-200-rounded.jpg](https://bitbucket.org/repo/o5E6dr/images/3337486587-zippy-logo-200-rounded.jpg)
 # ZipPy #
 
 ZipPy is a fast and lightweight [Python 3](https://www.python.org/) implementation built using the [Truffle framework](http://openjdk.java.net/projects/graal/). ZipPy leverages the underlying Java JIT compiler and compiles Python programs to highly optimized machine code at runtime.
