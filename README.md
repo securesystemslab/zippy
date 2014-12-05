@@ -3,11 +3,7 @@
 
 ZipPy is a fast and lightweight Python 3 implementation built using the Truffle framework. ZipPy leverages the underlying Java JIT compiler and compiles Python programs to highly optimized machine code at runtime.
 
-### What is this repository for? ###
-
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+ZipPy is currently maintained by [Secure Systems and Software Laboratory](https://ssllab.org) at the ​[University of California, Irvine](http://www.uci.edu/).
 
 ### How do I get set up? ###
 
@@ -18,11 +14,6 @@ ZipPy is a fast and lightweight Python 3 implementation built using the Truffle 
 * How to run tests
 * Deployment instructions
 
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
 
 ### Who do I talk to? ###
 
