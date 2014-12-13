@@ -50,6 +50,9 @@ public final class ApplyArgumentsNode extends BlockNode {
             if (i >= argumentsLength) {
                 break;
             }
+            if (PArguments.getArgumentAt(frame, i) == null) {
+                continue;
+            }
 
             statements[i].executeVoid(frame);
         }

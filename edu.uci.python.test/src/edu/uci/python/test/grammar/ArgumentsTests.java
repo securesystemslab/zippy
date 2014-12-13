@@ -41,7 +41,7 @@ public class ArgumentsTests {
         assertPrints("1\n3\n", source);
     }
 
-    // @Test
+    @Test
     public void defaultArgWithKeywordArg() {
         String source = "def foo(a, b=3):\n" + //
                         "    print(a)\n" + //
