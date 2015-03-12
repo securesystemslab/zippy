@@ -120,7 +120,7 @@ def _bench_harness_body(args, vmArgs):
 
 def bench(args):
     parser = ArgumentParser(prog='mx bench')
-    parser.add_argument('-resultfile', action='store', help='result file')
+    parser.add_argument('--resultfile', action='store', help='result file')
 
     vm = mx_graal.VM('server' if mx_graal._vm is None else mx_graal._vm)
     with vm:
