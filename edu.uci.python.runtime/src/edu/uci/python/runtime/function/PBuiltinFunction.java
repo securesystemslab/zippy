@@ -48,11 +48,6 @@ public class PBuiltinFunction extends PythonBuiltinObject implements PythonCalla
         this.arity = null;
     }
 
-    public PBuiltinFunction duplicate() {
-        RootNode copiedRoot = getFunctionRootNode().split();
-        return new PBuiltinFunction(name, arity, Truffle.getRuntime().createCallTarget(copiedRoot));
-    }
-
     public RootNode getFunctionRootNode() {
         DefaultCallTarget defaultTarget = (DefaultCallTarget) callTarget;
         return defaultTarget.getRootNode();
