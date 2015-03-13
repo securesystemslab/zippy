@@ -246,7 +246,6 @@ class ZippyTest(Test):
         Run this program as a benchmark.
         Copied from sanitycheck.Test to extend benchmarking for non-JVMs.
         """
-        print('vm',vm,'cwd',cwd,'extraVmOpts',extraVmOpts,'vmbuild',vmbuild)
         if vm in self.ignoredVMs:
             return {}
         if cwd is None:
