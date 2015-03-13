@@ -86,7 +86,7 @@ public final class TypeDistributionProfilerInstrument extends Instrument {
         leave(astNode, frame);
     }
 
-    @SlowPath
+    @TruffleBoundary
     private void addNewNodeOrIncrement(Node astNode) {
         if (!types.containsKey(onlyNode.getClass())) {
             this.types.put(onlyNode.getClass(), new Counter(onlyCounter));

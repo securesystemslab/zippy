@@ -25,7 +25,7 @@
 package edu.uci.python.runtime.function;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.runtime.*;
@@ -84,7 +84,7 @@ public final class PMethod extends PythonBuiltinObject implements PythonCallable
      * The following if block is necessary to catch the execution errors and mark that test case as
      * failed in the unit test.
      */
-    @SlowPath
+    @TruffleBoundary
     private Object slowPathCallForUnitTest(Object[] args, PKeyword[] keywords) {
         if (function.getName().equals("_executeTestPart")) {
             try {

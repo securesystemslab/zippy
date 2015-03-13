@@ -31,7 +31,7 @@ import java.math.BigInteger;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -229,7 +229,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return doBigInteger(left, BigInteger.valueOf(right));
         }
 
-        @SlowPath
+        @TruffleBoundary
         @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.multiply(right);
@@ -429,7 +429,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left < 0;
         }
 
-        @SlowPath
+        @TruffleBoundary
         @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.mod(right);
@@ -443,7 +443,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         /**
          * Delegate to Jython for String formatting.
          */
-        @SlowPath
+        @TruffleBoundary
         @Specialization
         Object doString(String left, Object right) {
             PyString sleft = new PyString(left);

@@ -29,7 +29,7 @@ import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -294,7 +294,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             return findAttr(pyobj);
         }
 
-        @SlowPath
+        @TruffleBoundary
         private Object findAttr(PyObject pyobj) {
             return unboxPyObject(pyobj.__findattr__(attributeId));
         }

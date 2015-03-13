@@ -51,7 +51,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 
 /**
  * @author Gulfem
@@ -288,7 +288,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return new PTuple(divideAndRemainderSlowStub(a, b));
         }
 
-        @SlowPath
+        @TruffleBoundary
         private static BigInteger[] divideAndRemainderSlowStub(BigInteger a, BigInteger b) {
             return a.divideAndRemainder(b);
         }
@@ -309,7 +309,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return evalExpression(expression);
         }
 
-        @SlowPath
+        @TruffleBoundary
         private Object evalExpression(String expression) {
             PythonParser parser = getContext().getParser();
             PythonParseResult parsed = parser.parse(getContext(), new PythonModule(getContext(), "<eval>", null), expression);
@@ -911,7 +911,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
     @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
     public abstract static class PrintNode extends PythonBuiltinNode {
 
-        @SlowPath
+        @TruffleBoundary
         @Specialization
         public Object print(PTuple values, Object[] keywords) {
             String sep = null;
@@ -931,7 +931,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return print(values, sep, end);
         }
 
-        @SlowPath
+        @TruffleBoundary
         private Object print(PTuple values, String possibleSep, String possibleEnd) {
             String sep = possibleSep;
             String end = possibleEnd;
@@ -1165,7 +1165,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
     }
 
-    @SlowPath
+    @TruffleBoundary
     private static void typeError(String message) {
         throw Py.TypeError(message);
     }

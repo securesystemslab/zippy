@@ -27,7 +27,7 @@ package edu.uci.python.nodes.statement;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
@@ -68,7 +68,7 @@ public class RaiseNode extends StatementNode {
         return PNone.NONE;
     }
 
-    @SlowPath
+    @TruffleBoundary
     private static void doRaise(Object t, Object i) {
         throw PyException.doRaise((PyObject) t, (PyObject) i, null);
     }
