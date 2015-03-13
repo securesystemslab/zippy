@@ -38,8 +38,8 @@ public class IfNode extends StatementNode {
     @Child protected PNode then;
     @Child protected PNode orelse;
 
-    protected final BranchProfile thenProfile = new BranchProfile();
-    protected final BranchProfile elseProfile = new BranchProfile();
+    protected final BranchProfile thenProfile = BranchProfile.create();
+    protected final BranchProfile elseProfile = BranchProfile.create();
 
     public IfNode(CastToBooleanNode condition, PNode then, PNode orelse) {
         this.condition = condition;

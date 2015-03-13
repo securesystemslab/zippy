@@ -36,7 +36,7 @@ public final class BreakTargetNode extends StatementNode {
 
     @Child protected PNode child;
 
-    private final BranchProfile breakProfile = new BranchProfile();
+    private final BranchProfile breakProfile = BranchProfile.create();
 
     public BreakTargetNode(PNode child) {
         this.child = child;

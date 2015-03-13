@@ -229,7 +229,7 @@ public final class FunctionRootNode extends RootNode {
                 }
                 return false;
             }
-        }, true);
+        });
     }
 
     protected boolean peelGeneratorLoop(boolean inlinable, GeneratorDispatch dispatch, PGeneratorFunction genfun) {
