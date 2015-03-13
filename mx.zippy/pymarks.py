@@ -1,5 +1,5 @@
 from outputparser import OutputParser, ValuesMatcher
-import re, mx, mx_graal, os, sys, StringIO, subprocess
+import re, mx, mx_graal, os, sys, StringIO, subprocess, time
 from os.path import isfile, join, exists
 from sanitycheck import Test, Tee, _noneAsEmptyList
 
@@ -288,8 +288,25 @@ class ZippyTest(Test):
         else:
             tee = Tee()
             mx.log(startDelim)
-            if mx_graal.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild) != 0:
+            # zippy
+            result = -1
+            if vm == 'cpython2':
+                result = mx.run(['python'] + self.cmd[-2:], out=tee.eat)
+            elif vm == 'cpython':
+                result = mx.run(['python3'] + self.cmd[-2:], out=tee.eat)
+            elif vm == 'jython':
+                result = mx_graal.vm(self.vmOpts + ['-jar', mx.library('JYTHON').path] + self.cmd[-2:], vm = 'original', out=tee.eat)
+            elif vm == 'pypy':
+                result = mx.run(['pypy'] + self.cmd[-2:], out=tee.eat)
+            elif vm == 'pypy3':
+                result = mx.run(['pypy3'] + self.cmd[-2:], out=tee.eat)
+            else:
+                result = mx_graal.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
+
+            if result != 0:
                 mx.abort("Benchmark failed (non-zero retcode)")
+            # wait for subprocess to finish
+            time.sleep(.5)
             mx.log(endDelim)
             output = tee.output.getvalue()
 
