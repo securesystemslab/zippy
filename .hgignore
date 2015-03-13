@@ -67,6 +67,7 @@ core.*
 *.jar.*
 *.zip
 *.zip.*
+build.xml
 eclipse-build.xml
 rebuild-launch.out
 coverage
