@@ -36,7 +36,7 @@ public class TryExceptNode extends StatementNode {
     @Children final ExceptNode[] exceptNodes;
     @Child protected PNode orelse;
 
-    private final BranchProfile exceptProfile = BranchProfile.create();
+    private final BranchProfile exceptProfile = new BranchProfile();
 
     public TryExceptNode(PNode body, ExceptNode[] exceptNodes, PNode orelse) {
         this.body = body;

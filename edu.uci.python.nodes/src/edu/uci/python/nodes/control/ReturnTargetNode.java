@@ -36,7 +36,7 @@ public class ReturnTargetNode extends StatementNode {
     @Child protected PNode body;
     @Child protected PNode returnValue;
 
-    private final BranchProfile returnProfile = BranchProfile.create();
+    private final BranchProfile returnProfile = new BranchProfile();
 
     public ReturnTargetNode(PNode body, PNode returnValue) {
         this.body = body;

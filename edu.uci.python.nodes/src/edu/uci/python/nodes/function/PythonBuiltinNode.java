@@ -24,7 +24,7 @@
  */
 package edu.uci.python.nodes.function;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -55,7 +55,7 @@ public abstract class PythonBuiltinNode extends PNode {
     /**
      * This is obviously a slow path.
      */
-    @TruffleBoundary
+    @SlowPath
     public static String callAttributeSlowPath(PythonObject obj, String attributeId) {
         PythonCallable callable;
 

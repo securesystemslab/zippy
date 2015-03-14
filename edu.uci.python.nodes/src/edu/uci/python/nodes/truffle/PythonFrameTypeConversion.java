@@ -22,35 +22,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.nodes.control;
+package edu.uci.python.nodes.truffle;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.utilities.*;
+import com.oracle.truffle.api.impl.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.exception.*;
+public final class PythonFrameTypeConversion extends DefaultFrameTypeConversion {
 
-public final class StopIterationTargetNode extends StatementNode {
+    private static final PythonFrameTypeConversion INSTANCE = new PythonFrameTypeConversion();
 
-    @Child protected PNode tryPart;
-    @Child protected PNode catchPart;
-
-    private final BranchProfile breakProfile = new BranchProfile();
-
-    public StopIterationTargetNode(PNode tryPart, PNode catchPart) {
-        this.tryPart = tryPart;
-        this.catchPart = catchPart;
+    private PythonFrameTypeConversion() {
     }
 
-    @Override
-    public Object execute(VirtualFrame frame) {
-        try {
-            return tryPart.execute(frame);
-        } catch (StopIterationException ex) {
-            breakProfile.enter();
-            return catchPart.execute(frame);
-        }
+    public static PythonFrameTypeConversion getInstance() {
+        return INSTANCE;
     }
 
 }

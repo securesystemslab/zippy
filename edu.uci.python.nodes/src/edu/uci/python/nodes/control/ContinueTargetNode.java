@@ -36,7 +36,7 @@ public class ContinueTargetNode extends StatementNode {
 
     @Child protected PNode child;
 
-    private final BranchProfile continueProfile = BranchProfile.create();
+    private final BranchProfile continueProfile = new BranchProfile();
 
     public ContinueTargetNode(PNode child) {
         this.child = child;

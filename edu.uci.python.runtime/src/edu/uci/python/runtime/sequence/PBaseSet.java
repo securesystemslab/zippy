@@ -26,7 +26,7 @@ package edu.uci.python.runtime.sequence;
 
 import java.util.*;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
@@ -61,7 +61,7 @@ public abstract class PBaseSet extends PythonBuiltinObject implements PIterable 
         addAll(baseSet);
     }
 
-    @TruffleBoundary
+    @SlowPath
     private void addAll(PBaseSet baseSet) {
         this.set.addAll(baseSet.set);
     }

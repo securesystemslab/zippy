@@ -28,7 +28,7 @@ import java.math.*;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
@@ -870,12 +870,12 @@ public class PythonWrapperNode extends PNode implements Wrapper {
         return probe;
     }
 
-    @TruffleBoundary
+    @SlowPath
     public boolean isTaggedAs(SyntaxTag tag) {
         return probe.isTaggedAs(tag);
     }
 
-    @TruffleBoundary
+    @SlowPath
     public Iterable<SyntaxTag> getSyntaxTags() {
         return probe.getSyntaxTags();
     }

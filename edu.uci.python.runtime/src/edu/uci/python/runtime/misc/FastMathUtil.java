@@ -26,7 +26,7 @@ package edu.uci.python.runtime.misc;
 
 import java.math.*;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 public class FastMathUtil {
 
@@ -160,7 +160,7 @@ public class FastMathUtil {
         return Double.longBitsToDouble(MASK_NON_SIGN_LONG & Double.doubleToRawLongBits(x));
     }
 
-    @TruffleBoundary
+    @SlowPath
     public static BigInteger slowPathDivide(BigInteger left, BigInteger right) {
         return left.divide(right);
     }

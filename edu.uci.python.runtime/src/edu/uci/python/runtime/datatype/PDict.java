@@ -27,7 +27,7 @@ package edu.uci.python.runtime.datatype;
 import java.util.*;
 import java.util.Map.Entry;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
@@ -51,7 +51,7 @@ public final class PDict extends PythonBuiltinObject implements PIterable {
         addAll(map);
     }
 
-    @TruffleBoundary
+    @SlowPath
     private void addAll(Map<Object, Object> mapToAdd) {
         this.map.putAll(mapToAdd);
     }

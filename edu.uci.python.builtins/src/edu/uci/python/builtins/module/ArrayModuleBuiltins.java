@@ -28,7 +28,7 @@ import java.util.*;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -160,12 +160,12 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
             }
         }
 
-        @TruffleBoundary
+        @SlowPath
         private static void typeError(String typeCode, Object initializer) {
             throw Py.TypeError("unsupported operand type:" + typeCode.charAt(0) + " " + initializer + " and 'array.array'");
         }
 
-        @TruffleBoundary
+        @SlowPath
         private static void operandTypeError() {
             throw new RuntimeException("Unexpected argument type for array() ");
         }

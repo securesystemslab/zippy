@@ -27,7 +27,7 @@ package edu.uci.python.nodes.frame;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -212,7 +212,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
             return execute(frame);
         }
 
-        @TruffleBoundary
+        @SlowPath
         protected Object slowPathLookup() {
             Object value = PySystemState.getDefaultBuiltins().__finditem__(attributeId);
 

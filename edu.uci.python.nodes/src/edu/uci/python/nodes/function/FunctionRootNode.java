@@ -110,6 +110,7 @@ public final class FunctionRootNode extends RootNode {
         return uninitializedBody;
     }
 
+    @Override
     public FunctionRootNode split() {
         return new FunctionRootNode(context, functionName, isGenerator, getFrameDescriptor().shallowCopy(), uninitializedBody);
     }
@@ -228,7 +229,7 @@ public final class FunctionRootNode extends RootNode {
                 }
                 return false;
             }
-        });
+        }, true);
     }
 
     protected boolean peelGeneratorLoop(boolean inlinable, GeneratorDispatch dispatch, PGeneratorFunction genfun) {

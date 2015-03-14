@@ -33,6 +33,7 @@ import com.oracle.truffle.api.frame.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.frame.*;
+import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.parser.ScopeInfo.ScopeKind;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtype.*;
@@ -75,7 +76,7 @@ public class TranslationEnvironment {
     public void beginScope(PythonTree scopeEntity, ScopeInfo.ScopeKind kind) {
         scopeLevel++;
         ScopeInfo info = scopeInfos.get(scopeEntity);
-        currentScope = info != null ? info : new ScopeInfo(TranslationUtil.getScopeId(scopeEntity, kind), kind, new FrameDescriptor(), currentScope);
+        currentScope = info != null ? info : new ScopeInfo(TranslationUtil.getScopeId(scopeEntity, kind), kind, new FrameDescriptor(PythonFrameTypeConversion.getInstance()), currentScope);
 
         if (globalScope == null) {
             globalScope = currentScope;
