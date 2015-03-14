@@ -3,6 +3,8 @@ import re, mx, mx_graal, os, sys, StringIO, subprocess, time
 from os.path import isfile, join, exists
 from sanitycheck import Test, Tee, _noneAsEmptyList
 
+benchVmOpts = ['-Xms2g', '-Xmx2g', '-G:+TraceTruffleCompilation']
+
 pythonTestBenchmarks = {
     'binarytrees3'  : '12',
     'fannkuchredux3': '9',
@@ -152,8 +154,7 @@ def getPythonTestBenchmarks(vm):
     for benchmark, arg in benchmarks.iteritems():
         script = "edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
-        vmOpts = ['-Xms2g', '-Xmx2g']
-        tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+        tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
 
     return tests
 
@@ -164,8 +165,7 @@ def getPython2MicroBenchmarks(vm):
     for benchmark, arg in benchmarks.iteritems():
         script = "edu.uci.python.benchmark/src/micro/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
-        vmOpts = ['-Xms2g', '-Xmx2g']
-        tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+        tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
 
     return tests
 
@@ -176,8 +176,7 @@ def getPythonMicroBenchmarks(vm):
     for benchmark, arg in benchmarks.iteritems():
         script = "edu.uci.python.benchmark/src/micro/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
-        vmOpts = ['-Xms2g', '-Xmx2g']
-        tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+        tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
 
     return tests
 
@@ -188,8 +187,7 @@ def getPythonBenchmarks(vm):
     for benchmark, arg in benchmarks.iteritems():
         script = "edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
-        vmOpts = ['-Xms2g', '-Xmx2g']
-        tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+        tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
 
     return tests
 
@@ -200,8 +198,7 @@ def getPythonBenchmarksNoPeeling(vm):
     for benchmark, arg in benchmarks.iteritems():
         script = "edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, "-no-generator-peeling"]
-        vmOpts = ['-Xms2g', '-Xmx2g']
-        tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))
+        tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
 
     return tests
 
