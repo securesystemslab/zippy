@@ -68,6 +68,7 @@ core.*
 *.zip
 *.zip.*
 eclipse-build.xml
+*.xml
 rebuild-launch.out
 coverage
 jacoco.exec
