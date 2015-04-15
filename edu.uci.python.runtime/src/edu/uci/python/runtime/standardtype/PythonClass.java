@@ -57,6 +57,7 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
      */
     @CompilationFinal private ObjectLayout instanceObjectLayout;
     @CompilationFinal private MethodHandle instanceConstructor;
+    @CompilationFinal private Assumption constructorValidAssumption;
 
     private final Set<PythonClass> subClasses = Collections.newSetFromMap(new WeakHashMap<PythonClass, Boolean>());
 
@@ -86,6 +87,7 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
 
         // The default constructor creates a {@link FixedPythonObjectStorage} object.
         instanceConstructor = PythonContext.getDefaultPythonObjectConstructor();
+        constructorValidAssumption = Truffle.getRuntime().createAssumption();
     }
 
     public PythonClass getSuperClass() {
@@ -107,6 +109,10 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
 
     public final MethodHandle getInstanceConstructor() {
         return instanceConstructor;
+    }
+
+    public final Assumption getConstructorValidAssumption() {
+        return constructorValidAssumption;
     }
 
     private void computeMethodResolutionOrder() {
@@ -244,14 +250,12 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
     }
 
     public final void switchToGeneratedStorageClass() {
-        if (!PythonOptions.GenerateObjectStorage) {
-            return;
-        }
-
         CompilerDirectives.transferToInterpreterAndInvalidate();
         StorageClassGenerator scg = new StorageClassGenerator(this);
         GeneratedPythonObjectStorage newStorage = scg.generate();
         instanceConstructor = newStorage.getConstructor();
+        constructorValidAssumption.invalidate();
+        constructorValidAssumption = Truffle.getRuntime().createAssumption();
     }
 
     /**

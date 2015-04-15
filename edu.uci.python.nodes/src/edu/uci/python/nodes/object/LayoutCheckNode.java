@@ -36,8 +36,8 @@ public abstract class LayoutCheckNode extends Node {
 
     protected final ObjectLayout cachedObjectLayout;
 
-    public LayoutCheckNode(ObjectLayout shape) {
-        this.cachedObjectLayout = shape;
+    public LayoutCheckNode(ObjectLayout layout) {
+        this.cachedObjectLayout = layout;
     }
 
     public abstract boolean accept(PythonObject primary) throws InvalidAssumptionException;

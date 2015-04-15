@@ -177,7 +177,14 @@ public abstract class PythonCallNode extends PNode {
          */
         if (isConstructorCall(primary, callable)) {
             CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), keywords, passPrimaryAsArgument);
-            ConstructorCallNode specialized = new ConstructorCallNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
+            ConstructorCallNode specialized = null;
+
+            if (PythonOptions.GenerateObjectStorage) {
+                specialized = new CallConstructorWithSwitchingNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
+            } else {
+                specialized = new CallConstructorNoSwitchingNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
+            }
+
             return replace(specialized).executeCall(frame, (PythonObject) primary, (PythonClass) callable);
         }
 
@@ -344,15 +351,18 @@ public abstract class PythonCallNode extends PNode {
         }
     }
 
-    public static final class ConstructorCallNode extends PythonCallNode {
+    public static abstract class ConstructorCallNode extends PythonCallNode {
 
         @Child protected NewInstanceNode instanceNode;
         @Child protected CallDispatchBoxedNode dispatchNode;
+
+        protected final PythonClass pythonClass;
 
         public ConstructorCallNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
             super(context, pythonClass.getName(), primary, callee, arguments, keywords, true);
             dispatchNode = dispatch;
             instanceNode = new NewInstanceNode(pythonClass);
+            this.pythonClass = pythonClass;
         }
 
         public CallDispatchNode getDispatchNode() {
@@ -385,12 +395,43 @@ public abstract class PythonCallNode extends PNode {
             return executeCall(frame, primary, callee);
         }
 
-        private Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
+        protected abstract Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz);
+    }
+
+    public static final class CallConstructorWithSwitchingNode extends ConstructorCallNode {
+
+        public CallConstructorWithSwitchingNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords,
+                        CallDispatchBoxedNode dispatch) {
+            super(context, pythonClass, primary, callee, arguments, keywords, dispatch);
+        }
+
+        @Override
+        protected Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
             PythonObject newInstance = instanceNode.createNewInstance(clazz);
             Object[] arguments = argumentsNode.executeArguments(frame, true, newInstance);
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
+
             clazz.switchToGeneratedStorageClass();
+            this.replace(new CallConstructorNoSwitchingNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));
+
+            return newInstance;
+        }
+    }
+
+    public static final class CallConstructorNoSwitchingNode extends ConstructorCallNode {
+
+        public CallConstructorNoSwitchingNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords,
+                        CallDispatchBoxedNode dispatch) {
+            super(context, pythonClass, primary, callee, arguments, keywords, dispatch);
+        }
+
+        @Override
+        protected Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
+            PythonObject newInstance = instanceNode.createNewInstance(clazz);
+            Object[] arguments = argumentsNode.executeArguments(frame, true, newInstance);
+            PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
+            dispatchNode.executeCall(frame, primary, arguments, keywords);
             return newInstance;
         }
     }
@@ -398,15 +439,18 @@ public abstract class PythonCallNode extends PNode {
     public static final class NewInstanceNode extends Node {
 
         private final Assumption instanceLayoutStableAssumption;
+        private final Assumption constructorValidAssumption;
         private final MethodHandle instanceCtor;
 
         public NewInstanceNode(PythonClass pythonClass) {
             this.instanceLayoutStableAssumption = pythonClass.getInstanceObjectLayout().getValidAssumption();
+            this.constructorValidAssumption = pythonClass.getConstructorValidAssumption();
             this.instanceCtor = pythonClass.getInstanceConstructor();
         }
 
         public PythonObject createNewInstance(PythonClass clazz) {
             try {
+                constructorValidAssumption.check();
                 instanceLayoutStableAssumption.check();
                 return (PythonObject) instanceCtor.invokeExact(clazz);
             } catch (InvalidAssumptionException e) {

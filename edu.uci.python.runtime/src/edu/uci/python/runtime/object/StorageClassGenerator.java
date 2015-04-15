@@ -55,7 +55,8 @@ public final class StorageClassGenerator {
     public StorageClassGenerator(PythonClass pythonClass) {
         this.pythonClass = pythonClass;
         this.classWriter = new ClassWriter(0);
-        this.validClassName = CLASSPATH + pythonClass.getName();
+        // Python class name mangling. Replacing dot following the module name with a dollar sign.
+        this.validClassName = CLASSPATH + pythonClass.getName().replace('.', '$');
     }
 
     public GeneratedPythonObjectStorage generate() {

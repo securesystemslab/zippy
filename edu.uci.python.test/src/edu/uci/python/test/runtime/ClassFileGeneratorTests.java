@@ -185,4 +185,15 @@ public class ClassFileGeneratorTests {
         }
     }
 
+    @Test
+    public void constructorNode() {
+        String source = "class Foo:\n" + //
+                        "    def __init__(self, n):\n" + //
+                        "        self.n = n\n" + //
+                        "for i in range(3):\n" + //
+                        "    f = Foo(i)\n" + //
+                        "    print(f.n)\n" + //
+                        "\n";
+        PythonTests.assertPrints("0\n1\n2\n", source);
+    }
 }
