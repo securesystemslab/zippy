@@ -177,12 +177,12 @@ public abstract class PythonCallNode extends PNode {
          */
         if (isConstructorCall(primary, callable)) {
             CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), keywords, passPrimaryAsArgument);
-            ConstructorCallNode specialized = null;
+            CallConstructorNode specialized = null;
 
             if (PythonOptions.GenerateObjectStorage) {
-                specialized = new CallConstructorWithSwitchingNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
+                specialized = new CallConstructorBootstrappingNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
             } else {
-                specialized = new CallConstructorNoSwitchingNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
+                specialized = new CallConstructorFastNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
             }
 
             return replace(specialized).executeCall(frame, (PythonObject) primary, (PythonClass) callable);
@@ -351,14 +351,14 @@ public abstract class PythonCallNode extends PNode {
         }
     }
 
-    public static abstract class ConstructorCallNode extends PythonCallNode {
+    public static abstract class CallConstructorNode extends PythonCallNode {
 
         @Child protected NewInstanceNode instanceNode;
         @Child protected CallDispatchBoxedNode dispatchNode;
 
         protected final PythonClass pythonClass;
 
-        public ConstructorCallNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
+        public CallConstructorNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
             super(context, pythonClass.getName(), primary, callee, arguments, keywords, true);
             dispatchNode = dispatch;
             instanceNode = new NewInstanceNode(pythonClass);
@@ -398,9 +398,9 @@ public abstract class PythonCallNode extends PNode {
         protected abstract Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz);
     }
 
-    public static final class CallConstructorWithSwitchingNode extends ConstructorCallNode {
+    public static final class CallConstructorBootstrappingNode extends CallConstructorNode {
 
-        public CallConstructorWithSwitchingNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords,
+        public CallConstructorBootstrappingNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords,
                         CallDispatchBoxedNode dispatch) {
             super(context, pythonClass, primary, callee, arguments, keywords, dispatch);
         }
@@ -414,15 +414,19 @@ public abstract class PythonCallNode extends PNode {
 
             // Switch to generated object storage.
             clazz.switchToGeneratedStorageClass();
-            this.replace(new CallConstructorNoSwitchingNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));
+            this.replace(new CallConstructorFastNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));
 
-            return newInstance;
+            // Instantiate and migrate to the generated object storage.
+            PythonObject generatedInstance = instanceNode.createNewInstance(clazz);
+            newInstance.migrateTo(generatedInstance);
+
+            return generatedInstance;
         }
     }
 
-    public static final class CallConstructorNoSwitchingNode extends ConstructorCallNode {
+    public static final class CallConstructorFastNode extends CallConstructorNode {
 
-        public CallConstructorNoSwitchingNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords,
+        public CallConstructorFastNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords,
                         CallDispatchBoxedNode dispatch) {
             super(context, pythonClass, primary, callee, arguments, keywords, dispatch);
         }
@@ -440,18 +444,15 @@ public abstract class PythonCallNode extends PNode {
     public static final class NewInstanceNode extends Node {
 
         private final Assumption instanceLayoutStableAssumption;
-        private final Assumption constructorValidAssumption;
         private final MethodHandle instanceCtor;
 
         public NewInstanceNode(PythonClass pythonClass) {
             this.instanceLayoutStableAssumption = pythonClass.getInstanceObjectLayout().getValidAssumption();
-            this.constructorValidAssumption = pythonClass.getConstructorValidAssumption();
             this.instanceCtor = pythonClass.getInstanceConstructor();
         }
 
         public PythonObject createNewInstance(PythonClass clazz) {
             try {
-                constructorValidAssumption.check();
                 instanceLayoutStableAssumption.check();
                 return (PythonObject) instanceCtor.invokeExact(clazz);
             } catch (InvalidAssumptionException e) {

@@ -37,7 +37,7 @@ import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
 import edu.uci.python.nodes.call.CallDispatchUnboxedNode.LinkedDispatchUnboxedNode;
 import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
-import edu.uci.python.nodes.call.PythonCallNode.ConstructorCallNode;
+import edu.uci.python.nodes.call.PythonCallNode.CallConstructorNode;
 import edu.uci.python.nodes.call.PythonCallNode.UnboxedCallNode;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.control.LoopNode;
@@ -132,12 +132,12 @@ public class ProfilerResultPrinter {
     private static void traverseBody(Node methodBody, MethodBodyInstrument methodBodyInstrument) {
         methodBody.accept(new NodeVisitor() {
             public boolean visit(Node node) {
-                if (node instanceof BoxedCallNode || node instanceof ConstructorCallNode || node instanceof UnboxedCallNode) {
+                if (node instanceof BoxedCallNode || node instanceof CallConstructorNode || node instanceof UnboxedCallNode) {
                     CallDispatchNode callDispatchNode = null;
                     if (node instanceof BoxedCallNode) {
                         callDispatchNode = ((BoxedCallNode) node).getDispatchNode();
-                    } else if (node instanceof ConstructorCallNode) {
-                        callDispatchNode = ((ConstructorCallNode) node).getDispatchNode();
+                    } else if (node instanceof CallConstructorNode) {
+                        callDispatchNode = ((CallConstructorNode) node).getDispatchNode();
                     } else if (node instanceof UnboxedCallNode) {
                         callDispatchNode = ((UnboxedCallNode) node).getDispatchNode();
                     }

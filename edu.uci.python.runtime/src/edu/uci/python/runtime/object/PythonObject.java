@@ -204,6 +204,12 @@ public abstract class PythonObject implements Comparable<Object> {
         setAttributes(instanceVariableMap);
     }
 
+    public void migrateTo(PythonObject to) {
+        // Get the current values of instance variables
+        final Map<String, Object> instanceVariableMap = getAttributes();
+        to.setAttributes(instanceVariableMap);
+    }
+
     public List<String> getAttributeNames() {
         if (objectLayout == null) {
             return Collections.emptyList();
