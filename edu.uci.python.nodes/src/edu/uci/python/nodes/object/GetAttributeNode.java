@@ -53,13 +53,13 @@ import edu.uci.python.runtime.standardtype.*;
  *  |
  *  |--- attribute : LinkedDispatchNode
  *         |
- *         |--- check : ShapeCheckNode
+ *         |--- check : LayoutCheckNode
  *         |
  *         |--- read : AttributeReadNode
  *         |
  *         |--- next : LinkedDispatchNode
  *               |
- *               |--- check : ShapeCheckNode
+ *               |--- check : LayoutCheckNode
  *               |
  *               |--- read : AttributeReadNode
  *               |

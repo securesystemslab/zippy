@@ -106,13 +106,13 @@ public abstract class SetDispatchNode extends Node {
 
     public static final class LinkedSetDispatchNode extends SetDispatchNode {
 
-        @Child protected ShapeCheckNode check;
+        @Child protected LayoutCheckNode check;
         @Child protected AttributeWriteNode write;
         @Child protected SetDispatchNode next;
 
         public LinkedSetDispatchNode(String attributeId, AttributeWriteNode write, PythonObject primary, SetDispatchNode next) {
             super(attributeId);
-            this.check = ShapeCheckNode.create(primary, attributeId, true);
+            this.check = LayoutCheckNode.create(primary, attributeId, true);
             this.write = write;
             this.next = next;
         }

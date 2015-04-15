@@ -53,7 +53,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
     protected static CallDispatchBoxedNode create(PythonObject primary, String calleeName, PythonCallable callee, PNode calleeNode, PKeyword[] keywords, boolean passPrimaryAsArgument) {
         UninitializedDispatchBoxedNode next = new UninitializedDispatchBoxedNode(callee.getName(), calleeNode, keywords.length != 0, passPrimaryAsArgument);
-        ShapeCheckNode check;
+        LayoutCheckNode check;
 
         if (primary instanceof PythonModule && callee instanceof PMethod) {
             return new GenericDispatchBoxedNode(calleeName, calleeNode, passPrimaryAsArgument);
@@ -63,16 +63,16 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             if (calleeNode instanceof ReadGlobalNode) {
                 check = ((ReadGlobalNode) calleeNode).extractShapeCheckNode();
             } else {
-                check = ShapeCheckNode.create(primary, calleeName, primary.isOwnAttribute(calleeName));
+                check = LayoutCheckNode.create(primary, calleeName, primary.isOwnAttribute(calleeName));
             }
         } else if (primary instanceof PythonBuiltinClass) {
             /**
              * Since built-in classes are immutable, there is no need to probe the exact storage
              * object.
              */
-            check = ShapeCheckNode.create(primary, calleeName, false);
+            check = LayoutCheckNode.create(primary, calleeName, false);
         } else {
-            check = ShapeCheckNode.create(primary, calleeName, primary.isOwnAttribute(calleeName));
+            check = LayoutCheckNode.create(primary, calleeName, primary.isOwnAttribute(calleeName));
         }
 
         /**
@@ -101,11 +101,11 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
      */
     public static final class LinkedDispatchBoxedNode extends CallDispatchBoxedNode {
 
-        @Child protected ShapeCheckNode check;
+        @Child protected LayoutCheckNode check;
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchBoxedNode next;
 
-        public LinkedDispatchBoxedNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
+        public LinkedDispatchBoxedNode(PythonCallable callee, LayoutCheckNode check, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             this.check = check;
             this.next = next;
@@ -121,7 +121,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             return invoke;
         }
 
-        public ShapeCheckNode getCheckNode() {
+        public LayoutCheckNode getCheckNode() {
             return check;
         }
 
@@ -151,11 +151,11 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
 
     public static final class GeneratorDispatchBoxedNode extends CallDispatchBoxedNode implements GeneratorDispatch {
 
-        @Child protected ShapeCheckNode check;
+        @Child protected LayoutCheckNode check;
         @Child protected CallDispatchBoxedNode next;
         private final PGeneratorFunction generator;
 
-        public GeneratorDispatchBoxedNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchBoxedNode next) {
+        public GeneratorDispatchBoxedNode(PythonCallable callee, LayoutCheckNode check, UninitializedDispatchBoxedNode next) {
             super(callee.getName());
             this.check = check;
             this.next = next;
@@ -197,7 +197,7 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
             }
         }
 
-        public ShapeCheckNode getCheckNode() {
+        public LayoutCheckNode getCheckNode() {
             return check;
         }
 

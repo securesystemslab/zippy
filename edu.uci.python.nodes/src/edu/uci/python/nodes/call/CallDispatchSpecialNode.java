@@ -52,7 +52,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
     protected static CallDispatchSpecialNode create(PythonObject primary, String specialMethodId, PythonCallable callee, boolean reflected) {
         UninitializedDispatchSpecialNode next = new UninitializedDispatchSpecialNode(specialMethodId);
 
-        ShapeCheckNode check = ShapeCheckNode.create(primary, specialMethodId, primary.isOwnAttribute(specialMethodId));
+        LayoutCheckNode check = LayoutCheckNode.create(primary, specialMethodId, primary.isOwnAttribute(specialMethodId));
         assert check != null;
 
         if (callee instanceof PGeneratorFunction) {
@@ -68,11 +68,11 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
 
     public static class LinkedDispatchSpecialNode extends CallDispatchSpecialNode {
 
-        @Child protected ShapeCheckNode check;
+        @Child protected LayoutCheckNode check;
         @Child protected InvokeNode invoke;
         @Child protected CallDispatchSpecialNode next;
 
-        public LinkedDispatchSpecialNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchSpecialNode next) {
+        public LinkedDispatchSpecialNode(PythonCallable callee, LayoutCheckNode check, UninitializedDispatchSpecialNode next) {
             super(callee.getName());
             this.check = check;
             this.next = next;
@@ -112,7 +112,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
 
     public static final class LinkedReflectedDispatchSpecialNode extends LinkedDispatchSpecialNode {
 
-        public LinkedReflectedDispatchSpecialNode(PythonCallable callee, ShapeCheckNode check, UninitializedDispatchSpecialNode next) {
+        public LinkedReflectedDispatchSpecialNode(PythonCallable callee, LayoutCheckNode check, UninitializedDispatchSpecialNode next) {
             super(callee, check, next);
         }
 
@@ -134,7 +134,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
 
         private final PGeneratorFunction genfunc;
 
-        public GeneratorDispatchSpecialNode(PGeneratorFunction genfunc, ShapeCheckNode check, UninitializedDispatchSpecialNode next) {
+        public GeneratorDispatchSpecialNode(PGeneratorFunction genfunc, LayoutCheckNode check, UninitializedDispatchSpecialNode next) {
             super(genfunc, check, next);
             this.genfunc = genfunc;
         }
@@ -165,7 +165,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
             return getCost(next);
         }
 
-        public ShapeCheckNode getCheckNode() {
+        public LayoutCheckNode getCheckNode() {
             return check;
         }
 

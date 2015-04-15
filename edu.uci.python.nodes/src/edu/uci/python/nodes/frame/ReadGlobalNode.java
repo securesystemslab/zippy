@@ -66,7 +66,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
         return new ObjectLiteralNode(globalScope);
     }
 
-    public abstract ShapeCheckNode extractShapeCheckNode();
+    public abstract LayoutCheckNode extractShapeCheckNode();
 
     @Override
     public String getAttributeId() {
@@ -84,17 +84,17 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
 
     public static final class ReadGlobalDirectNode extends ReadGlobalNode {
 
-        @Child protected ShapeCheckNode check;
+        @Child protected LayoutCheckNode check;
         @Child protected AttributeReadNode read;
 
         public ReadGlobalDirectNode(PythonContext context, PythonModule globalScope, String attributeId) {
             super(context, globalScope, attributeId);
-            this.check = ShapeCheckNode.create(globalScope, globalScope.getObjectLayout(), 0);
+            this.check = LayoutCheckNode.create(globalScope, globalScope.getObjectLayout(), 0);
             this.read = AttributeReadNode.create(globalScope.getOwnValidLocation(attributeId));
         }
 
         @Override
-        public ShapeCheckNode extractShapeCheckNode() {
+        public LayoutCheckNode extractShapeCheckNode() {
             return NodeUtil.cloneNode(check);
         }
 
@@ -147,14 +147,14 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
 
     public static final class ReadBuiltinDirectNode extends ReadGlobalNode {
 
-        @Child protected ShapeCheckNode check;
+        @Child protected LayoutCheckNode check;
         @Child protected AttributeReadNode read;
         private final PythonModule builtinsModule;
 
         public ReadBuiltinDirectNode(PythonContext context, PythonModule globalScope, String attributeId) {
             super(context, globalScope, attributeId);
             this.builtinsModule = context.getPythonBuiltinsLookup().lookupModule("builtins");
-            this.check = ShapeCheckNode.create(globalScope, builtinsModule.getObjectLayout(), 1);
+            this.check = LayoutCheckNode.create(globalScope, builtinsModule.getObjectLayout(), 1);
             this.read = AttributeReadNode.create(builtinsModule.getOwnValidLocation(attributeId));
         }
 
@@ -174,7 +174,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
         }
 
         @Override
-        public ShapeCheckNode extractShapeCheckNode() {
+        public LayoutCheckNode extractShapeCheckNode() {
             return NodeUtil.cloneNode(check);
         }
     }
@@ -224,7 +224,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
         }
 
         @Override
-        public ShapeCheckNode extractShapeCheckNode() {
+        public LayoutCheckNode extractShapeCheckNode() {
             throw new UnsupportedOperationException();
         }
 

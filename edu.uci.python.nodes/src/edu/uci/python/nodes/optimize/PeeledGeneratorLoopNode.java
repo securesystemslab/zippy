@@ -74,13 +74,13 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
     public static final class PeeledGeneratorLoopBoxedNode extends PeeledGeneratorLoopNode {
 
         @Child protected PNode primaryNode;
-        @Child protected ShapeCheckNode checkNode;
+        @Child protected LayoutCheckNode checkNode;
         @Child protected PNode next;
 
         private final boolean passPrimaryAsTheFirstArgument;
 
         public PeeledGeneratorLoopBoxedNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode primaryNode, boolean passPrimaryAsTheFirstArgument, ArgumentsNode argumentNodes,
-                        ShapeCheckNode checkNode, PNode originalLoop) {
+                        LayoutCheckNode checkNode, PNode originalLoop) {
             super(generatorRoot, frameDescriptor, argumentNodes, originalLoop);
             this.passPrimaryAsTheFirstArgument = passPrimaryAsTheFirstArgument;
             this.primaryNode = primaryNode;
@@ -126,9 +126,9 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
     public static final class PeeledGeneratorLoopSpecialNode extends PeeledGeneratorLoopNode {
 
         @Child protected PNode primaryNode;
-        @Child protected ShapeCheckNode checkNode;
+        @Child protected LayoutCheckNode checkNode;
 
-        public PeeledGeneratorLoopSpecialNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode primaryNode, ArgumentsNode argumentNodes, ShapeCheckNode checkNode,
+        public PeeledGeneratorLoopSpecialNode(FunctionRootNode generatorRoot, FrameDescriptor frameDescriptor, PNode primaryNode, ArgumentsNode argumentNodes, LayoutCheckNode checkNode,
                         PNode originalLoop) {
             super(generatorRoot, frameDescriptor, argumentNodes, originalLoop);
             this.primaryNode = primaryNode;

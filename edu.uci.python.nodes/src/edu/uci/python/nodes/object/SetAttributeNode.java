@@ -46,13 +46,13 @@ import edu.uci.python.runtime.object.*;
  *  |
  *  |--- dispatch : LinkedSetDispatchNode
  *         |
- *         |--- check : ShapeCheckNode
+ *         |--- check : LayoutCheckNode
  *         |
  *         |--- write : AttributeWriteNode
  *         |
  *         |--- next : LinkedSetDispatchNode
  *               |
- *               |--- check : ShapeCheckNode
+ *               |--- check : LayoutCheckNode
  *               |
  *               |--- write : AttributeWriteNode
  *               |

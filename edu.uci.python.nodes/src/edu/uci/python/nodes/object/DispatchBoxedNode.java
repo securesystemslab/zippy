@@ -123,13 +123,13 @@ public abstract class DispatchBoxedNode extends Node {
 
     public static final class LinkedDispatchBoxedNode extends DispatchBoxedNode {
 
-        @Child protected ShapeCheckNode primaryCheck;
+        @Child protected LayoutCheckNode primaryCheck;
         @Child protected AttributeReadNode read;
         @Child protected DispatchBoxedNode next;
 
         private final PythonObject cachedStorage;
 
-        public LinkedDispatchBoxedNode(String attributeId, ShapeCheckNode checkNode, AttributeReadNode read, PythonObject storage, DispatchBoxedNode next) {
+        public LinkedDispatchBoxedNode(String attributeId, LayoutCheckNode checkNode, AttributeReadNode read, PythonObject storage, DispatchBoxedNode next) {
             super(attributeId);
             this.primaryCheck = checkNode;
             this.read = read;
@@ -138,7 +138,7 @@ public abstract class DispatchBoxedNode extends Node {
         }
 
         public static LinkedDispatchBoxedNode create(String attributeId, PythonObject primary, PythonObject storage, boolean isAttributeInPlace, DispatchBoxedNode next) {
-            ShapeCheckNode check = ShapeCheckNode.create(primary, attributeId, isAttributeInPlace);
+            LayoutCheckNode check = LayoutCheckNode.create(primary, attributeId, isAttributeInPlace);
             AttributeReadNode read = AttributeReadNode.create(storage.getOwnValidLocation(attributeId));
 
             if (!(primary instanceof PythonClass)) {

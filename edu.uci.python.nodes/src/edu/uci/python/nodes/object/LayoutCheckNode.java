@@ -32,17 +32,17 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public abstract class ShapeCheckNode extends Node {
+public abstract class LayoutCheckNode extends Node {
 
     protected final ObjectLayout cachedObjectLayout;
 
-    public ShapeCheckNode(ObjectLayout shape) {
+    public LayoutCheckNode(ObjectLayout shape) {
         this.cachedObjectLayout = shape;
     }
 
     public abstract boolean accept(PythonObject primary) throws InvalidAssumptionException;
 
-    public static ShapeCheckNode create(PythonObject primary, ObjectLayout storageLayout, int depth) {
+    public static LayoutCheckNode create(PythonObject primary, ObjectLayout storageLayout, int depth) {
         if (depth == 0) {
             return new PythonObjectCheckNode(primary);
         } else if (depth == 1) {
@@ -52,7 +52,7 @@ public abstract class ShapeCheckNode extends Node {
         }
     }
 
-    public static ShapeCheckNode create(PythonObject primary, String attributeId, boolean isAttributeInPlace) {
+    public static LayoutCheckNode create(PythonObject primary, String attributeId, boolean isAttributeInPlace) {
         if (isAttributeInPlace) {
             assert primary.isOwnAttribute(attributeId);
             return new PythonObjectCheckNode(primary);
@@ -91,7 +91,7 @@ public abstract class ShapeCheckNode extends Node {
         }
     }
 
-    public static final class PythonObjectCheckNode extends ShapeCheckNode {
+    public static final class PythonObjectCheckNode extends LayoutCheckNode {
 
         private final Assumption stableAssumption;
 
@@ -108,7 +108,7 @@ public abstract class ShapeCheckNode extends Node {
         }
     }
 
-    public static final class PythonClassCheckNode extends ShapeCheckNode {
+    public static final class PythonClassCheckNode extends LayoutCheckNode {
 
         private final Assumption storageStableAssumption;
         private final Assumption objectStableAssumption;
@@ -134,7 +134,7 @@ public abstract class ShapeCheckNode extends Node {
         }
     }
 
-    public static final class ClassChainCheckNode extends ShapeCheckNode {
+    public static final class ClassChainCheckNode extends LayoutCheckNode {
 
         private final Assumption objectStableAssumption;
         private final Assumption[] classChainsStableAssumptions;
