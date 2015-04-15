@@ -186,7 +186,11 @@ public class ClassFileGeneratorTests {
     }
 
     @Test
+    @SuppressWarnings("static-access")
     public void constructorNode() {
+        PythonContext ctx = PythonTests.getContext();
+        ctx.getPythonOptions().GenerateObjectStorage = true;
+
         String source = "class Foo:\n" + //
                         "    def __init__(self, n):\n" + //
                         "        self.n = n\n" + //
@@ -195,5 +199,7 @@ public class ClassFileGeneratorTests {
                         "    print(f.n)\n" + //
                         "\n";
         PythonTests.assertPrints("0\n1\n2\n", source);
+
+        ctx.getPythonOptions().GenerateObjectStorage = false;
     }
 }

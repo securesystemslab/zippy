@@ -412,6 +412,7 @@ public abstract class PythonCallNode extends PNode {
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
 
+            // Switch to generated object storage.
             clazz.switchToGeneratedStorageClass();
             this.replace(new CallConstructorNoSwitchingNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));
 
