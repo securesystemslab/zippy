@@ -55,13 +55,13 @@ import edu.uci.python.runtime.standardtype.*;
  *         |
  *         |--- check : ShapeCheckNode
  *         |
- *         |--- Read : AttributeReadNode
+ *         |--- read : AttributeReadNode
  *         |
  *         |--- next : LinkedDispatchNode
  *               |
  *               |--- check : ShapeCheckNode
  *               |
- *               |--- Read : AttributeReadNode
+ *               |--- read : AttributeReadNode
  *               |
  *               |--- next : UninitializedDispatchNode
  *

@@ -94,7 +94,7 @@ public abstract class ListLiteralNode extends LiteralNode {
 
     /**
      * One shot profiling node. It uses the first list to profile its actually storage type, and use
-     * that type info to respecialize itself to a properly typed literal node.
+     * that type info to re-specialize itself to a properly typed literal node.
      *
      */
     public static final class ProfilingEmptyListLiteralNode extends ListLiteralNode {

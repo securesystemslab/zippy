@@ -32,7 +32,7 @@ import com.oracle.truffle.api.*;
 /**
  * Maps the names of instance attributes to storage locations, which are either the offset of a
  * field in {@link PythonObject}, or an index into the object array in {@link PythonObject}. Object
- * layouts are immutable, with the methods for adding new instance variables of generalising the
+ * layouts are immutable, with the methods for adding new instance variables of generalizing the
  * type of existing instance variables returning new object layouts.
  *
  * @author zwei
