@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,21 +26,24 @@ package edu.uci.python.test.datatype;
 
 import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.*;
-
 import org.junit.*;
 
 public class SubscriptTest {
     @Test
     public void simple() {
-        Path script = Paths.get("subscript_test2.py");
-        assertPrints("1\n", script);
+        String source = "a = [0, 1, 2, 3, 4]\n" + //
+                        "b = 1\n" + //
+                        "print(a[b])";
+
+        assertPrints("1\n", source);
     }
 
     @Test
     public void simple2() {
-        Path script = Paths.get("subscript_test.py");
-        assertPrints("[1, 2]\n", script);
+        String source = "a = [0, 1, 2, 3, 4]\n" + //
+                        "print (a[1:3:1])";
+
+        assertPrints("[1, 2]\n", source);
     }
 
 }

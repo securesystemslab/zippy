@@ -26,6 +26,8 @@ package edu.uci.python.test.datatype;
 
 import static edu.uci.python.test.PythonTests.*;
 
+import java.nio.file.*;
+
 import org.junit.*;
 
 public class ListTests {
@@ -180,6 +182,12 @@ public class ListTests {
         String source = "lst = [None, None, None, None]\n" + //
                         "lst[5] = None\n";
         assertError("IndexError: list assignment index out of range\n", source);
+    }
+
+    // Disabled for now.
+    public void moreSlice() {
+        Path script = Paths.get("slice-test.py");
+        assertPrints("[1, 2]\n", script);
     }
 
 }

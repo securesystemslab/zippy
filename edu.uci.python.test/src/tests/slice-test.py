@@ -94,6 +94,3 @@ print s[100:-100:-1]     # '4, 3, 2, 1, 0'
 print s[-100:100:-1]     # ''
 print s[-100L:100L:2L]   # '0, 2, 4'
 
-
-# multiple assignment
-a, b = [1, 2]
