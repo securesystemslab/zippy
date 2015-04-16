@@ -41,7 +41,8 @@ import static org.objectweb.asm.Opcodes.*;
  */
 public final class StorageClassGenerator {
 
-    private static final String PYTHON_OBJECT_CLASS = "edu/uci/python/runtime/object/FlexiblePythonObjectStorage";
+    private static final String PYTHON_OBJECT_STORAGE_CLASS = "edu/uci/python/runtime/object/FlexiblePythonObjectStorage";
+    private static final String PYTHON_CLASS = "edu/uci/python/runtime/standardtype/PythonClass";
     private static final String CLASSPATH = "edu/uci/python/runtime/object/";
     public static final String CREATE = "create";
 
@@ -88,7 +89,7 @@ public final class StorageClassGenerator {
     private byte[] generateClassData() {
         CompilerAsserts.neverPartOfCompilation();
 
-        classWriter.visit(V1_7, ACC_PUBLIC + ACC_SUPER, validClassName, null, PYTHON_OBJECT_CLASS, null);
+        classWriter.visit(V1_7, ACC_PUBLIC + ACC_SUPER, validClassName, null, PYTHON_OBJECT_STORAGE_CLASS, null);
         ObjectLayout old = pythonClass.getInstanceObjectLayout();
 
         for (Entry<String, StorageLocation> entry : old.getAllStorageLocations().entrySet()) {
@@ -121,14 +122,14 @@ public final class StorageClassGenerator {
     }
 
     private void addConstructor() {
-        methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", "(Ledu/uci/python/runtime/standardtype/PythonClass;)V", null, null);
+        methodVisitor = classWriter.visitMethod(ACC_PUBLIC, "<init>", "(L" + PYTHON_CLASS + ";)V", null, null);
         methodVisitor.visitCode();
         Label l0 = new Label();
         methodVisitor.visitLabel(l0);
         methodVisitor.visitLineNumber(53, l0);
         methodVisitor.visitVarInsn(ALOAD, 0);
         methodVisitor.visitVarInsn(ALOAD, 1);
-        methodVisitor.visitMethodInsn(INVOKESPECIAL, "edu/uci/python/runtime/object/FlexiblePythonObjectStorage", "<init>", "(Ledu/uci/python/runtime/standardtype/PythonClass;)V", false);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, PYTHON_OBJECT_STORAGE_CLASS, "<init>", "(L" + PYTHON_CLASS + ";)V", false);
         Label l1 = new Label();
         methodVisitor.visitLabel(l1);
         methodVisitor.visitLineNumber(54, l1);
@@ -136,14 +137,13 @@ public final class StorageClassGenerator {
         Label l2 = new Label();
         methodVisitor.visitLabel(l2);
         methodVisitor.visitLocalVariable("this", "L" + validClassName + ";", null, l0, l2, 0);
-        methodVisitor.visitLocalVariable("pythonClass", "Ledu/uci/python/runtime/standardtype/PythonClass;", null, l0, l2, 1);
+        methodVisitor.visitLocalVariable("pythonClass", "L" + PYTHON_CLASS + ";", null, l0, l2, 1);
         methodVisitor.visitMaxs(2, 2);
         methodVisitor.visitEnd();
     }
 
     private void addConstructorAdaptor() {
-        methodVisitor = classWriter.visitMethod(ACC_PUBLIC + ACC_STATIC, CREATE, "(Ledu/uci/python/runtime/standardtype/PythonClass;)Ledu/uci/python/runtime/object/FlexiblePythonObjectStorage;",
-                        null, null);
+        methodVisitor = classWriter.visitMethod(ACC_PUBLIC + ACC_STATIC, CREATE, "(L" + PYTHON_CLASS + ";)L" + PYTHON_OBJECT_STORAGE_CLASS + ";", null, null);
         methodVisitor.visitCode();
         Label l0 = new Label();
         methodVisitor.visitLabel(l0);
@@ -151,13 +151,12 @@ public final class StorageClassGenerator {
         methodVisitor.visitTypeInsn(NEW, validClassName);
         methodVisitor.visitInsn(DUP);
         methodVisitor.visitVarInsn(ALOAD, 0);
-        methodVisitor.visitMethodInsn(INVOKESPECIAL, validClassName, "<init>", "(Ledu/uci/python/runtime/standardtype/PythonClass;)V", false);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, validClassName, "<init>", "(L" + PYTHON_CLASS + ";)V", false);
         methodVisitor.visitInsn(ARETURN);
         Label l1 = new Label();
         methodVisitor.visitLabel(l1);
-        methodVisitor.visitLocalVariable("clazz", "Ledu/uci/python/runtime/standardtype/PythonClass;", null, l0, l1, 0);
+        methodVisitor.visitLocalVariable("clazz", "L" + PYTHON_CLASS + ";", null, l0, l1, 0);
         methodVisitor.visitMaxs(3, 1);
         methodVisitor.visitEnd();
     }
-
 }
