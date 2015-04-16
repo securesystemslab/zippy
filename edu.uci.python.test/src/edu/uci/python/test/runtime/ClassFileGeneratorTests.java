@@ -29,6 +29,7 @@ import static org.junit.Assert.*;
 import java.lang.invoke.*;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.*;
+import java.nio.file.*;
 
 import org.junit.*;
 
@@ -199,6 +200,18 @@ public class ClassFileGeneratorTests {
                         "    print(f.n)\n" + //
                         "\n";
         PythonTests.assertPrints("0\n1\n2\n", source);
+
+        ctx.getPythonOptions().GenerateObjectStorage = false;
+    }
+
+    @Test
+    @SuppressWarnings("static-access")
+    public void layoutChange() {
+        PythonContext ctx = PythonTests.getContext();
+        ctx.getPythonOptions().GenerateObjectStorage = false;
+
+        Path script = Paths.get("object-layout-change-after-ctor-test.py");
+        PythonTests.assertPrints("42\n43\n", script);
 
         ctx.getPythonOptions().GenerateObjectStorage = false;
     }

@@ -1,4 +1,4 @@
-# zwei 06/12/2015
+# zwei 06/12/2014
 # classmethod calls
 
 class Strength(object):

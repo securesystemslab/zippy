@@ -53,6 +53,11 @@ public class CommandLineParser {
                 continue;
             }
 
+            if (arg.equals("-generate-object-storage")) {
+                PythonOptions.GenerateObjectStorage = true;
+                continue;
+            }
+
             if (arg.equals("-inline-generator")) {
                 PythonOptions.InlineGeneratorCalls = true;
                 continue;
