@@ -35,11 +35,6 @@ public class ConservativeObjectLayout extends ObjectLayout {
         this.storageClass = storageClass;
     }
 
-    public ConservativeObjectLayout(String originHint, ObjectLayout parent, Class<?> storageClass) {
-        super(originHint, parent);
-        this.storageClass = storageClass;
-    }
-
     protected ConservativeObjectLayout(String originHint, ObjectLayout parent, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass) {
         super(originHint, parent, storageTypes, objectStorageClass);
         this.storageClass = objectStorageClass;

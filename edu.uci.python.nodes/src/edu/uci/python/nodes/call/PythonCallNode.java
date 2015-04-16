@@ -176,8 +176,13 @@ public abstract class PythonCallNode extends PNode {
         if (isConstructorCall(primary, callable)) {
             CallDispatchBoxedNode dispatch = CallDispatchBoxedNode.create((PythonObject) primary, calleeName, callable, NodeUtil.cloneNode(calleeNode), keywords, passPrimaryAsArgument);
             CallConstructorNode specialized = null;
+            PythonClass clazz = (PythonClass) callable;
 
-            if (PythonOptions.GenerateObjectStorage) {
+            /**
+             * If the callee class has switched to a flexible object storage then no need to
+             * bootstrap the constructor call again.
+             */
+            if (PythonOptions.GenerateObjectStorage && !(clazz.getInstanceObjectLayout() instanceof ConservativeObjectLayout)) {
                 specialized = new CallConstructorBootstrappingNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
             } else {
                 specialized = new CallConstructorFastNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
