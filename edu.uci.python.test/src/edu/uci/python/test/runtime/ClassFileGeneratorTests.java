@@ -26,8 +26,6 @@ package edu.uci.python.test.runtime;
 
 import static org.junit.Assert.*;
 
-import java.lang.invoke.*;
-import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.*;
 import java.nio.file.*;
 
@@ -47,16 +45,9 @@ public class ClassFileGeneratorTests {
         PythonContext context = PythonTests.getContext();
         PythonClass pyclazz = new PythonClass(context, "Foo", context.getObjectClass());
         StorageClassGenerator cfg = new StorageClassGenerator(pyclazz);
-        GeneratedPythonObjectStorage storage = cfg.generate();
 
-        Class<?> storageClass = storage.getStorageClass();
-        PythonObject instance = null;
-
-        try {
-            instance = (PythonObject) storageClass.getConstructor(new Class[]{PythonClass.class}).newInstance(context.getObjectClass());
-        } catch (Exception e) {
-            throw new RuntimeException();
-        }
+        FlexiblePythonObjectStorageFactory factory = cfg.generate();
+        PythonObject instance = factory.newInstance(context.getObjectClass());
 
         assertTrue(instance != null);
         ObjectLayout layout = instance.getObjectLayout();
@@ -82,18 +73,8 @@ public class ClassFileGeneratorTests {
         // Generate the storage class.
         StorageClassGenerator cfg = new StorageClassGenerator(pyclazz);
 
-        // Load the generated class.
-        Class<?> loadedClass = cfg.generate().getStorageClass();
-        assertTrue(loadedClass != null);
-
         // Instantiate
-        PythonObject instance = null;
-
-        try {
-            instance = (PythonObject) loadedClass.getConstructor(new Class[]{PythonClass.class}).newInstance(pyclazz);
-        } catch (Exception e) {
-            throw new RuntimeException();
-        }
+        PythonObject instance = cfg.generate().newInstance(pyclazz);
 
         assertTrue(instance != null);
 
@@ -117,6 +98,7 @@ public class ClassFileGeneratorTests {
         /**
          * Inspecting the loaded storage class.
          */
+        Class<?> loadedClass = instance.getClass();
         try {
             for (int i = 0; i < 5; i++) {
                 Field field = loadedClass.getDeclaredField("int" + i);
@@ -133,19 +115,9 @@ public class ClassFileGeneratorTests {
         PythonContext context = PythonTests.getContext();
         PythonClass pyclazz = new PythonClass(context, "Foo", context.getObjectClass());
         StorageClassGenerator cfg = new StorageClassGenerator(pyclazz);
-        GeneratedPythonObjectStorage storage = cfg.generate();
-
-        assertTrue(storage.getStorageClass() != null);
-
-        try {
-            Lookup lookup = MethodHandles.lookup();
-            MethodType mt = MethodType.methodType(PythonObject.class, PythonClass.class);
-            MethodHandle ctor = lookup.findStatic(storage.getStorageClass(), StorageClassGenerator.CREATE, mt);
-            PythonObject instance = (PythonObject) ctor.invokeExact((PythonClass) context.getObjectClass());
-            assertTrue(instance != null);
-        } catch (Throwable e) {
-            throw new RuntimeException();
-        }
+        FlexiblePythonObjectStorageFactory factory = cfg.generate();
+        PythonObject instance = factory.newInstance(pyclazz);
+        assertTrue(instance != null);
     }
 
     @Test
@@ -163,7 +135,7 @@ public class ClassFileGeneratorTests {
         obj.setAttribute("int5", 5);
 
         assertTrue(pyclazz.getInstanceObjectLayout().findStorageLocation("int5") != null);
-        GeneratedPythonObjectStorage generated = new StorageClassGenerator(pyclazz).generate();
+        FlexiblePythonObjectStorageFactory generated = new StorageClassGenerator(pyclazz).generate();
 
         PythonObject newInstance;
         try {
@@ -177,7 +149,7 @@ public class ClassFileGeneratorTests {
 
         try {
             for (int i = 0; i < 5; i++) {
-                Field field = generated.getStorageClass().getDeclaredField("int" + i);
+                Field field = newInstance.getClass().getDeclaredField("int" + i);
                 assertTrue(field != null);
                 assertTrue(field.getType() == int.class);
             }

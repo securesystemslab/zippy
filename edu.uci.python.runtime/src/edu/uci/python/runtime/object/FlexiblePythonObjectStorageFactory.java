@@ -26,25 +26,32 @@ package edu.uci.python.runtime.object;
 
 import java.lang.invoke.*;
 
+import com.oracle.truffle.api.*;
+
+import edu.uci.python.runtime.standardtype.*;
+
 /**
  * @author zwei
  */
-public final class GeneratedPythonObjectStorage {
+public final class FlexiblePythonObjectStorageFactory {
 
-    private final Class<?> storageClass;
     private final MethodHandle ctor;
 
-    public GeneratedPythonObjectStorage(Class<?> storageClass, MethodHandle ctor) {
-        this.storageClass = storageClass;
+    public FlexiblePythonObjectStorageFactory(MethodHandle ctor) {
         this.ctor = ctor;
-    }
-
-    public Class<?> getStorageClass() {
-        return storageClass;
     }
 
     public MethodHandle getConstructor() {
         return ctor;
+    }
+
+    public final PythonObject newInstance(PythonClass clazz) {
+        try {
+            return (PythonObject) ctor.invokeExact(clazz);
+        } catch (Throwable e) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw new RuntimeException("instance constructor invocation failed in " + this);
+        }
     }
 
 }

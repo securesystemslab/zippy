@@ -59,11 +59,11 @@ public final class StorageClassGenerator {
         this.validClassName = CLASSPATH + pythonClass.getName().replace('.', '$');
     }
 
-    public GeneratedPythonObjectStorage generate() {
+    public FlexiblePythonObjectStorageFactory generate() {
         final Class<?> storageClass = BytecodeLoader.makeClass(getValidClassName(), generateClassData(), PythonObject.class);
         final MethodHandle ctor = lookupConstructor(storageClass);
         synchronizeObjectLayout(storageClass);
-        return new GeneratedPythonObjectStorage(storageClass, ctor);
+        return new FlexiblePythonObjectStorageFactory(ctor);
     }
 
     private String getValidClassName() {
