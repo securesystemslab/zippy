@@ -52,7 +52,7 @@ public class ObjectLayout {
     private final int fieldObjectStorageLocationsUsed;
     private final int arrayObjectStorageLocationsUsed;
 
-    private ObjectLayout(String originHint) {
+    protected ObjectLayout(String originHint) {
         this.originHint = originHint;
         this.parent = null;
         primitiveIntStorageLocationsUsed = 0;
@@ -155,7 +155,12 @@ public class ObjectLayout {
         validAssumption = Truffle.getRuntime().createAssumption(originHint + " ObjectLayout valid");
     }
 
-    private ObjectLayout(String originHint, ObjectLayout parent, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass) {
+    /**
+     * Creates an ObjectLayout attached to a storage instance of a specified Java class.
+     *
+     * @param objectStorageClass storage type
+     */
+    protected ObjectLayout(String originHint, ObjectLayout parent, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass) {
         this.originHint = originHint;
         this.parent = parent;
 
@@ -222,6 +227,10 @@ public class ObjectLayout {
         return validAssumption;
     }
 
+    protected final ObjectLayout getParentLayout() {
+        return parent;
+    }
+
     /**
      * Create a new version of this layout, but with a different parent. The new parent probably
      * comes from the same Python class as it did, but it's a new layout because layouts are
@@ -251,7 +260,7 @@ public class ObjectLayout {
 
     protected ObjectLayout switchObjectStorageClass(Class<?> objectStorageClass) {
         validAssumption.invalidate();
-        return new ObjectLayout(originHint + ".switch", parent, getStorageTypes(), objectStorageClass);
+        return new ConservativeObjectLayout(originHint + ".switch", parent, getStorageTypes(), objectStorageClass);
     }
 
     /**

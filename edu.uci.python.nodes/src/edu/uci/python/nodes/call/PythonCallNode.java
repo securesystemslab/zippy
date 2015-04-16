@@ -426,8 +426,7 @@ public abstract class PythonCallNode extends PNode {
 
     public static final class CallConstructorFastNode extends CallConstructorNode {
 
-        public CallConstructorFastNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords,
-                        CallDispatchBoxedNode dispatch) {
+        public CallConstructorFastNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
             super(context, pythonClass, primary, callee, arguments, keywords, dispatch);
         }
 
@@ -454,7 +453,7 @@ public abstract class PythonCallNode extends PNode {
         public PythonObject createNewInstance(PythonClass clazz) {
             try {
                 instanceLayoutStableAssumption.check();
-                return (PythonObject) instanceCtor.invokeExact(clazz);
+                return (PythonObject) instanceCtor.invoke(clazz);
             } catch (InvalidAssumptionException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 return rewriteAndExecute(clazz);

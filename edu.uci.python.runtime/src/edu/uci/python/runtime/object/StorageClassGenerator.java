@@ -41,7 +41,7 @@ import static org.objectweb.asm.Opcodes.*;
  */
 public final class StorageClassGenerator {
 
-    private static final String PYTHON_OBJECT_CLASS = "edu/uci/python/runtime/object/PythonObject";
+    private static final String PYTHON_OBJECT_CLASS = "edu/uci/python/runtime/object/FlexiblePythonObjectStorage";
     private static final String CLASSPATH = "edu/uci/python/runtime/object/";
     public static final String CREATE = "create";
 
@@ -72,7 +72,7 @@ public final class StorageClassGenerator {
 
     private static MethodHandle lookupConstructor(Class<?> storageClass) {
         try {
-            MethodType mt = MethodType.methodType(PythonObject.class, PythonClass.class);
+            MethodType mt = MethodType.methodType(FlexiblePythonObjectStorage.class, PythonClass.class);
             return MethodHandles.lookup().findStatic(storageClass, CREATE, mt);
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException();
@@ -128,7 +128,7 @@ public final class StorageClassGenerator {
         methodVisitor.visitLineNumber(53, l0);
         methodVisitor.visitVarInsn(ALOAD, 0);
         methodVisitor.visitVarInsn(ALOAD, 1);
-        methodVisitor.visitMethodInsn(INVOKESPECIAL, "edu/uci/python/runtime/object/PythonObject", "<init>", "(Ledu/uci/python/runtime/standardtype/PythonClass;)V", false);
+        methodVisitor.visitMethodInsn(INVOKESPECIAL, "edu/uci/python/runtime/object/FlexiblePythonObjectStorage", "<init>", "(Ledu/uci/python/runtime/standardtype/PythonClass;)V", false);
         Label l1 = new Label();
         methodVisitor.visitLabel(l1);
         methodVisitor.visitLineNumber(54, l1);
@@ -142,7 +142,8 @@ public final class StorageClassGenerator {
     }
 
     private void addConstructorAdaptor() {
-        methodVisitor = classWriter.visitMethod(ACC_PUBLIC + ACC_STATIC, CREATE, "(Ledu/uci/python/runtime/standardtype/PythonClass;)Ledu/uci/python/runtime/object/PythonObject;", null, null);
+        methodVisitor = classWriter.visitMethod(ACC_PUBLIC + ACC_STATIC, CREATE, "(Ledu/uci/python/runtime/standardtype/PythonClass;)Ledu/uci/python/runtime/object/FlexiblePythonObjectStorage;",
+                        null, null);
         methodVisitor.visitCode();
         Label l0 = new Label();
         methodVisitor.visitLabel(l0);

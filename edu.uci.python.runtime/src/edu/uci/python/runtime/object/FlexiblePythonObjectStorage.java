@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Regents of the University of California
+ * Copyright (c) 2015, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,34 +24,21 @@
  */
 package edu.uci.python.runtime.object;
 
-import java.lang.invoke.*;
-
-import com.oracle.truffle.api.*;
-
 import edu.uci.python.runtime.standardtype.*;
 
-/**
- * @author zwei
- */
-public final class FlexiblePythonObjectStorageFactory {
+public class FlexiblePythonObjectStorage extends PythonObject {
 
-    private final MethodHandle ctor;
+    public FlexiblePythonObjectStorage(PythonClass pythonClass) {
+        super(pythonClass);
+        ObjectLayout layout = null;
 
-    public FlexiblePythonObjectStorageFactory(MethodHandle ctor) {
-        this.ctor = ctor;
-    }
-
-    public MethodHandle getConstructor() {
-        return ctor;
-    }
-
-    public final FlexiblePythonObjectStorage newInstance(PythonClass clazz) {
-        try {
-            return (FlexiblePythonObjectStorage) ctor.invokeExact(clazz);
-        } catch (Throwable e) {
-            CompilerDirectives.transferToInterpreterAndInvalidate();
-            throw new RuntimeException("instance constructor invocation failed in " + this);
+        if (pythonClass == null) {
+            layout = ConservativeObjectLayout.empty(this.getClass());
+        } else {
+            layout = pythonClass.getInstanceObjectLayout();
         }
+
+        setObjectLayout(layout);
     }
 
 }

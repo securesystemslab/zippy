@@ -135,14 +135,8 @@ public class ClassFileGeneratorTests {
         obj.setAttribute("int5", 5);
 
         assertTrue(pyclazz.getInstanceObjectLayout().findStorageLocation("int5") != null);
-        FlexiblePythonObjectStorageFactory generated = new StorageClassGenerator(pyclazz).generate();
-
-        PythonObject newInstance;
-        try {
-            newInstance = (PythonObject) generated.getConstructor().invokeExact(pyclazz);
-        } catch (Throwable e) {
-            throw new RuntimeException();
-        }
+        FlexiblePythonObjectStorageFactory factory = new StorageClassGenerator(pyclazz).generate();
+        PythonObject newInstance = factory.newInstance(pyclazz);
 
         assertTrue(newInstance != null);
         assertTrue(newInstance.getObjectLayout() == pyclazz.getInstanceObjectLayout());
@@ -180,7 +174,7 @@ public class ClassFileGeneratorTests {
     @SuppressWarnings("static-access")
     public void layoutChange() {
         PythonContext ctx = PythonTests.getContext();
-        ctx.getPythonOptions().GenerateObjectStorage = false;
+        ctx.getPythonOptions().GenerateObjectStorage = true;
 
         Path script = Paths.get("object-layout-change-after-ctor-test.py");
         PythonTests.assertPrints("42\n43\n", script);
