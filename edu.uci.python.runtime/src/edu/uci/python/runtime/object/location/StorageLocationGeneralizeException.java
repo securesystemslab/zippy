@@ -22,37 +22,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object;
+package edu.uci.python.runtime.object.location;
 
-public abstract class FieldStorageLocation extends StorageLocation {
+import com.oracle.truffle.api.nodes.*;
 
-    private final int mask;
-    protected final int index; // logical index not physical
-    protected final long offset;
+/**
+ * Indicates that a storage location cannot store the type of value that you asked it to.
+ */
+public class StorageLocationGeneralizeException extends SlowPathException {
 
-    protected FieldStorageLocation(ObjectLayout objectLayout, int index, long offset) {
-        super(objectLayout);
-        mask = 1 << index;
-        this.index = index;
-        this.offset = offset;
-    }
-
-    @Override
-    public boolean isSet(PythonObject object) {
-        return (object.primitiveSetMap & mask) != 0;
-    }
-
-    protected void markAsSet(PythonObject object) {
-        object.primitiveSetMap |= mask;
-    }
-
-    protected void markAsUnset(PythonObject object) {
-        object.primitiveSetMap &= ~mask;
-    }
-
-    @Override
-    public String toString() {
-        return getClass().getSimpleName() + " at " + index;
-    }
+    private static final long serialVersionUID = 3607506078153063652L;
 
 }

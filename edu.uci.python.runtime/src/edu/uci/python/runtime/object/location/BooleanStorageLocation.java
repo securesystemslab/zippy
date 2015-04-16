@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,34 +22,32 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object;
+package edu.uci.python.runtime.object.location;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.object.*;
 
-/**
- * A storage location for ints.
- */
-public final class IntStorageLocation extends FieldStorageLocation {
+public final class BooleanStorageLocation extends FieldStorageLocation {
 
-    public IntStorageLocation(ObjectLayout objectLayout, int index, long offset) {
+    public BooleanStorageLocation(ObjectLayout objectLayout, int index, long offset) {
         super(objectLayout, index, offset);
     }
 
     @Override
     public Object read(PythonObject object) {
         try {
-            return readInt(object);
+            return readBoolean(object);
         } catch (UnexpectedResultException e) {
             return e.getResult();
         }
     }
 
-    public int readInt(PythonObject object) throws UnexpectedResultException {
+    public boolean readBoolean(PythonObject object) throws UnexpectedResultException {
         if (isSet(object)) {
-            return CompilerDirectives.unsafeGetInt(object, offset, true, this);
+            return CompilerDirectives.unsafeGetBoolean(object, offset, true, this);
         } else {
             throw new UnexpectedResultException(PNone.NONE);
         }
@@ -57,8 +55,8 @@ public final class IntStorageLocation extends FieldStorageLocation {
 
     @Override
     public void write(PythonObject object, Object value) throws StorageLocationGeneralizeException {
-        if (value instanceof Integer) {
-            writeInt(object, (int) value);
+        if (value instanceof Boolean) {
+            writeBoolean(object, (boolean) value);
         } else if (value instanceof PNone) {
             markAsUnset(object);
         } else {
@@ -66,14 +64,14 @@ public final class IntStorageLocation extends FieldStorageLocation {
         }
     }
 
-    public void writeInt(PythonObject object, int value) {
-        CompilerDirectives.unsafePutInt(object, offset, value, this);
+    public void writeBoolean(PythonObject object, boolean value) {
+        CompilerDirectives.unsafePutBoolean(object, offset, value, this);
         markAsSet(object);
     }
 
     @Override
     public Class<?> getStoredClass() {
-        return Integer.class;
+        return Boolean.class;
     }
 
 }

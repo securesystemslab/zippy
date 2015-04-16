@@ -35,6 +35,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.object.location.*;
 import edu.uci.python.runtime.standardtype.*;
 import edu.uci.python.test.*;
 
@@ -47,11 +48,11 @@ public class ClassFileGeneratorTests {
         StorageClassGenerator cfg = new StorageClassGenerator(pyclazz);
 
         FlexiblePythonObjectStorageFactory factory = cfg.generate();
-        PythonObject instance = factory.newInstance(context.getObjectClass());
+        PythonObject instance = factory.newInstance(pyclazz);
 
         assertTrue(instance != null);
         ObjectLayout layout = instance.getObjectLayout();
-        assertEquals(context.getObjectClass().getInstanceObjectLayout(), layout);
+        assertEquals(pyclazz.getInstanceObjectLayout(), layout);
     }
 
     @Test

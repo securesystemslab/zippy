@@ -27,6 +27,7 @@ package edu.uci.python.nodes.object;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.object.location.*;
 
 public abstract class AttributeWriteNode extends Node {
 

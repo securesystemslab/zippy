@@ -28,6 +28,7 @@ import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.object.location.*;
 
 public abstract class AttributeReadNode extends Node {
 

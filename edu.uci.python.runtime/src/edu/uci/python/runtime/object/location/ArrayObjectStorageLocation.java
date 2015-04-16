@@ -22,29 +22,55 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object;
+package edu.uci.python.runtime.object.location;
 
-/**
- * A storage location that abstracts the method for reading and writing values.
- */
-public abstract class StorageLocation {
+import org.python.core.*;
 
-    private final ObjectLayout objectLayout;
+import com.oracle.truffle.api.*;
 
-    protected StorageLocation(ObjectLayout objectLayout) {
-        this.objectLayout = objectLayout;
+import edu.uci.python.runtime.object.*;
+
+public final class ArrayObjectStorageLocation extends StorageLocation {
+
+    private final int index;
+    private final Class<?> storedClass;
+
+    public ArrayObjectStorageLocation(ObjectLayout objectLayout, int index, Class<?> storedClass) {
+        super(objectLayout);
+        this.index = index;
+        this.storedClass = storedClass;
     }
 
-    public abstract boolean isSet(PythonObject object);
+    @Override
+    public boolean isSet(PythonObject object) {
+        return object.getSpillArray()[index] != null;
+    }
 
-    public abstract Object read(PythonObject object);
+    @Override
+    public Object read(PythonObject object) {
+        final Object result = ObjectLayoutUtil.readObjectArrayUnsafeAt(object.getSpillArray(), index, this);
 
-    public abstract void write(PythonObject object, Object value) throws StorageLocationGeneralizeException;
+        if (result != null) {
+            return result;
+        }
 
-    public abstract Class<?> getStoredClass();
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        throw Py.AttributeError(object + " object has no attribute " + getObjectLayout().findAttributeId(this));
+    }
 
-    public ObjectLayout getObjectLayout() {
-        return objectLayout;
+    @Override
+    public void write(PythonObject object, Object value) {
+        ObjectLayoutUtil.writeObjectArrayUnsafeAt(object.getSpillArray(), index, value, this);
+    }
+
+    @Override
+    public Class<?> getStoredClass() {
+        return storedClass;
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " at " + index;
     }
 
 }

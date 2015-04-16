@@ -33,6 +33,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.object.location.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public abstract class PythonObject implements Comparable<Object> {
@@ -43,7 +44,7 @@ public abstract class PythonObject implements Comparable<Object> {
     private boolean usePrivateLayout;
 
     // A bit map to indicate which primitives are set.
-    protected int primitiveSetMap;
+    private int primitiveSetMap;
 
     protected Object[] arrayObjects = null;
 
@@ -60,6 +61,18 @@ public abstract class PythonObject implements Comparable<Object> {
 
     public final ObjectLayout getObjectLayout() {
         return objectLayout;
+    }
+
+    public final Object[] getSpillArray() {
+        return arrayObjects;
+    }
+
+    public int getPrimitiveSetMap() {
+        return primitiveSetMap;
+    }
+
+    public void setPrimitiveSetMap(int primitiveSetMap) {
+        this.primitiveSetMap = primitiveSetMap;
     }
 
     protected final void setObjectLayout(ObjectLayout newLayout) {
@@ -195,7 +208,7 @@ public abstract class PythonObject implements Comparable<Object> {
         }
 
         // Make all primitives as unset
-        primitiveSetMap = 0;
+        setPrimitiveSetMap(0);
 
         // Create a new array for objects
         allocateObjectStorageLocations();

@@ -29,6 +29,8 @@ import java.util.Map.Entry;
 
 import com.oracle.truffle.api.*;
 
+import edu.uci.python.runtime.object.location.*;
+
 /**
  * Maps the names of instance attributes to storage locations, which are either the offset of a
  * field in {@link PythonObject}, or an index into the object array in {@link PythonObject}. Object

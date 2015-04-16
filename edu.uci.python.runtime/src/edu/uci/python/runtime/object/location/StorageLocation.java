@@ -22,15 +22,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object;
+package edu.uci.python.runtime.object.location;
 
-import com.oracle.truffle.api.nodes.*;
+import edu.uci.python.runtime.object.*;
 
 /**
- * Indicates that a storage location cannot store the type of value that you asked it to.
+ * A storage location that abstracts the method for reading and writing values.
  */
-public class StorageLocationGeneralizeException extends SlowPathException {
+public abstract class StorageLocation {
 
-    private static final long serialVersionUID = 3607506078153063652L;
+    private final ObjectLayout objectLayout;
+
+    protected StorageLocation(ObjectLayout objectLayout) {
+        this.objectLayout = objectLayout;
+    }
+
+    public abstract boolean isSet(PythonObject object);
+
+    public abstract Object read(PythonObject object);
+
+    public abstract void write(PythonObject object, Object value) throws StorageLocationGeneralizeException;
+
+    public abstract Class<?> getStoredClass();
+
+    public ObjectLayout getObjectLayout() {
+        return objectLayout;
+    }
 
 }

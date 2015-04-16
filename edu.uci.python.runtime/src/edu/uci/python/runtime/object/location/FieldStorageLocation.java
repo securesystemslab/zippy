@@ -22,48 +22,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object;
+package edu.uci.python.runtime.object.location;
 
-import org.python.core.*;
+import edu.uci.python.runtime.object.*;
 
-import com.oracle.truffle.api.*;
+public abstract class FieldStorageLocation extends StorageLocation {
 
-public final class ArrayObjectStorageLocation extends StorageLocation {
+    private final int mask;
+    protected final int index; // logical index not physical
+    protected final long offset;
 
-    private final int index;
-    private final Class<?> storedClass;
-
-    public ArrayObjectStorageLocation(ObjectLayout objectLayout, int index, Class<?> storedClass) {
+    protected FieldStorageLocation(ObjectLayout objectLayout, int index, long offset) {
         super(objectLayout);
+        mask = 1 << index;
         this.index = index;
-        this.storedClass = storedClass;
+        this.offset = offset;
     }
 
     @Override
     public boolean isSet(PythonObject object) {
-        return object.arrayObjects[index] != null;
+        return (object.getPrimitiveSetMap() & mask) != 0;
     }
 
-    @Override
-    public Object read(PythonObject object) {
-        final Object result = ObjectLayoutUtil.readObjectArrayUnsafeAt(object.arrayObjects, index, this);
-
-        if (result != null) {
-            return result;
-        }
-
-        CompilerDirectives.transferToInterpreterAndInvalidate();
-        throw Py.AttributeError(object + " object has no attribute " + getObjectLayout().findAttributeId(this));
+    protected void markAsSet(PythonObject object) {
+        object.setPrimitiveSetMap(object.getPrimitiveSetMap() | mask);
     }
 
-    @Override
-    public void write(PythonObject object, Object value) {
-        ObjectLayoutUtil.writeObjectArrayUnsafeAt(object.arrayObjects, index, value, this);
-    }
-
-    @Override
-    public Class<?> getStoredClass() {
-        return storedClass;
+    protected void markAsUnset(PythonObject object) {
+        object.setPrimitiveSetMap(object.getPrimitiveSetMap() & ~mask);
     }
 
     @Override

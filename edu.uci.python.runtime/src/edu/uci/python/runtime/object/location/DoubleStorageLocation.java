@@ -22,12 +22,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.object;
+package edu.uci.python.runtime.object.location;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.object.*;
 
 /**
  * A storage location for floats.
