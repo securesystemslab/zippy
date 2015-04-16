@@ -27,8 +27,6 @@ package edu.uci.python.nodes.call;
 import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 import static edu.uci.python.nodes.call.PythonCallUtil.*;
 
-import java.lang.invoke.*;
-
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
@@ -361,7 +359,7 @@ public abstract class PythonCallNode extends PNode {
         public CallConstructorNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
             super(context, pythonClass.getName(), primary, callee, arguments, keywords, true);
             dispatchNode = dispatch;
-            instanceNode = new NewInstanceNode(pythonClass);
+            instanceNode = NewInstanceNode.create(pythonClass);
             this.pythonClass = pythonClass;
         }
 
@@ -437,34 +435,6 @@ public abstract class PythonCallNode extends PNode {
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
             return newInstance;
-        }
-    }
-
-    public static final class NewInstanceNode extends Node {
-
-        private final Assumption instanceLayoutStableAssumption;
-        private final MethodHandle instanceCtor;
-
-        public NewInstanceNode(PythonClass pythonClass) {
-            this.instanceLayoutStableAssumption = pythonClass.getInstanceObjectLayout().getValidAssumption();
-            this.instanceCtor = pythonClass.getInstanceConstructor();
-        }
-
-        public PythonObject createNewInstance(PythonClass clazz) {
-            try {
-                instanceLayoutStableAssumption.check();
-                return (PythonObject) instanceCtor.invoke(clazz);
-            } catch (InvalidAssumptionException e) {
-                CompilerDirectives.transferToInterpreterAndInvalidate();
-                return rewriteAndExecute(clazz);
-            } catch (Throwable e) {
-                CompilerDirectives.transferToInterpreterAndInvalidate();
-                throw new RuntimeException("instance constructor invocation failed in " + this);
-            }
-        }
-
-        private PythonObject rewriteAndExecute(PythonClass clazz) {
-            return replace(new NewInstanceNode(clazz)).createNewInstance(clazz);
         }
     }
 
