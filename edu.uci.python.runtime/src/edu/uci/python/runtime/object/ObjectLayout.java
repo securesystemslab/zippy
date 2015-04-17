@@ -41,9 +41,9 @@ import edu.uci.python.runtime.object.location.*;
  */
 public class ObjectLayout {
 
-    private final String originHint;
-    private final Assumption validAssumption;
-    private final Map<String, StorageLocation> storageLocations = new HashMap<>();
+    protected final String originHint;
+    protected final Assumption validAssumption;
+    protected final Map<String, StorageLocation> storageLocations = new HashMap<>();
 
     private final int primitiveIntStorageLocationsUsed;
     private final int primitiveDoubleStorageLocationsUsed;
@@ -59,18 +59,12 @@ public class ObjectLayout {
         validAssumption = Truffle.getRuntime().createAssumption(originHint);
     }
 
-    private ObjectLayout(String originHint, Map<String, Class<?>> storageTypes) {
+    protected ObjectLayout(String originHint, Map<String, Class<?>> storageTypes) {
         this.originHint = originHint;
-
-        int primitiveIntStorageLocationIndex;
-        int primitiveDoubleStorageLocationIndex;
-        int fieldObjectStorageLocationIndex;
-        int arrayObjectStorageLocationIndex;
-
-        primitiveIntStorageLocationIndex = 0;
-        primitiveDoubleStorageLocationIndex = 0;
-        fieldObjectStorageLocationIndex = 0;
-        arrayObjectStorageLocationIndex = 0;
+        int primitiveIntStorageLocationIndex = 0;
+        int primitiveDoubleStorageLocationIndex = 0;
+        int fieldObjectStorageLocationIndex = 0;
+        int arrayObjectStorageLocationIndex = 0;
 
         // Go through the variables we've been asked to store
         for (Entry<String, Class<?>> entry : storageTypes.entrySet()) {
@@ -142,16 +136,10 @@ public class ObjectLayout {
      */
     protected ObjectLayout(String originHint, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass) {
         this.originHint = originHint;
-
-        int primitiveIntStorageLocationIndex;
-        int primitiveDoubleStorageLocationIndex;
-        int fieldObjectStorageLocationIndex;
-        int arrayObjectStorageLocationIndex;
-
-        primitiveIntStorageLocationIndex = 0;
-        primitiveDoubleStorageLocationIndex = 0;
-        fieldObjectStorageLocationIndex = 0;
-        arrayObjectStorageLocationIndex = 0;
+        int primitiveIntStorageLocationIndex = 0;
+        int primitiveDoubleStorageLocationIndex = 0;
+        int fieldObjectStorageLocationIndex = 0;
+        int arrayObjectStorageLocationIndex = 0;
 
         // Go through the variables we've been asked to store
         for (Entry<String, Class<?>> entry : storageTypes.entrySet()) {
@@ -212,11 +200,6 @@ public class ObjectLayout {
         return new ObjectLayout(originHint + "-" + name, storageTypes);
     }
 
-    protected ObjectLayout switchObjectStorageClass(Class<?> objectStorageClass) {
-        validAssumption.invalidate();
-        return new ConservativeObjectLayout(originHint + ".switch", getStorageTypes(), objectStorageClass);
-    }
-
     /**
      * Create a new version of this layout but with an existing variable generalized to support any
      * type.
@@ -226,6 +209,11 @@ public class ObjectLayout {
         storageTypes.put(name, Object.class);
         validAssumption.invalidate();
         return new ObjectLayout(originHint + "!" + name, storageTypes);
+    }
+
+    protected ObjectLayout switchToFlexibleObjectStorageClass(Class<?> objectStorageClass) {
+        validAssumption.invalidate();
+        return new ConservativeObjectLayout(originHint + ".switch", getStorageTypes(), objectStorageClass);
     }
 
     /**
@@ -296,7 +284,7 @@ public class ObjectLayout {
 
     @Override
     public String toString() {
-        return "ObjectLayout:" + this.storageLocations.toString();
+        return super.toString() + " " + this.storageLocations.toString();
     }
 
 }

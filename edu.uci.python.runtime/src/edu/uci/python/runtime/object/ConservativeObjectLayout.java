@@ -52,6 +52,13 @@ public class ConservativeObjectLayout extends ObjectLayout {
     }
 
     @Override
+    protected ObjectLayout withoutAttribute(String name) {
+        final Map<String, Class<?>> storageTypes = getStorageTypes();
+        storageTypes.remove(name);
+        return new ConservativeObjectLayout(originHint + "-" + name, storageTypes, storageClass);
+    }
+
+    @Override
     public ObjectLayout withGeneralisedVariable(String name) {
         final Map<String, Class<?>> storageTypes = getStorageTypes();
         storageTypes.put(name, Object.class);
