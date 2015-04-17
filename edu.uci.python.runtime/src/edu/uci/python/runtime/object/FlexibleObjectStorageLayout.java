@@ -26,43 +26,44 @@ package edu.uci.python.runtime.object;
 
 import java.util.*;
 
-public class ConservativeObjectLayout extends ObjectLayout {
+public final class FlexibleObjectStorageLayout extends ObjectLayout {
 
     private final Class<?> storageClass;
 
-    public ConservativeObjectLayout(String originHint, Class<?> storageClass) {
+    public FlexibleObjectStorageLayout(String originHint, Class<?> storageClass) {
         super(originHint);
         this.storageClass = storageClass;
+        assert FlexiblePythonObjectStorage.class.isAssignableFrom(storageClass);
     }
 
-    protected ConservativeObjectLayout(String originHint, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass) {
+    protected FlexibleObjectStorageLayout(String originHint, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass) {
         super(originHint, storageTypes, objectStorageClass);
         this.storageClass = objectStorageClass;
     }
 
-    public static final ConservativeObjectLayout empty(Class<?> storageClass) {
-        return new ConservativeObjectLayout("(empty)", storageClass);
+    public static final FlexibleObjectStorageLayout empty(Class<?> storageClass) {
+        return new FlexibleObjectStorageLayout("(empty)", storageClass);
     }
 
     @Override
     protected ObjectLayout withNewAttribute(String name, Class<?> type) {
         final Map<String, Class<?>> storageTypes = getStorageTypes();
         storageTypes.put(name, type);
-        return new ConservativeObjectLayout(getOriginHint() + "+" + name, storageTypes, storageClass);
+        return new FlexibleObjectStorageLayout(getOriginHint() + "+" + name, storageTypes, storageClass);
     }
 
     @Override
     protected ObjectLayout withoutAttribute(String name) {
         final Map<String, Class<?>> storageTypes = getStorageTypes();
         storageTypes.remove(name);
-        return new ConservativeObjectLayout(originHint + "-" + name, storageTypes, storageClass);
+        return new FlexibleObjectStorageLayout(originHint + "-" + name, storageTypes, storageClass);
     }
 
     @Override
     public ObjectLayout withGeneralisedVariable(String name) {
         final Map<String, Class<?>> storageTypes = getStorageTypes();
         storageTypes.put(name, Object.class);
-        return new ConservativeObjectLayout(getOriginHint() + "!" + name, storageTypes, storageClass);
+        return new FlexibleObjectStorageLayout(getOriginHint() + "!" + name, storageTypes, storageClass);
     }
 
 }

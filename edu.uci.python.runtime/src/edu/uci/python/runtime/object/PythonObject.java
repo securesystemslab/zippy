@@ -76,6 +76,7 @@ public abstract class PythonObject implements Comparable<Object> {
     }
 
     protected final void setObjectLayout(ObjectLayout newLayout) {
+        assert newLayout != null;
         this.objectLayout = newLayout;
     }
 

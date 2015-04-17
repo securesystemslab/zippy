@@ -213,7 +213,7 @@ public class ObjectLayout {
 
     protected ObjectLayout switchToFlexibleObjectStorageClass(Class<?> objectStorageClass) {
         validAssumption.invalidate();
-        return new ConservativeObjectLayout(originHint + ".switch", getStorageTypes(), objectStorageClass);
+        return new FlexibleObjectStorageLayout(originHint + ".switch", getStorageTypes(), objectStorageClass);
     }
 
     /**

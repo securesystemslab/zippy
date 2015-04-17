@@ -30,13 +30,13 @@ public class FlexiblePythonObjectStorage extends PythonObject {
 
     public FlexiblePythonObjectStorage(PythonClass pythonClass) {
         super(pythonClass);
-        ConservativeObjectLayout layout = null;
+        FlexibleObjectStorageLayout layout = null;
 
         if (pythonClass == null) {
-            layout = ConservativeObjectLayout.empty(this.getClass());
+            layout = FlexibleObjectStorageLayout.empty(this.getClass());
         } else {
-            assert pythonClass.getInstanceObjectLayout() instanceof ConservativeObjectLayout;
-            layout = (ConservativeObjectLayout) pythonClass.getInstanceObjectLayout();
+            assert pythonClass.getInstanceObjectLayout() instanceof FlexibleObjectStorageLayout;
+            layout = (FlexibleObjectStorageLayout) pythonClass.getInstanceObjectLayout();
         }
 
         setObjectLayout(layout);
