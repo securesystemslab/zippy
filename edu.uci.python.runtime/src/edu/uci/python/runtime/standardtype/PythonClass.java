@@ -81,7 +81,7 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
         setObjectLayout(ObjectLayout.empty());
 
         // Inherite InstanceObjectLayout when possible
-        instanceObjectLayout = this.baseClasses.length == 0 ? ObjectLayout.empty() : new ObjectLayout(getName(), this.baseClasses[0].getInstanceObjectLayout());
+        instanceObjectLayout = this.baseClasses.length == 0 ? ObjectLayout.empty() : new ObjectLayout(getName());
 
         switchToPrivateLayout();
 

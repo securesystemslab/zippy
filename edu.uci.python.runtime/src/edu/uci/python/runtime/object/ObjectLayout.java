@@ -42,11 +42,7 @@ import edu.uci.python.runtime.object.location.*;
 public class ObjectLayout {
 
     private final String originHint;
-
-    private final ObjectLayout parent;
-
     private final Assumption validAssumption;
-
     private final Map<String, StorageLocation> storageLocations = new HashMap<>();
 
     private final int primitiveIntStorageLocationsUsed;
@@ -54,9 +50,8 @@ public class ObjectLayout {
     private final int fieldObjectStorageLocationsUsed;
     private final int arrayObjectStorageLocationsUsed;
 
-    protected ObjectLayout(String originHint) {
+    public ObjectLayout(String originHint) {
         this.originHint = originHint;
-        this.parent = null;
         primitiveIntStorageLocationsUsed = 0;
         primitiveDoubleStorageLocationsUsed = 0;
         fieldObjectStorageLocationsUsed = 0;
@@ -64,88 +59,71 @@ public class ObjectLayout {
         validAssumption = Truffle.getRuntime().createAssumption(originHint);
     }
 
-    public ObjectLayout(String originHint, ObjectLayout parent) {
-        this(originHint, parent, new HashMap<String, Class<?>>());
-    }
-
-    private ObjectLayout(String originHint, ObjectLayout parent, Map<String, Class<?>> storageTypes) {
+    private ObjectLayout(String originHint, Map<String, Class<?>> storageTypes) {
         this.originHint = originHint;
-        this.parent = parent;
 
-        // Start our offsets from where the parent ends
         int primitiveIntStorageLocationIndex;
         int primitiveDoubleStorageLocationIndex;
         int fieldObjectStorageLocationIndex;
         int arrayObjectStorageLocationIndex;
 
-        if (parent == null) {
-            primitiveIntStorageLocationIndex = 0;
-            primitiveDoubleStorageLocationIndex = 0;
-            fieldObjectStorageLocationIndex = 0;
-            arrayObjectStorageLocationIndex = 0;
-        } else {
-            primitiveIntStorageLocationIndex = parent.primitiveIntStorageLocationsUsed;
-            primitiveDoubleStorageLocationIndex = parent.primitiveDoubleStorageLocationsUsed;
-            fieldObjectStorageLocationIndex = parent.fieldObjectStorageLocationsUsed;
-            arrayObjectStorageLocationIndex = parent.arrayObjectStorageLocationsUsed;
-        }
+        primitiveIntStorageLocationIndex = 0;
+        primitiveDoubleStorageLocationIndex = 0;
+        fieldObjectStorageLocationIndex = 0;
+        arrayObjectStorageLocationIndex = 0;
 
         // Go through the variables we've been asked to store
         for (Entry<String, Class<?>> entry : storageTypes.entrySet()) {
-            final String name = entry.getKey();
             final Class<?> type = entry.getValue();
+            Class<?> storedClass;
 
-            if (parent == null || parent.findStorageLocation(name) == null) {
-                Class<?> storedClass;
-
-                if (type == Integer.class) {
-                    if (primitiveIntStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
-                        storedClass = Integer.class;
-                    } else {
-                        storedClass = Object.class;
-                    }
-                } else if (type == Double.class) {
-                    if (primitiveDoubleStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT) {
-                        storedClass = Double.class;
-                    } else {
-                        storedClass = Object.class;
-                    }
-                } else if (type == Boolean.class) {
-                    if (primitiveIntStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
-                        storedClass = Boolean.class;
-                    } else {
-                        storedClass = Object.class;
-                    }
+            if (type == Integer.class) {
+                if (primitiveIntStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
+                    storedClass = Integer.class;
                 } else {
                     storedClass = Object.class;
                 }
-
-                if (storedClass == Integer.class) {
-                    final long offset = ObjectLayoutUtil.getExactPrimitiveIntOffsetOf(primitiveIntStorageLocationIndex);
-                    final IntStorageLocation newStorageLocation = new IntStorageLocation(this, primitiveIntStorageLocationIndex, offset);
-                    storageLocations.put(entry.getKey(), newStorageLocation);
-                    primitiveIntStorageLocationIndex++;
-                } else if (storedClass == Double.class) {
-                    final long offset = ObjectLayoutUtil.getExactPrimitiveDoubleOffsetOf(primitiveDoubleStorageLocationIndex);
-                    final DoubleStorageLocation newStorageLocation = new DoubleStorageLocation(this, primitiveDoubleStorageLocationIndex, offset);
-                    storageLocations.put(entry.getKey(), newStorageLocation);
-                    primitiveDoubleStorageLocationIndex++;
-                } else if (storedClass == Boolean.class) {
-                    final long offset = ObjectLayoutUtil.getExactPrimitiveIntOffsetOf(primitiveIntStorageLocationIndex);
-                    final BooleanStorageLocation newStorageLocation = new BooleanStorageLocation(this, primitiveIntStorageLocationIndex, offset);
-                    storageLocations.put(entry.getKey(), newStorageLocation);
-                    primitiveIntStorageLocationIndex++;
+            } else if (type == Double.class) {
+                if (primitiveDoubleStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT) {
+                    storedClass = Double.class;
                 } else {
-                    if (fieldObjectStorageLocationIndex + 1 <= FixedPythonObjectStorage.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT) {
-                        final long offset = ObjectLayoutUtil.getExactFieldObjectOffsetOf(fieldObjectStorageLocationIndex);
-                        final FieldObjectStorageLocation newStorageLocation = new FieldObjectStorageLocation(this, fieldObjectStorageLocationIndex, offset, type);
-                        storageLocations.put(entry.getKey(), newStorageLocation);
-                        fieldObjectStorageLocationIndex++;
-                    } else {
-                        final ArrayObjectStorageLocation newStorageLocation = new ArrayObjectStorageLocation(this, arrayObjectStorageLocationIndex, type);
-                        storageLocations.put(entry.getKey(), newStorageLocation);
-                        arrayObjectStorageLocationIndex++;
-                    }
+                    storedClass = Object.class;
+                }
+            } else if (type == Boolean.class) {
+                if (primitiveIntStorageLocationIndex + 1 <= FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT) {
+                    storedClass = Boolean.class;
+                } else {
+                    storedClass = Object.class;
+                }
+            } else {
+                storedClass = Object.class;
+            }
+
+            if (storedClass == Integer.class) {
+                final long offset = ObjectLayoutUtil.getExactPrimitiveIntOffsetOf(primitiveIntStorageLocationIndex);
+                final IntStorageLocation newStorageLocation = new IntStorageLocation(this, primitiveIntStorageLocationIndex, offset);
+                storageLocations.put(entry.getKey(), newStorageLocation);
+                primitiveIntStorageLocationIndex++;
+            } else if (storedClass == Double.class) {
+                final long offset = ObjectLayoutUtil.getExactPrimitiveDoubleOffsetOf(primitiveDoubleStorageLocationIndex);
+                final DoubleStorageLocation newStorageLocation = new DoubleStorageLocation(this, primitiveDoubleStorageLocationIndex, offset);
+                storageLocations.put(entry.getKey(), newStorageLocation);
+                primitiveDoubleStorageLocationIndex++;
+            } else if (storedClass == Boolean.class) {
+                final long offset = ObjectLayoutUtil.getExactPrimitiveIntOffsetOf(primitiveIntStorageLocationIndex);
+                final BooleanStorageLocation newStorageLocation = new BooleanStorageLocation(this, primitiveIntStorageLocationIndex, offset);
+                storageLocations.put(entry.getKey(), newStorageLocation);
+                primitiveIntStorageLocationIndex++;
+            } else {
+                if (fieldObjectStorageLocationIndex + 1 <= FixedPythonObjectStorage.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT) {
+                    final long offset = ObjectLayoutUtil.getExactFieldObjectOffsetOf(fieldObjectStorageLocationIndex);
+                    final FieldObjectStorageLocation newStorageLocation = new FieldObjectStorageLocation(this, fieldObjectStorageLocationIndex, offset, type);
+                    storageLocations.put(entry.getKey(), newStorageLocation);
+                    fieldObjectStorageLocationIndex++;
+                } else {
+                    final ArrayObjectStorageLocation newStorageLocation = new ArrayObjectStorageLocation(this, arrayObjectStorageLocationIndex, type);
+                    storageLocations.put(entry.getKey(), newStorageLocation);
+                    arrayObjectStorageLocationIndex++;
                 }
             }
         }
@@ -162,56 +140,44 @@ public class ObjectLayout {
      *
      * @param objectStorageClass storage type
      */
-    protected ObjectLayout(String originHint, ObjectLayout parent, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass) {
+    protected ObjectLayout(String originHint, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass) {
         this.originHint = originHint;
-        this.parent = parent;
 
-        // Start our offsets from where the parent ends
         int primitiveIntStorageLocationIndex;
         int primitiveDoubleStorageLocationIndex;
         int fieldObjectStorageLocationIndex;
         int arrayObjectStorageLocationIndex;
 
-        if (parent == null) {
-            primitiveIntStorageLocationIndex = 0;
-            primitiveDoubleStorageLocationIndex = 0;
-            fieldObjectStorageLocationIndex = 0;
-            arrayObjectStorageLocationIndex = 0;
-        } else {
-            primitiveIntStorageLocationIndex = parent.primitiveIntStorageLocationsUsed;
-            primitiveDoubleStorageLocationIndex = parent.primitiveDoubleStorageLocationsUsed;
-            fieldObjectStorageLocationIndex = parent.fieldObjectStorageLocationsUsed;
-            arrayObjectStorageLocationIndex = parent.arrayObjectStorageLocationsUsed;
-        }
+        primitiveIntStorageLocationIndex = 0;
+        primitiveDoubleStorageLocationIndex = 0;
+        fieldObjectStorageLocationIndex = 0;
+        arrayObjectStorageLocationIndex = 0;
 
         // Go through the variables we've been asked to store
         for (Entry<String, Class<?>> entry : storageTypes.entrySet()) {
             final String name = entry.getKey();
             final Class<?> type = entry.getValue();
+            StorageLocation newStorageLocation;
 
-            if (parent == null || parent.findStorageLocation(name) == null) {
-                StorageLocation newStorageLocation;
+            try {
+                long offset = ObjectLayoutUtil.getExactFieldOffsetOf(objectStorageClass, name);
 
-                try {
-                    long offset = ObjectLayoutUtil.getExactFieldOffsetOf(objectStorageClass, name);
-
-                    // Field storage location
-                    if (type == Integer.class) {
-                        newStorageLocation = new IntStorageLocation(this, primitiveIntStorageLocationIndex++, offset);
-                    } else if (type == Boolean.class) {
-                        newStorageLocation = new BooleanStorageLocation(this, primitiveIntStorageLocationIndex++, offset);
-                    } else if (type == Double.class) {
-                        newStorageLocation = new DoubleStorageLocation(this, primitiveDoubleStorageLocationIndex++, offset);
-                    } else {
-                        newStorageLocation = new FieldObjectStorageLocation(this, fieldObjectStorageLocationIndex++, offset, type);
-                    }
-                } catch (NoSuchFieldException e) {
-                    // Spill to object array
-                    newStorageLocation = new ArrayObjectStorageLocation(this, arrayObjectStorageLocationIndex++, type);
+                // Field storage location
+                if (type == Integer.class) {
+                    newStorageLocation = new IntStorageLocation(this, primitiveIntStorageLocationIndex++, offset);
+                } else if (type == Boolean.class) {
+                    newStorageLocation = new BooleanStorageLocation(this, primitiveIntStorageLocationIndex++, offset);
+                } else if (type == Double.class) {
+                    newStorageLocation = new DoubleStorageLocation(this, primitiveDoubleStorageLocationIndex++, offset);
+                } else {
+                    newStorageLocation = new FieldObjectStorageLocation(this, fieldObjectStorageLocationIndex++, offset, type);
                 }
-
-                storageLocations.put(entry.getKey(), newStorageLocation);
+            } catch (NoSuchFieldException e) {
+                // Spill to object array
+                newStorageLocation = new ArrayObjectStorageLocation(this, arrayObjectStorageLocationIndex++, type);
             }
+
+            storageLocations.put(entry.getKey(), newStorageLocation);
         }
 
         primitiveIntStorageLocationsUsed = primitiveIntStorageLocationIndex;
@@ -229,20 +195,6 @@ public class ObjectLayout {
         return validAssumption;
     }
 
-    protected final ObjectLayout getParentLayout() {
-        return parent;
-    }
-
-    /**
-     * Create a new version of this layout, but with a different parent. The new parent probably
-     * comes from the same Python class as it did, but it's a new layout because layouts are
-     * immutable, so modifications to the superclass yields a new layout.
-     */
-    protected ObjectLayout renew(ObjectLayout newParent) {
-        validAssumption.invalidate();
-        return new ObjectLayout(originHint + ".renewed", newParent, getStorageTypes());
-    }
-
     /**
      * Create a new version of this layout but with a new variable.
      */
@@ -250,19 +202,19 @@ public class ObjectLayout {
         final Map<String, Class<?>> storageTypes = getStorageTypes();
         storageTypes.put(name, type);
         validAssumption.invalidate();
-        return new ObjectLayout(originHint + "+" + name, parent, storageTypes);
+        return new ObjectLayout(originHint + "+" + name, storageTypes);
     }
 
     protected ObjectLayout withoutAttribute(String name) {
         final Map<String, Class<?>> storageTypes = getStorageTypes();
         storageTypes.remove(name);
         validAssumption.invalidate();
-        return new ObjectLayout(originHint + "-" + name, parent, storageTypes);
+        return new ObjectLayout(originHint + "-" + name, storageTypes);
     }
 
     protected ObjectLayout switchObjectStorageClass(Class<?> objectStorageClass) {
         validAssumption.invalidate();
-        return new ConservativeObjectLayout(originHint + ".switch", parent, getStorageTypes(), objectStorageClass);
+        return new ConservativeObjectLayout(originHint + ".switch", getStorageTypes(), objectStorageClass);
     }
 
     /**
@@ -273,7 +225,7 @@ public class ObjectLayout {
         final Map<String, Class<?>> storageTypes = getStorageTypes();
         storageTypes.put(name, Object.class);
         validAssumption.invalidate();
-        return new ObjectLayout(originHint + "!" + name, parent, storageTypes);
+        return new ObjectLayout(originHint + "!" + name, storageTypes);
     }
 
     /**
@@ -295,23 +247,16 @@ public class ObjectLayout {
     }
 
     /**
-     * Get a map of instance variable names to the type that they store, but including both this
-     * layout and all parent layouts.
+     * Get a map of instance variable names to the type that they store.
      */
     public Map<String, StorageLocation> getAllStorageLocations() {
         final Map<String, StorageLocation> allStorageLocations = new HashMap<>();
-
         allStorageLocations.putAll(storageLocations);
-
-        if (parent != null) {
-            allStorageLocations.putAll(parent.getAllStorageLocations());
-        }
-
         return allStorageLocations;
     }
 
     /**
-     * Find a storage location from a name, including in parents.
+     * Find a storage location from a name.
      */
     public StorageLocation findStorageLocation(String name) {
         final StorageLocation storageLocation = storageLocations.get(name);
@@ -320,11 +265,7 @@ public class ObjectLayout {
             return storageLocation;
         }
 
-        if (parent == null) {
-            return null;
-        }
-
-        return parent.findStorageLocation(name);
+        return null;
     }
 
     public int getObjectStorageLocationsUsed() {
@@ -339,25 +280,6 @@ public class ObjectLayout {
         }
 
         throw new IllegalStateException();
-    }
-
-    /**
-     * Does this layout include another layout? That is, is that other layout somewhere in the chain
-     * of parents? We say 'include' because all of the variables in a parent layout are available in
-     * your layout as well.
-     */
-    public final boolean contains(ObjectLayout other) {
-        ObjectLayout layout = this;
-
-        do {
-            if (other == layout) {
-                return true;
-            }
-
-            layout = layout.parent;
-        } while (layout != null);
-
-        return false;
     }
 
     public String getOriginHint() {

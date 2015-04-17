@@ -35,8 +35,8 @@ public class ConservativeObjectLayout extends ObjectLayout {
         this.storageClass = storageClass;
     }
 
-    protected ConservativeObjectLayout(String originHint, ObjectLayout parent, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass) {
-        super(originHint, parent, storageTypes, objectStorageClass);
+    protected ConservativeObjectLayout(String originHint, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass) {
+        super(originHint, storageTypes, objectStorageClass);
         this.storageClass = objectStorageClass;
     }
 
@@ -48,14 +48,14 @@ public class ConservativeObjectLayout extends ObjectLayout {
     protected ObjectLayout withNewAttribute(String name, Class<?> type) {
         final Map<String, Class<?>> storageTypes = getStorageTypes();
         storageTypes.put(name, type);
-        return new ConservativeObjectLayout(getOriginHint() + "+" + name, getParentLayout(), storageTypes, storageClass);
+        return new ConservativeObjectLayout(getOriginHint() + "+" + name, storageTypes, storageClass);
     }
 
     @Override
     public ObjectLayout withGeneralisedVariable(String name) {
         final Map<String, Class<?>> storageTypes = getStorageTypes();
         storageTypes.put(name, Object.class);
-        return new ConservativeObjectLayout(getOriginHint() + "!" + name, getParentLayout(), storageTypes, storageClass);
+        return new ConservativeObjectLayout(getOriginHint() + "!" + name, storageTypes, storageClass);
     }
 
 }
