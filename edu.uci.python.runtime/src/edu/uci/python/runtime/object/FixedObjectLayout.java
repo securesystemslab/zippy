@@ -29,12 +29,11 @@ import java.util.Map.*;
 
 import edu.uci.python.runtime.object.location.*;
 
-public class FixedObjectLayout extends ObjectLayout {
+public final class FixedObjectLayout extends ObjectLayout {
 
     private final int primitiveIntStorageLocationsUsed;
     private final int primitiveDoubleStorageLocationsUsed;
     private final int fieldObjectStorageLocationsUsed;
-
     private final int arrayObjectStorageLocationsUsed;
 
     public FixedObjectLayout(String originHint) {
@@ -126,6 +125,37 @@ public class FixedObjectLayout extends ObjectLayout {
                         primitiveIntStorageLocationsUsed == 0 && //
                         fieldObjectStorageLocationsUsed == 0 && //
                         primitiveDoubleStorageLocationsUsed == 0;
+    }
+
+    @Override
+    protected ObjectLayout copy() {
+        final Map<String, Class<?>> attributeTypes = getAttributeTypes();
+        validAssumption.invalidate();
+        return new FixedObjectLayout(originHint + "copy", attributeTypes);
+    }
+
+    @Override
+    protected ObjectLayout addAttribute(String name, Class<?> type) {
+        final Map<String, Class<?>> attributeTypes = getAttributeTypes();
+        attributeTypes.put(name, type);
+        validAssumption.invalidate();
+        return new FixedObjectLayout(originHint + "+" + name, attributeTypes);
+    }
+
+    @Override
+    protected ObjectLayout deleteAttribute(String name) {
+        final Map<String, Class<?>> attributeTypes = getAttributeTypes();
+        attributeTypes.remove(name);
+        validAssumption.invalidate();
+        return new FixedObjectLayout(originHint + "-" + name, attributeTypes);
+    }
+
+    @Override
+    public ObjectLayout generalizedAttribute(String name) {
+        final Map<String, Class<?>> storageTypes = getAttributeTypes();
+        storageTypes.put(name, Object.class);
+        validAssumption.invalidate();
+        return new FixedObjectLayout(originHint + "!" + name, storageTypes);
     }
 
 }

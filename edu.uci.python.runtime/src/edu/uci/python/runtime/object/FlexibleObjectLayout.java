@@ -94,35 +94,40 @@ public final class FlexibleObjectLayout extends ObjectLayout {
     }
 
     @Override
-    protected ObjectLayout withNewAttribute(String name, Class<?> type) {
-        final Map<String, Class<?>> storageTypes = getStorageTypes();
-        storageTypes.put(name, type);
-        return new FlexibleObjectLayout(getOriginHint() + "+" + name, storageTypes, storageClass);
-    }
-
-    @Override
-    protected ObjectLayout withoutAttribute(String name) {
-        final Map<String, Class<?>> storageTypes = getStorageTypes();
-        storageTypes.remove(name);
-        return new FlexibleObjectLayout(originHint + "-" + name, storageTypes, storageClass);
-    }
-
-    @Override
-    public ObjectLayout withGeneralisedVariable(String name) {
-        final Map<String, Class<?>> storageTypes = getStorageTypes();
-        storageTypes.put(name, Object.class);
-        return new FlexibleObjectLayout(getOriginHint() + "!" + name, storageTypes, storageClass);
-    }
-
-    @Override
     public int getObjectStorageLocationsUsed() {
         return arrayObjectStorageLocationsUsed;
     }
 
     @Override
     public boolean isEmpty() {
-        return storageLocations.isEmpty() && //
-                        arrayObjectStorageLocationsUsed == 0;
+        return storageLocations.isEmpty() && arrayObjectStorageLocationsUsed == 0;
+    }
+
+    @Override
+    protected ObjectLayout copy() {
+        final Map<String, Class<?>> attributeTypes = getAttributeTypes();
+        return new FlexibleObjectLayout(originHint + "copy", attributeTypes, storageClass);
+    }
+
+    @Override
+    protected ObjectLayout addAttribute(String name, Class<?> type) {
+        final Map<String, Class<?>> attributeTypes = getAttributeTypes();
+        attributeTypes.put(name, type);
+        return new FlexibleObjectLayout(originHint + "+" + name, attributeTypes, storageClass);
+    }
+
+    @Override
+    protected ObjectLayout deleteAttribute(String name) {
+        final Map<String, Class<?>> attributeTypes = getAttributeTypes();
+        attributeTypes.remove(name);
+        return new FlexibleObjectLayout(originHint + "-" + name, attributeTypes, storageClass);
+    }
+
+    @Override
+    public ObjectLayout generalizedAttribute(String name) {
+        final Map<String, Class<?>> attributeTypes = getAttributeTypes();
+        attributeTypes.put(name, Object.class);
+        return new FlexibleObjectLayout(originHint + "!" + name, attributeTypes, storageClass);
     }
 
 }

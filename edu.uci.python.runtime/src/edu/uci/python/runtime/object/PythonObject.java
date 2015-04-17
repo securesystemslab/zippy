@@ -97,7 +97,7 @@ public abstract class PythonObject implements Comparable<Object> {
          */
         if (this instanceof FixedPythonObjectStorage && pythonClass.getInstanceObjectLayout() instanceof FlexibleObjectLayout) {
             usePrivateLayout = true;
-            updateLayout(getObjectLayout().renew());
+            updateLayout(getObjectLayout().copy());
             return;
         }
 
@@ -180,7 +180,7 @@ public abstract class PythonObject implements Comparable<Object> {
              * It doesn't exist, so create a new layout for the class that includes it and update
              * the layout of this object.
              */
-            updateLayout(objectLayout.withNewAttribute(name, value.getClass()));
+            updateLayout(objectLayout.addAttribute(name, value.getClass()));
             storageLocation = objectLayout.findStorageLocation(name);
         }
 
@@ -192,7 +192,7 @@ public abstract class PythonObject implements Comparable<Object> {
              * It might not be able to store the type that we passed, if not generalize the class's
              * layout and update the layout of this object.
              */
-            updateLayout(objectLayout.withGeneralisedVariable(name));
+            updateLayout(objectLayout.generalizedAttribute(name));
             storageLocation = objectLayout.findStorageLocation(name);
 
             // Try to write to the generalized storage location
@@ -213,7 +213,7 @@ public abstract class PythonObject implements Comparable<Object> {
             throw Py.AttributeError(this + " object has no attribute " + name);
         }
 
-        updateLayout(objectLayout.withoutAttribute(name));
+        updateLayout(objectLayout.deleteAttribute(name));
     }
 
     public void updateLayout(ObjectLayout newLayout) {

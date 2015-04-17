@@ -88,7 +88,7 @@ public final class StorageClassGenerator {
 
     private void synchronizeObjectLayout(Class<?> storageClass) {
         ObjectLayout oldLayout = pythonClass.getInstanceObjectLayout();
-        ObjectLayout newLayout = oldLayout.switchToFlexibleObjectStorageClass(storageClass);
+        ObjectLayout newLayout = oldLayout.toFlexibleObjectLayout(storageClass);
         pythonClass.updateInstanceObjectLayout(newLayout);
     }
 

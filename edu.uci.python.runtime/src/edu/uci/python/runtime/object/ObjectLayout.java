@@ -50,6 +50,10 @@ public abstract class ObjectLayout {
         validAssumption = Truffle.getRuntime().createAssumption(originHint);
     }
 
+    /**
+     * Creates an empty object layout of the default type. Currently it's a
+     * {@link FixedObjectLayout}.
+     */
     public static final ObjectLayout empty() {
         return new FixedObjectLayout("(empty)");
     }
@@ -58,67 +62,46 @@ public abstract class ObjectLayout {
         return validAssumption;
     }
 
-    protected ObjectLayout renew() {
-        final Map<String, Class<?>> storageTypes = getStorageTypes();
+    public abstract boolean isEmpty();
+
+    public abstract int getObjectStorageLocationsUsed();
+
+    protected abstract ObjectLayout copy();
+
+    protected abstract ObjectLayout addAttribute(String name, Class<?> type);
+
+    protected abstract ObjectLayout deleteAttribute(String name);
+
+    protected abstract ObjectLayout generalizedAttribute(String name);
+
+    protected ObjectLayout toFlexibleObjectLayout(Class<?> objectStorageClass) {
+        assert !(this instanceof FlexibleObjectLayout);
         validAssumption.invalidate();
-        return new FixedObjectLayout(originHint + "renew", storageTypes);
+        return new FlexibleObjectLayout(originHint + ".toflex", getAttributeTypes(), objectStorageClass);
     }
 
     /**
-     * Create a new version of this layout but with a new variable.
+     * Get a map of attribute names to the type that they store.
      */
-    protected ObjectLayout withNewAttribute(String name, Class<?> type) {
-        final Map<String, Class<?>> storageTypes = getStorageTypes();
-        storageTypes.put(name, type);
-        validAssumption.invalidate();
-        return new FixedObjectLayout(originHint + "+" + name, storageTypes);
-    }
-
-    protected ObjectLayout withoutAttribute(String name) {
-        final Map<String, Class<?>> storageTypes = getStorageTypes();
-        storageTypes.remove(name);
-        validAssumption.invalidate();
-        return new FixedObjectLayout(originHint + "-" + name, storageTypes);
-    }
-
-    /**
-     * Create a new version of this layout but with an existing variable generalized to support any
-     * type.
-     */
-    public ObjectLayout withGeneralisedVariable(String name) {
-        final Map<String, Class<?>> storageTypes = getStorageTypes();
-        storageTypes.put(name, Object.class);
-        validAssumption.invalidate();
-        return new FixedObjectLayout(originHint + "!" + name, storageTypes);
-    }
-
-    protected ObjectLayout switchToFlexibleObjectStorageClass(Class<?> objectStorageClass) {
-        validAssumption.invalidate();
-        return new FlexibleObjectLayout(originHint + ".switch", getStorageTypes(), objectStorageClass);
-    }
-
-    /**
-     * Get a map of instance variable names to the type that they store.
-     */
-    public Map<String, Class<?>> getStorageTypes() {
-        Map<String, Class<?>> storageTypes = new HashMap<>();
+    public final Map<String, Class<?>> getAttributeTypes() {
+        Map<String, Class<?>> attributeTypes = new HashMap<>();
 
         for (Entry<String, StorageLocation> entry : storageLocations.entrySet()) {
             final String name = entry.getKey();
             final StorageLocation storageLocation = entry.getValue();
 
             if (storageLocation.getStoredClass() != null) {
-                storageTypes.put(name, storageLocation.getStoredClass());
+                attributeTypes.put(name, storageLocation.getStoredClass());
             }
         }
 
-        return storageTypes;
+        return attributeTypes;
     }
 
     /**
-     * Get a map of instance variable names to the type that they store.
+     * Get a map of attribute names to the type that they store.
      */
-    public Map<String, StorageLocation> getAllStorageLocations() {
+    public final Map<String, StorageLocation> getAllStorageLocations() {
         final Map<String, StorageLocation> allStorageLocations = new HashMap<>();
         allStorageLocations.putAll(storageLocations);
         return allStorageLocations;
@@ -127,7 +110,7 @@ public abstract class ObjectLayout {
     /**
      * Find a storage location from a name.
      */
-    public StorageLocation findStorageLocation(String name) {
+    public final StorageLocation findStorageLocation(String name) {
         final StorageLocation storageLocation = storageLocations.get(name);
 
         if (storageLocation != null) {
@@ -136,8 +119,6 @@ public abstract class ObjectLayout {
 
         return null;
     }
-
-    public abstract int getObjectStorageLocationsUsed();
 
     public String findAttributeId(StorageLocation location) {
         for (Entry<String, StorageLocation> entry : storageLocations.entrySet()) {
@@ -149,15 +130,9 @@ public abstract class ObjectLayout {
         throw new IllegalStateException();
     }
 
-    public String getOriginHint() {
-        return originHint;
-    }
-
-    public abstract boolean isEmpty();
-
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + " " + this.storageLocations.toString();
+        return super.toString() + " " + this.storageLocations.toString();
     }
 
 }
