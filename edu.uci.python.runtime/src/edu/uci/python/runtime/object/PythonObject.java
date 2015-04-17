@@ -81,6 +81,25 @@ public abstract class PythonObject implements Comparable<Object> {
     }
 
     public final void syncObjectLayoutWithClass() {
+        /**
+         * This is a zombie Python object carried by a FixedPythonObjectStorage. For some reason
+         * this zombie object is still alive. It is most likely stored in a data structure in the
+         * first constructor calls. An subsequent access to this zombie will reach here.
+         * <p>
+         * Note that we cannot simply sync with pythonClass.getInstanceObjectLayout(). Since the
+         * layout has switched to a FlexibleObjectStorageLayout. A layout sync will cause
+         * unpredictable memory accesses. Therefore, we need to renew and assign a valid object
+         * layout for the zombie.
+         * <p>
+         * Hopefully this does not happen too often!
+         *
+         * @author zwei
+         */
+        if (this instanceof FixedPythonObjectStorage && pythonClass.getInstanceObjectLayout() instanceof FlexibleObjectStorageLayout) {
+            updateLayout(getObjectLayout().renew());
+            return;
+        }
+
         if (objectLayout != pythonClass.getInstanceObjectLayout()) {
             updateLayout(pythonClass.getInstanceObjectLayout());
         }

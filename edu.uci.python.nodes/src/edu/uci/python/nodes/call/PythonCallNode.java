@@ -410,6 +410,9 @@ public abstract class PythonCallNode extends PNode {
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
+            // Should never bootstrap the same class twice!
+            assert !(clazz.getInstanceObjectLayout() instanceof FlexibleObjectStorageLayout);
+
             PythonObject bootstrapObject = instanceNode.createNewInstance(clazz);
             Object[] arguments = argumentsNode.executeArguments(frame, true, bootstrapObject);
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);

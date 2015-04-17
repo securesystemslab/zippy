@@ -183,6 +183,12 @@ public class ObjectLayout {
         return validAssumption;
     }
 
+    protected ObjectLayout renew() {
+        final Map<String, Class<?>> storageTypes = getStorageTypes();
+        validAssumption.invalidate();
+        return new ObjectLayout(originHint + "renew", storageTypes);
+    }
+
     /**
      * Create a new version of this layout but with a new variable.
      */
