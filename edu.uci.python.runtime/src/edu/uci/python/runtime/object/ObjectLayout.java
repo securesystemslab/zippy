@@ -148,7 +148,7 @@ public class ObjectLayout {
             StorageLocation newStorageLocation;
 
             try {
-                long offset = ObjectLayoutUtil.getExactFieldOffsetOf(objectStorageClass, name);
+                long offset = ObjectLayoutUtil.getExactFieldOffsetOf(objectStorageClass, StorageClassGenerator.getFieldName(name));
 
                 // Field storage location
                 if (type == Integer.class) {
@@ -284,7 +284,7 @@ public class ObjectLayout {
 
     @Override
     public String toString() {
-        return super.toString() + " " + this.storageLocations.toString();
+        return this.getClass().getSimpleName() + " " + this.storageLocations.toString();
     }
 
 }

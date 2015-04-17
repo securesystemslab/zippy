@@ -410,8 +410,8 @@ public abstract class PythonCallNode extends PNode {
 
         @Override
         protected Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
-            PythonObject newInstance = instanceNode.createNewInstance(clazz);
-            Object[] arguments = argumentsNode.executeArguments(frame, true, newInstance);
+            PythonObject bootstrapObject = instanceNode.createNewInstance(clazz);
+            Object[] arguments = argumentsNode.executeArguments(frame, true, bootstrapObject);
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
 
@@ -420,10 +420,13 @@ public abstract class PythonCallNode extends PNode {
             this.replace(new CallConstructorFastNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));
 
             // Instantiate and migrate to the generated object storage.
-            PythonObject generatedInstance = instanceNode.createNewInstance(clazz);
-            newInstance.migrateTo(generatedInstance);
+            PythonObject newInstance = instanceNode.createNewInstance(clazz);
+            bootstrapObject.migrateTo(newInstance);
 
-            return generatedInstance;
+            assert !bootstrapObject.getObjectLayout().getValidAssumption().isValid();
+            assert newInstance.getObjectLayout().getValidAssumption().isValid();
+            assert newInstance.getObjectLayout() == clazz.getInstanceObjectLayout();
+            return newInstance;
         }
     }
 

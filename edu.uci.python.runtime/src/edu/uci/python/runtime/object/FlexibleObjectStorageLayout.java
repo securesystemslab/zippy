@@ -26,6 +26,15 @@ package edu.uci.python.runtime.object;
 
 import java.util.*;
 
+/**
+ * The layout descriptor attached to a FlexiblePythonObjectStorage. What is different here is that
+ * since the object storage in this case is generated, the layout extending needs to preserve the
+ * existing layout specified in the old layout. Otherwise, we are shuffling attributes randomly on
+ * the object storage.
+ *
+ * @author zwei
+ *
+ */
 public final class FlexibleObjectStorageLayout extends ObjectLayout {
 
     private final Class<?> storageClass;

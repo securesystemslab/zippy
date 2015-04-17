@@ -102,7 +102,7 @@ public class ClassFileGeneratorTests {
         Class<?> loadedClass = instance.getClass();
         try {
             for (int i = 0; i < 5; i++) {
-                Field field = loadedClass.getDeclaredField("int" + i);
+                Field field = loadedClass.getDeclaredField(StorageClassGenerator.getFieldName("int" + i));
                 assertTrue(field != null);
                 assertTrue(field.getType() == int.class);
             }
@@ -144,7 +144,7 @@ public class ClassFileGeneratorTests {
 
         try {
             for (int i = 0; i < 5; i++) {
-                Field field = newInstance.getClass().getDeclaredField("int" + i);
+                Field field = newInstance.getClass().getDeclaredField(StorageClassGenerator.getFieldName("int" + i));
                 assertTrue(field != null);
                 assertTrue(field.getType() == int.class);
             }

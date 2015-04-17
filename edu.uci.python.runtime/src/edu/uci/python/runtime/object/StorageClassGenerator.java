@@ -45,7 +45,8 @@ public final class StorageClassGenerator {
     private static final String PYTHON_OBJECT_STORAGE_CLASS = "edu/uci/python/runtime/object/FlexiblePythonObjectStorage";
     private static final String PYTHON_CLASS = "edu/uci/python/runtime/standardtype/PythonClass";
     private static final String CLASSPATH = "edu/uci/python/runtime/object/";
-    public static final String CREATE = "create";
+    private static final String CREATE = "create";
+    private static final String ATTRIBUTE_FIELD_PREFIX = "af_";
 
     private final PythonClass pythonClass;
     private final String validClassName;
@@ -66,6 +67,10 @@ public final class StorageClassGenerator {
         final MethodHandle ctor = lookupConstructor(storageClass);
         synchronizeObjectLayout(storageClass);
         return new FlexiblePythonObjectStorageFactory(ctor);
+    }
+
+    public static String getFieldName(String attributeName) {
+        return ATTRIBUTE_FIELD_PREFIX + attributeName;
     }
 
     private String getValidClassName() {
@@ -109,7 +114,7 @@ public final class StorageClassGenerator {
         if (clazz == Integer.class) {
             return int.class;
         } else if (clazz == Boolean.class) {
-            return boolean.class;
+            return int.class;
         } else if (clazz == Double.class) {
             return double.class;
         } else {
@@ -118,7 +123,7 @@ public final class StorageClassGenerator {
     }
 
     private void addField(String name, Class<?> clazz) {
-        fieldVisitor = classWriter.visitField(ACC_PROTECTED, name, CodegenUtils.ci(clazz), null, null);
+        fieldVisitor = classWriter.visitField(ACC_PROTECTED, ATTRIBUTE_FIELD_PREFIX + name, CodegenUtils.ci(clazz), null, null);
         fieldVisitor.visitEnd();
     }
 
