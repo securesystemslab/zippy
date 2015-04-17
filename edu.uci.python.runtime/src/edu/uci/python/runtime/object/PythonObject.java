@@ -95,7 +95,7 @@ public abstract class PythonObject implements Comparable<Object> {
          *
          * @author zwei
          */
-        if (this instanceof FixedPythonObjectStorage && pythonClass.getInstanceObjectLayout() instanceof FlexibleObjectStorageLayout) {
+        if (this instanceof FixedPythonObjectStorage && pythonClass.getInstanceObjectLayout() instanceof FlexibleObjectLayout) {
             usePrivateLayout = true;
             updateLayout(getObjectLayout().renew());
             return;

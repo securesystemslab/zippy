@@ -39,7 +39,7 @@ public abstract class NewInstanceNode extends Node {
 
     public static NewInstanceNode create(PythonClass clazz) {
         ObjectLayout layout = clazz.getInstanceObjectLayout();
-        if (layout instanceof FlexibleObjectStorageLayout) {
+        if (layout instanceof FlexibleObjectLayout) {
             return new NewFlexibleInstanceNode(clazz);
         } else {
             return new NewFixedInstanceNode(clazz);

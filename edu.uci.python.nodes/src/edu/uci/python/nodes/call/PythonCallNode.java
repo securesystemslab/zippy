@@ -182,7 +182,7 @@ public abstract class PythonCallNode extends PNode {
              * If the callee class has switched to a flexible object storage then no need to
              * bootstrap the constructor call again.
              */
-            if (PythonOptions.GenerateObjectStorage && !(clazz.getInstanceObjectLayout() instanceof FlexibleObjectStorageLayout)) {
+            if (PythonOptions.GenerateObjectStorage && !(clazz.getInstanceObjectLayout() instanceof FlexibleObjectLayout)) {
                 specialized = new CallConstructorBootstrappingNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
             } else {
                 specialized = new CallConstructorFastNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
@@ -411,7 +411,7 @@ public abstract class PythonCallNode extends PNode {
         @Override
         protected Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
             // Should never bootstrap the same class twice!
-            assert !(clazz.getInstanceObjectLayout() instanceof FlexibleObjectStorageLayout);
+            assert !(clazz.getInstanceObjectLayout() instanceof FlexibleObjectLayout);
 
             PythonObject bootstrapObject = instanceNode.createNewInstance(clazz);
             Object[] arguments = argumentsNode.executeArguments(frame, true, bootstrapObject);
