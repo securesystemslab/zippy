@@ -27,6 +27,7 @@ package edu.uci.python.runtime.object;
 import java.util.*;
 import java.util.Map.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.location.*;
 
 /**
@@ -42,15 +43,23 @@ public final class FlexibleObjectLayout extends ObjectLayout {
 
     private final int arrayObjectStorageLocationsUsed;
     private final Class<?> storageClass;
+    private final ObjectLayout predecessor;
 
-    protected FlexibleObjectLayout(String originHint, Class<?> storageClass) {
+    protected FlexibleObjectLayout(String originHint, Class<?> storageClass, ObjectLayout predecessor) {
         super(originHint);
         this.arrayObjectStorageLocationsUsed = 0;
         this.storageClass = storageClass;
+        this.predecessor = predecessor;
         assert FlexiblePythonObjectStorage.class.isAssignableFrom(storageClass);
+
+        if (PythonOptions.TraceObjectLayoutCreation) {
+            // CheckStyle: stop system..print check
+            System.out.println("[ZipPy] create " + this.toString());
+            // CheckStyle: resume system..print check
+        }
     }
 
-    protected FlexibleObjectLayout(String originHint, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass) {
+    protected FlexibleObjectLayout(String originHint, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass, ObjectLayout predecessor) {
         super(originHint);
         int primitiveIntStorageLocationIndex = 0;
         int primitiveDoubleStorageLocationIndex = 0;
@@ -64,7 +73,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
             StorageLocation newStorageLocation;
 
             try {
-                long offset = ObjectLayoutUtil.getExactFieldOffsetOf(objectStorageClass, StorageClassGenerator.getFieldName(name));
+                long offset = ObjectLayoutUtil.getExactFieldOffsetOf(objectStorageClass, FlexibleObjectStorageClassGenerator.getFieldName(name));
 
                 // Field storage location
                 if (type == Integer.class) {
@@ -86,11 +95,18 @@ public final class FlexibleObjectLayout extends ObjectLayout {
 
         this.arrayObjectStorageLocationsUsed = arrayObjectStorageLocationIndex;
         this.storageClass = objectStorageClass;
+        this.predecessor = predecessor;
         assert FlexiblePythonObjectStorage.class.isAssignableFrom(storageClass);
+
+        if (PythonOptions.TraceObjectLayoutCreation) {
+            // CheckStyle: stop system..print check
+            System.out.println("[ZipPy] create " + this.toString());
+            // CheckStyle: resume system..print check
+        }
     }
 
     public static FlexibleObjectLayout empty(Class<?> storageClass) {
-        return new FlexibleObjectLayout("(empty)", storageClass);
+        return new FlexibleObjectLayout("(empty)", storageClass, null);
     }
 
     @Override
@@ -106,28 +122,28 @@ public final class FlexibleObjectLayout extends ObjectLayout {
     @Override
     protected ObjectLayout copy() {
         final Map<String, Class<?>> attributeTypes = getAttributeTypes();
-        return new FlexibleObjectLayout(originHint + "copy", attributeTypes, storageClass);
+        return new FlexibleObjectLayout(originHint + "copy", attributeTypes, storageClass, predecessor);
     }
 
     @Override
     protected ObjectLayout addAttribute(String name, Class<?> type) {
         final Map<String, Class<?>> attributeTypes = getAttributeTypes();
         attributeTypes.put(name, type);
-        return new FlexibleObjectLayout(originHint + "+" + name, attributeTypes, storageClass);
+        return new FlexibleObjectLayout(originHint + "+" + name, attributeTypes, storageClass, predecessor);
     }
 
     @Override
     protected ObjectLayout deleteAttribute(String name) {
         final Map<String, Class<?>> attributeTypes = getAttributeTypes();
         attributeTypes.remove(name);
-        return new FlexibleObjectLayout(originHint + "-" + name, attributeTypes, storageClass);
+        return new FlexibleObjectLayout(originHint + "-" + name, attributeTypes, storageClass, predecessor);
     }
 
     @Override
     public ObjectLayout generalizedAttribute(String name) {
         final Map<String, Class<?>> attributeTypes = getAttributeTypes();
         attributeTypes.put(name, Object.class);
-        return new FlexibleObjectLayout(originHint + "!" + name, attributeTypes, storageClass);
+        return new FlexibleObjectLayout(originHint + "!" + name, attributeTypes, storageClass, predecessor);
     }
 
 }

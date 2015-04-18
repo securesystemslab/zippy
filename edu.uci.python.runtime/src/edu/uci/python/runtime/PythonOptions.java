@@ -39,6 +39,8 @@ public class PythonOptions {
 
     public static boolean TraceImports = false;
 
+    public static boolean TraceObjectLayoutCreation = false;
+
     // Translation flags
     public static boolean UsePrintFunction = false;
 

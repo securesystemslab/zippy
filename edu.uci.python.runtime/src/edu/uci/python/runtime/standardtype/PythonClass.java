@@ -246,7 +246,7 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
 
     public final void switchToGeneratedStorageClass() {
         CompilerDirectives.transferToInterpreterAndInvalidate();
-        StorageClassGenerator scg = new StorageClassGenerator(this);
+        FlexibleObjectStorageClassGenerator scg = new FlexibleObjectStorageClassGenerator(this);
         FlexiblePythonObjectStorageFactory newStorage = scg.generate();
         instanceConstructor = newStorage.getConstructor();
     }

@@ -45,7 +45,7 @@ public class ClassFileGeneratorTests {
     public void emptyLayout() {
         PythonContext context = PythonTests.getContext();
         PythonClass pyclazz = new PythonClass(context, "Foo", context.getObjectClass());
-        StorageClassGenerator cfg = new StorageClassGenerator(pyclazz);
+        FlexibleObjectStorageClassGenerator cfg = new FlexibleObjectStorageClassGenerator(pyclazz);
 
         FlexiblePythonObjectStorageFactory factory = cfg.generate();
         PythonObject instance = factory.newInstance(pyclazz);
@@ -72,7 +72,7 @@ public class ClassFileGeneratorTests {
         assertTrue(pyclazz.getInstanceObjectLayout().findStorageLocation("int5") != null);
 
         // Generate the storage class.
-        StorageClassGenerator cfg = new StorageClassGenerator(pyclazz);
+        FlexibleObjectStorageClassGenerator cfg = new FlexibleObjectStorageClassGenerator(pyclazz);
 
         // Instantiate
         PythonObject instance = cfg.generate().newInstance(pyclazz);
@@ -102,7 +102,7 @@ public class ClassFileGeneratorTests {
         Class<?> loadedClass = instance.getClass();
         try {
             for (int i = 0; i < 5; i++) {
-                Field field = loadedClass.getDeclaredField(StorageClassGenerator.getFieldName("int" + i));
+                Field field = loadedClass.getDeclaredField(FlexibleObjectStorageClassGenerator.getFieldName("int" + i));
                 assertTrue(field != null);
                 assertTrue(field.getType() == int.class);
             }
@@ -115,7 +115,7 @@ public class ClassFileGeneratorTests {
     public void methodHandleInvoke() {
         PythonContext context = PythonTests.getContext();
         PythonClass pyclazz = new PythonClass(context, "Foo", context.getObjectClass());
-        StorageClassGenerator cfg = new StorageClassGenerator(pyclazz);
+        FlexibleObjectStorageClassGenerator cfg = new FlexibleObjectStorageClassGenerator(pyclazz);
         FlexiblePythonObjectStorageFactory factory = cfg.generate();
         PythonObject instance = factory.newInstance(pyclazz);
         assertTrue(instance != null);
@@ -136,7 +136,7 @@ public class ClassFileGeneratorTests {
         obj.setAttribute("int5", 5);
 
         assertTrue(pyclazz.getInstanceObjectLayout().findStorageLocation("int5") != null);
-        FlexiblePythonObjectStorageFactory factory = new StorageClassGenerator(pyclazz).generate();
+        FlexiblePythonObjectStorageFactory factory = new FlexibleObjectStorageClassGenerator(pyclazz).generate();
         PythonObject newInstance = factory.newInstance(pyclazz);
 
         assertTrue(newInstance != null);
@@ -144,7 +144,7 @@ public class ClassFileGeneratorTests {
 
         try {
             for (int i = 0; i < 5; i++) {
-                Field field = newInstance.getClass().getDeclaredField(StorageClassGenerator.getFieldName("int" + i));
+                Field field = newInstance.getClass().getDeclaredField(FlexibleObjectStorageClassGenerator.getFieldName("int" + i));
                 assertTrue(field != null);
                 assertTrue(field.getType() == int.class);
             }

@@ -77,7 +77,7 @@ public abstract class ObjectLayout {
     protected ObjectLayout toFlexibleObjectLayout(Class<?> objectStorageClass) {
         assert !(this instanceof FlexibleObjectLayout);
         validAssumption.invalidate();
-        return new FlexibleObjectLayout(originHint + ".toflex", getAttributeTypes(), objectStorageClass);
+        return new FlexibleObjectLayout(originHint + ".toflex", getAttributeTypes(), objectStorageClass, this);
     }
 
     /**
@@ -132,7 +132,7 @@ public abstract class ObjectLayout {
 
     @Override
     public String toString() {
-        return super.toString() + " " + this.storageLocations.toString();
+        return this.getClass().getSimpleName() + " " + this.storageLocations.toString();
     }
 
 }
