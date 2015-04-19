@@ -39,6 +39,8 @@ public class PythonOptions {
 
     public static boolean TraceImports = false;
 
+    public static final boolean TraceSequenceStorageGeneralization = false;
+
     public static boolean TraceObjectLayoutCreation = false;
 
     // Translation flags
@@ -47,8 +49,6 @@ public class PythonOptions {
     // Runtime flags
     public static final boolean UnboxSequenceStorage = true;
 
-    public static final boolean TraceSequenceStorageGeneralization = false;
-
     public static final boolean UnboxSequenceIteration = true;
 
     public static final boolean IntrinsifyBuiltinCalls = true;
@@ -56,6 +56,8 @@ public class PythonOptions {
     public static final int AttributeAccessInlineCacheMaxDepth = 20;
 
     public static final int CallSiteInlineCacheMaxDepth = 20;
+
+    public static final boolean FlexibleObjectStorageEvolution = false;
 
     public static boolean GenerateObjectStorage = false;
 

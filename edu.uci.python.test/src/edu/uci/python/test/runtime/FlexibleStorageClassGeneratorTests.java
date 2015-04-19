@@ -39,13 +39,13 @@ import edu.uci.python.runtime.object.location.*;
 import edu.uci.python.runtime.standardtype.*;
 import edu.uci.python.test.*;
 
-public class ClassFileGeneratorTests {
+public class FlexibleStorageClassGeneratorTests {
 
     @Test
     public void emptyLayout() {
         PythonContext context = PythonTests.getContext();
         PythonClass pyclazz = new PythonClass(context, "Foo", context.getObjectClass());
-        FlexibleObjectStorageClassGenerator cfg = new FlexibleObjectStorageClassGenerator(pyclazz);
+        FlexibleStorageClassGenerator cfg = new FlexibleStorageClassGenerator(pyclazz);
 
         FlexiblePythonObjectStorageFactory factory = cfg.generate();
         PythonObject instance = factory.newInstance(pyclazz);
@@ -72,7 +72,7 @@ public class ClassFileGeneratorTests {
         assertTrue(pyclazz.getInstanceObjectLayout().findStorageLocation("int5") != null);
 
         // Generate the storage class.
-        FlexibleObjectStorageClassGenerator cfg = new FlexibleObjectStorageClassGenerator(pyclazz);
+        FlexibleStorageClassGenerator cfg = new FlexibleStorageClassGenerator(pyclazz);
 
         // Instantiate
         PythonObject instance = cfg.generate().newInstance(pyclazz);
@@ -102,7 +102,7 @@ public class ClassFileGeneratorTests {
         Class<?> loadedClass = instance.getClass();
         try {
             for (int i = 0; i < 5; i++) {
-                Field field = loadedClass.getDeclaredField(FlexibleObjectStorageClassGenerator.getFieldName("int" + i));
+                Field field = loadedClass.getDeclaredField(FlexibleStorageClassGenerator.getFieldName("int" + i));
                 assertTrue(field != null);
                 assertTrue(field.getType() == int.class);
             }
@@ -115,7 +115,7 @@ public class ClassFileGeneratorTests {
     public void methodHandleInvoke() {
         PythonContext context = PythonTests.getContext();
         PythonClass pyclazz = new PythonClass(context, "Foo", context.getObjectClass());
-        FlexibleObjectStorageClassGenerator cfg = new FlexibleObjectStorageClassGenerator(pyclazz);
+        FlexibleStorageClassGenerator cfg = new FlexibleStorageClassGenerator(pyclazz);
         FlexiblePythonObjectStorageFactory factory = cfg.generate();
         PythonObject instance = factory.newInstance(pyclazz);
         assertTrue(instance != null);
@@ -136,7 +136,7 @@ public class ClassFileGeneratorTests {
         obj.setAttribute("int5", 5);
 
         assertTrue(pyclazz.getInstanceObjectLayout().findStorageLocation("int5") != null);
-        FlexiblePythonObjectStorageFactory factory = new FlexibleObjectStorageClassGenerator(pyclazz).generate();
+        FlexiblePythonObjectStorageFactory factory = new FlexibleStorageClassGenerator(pyclazz).generate();
         PythonObject newInstance = factory.newInstance(pyclazz);
 
         assertTrue(newInstance != null);
@@ -144,7 +144,7 @@ public class ClassFileGeneratorTests {
 
         try {
             for (int i = 0; i < 5; i++) {
-                Field field = newInstance.getClass().getDeclaredField(FlexibleObjectStorageClassGenerator.getFieldName("int" + i));
+                Field field = newInstance.getClass().getDeclaredField(FlexibleStorageClassGenerator.getFieldName("int" + i));
                 assertTrue(field != null);
                 assertTrue(field.getType() == int.class);
             }
@@ -179,6 +179,18 @@ public class ClassFileGeneratorTests {
 
         Path script = Paths.get("object-layout-change-after-ctor-test.py");
         PythonTests.assertPrints("42\n43\n", script);
+
+        ctx.getPythonOptions().GenerateObjectStorage = false;
+    }
+
+    @Test
+    @SuppressWarnings("static-access")
+    public void layoutChangeInLoop() {
+        PythonContext ctx = PythonTests.getContext();
+        ctx.getPythonOptions().GenerateObjectStorage = true;
+
+        Path script = Paths.get("object-layout-change-in-loop-test.py");
+        PythonTests.assertPrints("1013\n", script);
 
         ctx.getPythonOptions().GenerateObjectStorage = false;
     }

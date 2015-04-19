@@ -185,7 +185,7 @@ public abstract class PythonCallNode extends PNode {
             if (PythonOptions.GenerateObjectStorage && !(clazz.getInstanceObjectLayout() instanceof FlexibleObjectLayout)) {
                 specialized = new CallConstructorBootstrappingNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
             } else {
-                specialized = new CallConstructorFastNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
+                specialized = new CallConstructorFixedNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
             }
 
             return replace(specialized).executeCall(frame, (PythonObject) primary, (PythonClass) callable);
@@ -420,7 +420,11 @@ public abstract class PythonCallNode extends PNode {
 
             // Switch to generated object storage.
             clazz.switchToGeneratedStorageClass();
-            this.replace(new CallConstructorFastNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));
+            if (PythonOptions.FlexibleObjectStorageEvolution) {
+                this.replace(new CallConstructorFlexibleNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));
+            } else {
+                this.replace(new CallConstructorFixedNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));
+            }
 
             // Instantiate and migrate to the generated object storage.
             PythonObject newInstance = instanceNode.createNewInstance(clazz);
@@ -433,9 +437,38 @@ public abstract class PythonCallNode extends PNode {
         }
     }
 
-    public static final class CallConstructorFastNode extends CallConstructorNode {
+    public static final class CallConstructorFlexibleNode extends CallConstructorNode {
 
-        public CallConstructorFastNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
+        private final Assumption isLayoutOptimal;
+
+        public CallConstructorFlexibleNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
+            super(context, pythonClass, primary, callee, arguments, keywords, dispatch);
+            this.isLayoutOptimal = ((FlexibleObjectLayout) pythonClass.getInstanceObjectLayout()).getIsOptimalAssumption();
+        }
+
+        @Override
+        protected Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
+            PythonObject newInstance = null;
+            try {
+                isLayoutOptimal.check();
+                newInstance = instanceNode.createNewInstance(clazz);
+            } catch (InvalidAssumptionException e) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                clazz.switchToGeneratedStorageClass();
+                CallConstructorNode newNode = this.replace(new CallConstructorFlexibleNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));
+                newInstance = newNode.instanceNode.createNewInstance(clazz);
+            }
+
+            Object[] arguments = argumentsNode.executeArguments(frame, true, newInstance);
+            PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
+            dispatchNode.executeCall(frame, primary, arguments, keywords);
+            return newInstance;
+        }
+    }
+
+    public static final class CallConstructorFixedNode extends CallConstructorNode {
+
+        public CallConstructorFixedNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
             super(context, pythonClass, primary, callee, arguments, keywords, dispatch);
         }
 

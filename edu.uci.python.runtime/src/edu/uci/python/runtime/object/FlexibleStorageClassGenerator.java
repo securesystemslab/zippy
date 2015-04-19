@@ -40,7 +40,7 @@ import static org.objectweb.asm.Opcodes.*;
 /**
  * @author zwei
  */
-public final class FlexibleObjectStorageClassGenerator {
+public final class FlexibleStorageClassGenerator {
 
     private static final String PYTHON_OBJECT_STORAGE_CLASS = "edu/uci/python/runtime/object/FlexiblePythonObjectStorage";
     private static final String PYTHON_CLASS = "edu/uci/python/runtime/standardtype/PythonClass";
@@ -55,7 +55,7 @@ public final class FlexibleObjectStorageClassGenerator {
     private FieldVisitor fieldVisitor;
     private MethodVisitor methodVisitor;
 
-    public FlexibleObjectStorageClassGenerator(PythonClass pythonClass) {
+    public FlexibleStorageClassGenerator(PythonClass pythonClass) {
         this.pythonClass = pythonClass;
         this.classWriter = new ClassWriter(0);
         // Python class name mangling. Replacing dot following the module name with a dollar sign.

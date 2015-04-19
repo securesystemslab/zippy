@@ -27,6 +27,8 @@ package edu.uci.python.runtime.object;
 import java.util.*;
 import java.util.Map.*;
 
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.location.*;
 
@@ -44,12 +46,14 @@ public final class FlexibleObjectLayout extends ObjectLayout {
     private final int arrayObjectStorageLocationsUsed;
     private final Class<?> storageClass;
     private final ObjectLayout predecessor;
+    private final Assumption isOptimalAssumption;
 
     protected FlexibleObjectLayout(String originHint, Class<?> storageClass, ObjectLayout predecessor) {
         super(originHint);
         this.arrayObjectStorageLocationsUsed = 0;
         this.storageClass = storageClass;
         this.predecessor = predecessor;
+        this.isOptimalAssumption = Truffle.getRuntime().createAssumption();
         assert FlexiblePythonObjectStorage.class.isAssignableFrom(storageClass);
 
         if (PythonOptions.TraceObjectLayoutCreation) {
@@ -73,7 +77,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
             StorageLocation newStorageLocation;
 
             try {
-                long offset = ObjectLayoutUtil.getExactFieldOffsetOf(objectStorageClass, FlexibleObjectStorageClassGenerator.getFieldName(name));
+                long offset = ObjectLayoutUtil.getExactFieldOffsetOf(objectStorageClass, FlexibleStorageClassGenerator.getFieldName(name));
 
                 // Field storage location
                 if (type == Integer.class) {
@@ -96,6 +100,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
         this.arrayObjectStorageLocationsUsed = arrayObjectStorageLocationIndex;
         this.storageClass = objectStorageClass;
         this.predecessor = predecessor;
+        this.isOptimalAssumption = Truffle.getRuntime().createAssumption();
         assert FlexiblePythonObjectStorage.class.isAssignableFrom(storageClass);
 
         if (PythonOptions.TraceObjectLayoutCreation) {
@@ -119,6 +124,10 @@ public final class FlexibleObjectLayout extends ObjectLayout {
         return storageLocations.isEmpty() && arrayObjectStorageLocationsUsed == 0;
     }
 
+    public final Assumption getIsOptimalAssumption() {
+        return isOptimalAssumption;
+    }
+
     @Override
     protected ObjectLayout copy() {
         final Map<String, Class<?>> attributeTypes = getAttributeTypes();
@@ -129,6 +138,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
     protected ObjectLayout addAttribute(String name, Class<?> type) {
         final Map<String, Class<?>> attributeTypes = getAttributeTypes();
         attributeTypes.put(name, type);
+        isOptimalAssumption.invalidate();
         return new FlexibleObjectLayout(originHint + "+" + name, attributeTypes, storageClass, predecessor);
     }
 
@@ -143,7 +153,13 @@ public final class FlexibleObjectLayout extends ObjectLayout {
     public ObjectLayout generalizedAttribute(String name) {
         final Map<String, Class<?>> attributeTypes = getAttributeTypes();
         attributeTypes.put(name, Object.class);
+        isOptimalAssumption.invalidate();
         return new FlexibleObjectLayout(originHint + "!" + name, attributeTypes, storageClass, predecessor);
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName() + "(" + storageClass.getSimpleName() + ") " + this.storageLocations.toString();
     }
 
 }

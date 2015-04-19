@@ -75,8 +75,9 @@ public abstract class ObjectLayout {
     protected abstract ObjectLayout generalizedAttribute(String name);
 
     protected ObjectLayout toFlexibleObjectLayout(Class<?> objectStorageClass) {
-        assert !(this instanceof FlexibleObjectLayout);
-        validAssumption.invalidate();
+        if (!(this instanceof FlexibleObjectLayout)) {
+            validAssumption.invalidate();
+        }
         return new FlexibleObjectLayout(originHint + ".toflex", getAttributeTypes(), objectStorageClass, this);
     }
 
