@@ -124,6 +124,11 @@ public final class FlexibleObjectLayout extends ObjectLayout {
         return storageLocations.isEmpty() && arrayObjectStorageLocationsUsed == 0;
     }
 
+    @Override
+    public Assumption getCtorValidAssumption() {
+        return isOptimalAssumption;
+    }
+
     public final Assumption getIsOptimalAssumption() {
         return isOptimalAssumption;
     }
@@ -131,6 +136,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
     @Override
     protected ObjectLayout copy() {
         final Map<String, Class<?>> attributeTypes = getAttributeTypes();
+        validAssumption.invalidate();
         return new FlexibleObjectLayout(originHint + "copy", attributeTypes, storageClass, predecessor);
     }
 
@@ -138,6 +144,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
     protected ObjectLayout addAttribute(String name, Class<?> type) {
         final Map<String, Class<?>> attributeTypes = getAttributeTypes();
         attributeTypes.put(name, type);
+        validAssumption.invalidate();
         isOptimalAssumption.invalidate();
         return new FlexibleObjectLayout(originHint + "+" + name, attributeTypes, storageClass, predecessor);
     }
@@ -146,6 +153,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
     protected ObjectLayout deleteAttribute(String name) {
         final Map<String, Class<?>> attributeTypes = getAttributeTypes();
         attributeTypes.remove(name);
+        validAssumption.invalidate();
         return new FlexibleObjectLayout(originHint + "-" + name, attributeTypes, storageClass, predecessor);
     }
 
@@ -153,6 +161,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
     public ObjectLayout generalizedAttribute(String name) {
         final Map<String, Class<?>> attributeTypes = getAttributeTypes();
         attributeTypes.put(name, Object.class);
+        validAssumption.invalidate();
         isOptimalAssumption.invalidate();
         return new FlexibleObjectLayout(originHint + "!" + name, attributeTypes, storageClass, predecessor);
     }

@@ -26,9 +26,12 @@ package edu.uci.python.runtime.object;
 
 import java.util.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class FlexiblePythonObjectStorage extends PythonObject {
+
+    private static FlexibleObjectLayout storageLayout;
 
     public FlexiblePythonObjectStorage(PythonClass pythonClass) {
         super(pythonClass);
@@ -42,10 +45,17 @@ public class FlexiblePythonObjectStorage extends PythonObject {
         }
 
         objectLayout = layout;
+        storageLayout = layout;
     }
 
     @Override
     public void syncObjectLayoutWithClass() {
+        assert storageLayout != null;
+
+        if (objectLayout != storageLayout) {
+            updateLayout(storageLayout);
+        }
+
         assert verifyLayout();
         return;
     }
@@ -59,6 +69,15 @@ public class FlexiblePythonObjectStorage extends PythonObject {
 
         // Use new Layout
         objectLayout = newLayout;
+
+        // Synchronize instance object layout with the storage class
+        if (!usePrivateLayout) {
+            storageLayout = (FlexibleObjectLayout) newLayout;
+
+            if (!PythonOptions.FlexibleObjectStorageEvolution && !pythonClass.getInstanceObjectLayout().getValidAssumption().isValid()) {
+                pythonClass.updateInstanceObjectLayout(newLayout);
+            }
+        }
 
         // Make all primitives as unset
         setPrimitiveSetMap(0);

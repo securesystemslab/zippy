@@ -27,6 +27,8 @@ package edu.uci.python.runtime.object;
 import java.util.*;
 import java.util.Map.*;
 
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.object.location.*;
 
 public final class FixedObjectLayout extends ObjectLayout {
@@ -125,6 +127,11 @@ public final class FixedObjectLayout extends ObjectLayout {
                         primitiveIntStorageLocationsUsed == 0 && //
                         fieldObjectStorageLocationsUsed == 0 && //
                         primitiveDoubleStorageLocationsUsed == 0;
+    }
+
+    @Override
+    public Assumption getCtorValidAssumption() {
+        return this.validAssumption;
     }
 
     @Override

@@ -64,6 +64,8 @@ public abstract class ObjectLayout {
 
     public abstract boolean isEmpty();
 
+    public abstract Assumption getCtorValidAssumption();
+
     public abstract int getObjectStorageLocationsUsed();
 
     protected abstract ObjectLayout copy();

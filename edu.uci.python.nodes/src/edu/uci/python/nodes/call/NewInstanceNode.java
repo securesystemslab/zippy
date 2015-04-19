@@ -34,7 +34,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public abstract class NewInstanceNode extends Node {
 
-    protected final Assumption instanceLayoutStableAssumption;
+    protected final Assumption ctorValidAssumption;
     protected final MethodHandle instanceCtor;
 
     public static NewInstanceNode create(PythonClass clazz) {
@@ -47,13 +47,13 @@ public abstract class NewInstanceNode extends Node {
     }
 
     public NewInstanceNode(PythonClass pythonClass) {
-        this.instanceLayoutStableAssumption = pythonClass.getInstanceObjectLayout().getValidAssumption();
+        this.ctorValidAssumption = pythonClass.getInstanceObjectLayout().getCtorValidAssumption();
         this.instanceCtor = pythonClass.getInstanceConstructor();
     }
 
     public final PythonObject createNewInstance(PythonClass clazz) {
         try {
-            instanceLayoutStableAssumption.check();
+            ctorValidAssumption.check();
             return invokeCtor(clazz);
         } catch (InvalidAssumptionException e) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
