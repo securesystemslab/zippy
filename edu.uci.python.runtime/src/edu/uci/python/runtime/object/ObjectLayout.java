@@ -74,6 +74,8 @@ public abstract class ObjectLayout {
 
     protected abstract ObjectLayout generalizedAttribute(String name);
 
+    protected abstract boolean verifyObjectStorage(PythonObject objectStorage);
+
     protected ObjectLayout toFlexibleObjectLayout(Class<?> objectStorageClass) {
         if (!(this instanceof FlexibleObjectLayout)) {
             validAssumption.invalidate();

@@ -449,6 +449,7 @@ public abstract class PythonCallNode extends PNode {
         @Override
         protected Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
             PythonObject newInstance = null;
+
             try {
                 isLayoutOptimal.check();
                 newInstance = instanceNode.createNewInstance(clazz);
@@ -459,6 +460,7 @@ public abstract class PythonCallNode extends PNode {
                 newInstance = newNode.instanceNode.createNewInstance(clazz);
             }
 
+            assert newInstance.verifyLayout();
             Object[] arguments = argumentsNode.executeArguments(frame, true, newInstance);
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             dispatchNode.executeCall(frame, primary, arguments, keywords);

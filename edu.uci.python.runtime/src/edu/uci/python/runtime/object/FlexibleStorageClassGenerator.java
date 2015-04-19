@@ -59,7 +59,7 @@ public final class FlexibleStorageClassGenerator {
         this.pythonClass = pythonClass;
         this.classWriter = new ClassWriter(0);
         // Python class name mangling. Replacing dot following the module name with a dollar sign.
-        this.validClassName = CLASSPATH + pythonClass.getName().replace('.', '$');
+        this.validClassName = CLASSPATH + pythonClass.getName().replace('.', '$') + pythonClass.getFlexibleObjectStorageVersion();
     }
 
     public FlexiblePythonObjectStorageFactory generate() {

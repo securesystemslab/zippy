@@ -58,6 +58,7 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
      */
     @CompilationFinal private ObjectLayout instanceObjectLayout;
     @CompilationFinal private MethodHandle instanceConstructor;
+    private int flexibleObjectStorageVersion = 0;
 
     private final Set<PythonClass> subClasses = Collections.newSetFromMap(new WeakHashMap<PythonClass, Boolean>());
 
@@ -244,11 +245,16 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
         this.instanceObjectLayout = newLayout;
     }
 
+    public final int getFlexibleObjectStorageVersion() {
+        return flexibleObjectStorageVersion;
+    }
+
     public final void switchToGeneratedStorageClass() {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         FlexibleStorageClassGenerator scg = new FlexibleStorageClassGenerator(this);
         FlexiblePythonObjectStorageFactory newStorage = scg.generate();
         instanceConstructor = newStorage.getConstructor();
+        flexibleObjectStorageVersion++;
     }
 
     /**

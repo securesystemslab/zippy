@@ -81,6 +81,9 @@ public abstract class PythonObject implements Comparable<Object> {
     }
 
     public final void syncObjectLayoutWithClass() {
+        if (this instanceof FlexiblePythonObjectStorage) {
+            return;
+        }
         /**
          * This is a zombie Python object carried by a FixedPythonObjectStorage. For some reason
          * this zombie object is still alive. It is most likely stored in a data structure in the
@@ -104,6 +107,8 @@ public abstract class PythonObject implements Comparable<Object> {
         if (objectLayout != pythonClass.getInstanceObjectLayout()) {
             updateLayout(pythonClass.getInstanceObjectLayout());
         }
+
+        assert verifyLayout();
     }
 
     /**
@@ -203,6 +208,8 @@ public abstract class PythonObject implements Comparable<Object> {
                 throw new RuntimeException("Generalised an instance variable, but it still rejected the value");
             }
         }
+
+        assert verifyLayout();
     }
 
     public void deleteAttribute(String name) {
@@ -217,6 +224,8 @@ public abstract class PythonObject implements Comparable<Object> {
     }
 
     public void updateLayout(ObjectLayout newLayout) {
+        assert verifyLayout();
+
         // Get the current values of instance variables
         final Map<String, Object> instanceVariableMap = getAttributes();
 
@@ -314,6 +323,10 @@ public abstract class PythonObject implements Comparable<Object> {
         }
 
         return getPythonClass();
+    }
+
+    public boolean verifyLayout() {
+        return objectLayout.verifyObjectStorage(this);
     }
 
     @Override

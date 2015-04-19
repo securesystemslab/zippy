@@ -158,4 +158,10 @@ public final class FixedObjectLayout extends ObjectLayout {
         return new FixedObjectLayout(originHint + "!" + name, storageTypes);
     }
 
+    @Override
+    protected boolean verifyObjectStorage(PythonObject objectStorage) {
+        assert FixedPythonObjectStorage.class.isAssignableFrom(objectStorage.getClass());
+        return true;
+    }
+
 }

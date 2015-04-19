@@ -158,6 +158,30 @@ public final class FlexibleObjectLayout extends ObjectLayout {
     }
 
     @Override
+    protected boolean verifyObjectStorage(PythonObject objectStorage) {
+        Class<?> clazz = objectStorage.getClass();
+        assert FlexiblePythonObjectStorage.class.isAssignableFrom(clazz);
+        int arrayObjectStorageLocationsIndex = 0;
+
+        for (Entry<String, StorageLocation> entry : storageLocations.entrySet()) {
+            final String name = entry.getKey();
+            final StorageLocation storageLocation = entry.getValue();
+
+            if (storageLocation instanceof ArrayObjectStorageLocation) {
+                arrayObjectStorageLocationsIndex++;
+            } else {
+                try {
+                    ObjectLayoutUtil.getExactFieldOffsetOf(clazz, FlexibleStorageClassGenerator.getFieldName(name));
+                } catch (NoSuchFieldException e) {
+                    return false;
+                }
+            }
+        }
+
+        return arrayObjectStorageLocationsIndex == (objectStorage.arrayObjects != null ? objectStorage.arrayObjects.length : 0);
+    }
+
+    @Override
     public String toString() {
         return this.getClass().getSimpleName() + "(" + storageClass.getSimpleName() + ") " + this.storageLocations.toString();
     }
