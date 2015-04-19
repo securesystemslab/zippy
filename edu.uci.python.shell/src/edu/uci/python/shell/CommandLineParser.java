@@ -53,8 +53,8 @@ public class CommandLineParser {
                 continue;
             }
 
-            if (arg.equals("-generate-object-storage")) {
-                PythonOptions.GenerateObjectStorage = true;
+            if (arg.equals("-flexible-object-storage")) {
+                PythonOptions.FlexibleObjectStorage = true;
                 continue;
             }
 

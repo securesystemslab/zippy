@@ -59,7 +59,7 @@ public class PythonOptions {
 
     public static final boolean FlexibleObjectStorageEvolution = false;
 
-    public static boolean GenerateObjectStorage = false;
+    public static boolean FlexibleObjectStorage = false;
 
     // Generators
     public static boolean InlineGeneratorCalls = true;

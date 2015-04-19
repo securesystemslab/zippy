@@ -79,9 +79,9 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
         computeMethodResolutionOrder();
 
         // Does not inherit instanceObjectLayout from the TypeClass.
-        setObjectLayout(ObjectLayout.empty());
+        objectLayout = ObjectLayout.empty();
 
-        // Inherite InstanceObjectLayout when possible
+        // Inherit InstanceObjectLayout when possible
         instanceObjectLayout = this.baseClasses.length == 0 ? ObjectLayout.empty() : new FixedObjectLayout(getName());
 
         switchToPrivateLayout();

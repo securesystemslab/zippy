@@ -24,6 +24,8 @@
  */
 package edu.uci.python.runtime.object;
 
+import java.util.*;
+
 import edu.uci.python.runtime.standardtype.*;
 
 public class FlexiblePythonObjectStorage extends PythonObject {
@@ -39,13 +41,35 @@ public class FlexiblePythonObjectStorage extends PythonObject {
             layout = (FlexibleObjectLayout) pythonClass.getInstanceObjectLayout();
         }
 
-        setObjectLayout(layout);
+        objectLayout = layout;
     }
 
     @Override
     public void syncObjectLayoutWithClass() {
         assert verifyLayout();
         return;
+    }
+
+    @Override
+    public void updateLayout(ObjectLayout newLayout) {
+        assert verifyLayout();
+
+        // Get the current values of instance variables
+        final Map<String, Object> instanceVariableMap = getAttributes();
+
+        // Use new Layout
+        objectLayout = newLayout;
+
+        // Make all primitives as unset
+        setPrimitiveSetMap(0);
+
+        // Create a new array for objects
+        allocateSpillArray();
+
+        // Restore values
+        setAttributes(instanceVariableMap);
+
+        assert verifyLayout();
     }
 
 }

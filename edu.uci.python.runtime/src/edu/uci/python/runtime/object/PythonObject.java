@@ -51,7 +51,7 @@ public abstract class PythonObject implements Comparable<Object> {
     public PythonObject(PythonClass pythonClass) {
         this.pythonClass = pythonClass;
         objectLayout = pythonClass == null ? ObjectLayout.empty() : pythonClass.getInstanceObjectLayout();
-        allocateObjectStorageLocations();
+        allocateSpillArray();
     }
 
     public final PythonClass getPythonClass() {
@@ -75,12 +75,9 @@ public abstract class PythonObject implements Comparable<Object> {
         this.primitiveSetMap = primitiveSetMap;
     }
 
-    protected final void setObjectLayout(ObjectLayout newLayout) {
-        assert newLayout != null;
-        this.objectLayout = newLayout;
-    }
-
     public abstract void syncObjectLayoutWithClass();
+
+    public abstract void updateLayout(ObjectLayout newLayout);
 
     /**
      * Does this object have an instance variable defined?
@@ -107,7 +104,7 @@ public abstract class PythonObject implements Comparable<Object> {
         return storage;
     }
 
-    private void allocateObjectStorageLocations() {
+    protected void allocateSpillArray() {
         final int objectStorageLocationsUsed = objectLayout.getObjectStorageLocationsUsed();
 
         if (objectStorageLocationsUsed == 0) {
@@ -189,30 +186,6 @@ public abstract class PythonObject implements Comparable<Object> {
         updateLayout(objectLayout.deleteAttribute(name));
     }
 
-    public void updateLayout(ObjectLayout newLayout) {
-        assert verifyLayout();
-
-        // Get the current values of instance variables
-        final Map<String, Object> instanceVariableMap = getAttributes();
-
-        // Use new Layout
-        objectLayout = newLayout;
-
-        // Synchronize instance object layout with the class
-        if (!usePrivateLayout) {
-            pythonClass.updateInstanceObjectLayout(newLayout);
-        }
-
-        // Make all primitives as unset
-        setPrimitiveSetMap(0);
-
-        // Create a new array for objects
-        allocateObjectStorageLocations();
-
-        // Restore values
-        setAttributes(instanceVariableMap);
-    }
-
     public void migrateTo(PythonObject to) {
         // Get the current values of instance variables
         final Map<String, Object> instanceVariableMap = getAttributes();
@@ -253,7 +226,7 @@ public abstract class PythonObject implements Comparable<Object> {
         return attributesMap;
     }
 
-    private void setAttributes(Map<String, Object> attributes) {
+    protected void setAttributes(Map<String, Object> attributes) {
         for (Entry<String, Object> entry : attributes.entrySet()) {
             final StorageLocation storageLocation = objectLayout.findStorageLocation(entry.getKey());
 

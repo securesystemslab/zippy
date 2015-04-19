@@ -157,7 +157,7 @@ public class FlexibleStorageClassGeneratorTests {
     @SuppressWarnings("static-access")
     public void constructorNode() {
         PythonContext ctx = PythonTests.getContext();
-        ctx.getPythonOptions().GenerateObjectStorage = true;
+        ctx.getPythonOptions().FlexibleObjectStorage = true;
 
         String source = "class Foo:\n" + //
                         "    def __init__(self, n):\n" + //
@@ -168,30 +168,30 @@ public class FlexibleStorageClassGeneratorTests {
                         "\n";
         PythonTests.assertPrints("0\n1\n2\n", source);
 
-        ctx.getPythonOptions().GenerateObjectStorage = false;
+        ctx.getPythonOptions().FlexibleObjectStorage = false;
     }
 
     @Test
     @SuppressWarnings("static-access")
     public void layoutChange() {
         PythonContext ctx = PythonTests.getContext();
-        ctx.getPythonOptions().GenerateObjectStorage = true;
+        ctx.getPythonOptions().FlexibleObjectStorage = true;
 
         Path script = Paths.get("object-layout-change-after-ctor-test.py");
         PythonTests.assertPrints("42\n43\n", script);
 
-        ctx.getPythonOptions().GenerateObjectStorage = false;
+        ctx.getPythonOptions().FlexibleObjectStorage = false;
     }
 
     @Test
     @SuppressWarnings("static-access")
     public void layoutChangeInLoop() {
         PythonContext ctx = PythonTests.getContext();
-        ctx.getPythonOptions().GenerateObjectStorage = true;
+        ctx.getPythonOptions().FlexibleObjectStorage = true;
 
         Path script = Paths.get("object-layout-change-in-loop-test.py");
         PythonTests.assertPrints("1013\n", script);
 
-        ctx.getPythonOptions().GenerateObjectStorage = false;
+        ctx.getPythonOptions().FlexibleObjectStorage = false;
     }
 }
