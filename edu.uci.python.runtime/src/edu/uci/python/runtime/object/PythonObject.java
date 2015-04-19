@@ -40,8 +40,8 @@ public abstract class PythonObject implements Comparable<Object> {
 
     @CompilationFinal protected PythonClass pythonClass;
 
-    private ObjectLayout objectLayout;
-    private boolean usePrivateLayout;
+    protected ObjectLayout objectLayout;
+    protected boolean usePrivateLayout;
 
     // A bit map to indicate which primitives are set.
     private int primitiveSetMap;
@@ -49,7 +49,7 @@ public abstract class PythonObject implements Comparable<Object> {
     protected Object[] arrayObjects = null;
 
     public PythonObject(PythonClass pythonClass) {
-        unsafeSetPythonClass(pythonClass);
+        this.pythonClass = pythonClass;
         objectLayout = pythonClass == null ? ObjectLayout.empty() : pythonClass.getInstanceObjectLayout();
         allocateObjectStorageLocations();
     }
@@ -80,36 +80,7 @@ public abstract class PythonObject implements Comparable<Object> {
         this.objectLayout = newLayout;
     }
 
-    public final void syncObjectLayoutWithClass() {
-        if (this instanceof FlexiblePythonObjectStorage) {
-            return;
-        }
-        /**
-         * This is a zombie Python object carried by a FixedPythonObjectStorage. For some reason
-         * this zombie object is still alive. It is most likely stored in a data structure in the
-         * first constructor calls. An subsequent access to this zombie will reach here.
-         * <p>
-         * Note that we cannot simply sync with pythonClass.getInstanceObjectLayout(). Since the
-         * layout has switched to a FlexibleObjectStorageLayout. A layout sync will cause
-         * unpredictable memory accesses. Therefore, we need to renew and assign a valid object
-         * layout for the zombie.
-         * <p>
-         * Hopefully this does not happen too often!
-         *
-         * @author zwei
-         */
-        if (this instanceof FixedPythonObjectStorage && pythonClass.getInstanceObjectLayout() instanceof FlexibleObjectLayout) {
-            usePrivateLayout = true;
-            updateLayout(getObjectLayout().copy());
-            return;
-        }
-
-        if (objectLayout != pythonClass.getInstanceObjectLayout()) {
-            updateLayout(pythonClass.getInstanceObjectLayout());
-        }
-
-        assert verifyLayout();
-    }
+    public abstract void syncObjectLayoutWithClass();
 
     /**
      * Does this object have an instance variable defined?
@@ -144,11 +115,6 @@ public abstract class PythonObject implements Comparable<Object> {
         } else {
             arrayObjects = new Object[objectStorageLocationsUsed];
         }
-    }
-
-    public void unsafeSetPythonClass(PythonClass newPythonClass) {
-        assert pythonClass == null;
-        pythonClass = newPythonClass;
     }
 
     /**

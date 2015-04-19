@@ -42,4 +42,10 @@ public class FlexiblePythonObjectStorage extends PythonObject {
         setObjectLayout(layout);
     }
 
+    @Override
+    public void syncObjectLayoutWithClass() {
+        assert verifyLayout();
+        return;
+    }
+
 }
