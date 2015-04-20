@@ -69,6 +69,7 @@ public class FlexiblePythonObjectStorage extends PythonObject {
         final Map<String, Object> instanceVariableMap = getAttributes();
 
         // Use new Layout
+        assert ((FlexibleObjectLayout) objectLayout).getVersion() == ((FlexibleObjectLayout) newLayout).getVersion();
         objectLayout = newLayout;
 
         // Synchronize instance object layout with the storage class
@@ -77,6 +78,15 @@ public class FlexiblePythonObjectStorage extends PythonObject {
 
             if (!PythonOptions.FlexibleObjectStorageEvolution && !pythonClass.getInstanceObjectLayout().getValidAssumption().isValid()) {
                 pythonClass.updateInstanceObjectLayout(newLayout);
+            }
+
+            if (PythonOptions.FlexibleObjectStorageEvolution && !pythonClass.getInstanceObjectLayout().getValidAssumption().isValid()) {
+                FlexibleObjectLayout nu = (FlexibleObjectLayout) newLayout;
+                FlexibleObjectLayout current = (FlexibleObjectLayout) pythonClass.getInstanceObjectLayout();
+
+                if (nu.getVersion() >= current.getVersion()) {
+                    pythonClass.updateInstanceObjectLayout(newLayout);
+                }
             }
         }
 
@@ -91,5 +101,4 @@ public class FlexiblePythonObjectStorage extends PythonObject {
 
         assert verifyLayout();
     }
-
 }

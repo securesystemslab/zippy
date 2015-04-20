@@ -182,13 +182,15 @@ public abstract class PythonCallNode extends PNode {
              * If the callee class has switched to a flexible object storage then no need to
              * bootstrap the constructor call again.
              */
-            if (PythonOptions.FlexibleObjectStorage && !(clazz.getInstanceObjectLayout() instanceof FlexibleObjectLayout)) {
-                specialized = new CallConstructorBootstrappingNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
+            if (!PythonOptions.FlexibleObjectStorage) {
+                specialized = new CallConstructorFixedNode(context, clazz, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
+            } else if (clazz.getInstanceObjectLayout() instanceof FlexibleObjectLayout) {
+                specialized = new CallConstructorFlexibleNode(context, clazz, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
             } else {
-                specialized = new CallConstructorFixedNode(context, (PythonClass) callable, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
+                specialized = new CallConstructorBootstrappingNode(context, clazz, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
             }
 
-            return replace(specialized).executeCall(frame, (PythonObject) primary, (PythonClass) callable);
+            return replace(specialized).executeCall(frame, (PythonObject) primary, clazz);
         }
 
         if (isPrimaryNone(primary, this)) {

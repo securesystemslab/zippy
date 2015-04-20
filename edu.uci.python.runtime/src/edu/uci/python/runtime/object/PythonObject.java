@@ -139,6 +139,7 @@ public abstract class PythonObject implements Comparable<Object> {
 
     public void setAttribute(String name, Object value) {
         CompilerAsserts.neverPartOfCompilation();
+        assert verifyLayout();
 
         // Find the storage location
         StorageLocation storageLocation = objectLayout.findStorageLocation(name);

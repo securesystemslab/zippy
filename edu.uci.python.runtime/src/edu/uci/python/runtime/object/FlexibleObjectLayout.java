@@ -45,16 +45,18 @@ public final class FlexibleObjectLayout extends ObjectLayout {
 
     private final int arrayObjectStorageLocationsUsed;
     private final Class<?> storageClass;
-    private final ObjectLayout predecessor;
+    private final FlexibleObjectLayout predecessor;
     private final Assumption isOptimalAssumption;
 
-    protected FlexibleObjectLayout(String originHint, Class<?> storageClass, ObjectLayout predecessor) {
+    protected FlexibleObjectLayout(String originHint, Class<?> storageClass, FlexibleObjectLayout predecessor) {
         super(originHint);
         this.arrayObjectStorageLocationsUsed = 0;
         this.storageClass = storageClass;
         this.predecessor = predecessor;
         this.isOptimalAssumption = Truffle.getRuntime().createAssumption();
+
         assert FlexiblePythonObjectStorage.class.isAssignableFrom(storageClass);
+        assert predecessor == null || getVersion() == predecessor.getVersion();
 
         if (PythonOptions.TraceObjectLayoutCreation) {
             // CheckStyle: stop system..print check
@@ -63,7 +65,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
         }
     }
 
-    protected FlexibleObjectLayout(String originHint, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass, ObjectLayout predecessor) {
+    protected FlexibleObjectLayout(String originHint, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass, FlexibleObjectLayout predecessor) {
         super(originHint);
         int primitiveIntStorageLocationIndex = 0;
         int primitiveDoubleStorageLocationIndex = 0;
@@ -101,7 +103,13 @@ public final class FlexibleObjectLayout extends ObjectLayout {
         this.storageClass = objectStorageClass;
         this.predecessor = predecessor;
         this.isOptimalAssumption = Truffle.getRuntime().createAssumption();
+
+        if (PythonOptions.FlexibleObjectStorageEvolution && this.getObjectStorageLocationsUsed() > 0) {
+            this.isOptimalAssumption.invalidate();
+        }
+
         assert FlexiblePythonObjectStorage.class.isAssignableFrom(storageClass);
+        assert predecessor == null || getVersion() == predecessor.getVersion();
 
         if (PythonOptions.TraceObjectLayoutCreation) {
             // CheckStyle: stop system..print check
@@ -131,6 +139,12 @@ public final class FlexibleObjectLayout extends ObjectLayout {
 
     public final Assumption getIsOptimalAssumption() {
         return isOptimalAssumption;
+    }
+
+    public int getVersion() {
+        String className = this.storageClass.getSimpleName();
+        String version = className.substring(className.length() - 1);
+        return Integer.valueOf(version);
     }
 
     public final ObjectLayout getPredecessor() {

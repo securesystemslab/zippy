@@ -70,11 +70,13 @@ public abstract class SetDispatchNode extends Node {
         @Override
         public void setValue(VirtualFrame frame, PythonObject primary, Object value) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
+            assert primary.verifyLayout();
 
             if (!primary.getStableAssumption().isValid()) {
                 primary.syncObjectLayoutWithClass();
             }
 
+            assert primary.verifyLayout();
             SetDispatchNode current = this;
             int depth = 0;
 

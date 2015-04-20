@@ -57,7 +57,7 @@ public class PythonOptions {
 
     public static final int CallSiteInlineCacheMaxDepth = 20;
 
-    public static final boolean FlexibleObjectStorageEvolution = false;
+    public static boolean FlexibleObjectStorageEvolution = false;
 
     public static boolean FlexibleObjectStorage = false;
 

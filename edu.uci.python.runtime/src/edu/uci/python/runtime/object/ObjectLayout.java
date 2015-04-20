@@ -82,7 +82,7 @@ public abstract class ObjectLayout {
         if (!(this instanceof FlexibleObjectLayout)) {
             validAssumption.invalidate();
         }
-        return new FlexibleObjectLayout(originHint + ".toflex", getAttributeTypes(), objectStorageClass, this);
+        return new FlexibleObjectLayout(originHint + ".toflex", getAttributeTypes(), objectStorageClass, null);
     }
 
     /**
