@@ -260,6 +260,33 @@ public abstract class CallDispatchBoxedNode extends CallDispatchNode {
         public Object executeCall(VirtualFrame frame, PythonObject primaryObj, Object[] arguments, PKeyword[] keywords) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
+            if (!primaryObj.getStableAssumption().isValid()) {
+                primaryObj.syncObjectLayoutWithClass();
+            }
+
+            CallDispatchBoxedNode current = this;
+
+            while (current.getParent() instanceof CallDispatchBoxedNode) {
+                current = (CallDispatchBoxedNode) current.getParent();
+
+                if (!(current instanceof LinkedDispatchBoxedNode)) {
+                    continue;
+                }
+
+                /**
+                 * After the layout sync, if a previously missed dispatch node caches the updated
+                 * layout, we should reuse the existing dispatch node.
+                 */
+                LinkedDispatchBoxedNode linked = (LinkedDispatchBoxedNode) current;
+                try {
+                    if (linked.check.accept(primaryObj)) {
+                        return linked.invoke.invoke(frame, primaryObj, arguments, keywords);
+                    }
+                } catch (InvalidAssumptionException e) {
+                    throw new RuntimeException();
+                }
+            }
+
             CallDispatchBoxedNode specialized;
 
             if (getDispatchDepth() < PythonOptions.CallSiteInlineCacheMaxDepth) {
