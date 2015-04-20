@@ -46,6 +46,7 @@ public class FlexiblePythonObjectStorage extends PythonObject {
 
         objectLayout = layout;
         storageClassLayouts.put(this.getClass(), layout);
+        assert verifyLayout();
     }
 
     @Override
