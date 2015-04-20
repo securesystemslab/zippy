@@ -31,7 +31,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 public class FlexiblePythonObjectStorage extends PythonObject {
 
-    private static FlexibleObjectLayout storageLayout;
+    private static Map<Class<?>, FlexibleObjectLayout> storageClassLayouts = new HashMap<>();
 
     public FlexiblePythonObjectStorage(PythonClass pythonClass) {
         super(pythonClass);
@@ -45,11 +45,12 @@ public class FlexiblePythonObjectStorage extends PythonObject {
         }
 
         objectLayout = layout;
-        storageLayout = layout;
+        storageClassLayouts.put(this.getClass(), layout);
     }
 
     @Override
     public void syncObjectLayoutWithClass() {
+        FlexibleObjectLayout storageLayout = storageClassLayouts.get(this.getClass());
         assert storageLayout != null;
 
         if (objectLayout != storageLayout) {
@@ -72,7 +73,7 @@ public class FlexiblePythonObjectStorage extends PythonObject {
 
         // Synchronize instance object layout with the storage class
         if (!usePrivateLayout) {
-            storageLayout = (FlexibleObjectLayout) newLayout;
+            storageClassLayouts.put(getClass(), (FlexibleObjectLayout) newLayout);
 
             if (!PythonOptions.FlexibleObjectStorageEvolution && !pythonClass.getInstanceObjectLayout().getValidAssumption().isValid()) {
                 pythonClass.updateInstanceObjectLayout(newLayout);

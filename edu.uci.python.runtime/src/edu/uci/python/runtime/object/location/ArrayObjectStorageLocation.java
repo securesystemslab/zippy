@@ -70,7 +70,7 @@ public final class ArrayObjectStorageLocation extends StorageLocation {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + " at " + index;
+        return "arrayObject" + index;
     }
 
 }

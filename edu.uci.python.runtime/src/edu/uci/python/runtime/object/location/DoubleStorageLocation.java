@@ -77,4 +77,9 @@ public final class DoubleStorageLocation extends FieldStorageLocation {
         return Double.class;
     }
 
+    @Override
+    public String toString() {
+        return "double" + index;
+    }
+
 }

@@ -101,6 +101,10 @@ public abstract class SetDispatchNode extends Node {
 
         @Override
         public void setValue(VirtualFrame frame, PythonObject primary, Object value) {
+            if (!primary.getStableAssumption().isValid()) {
+                primary.syncObjectLayoutWithClass();
+            }
+
             primary.setAttribute(attributeId, value);
         }
     }

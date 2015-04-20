@@ -77,4 +77,9 @@ public final class IntStorageLocation extends FieldStorageLocation {
         return Integer.class;
     }
 
+    @Override
+    public String toString() {
+        return "int" + index;
+    }
+
 }

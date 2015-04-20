@@ -74,4 +74,9 @@ public final class BooleanStorageLocation extends FieldStorageLocation {
         return Boolean.class;
     }
 
+    @Override
+    public String toString() {
+        return "boolean" + index;
+    }
+
 }

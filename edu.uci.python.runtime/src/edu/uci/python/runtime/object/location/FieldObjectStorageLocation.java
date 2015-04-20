@@ -53,4 +53,9 @@ public final class FieldObjectStorageLocation extends FieldStorageLocation {
         return storedClass;
     }
 
+    @Override
+    public String toString() {
+        return "object" + index;
+    }
+
 }
