@@ -71,16 +71,34 @@ public abstract class SetDispatchNode extends Node {
         public void setValue(VirtualFrame frame, PythonObject primary, Object value) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
-            Node current = this;
+            if (!primary.getStableAssumption().isValid()) {
+                primary.syncObjectLayoutWithClass();
+            }
+
+            SetDispatchNode current = this;
             int depth = 0;
 
             while (current.getParent() instanceof SetDispatchNode) {
-                current = current.getParent();
+                current = (SetDispatchNode) current.getParent();
                 depth++;
-            }
 
-            if (!primary.getStableAssumption().isValid()) {
-                primary.syncObjectLayoutWithClass();
+                if (!(current instanceof LinkedSetDispatchNode)) {
+                    continue;
+                }
+
+                /**
+                 * After the layout sync, if a previously missed dispatch node caches the updated
+                 * layout, we should reuse the existing dispatch node.
+                 */
+                LinkedSetDispatchNode linked = (LinkedSetDispatchNode) current;
+                try {
+                    if (linked.check.accept(primary)) {
+                        linked.setValue(frame, primary, value);
+                        return;
+                    }
+                } catch (InvalidAssumptionException e) {
+                    throw new RuntimeException();
+                }
             }
 
             if (depth < PythonOptions.AttributeAccessInlineCacheMaxDepth) {

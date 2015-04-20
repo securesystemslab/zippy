@@ -133,11 +133,15 @@ public final class FlexibleObjectLayout extends ObjectLayout {
         return isOptimalAssumption;
     }
 
+    public final ObjectLayout getPredecessor() {
+        return predecessor;
+    }
+
     @Override
     protected ObjectLayout copy() {
         final Map<String, Class<?>> attributeTypes = getAttributeTypes();
         validAssumption.invalidate();
-        return new FlexibleObjectLayout(originHint + "copy", attributeTypes, storageClass, predecessor);
+        return new FlexibleObjectLayout(originHint + "copy", attributeTypes, storageClass, this);
     }
 
     @Override
@@ -146,7 +150,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
         attributeTypes.put(name, type);
         validAssumption.invalidate();
         isOptimalAssumption.invalidate();
-        return new FlexibleObjectLayout(originHint + "+" + name, attributeTypes, storageClass, predecessor);
+        return new FlexibleObjectLayout(originHint + "+" + name, attributeTypes, storageClass, this);
     }
 
     @Override
@@ -154,7 +158,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
         final Map<String, Class<?>> attributeTypes = getAttributeTypes();
         attributeTypes.remove(name);
         validAssumption.invalidate();
-        return new FlexibleObjectLayout(originHint + "-" + name, attributeTypes, storageClass, predecessor);
+        return new FlexibleObjectLayout(originHint + "-" + name, attributeTypes, storageClass, this);
     }
 
     @Override
@@ -163,7 +167,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
         attributeTypes.put(name, Object.class);
         validAssumption.invalidate();
         isOptimalAssumption.invalidate();
-        return new FlexibleObjectLayout(originHint + "!" + name, attributeTypes, storageClass, predecessor);
+        return new FlexibleObjectLayout(originHint + "!" + name, attributeTypes, storageClass, this);
     }
 
     @Override

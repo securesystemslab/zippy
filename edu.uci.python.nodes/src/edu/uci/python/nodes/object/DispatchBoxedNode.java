@@ -89,14 +89,32 @@ public abstract class DispatchBoxedNode extends Node {
         public Object getValue(VirtualFrame frame, PythonObject primary) {
             CompilerDirectives.transferToInterpreterAndInvalidate();
 
-            Node current = this;
+            if (!primary.getStableAssumption().isValid()) {
+                primary.syncObjectLayoutWithClass();
+            }
+
+            DispatchBoxedNode current = this;
             int depth = 0;
-            DispatchBoxedNode specialized;
 
             while (current.getParent() instanceof DispatchBoxedNode) {
-                current = current.getParent();
+                current = (DispatchBoxedNode) current.getParent();
                 depth++;
+
+                if (!(current instanceof LinkedDispatchBoxedNode)) {
+                    continue;
+                }
+
+                LinkedDispatchBoxedNode linked = (LinkedDispatchBoxedNode) current;
+                try {
+                    if (linked.primaryCheck.accept(primary)) {
+                        return linked.getValue(frame, primary);
+                    }
+                } catch (InvalidAssumptionException e) {
+                    throw new RuntimeException();
+                }
             }
+
+            DispatchBoxedNode specialized;
 
             if (depth < PythonOptions.AttributeAccessInlineCacheMaxDepth) {
                 specialized = rewrite(primary, this);
