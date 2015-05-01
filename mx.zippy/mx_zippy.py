@@ -37,6 +37,12 @@ def _bench_harness_body(args, vmArgs):
     if 'python-nopeeling' in bmargs:
         benchmarks += pymarks.getPythonBenchmarksNoPeeling(vm)
 
+    if 'python-flex' in bmargs:
+        benchmarks += pymarks.getPythonObjectBenchmarksFlex(vm)
+
+    if 'python-flex-evol' in bmargs:
+        benchmarks += pymarks.getPythonObjectBenchmarksFlexStorageEvolution(vm)
+
     if 'python-profile' in bmargs:
         benchmarks += pymarks.getPythonBenchmarksProfiling(vm)
 

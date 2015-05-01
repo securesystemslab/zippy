@@ -147,6 +147,14 @@ pythonGeneratorBenchmarks = {
     'sympy-bench'     : '20000',
 }
 
+pythonObjectBenchmarks = {
+    'richards3-timed' : '200',
+    'bm-float-timed'  : '1000',
+    'pypy-chaos-timed': '1000',
+    'pypy-go-timed'   : '50',
+    'pypy-deltablue'  : '2000',
+}
+
 def getPythonTestBenchmarks(vm):
     success, error, matcher = getSuccessErrorMatcher()
     benchmarks = pythonTestBenchmarks
@@ -198,6 +206,28 @@ def getPythonBenchmarksNoPeeling(vm):
     for benchmark, arg in benchmarks.iteritems():
         script = "edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, "-no-generator-peeling"]
+        tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
+
+    return tests
+
+def getPythonObjectBenchmarksFlex(vm):
+    success, error, matcher = getSuccessErrorMatcher()
+    benchmarks = pythonObjectBenchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, "-flexible-object-storage"]
+        tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
+
+    return tests
+
+def getPythonObjectBenchmarksFlexStorageEvolution(vm):
+    success, error, matcher = getSuccessErrorMatcher()
+    benchmarks = pythonObjectBenchmarks
+    tests = []
+    for benchmark, arg in benchmarks.iteritems():
+        script = "edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, "-flexible-storage-evolution"]
         tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
 
     return tests

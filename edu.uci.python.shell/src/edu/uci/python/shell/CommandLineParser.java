@@ -58,6 +58,12 @@ public class CommandLineParser {
                 continue;
             }
 
+            if (arg.equals("-flexible-storage-evolution")) {
+                PythonOptions.FlexibleObjectStorage = true;
+                PythonOptions.FlexibleObjectStorageEvolution = true;
+                continue;
+            }
+
             if (arg.equals("-inline-generator")) {
                 PythonOptions.InlineGeneratorCalls = true;
                 continue;
