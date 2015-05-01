@@ -329,7 +329,7 @@ class ScaleConstraint(BinaryConstraint):
         if self.direction == Direction.FORWARD:
             self.v2.value = self.v1.value * self.scale.value + self.offset.value
         else:
-            self.v1.value = (self.v2.value - self.offset.value) / self.scale.value
+            self.v1.value = (self.v2.value - self.offset.value) // self.scale.value
 
     def recalculate(self):
         ihn = self.input()

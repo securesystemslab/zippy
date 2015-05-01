@@ -28,6 +28,7 @@ import java.util.*;
 import java.util.Map.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.SlowPath;
 
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.location.*;
@@ -184,6 +185,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
         return new FlexibleObjectLayout(originHint + "!" + name, attributeTypes, storageClass, this);
     }
 
+    @SlowPath
     @Override
     protected boolean verifyObjectStorage(PythonObject objectStorage) {
         Class<?> clazz = objectStorage.getClass();
