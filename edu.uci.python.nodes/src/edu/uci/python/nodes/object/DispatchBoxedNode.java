@@ -135,6 +135,10 @@ public abstract class DispatchBoxedNode extends Node {
 
         @Override
         public Object getValue(VirtualFrame frame, PythonObject primary) {
+            if (!primary.getStableAssumption().isValid()) {
+                primary.syncObjectLayoutWithClass();
+            }
+
             return primary.getAttribute(attributeId);
         }
     }

@@ -52,6 +52,7 @@ public abstract class PythonObject implements Comparable<Object> {
         this.pythonClass = pythonClass;
         objectLayout = pythonClass == null ? ObjectLayout.empty() : pythonClass.getInstanceObjectLayout();
         allocateSpillArray();
+        assert verifyLayout();
     }
 
     public final PythonClass getPythonClass() {
