@@ -457,7 +457,15 @@ public abstract class PythonCallNode extends PNode {
                 newInstance = instanceNode.createNewInstance(clazz);
             } catch (InvalidAssumptionException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                clazz.switchToGeneratedStorageClass();
+
+                /**
+                 * If the class' instance object layout has already been updated, then no need to
+                 * generate new storage class.
+                 */
+                if (!((FlexibleObjectLayout) clazz.getInstanceObjectLayout()).getIsOptimalAssumption().isValid()) {
+                    clazz.switchToGeneratedStorageClass();
+                }
+
                 CallConstructorNode newNode = this.replace(new CallConstructorFlexibleNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));
                 newInstance = newNode.instanceNode.createNewInstance(clazz);
             }
@@ -466,6 +474,7 @@ public abstract class PythonCallNode extends PNode {
             Object[] arguments = argumentsNode.executeArguments(frame, true, newInstance);
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
+            assert newInstance.verifyLayout();
             return newInstance;
         }
     }

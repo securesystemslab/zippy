@@ -41,7 +41,7 @@ public class PythonOptions {
 
     public static final boolean TraceSequenceStorageGeneralization = false;
 
-    public static boolean TraceObjectLayoutCreation = false;
+    public static boolean TraceObjectLayoutCreation = true;
 
     // Translation flags
     public static boolean UsePrintFunction = false;

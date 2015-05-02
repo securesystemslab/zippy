@@ -33,6 +33,7 @@ import org.python.modules.jffi.*;
 
 import com.oracle.truffle.api.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.object.location.*;
 import edu.uci.python.runtime.standardtype.*;
 import static org.objectweb.asm.Opcodes.*;
@@ -66,6 +67,13 @@ public final class FlexibleStorageClassGenerator {
         final Class<?> storageClass = BytecodeLoader.makeClass(getValidClassName(), generateClassData(), PythonObject.class);
         final MethodHandle ctor = lookupConstructor(storageClass);
         synchronizeObjectLayout(storageClass);
+
+        if (PythonOptions.TraceObjectLayoutCreation) {
+            // CheckStyle: stop system..print check
+            System.out.println("[ZipPy] generate " + storageClass.toString());
+            // CheckStyle: resume system..print check
+        }
+
         return new FlexiblePythonObjectStorageFactory(ctor);
     }
 

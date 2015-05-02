@@ -168,7 +168,35 @@ public final class FixedObjectLayout extends ObjectLayout {
     @Override
     protected boolean verifyObjectStorage(PythonObject objectStorage) {
         assert FixedPythonObjectStorage.class.isAssignableFrom(objectStorage.getClass());
-        return true;
-    }
+        int primitiveIntStorageLocationsIndex = 0;
+        int primitiveDoubleStorageLocationsIndex = 0;
+        int fieldObjectStorageLocationsIndex = 0;
+        int arrayObjectStorageLocationsIndex = 0;
 
+        for (Entry<String, StorageLocation> entry : storageLocations.entrySet()) {
+            final StorageLocation storageLocation = entry.getValue();
+
+            if (storageLocation instanceof ArrayObjectStorageLocation) {
+                arrayObjectStorageLocationsIndex++;
+            } else if (storageLocation instanceof IntStorageLocation) {
+                primitiveIntStorageLocationsIndex++;
+            } else if (storageLocation instanceof DoubleStorageLocation) {
+                primitiveDoubleStorageLocationsIndex++;
+            } else if (storageLocation instanceof BooleanStorageLocation) {
+                primitiveIntStorageLocationsIndex++;
+            } else if (storageLocation instanceof FieldObjectStorageLocation) {
+                fieldObjectStorageLocationsIndex++;
+            } else {
+                throw new RuntimeException();
+            }
+        }
+
+        if (primitiveIntStorageLocationsIndex > FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT ||
+                        primitiveDoubleStorageLocationsIndex > FixedPythonObjectStorage.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT ||
+                        fieldObjectStorageLocationsIndex > FixedPythonObjectStorage.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT) {
+            return false;
+        }
+
+        return arrayObjectStorageLocationsIndex == (objectStorage.arrayObjects != null ? objectStorage.arrayObjects.length : 0);
+    }
 }

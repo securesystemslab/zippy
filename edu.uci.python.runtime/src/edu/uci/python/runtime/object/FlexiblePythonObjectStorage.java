@@ -26,6 +26,8 @@ package edu.uci.python.runtime.object;
 
 import java.util.*;
 
+import com.oracle.truffle.api.*;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtype.*;
 
@@ -64,6 +66,7 @@ public class FlexiblePythonObjectStorage extends PythonObject {
 
     @Override
     public void updateLayout(ObjectLayout newLayout) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
         assert verifyLayout();
 
         // Get the current values of instance variables
