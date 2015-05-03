@@ -63,6 +63,9 @@ public class FixedPythonObjectStorage extends PythonObject {
 
     @Override
     public void syncObjectLayoutWithClass() {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        assert verifyLayout();
+
         /**
          * This is a zombie Python object carried by a FixedPythonObjectStorage. For some reason
          * this zombie object is still alive. It is most likely stored in a data structure in the

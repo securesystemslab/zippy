@@ -25,6 +25,13 @@ class Square:
         self.removestamp = TIMESTAMP
         self.zobrist_strings = [random.randrange(854775807) #9223372036854775807
                                 for i in range(3)]
+        # self.color = 0
+        self.neighbours = None
+        self.used = False
+
+        # self.reference = None
+        self.ledges = 0
+        self.temp_ledges = 0
 
     def set_neighbours(self): 
         x, y = self.pos % SIZE, self.pos // SIZE;
@@ -435,8 +442,16 @@ def measure(n):
     duration = "%.3f\n" % (time.time() - start)
     print("pypy-go: " + duration)
 
+SIZE = 2
+GAMES = 1
+
+for i in range(2):
+    main(1)
+
+SIZE = 9
+GAMES = 200
+
 for i in range(20):
     main(10)
-
 
 measure(int(sys.argv[1]))

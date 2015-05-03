@@ -53,6 +53,9 @@ public class FlexiblePythonObjectStorage extends PythonObject {
 
     @Override
     public void syncObjectLayoutWithClass() {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        assert verifyLayout();
+
         FlexibleObjectLayout storageLayout = storageClassLayouts.get(this.getClass());
         assert storageLayout != null;
 

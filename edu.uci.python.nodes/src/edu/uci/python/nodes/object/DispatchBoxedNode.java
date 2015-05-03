@@ -57,7 +57,7 @@ public abstract class DispatchBoxedNode extends Node {
         return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primary));
     }
 
-    protected DispatchBoxedNode rewrite(PythonObject primary, DispatchBoxedNode next) {
+    protected DispatchBoxedNode rewrite(DispatchBoxedNode insertAt, PythonObject primary, DispatchBoxedNode next) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
 
         /**
@@ -75,7 +75,7 @@ public abstract class DispatchBoxedNode extends Node {
             throw Py.AttributeError(primary + " object has no attribute " + attributeId);
         }
 
-        return replace(LinkedDispatchBoxedNode.create(attributeId, primary, storage, primary.isOwnAttribute(attributeId), next));
+        return insertAt.replace(LinkedDispatchBoxedNode.create(attributeId, primary, storage, primary.isOwnAttribute(attributeId), insertAt));
     }
 
     @NodeInfo(cost = NodeCost.UNINITIALIZED)
@@ -117,7 +117,7 @@ public abstract class DispatchBoxedNode extends Node {
             DispatchBoxedNode specialized;
 
             if (depth < PythonOptions.AttributeAccessInlineCacheMaxDepth) {
-                specialized = rewrite(primary, this);
+                specialized = rewrite(current, primary, this);
             } else {
                 specialized = current.replace(new GenericDispatchBoxedNode(attributeId));
             }
@@ -202,7 +202,7 @@ public abstract class DispatchBoxedNode extends Node {
                     return next.getValue(frame, primaryObj);
                 }
             } catch (InvalidAssumptionException e) {
-                return rewrite(primaryObj, next).getValue(frame, primaryObj);
+                return rewrite(this, primaryObj, next).getValue(frame, primaryObj);
             }
         }
 
@@ -215,7 +215,7 @@ public abstract class DispatchBoxedNode extends Node {
                     return next.getIntValue(frame, primary);
                 }
             } catch (InvalidAssumptionException e) {
-                return rewrite(primary, next).getIntValue(frame, primary);
+                return rewrite(this, primary, next).getIntValue(frame, primary);
             }
         }
 
@@ -228,7 +228,7 @@ public abstract class DispatchBoxedNode extends Node {
                     return next.getDoubleValue(frame, primary);
                 }
             } catch (InvalidAssumptionException e) {
-                return rewrite(primary, next).getDoubleValue(frame, primary);
+                return rewrite(this, primary, next).getDoubleValue(frame, primary);
             }
         }
 
@@ -241,7 +241,7 @@ public abstract class DispatchBoxedNode extends Node {
                     return next.getBooleanValue(frame, primary);
                 }
             } catch (InvalidAssumptionException e) {
-                return rewrite(primary, next).getBooleanValue(frame, primary);
+                return rewrite(this, primary, next).getBooleanValue(frame, primary);
             }
         }
     }
