@@ -38,7 +38,7 @@ suite = {
 
     "edu.uci.python.shell" : {
       "sourceDirs" : ["src"],
-      "dependencies" : ["JLINE09","edu.uci.python.nodes","edu.uci.python.profiler","edu.uci.python.runtime","edu.uci.python.parser","edu.uci.python.builtins","JYTHON"],
+      "dependencies" : ["JLINE09","edu.uci.python.nodes","edu.uci.python.profiler","edu.uci.python.runtime","edu.uci.python.parser","edu.uci.python.builtins","JYTHON","JAVA_ALLOCATION_INSTRUMENTER"],
       "checkstyle" : "edu.uci.python.runtime",
       "javaCompliance" : "1.8",
       "workingSets" : "Truffle,Python",

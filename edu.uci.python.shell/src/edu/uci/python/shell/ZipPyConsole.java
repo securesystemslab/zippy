@@ -29,6 +29,7 @@ import java.io.*;
 import org.python.core.*;
 import org.python.util.*;
 
+import com.google.monitoring.runtime.instrumentation.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.source.*;
 
@@ -69,6 +70,11 @@ public class ZipPyConsole extends InteractiveConsole {
 
         if (PythonOptions.VisualizedAST) {
             result.visualizeToNetwork();
+        }
+
+        if (PythonOptions.InstrumentObjectStorageAllocation) {
+            // TODO: allocation instrumentation.
+            // ConstructorInstrumenter.instrumentClass()
         }
 
         ModuleNode root = (ModuleNode) result.getModuleRoot();

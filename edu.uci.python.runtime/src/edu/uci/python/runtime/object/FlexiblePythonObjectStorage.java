@@ -35,19 +35,14 @@ public class FlexiblePythonObjectStorage extends PythonObject {
 
     private static Map<Class<?>, FlexibleObjectLayout> storageClassLayouts = new HashMap<>();
 
+// private static FlexibleObjectLayout storageClassLayouts;
+
     public FlexiblePythonObjectStorage(PythonClass pythonClass) {
         super(pythonClass);
-        FlexibleObjectLayout layout = null;
+        assert pythonClass.getInstanceObjectLayout() instanceof FlexibleObjectLayout;
 
-        if (pythonClass == null) {
-            layout = FlexibleObjectLayout.empty(this.getClass());
-        } else {
-            assert pythonClass.getInstanceObjectLayout() instanceof FlexibleObjectLayout;
-            layout = (FlexibleObjectLayout) pythonClass.getInstanceObjectLayout();
-        }
-
-        objectLayout = layout;
-        storageClassLayouts.put(this.getClass(), layout);
+        objectLayout = pythonClass.getInstanceObjectLayout();
+        storageClassLayouts.put(this.getClass(), (FlexibleObjectLayout) objectLayout);
         assert verifyLayout();
     }
 
