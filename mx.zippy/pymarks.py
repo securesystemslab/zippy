@@ -67,6 +67,7 @@ pythonMicroBenchmarks = {
     'special-add'           : '0',
     'special-add-int'       : '0',
     'special-len'           : '0',
+    'object-layout-change'  : '0',
 }
 
 pythonBenchmarks = {
