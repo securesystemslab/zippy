@@ -16,6 +16,14 @@ suite = {
       ],
       "sha1" : "56411f652bcf4acce8e9fb3bc7d06b4a0e926aaf",
     },
+    "JAMM" : {
+      "path" : "lib/jamm-0.2.5.jar",
+      "urls" : [
+        "http://www.java2s.com/Code/JarDownload/jamm/jamm-0.2.5.jar.zip",
+      ],
+      "sha1" : "a7e1d83aeae56432dc75ae8ea674e391faf81c0f",
+    },
+
   },
 
   "projects" : {
@@ -38,7 +46,8 @@ suite = {
 
     "edu.uci.python.shell" : {
       "sourceDirs" : ["src"],
-      "dependencies" : ["JLINE09","edu.uci.python.nodes","edu.uci.python.profiler","edu.uci.python.runtime","edu.uci.python.parser","edu.uci.python.builtins","JYTHON","JAVA_ALLOCATION_INSTRUMENTER"],
+      "dependencies" : ["JLINE09","edu.uci.python.nodes","edu.uci.python.profiler","edu.uci.python.runtime","edu.uci.python.parser","edu.uci.python.builtins",
+      "JYTHON","JAVA_ALLOCATION_INSTRUMENTER"],
       "checkstyle" : "edu.uci.python.runtime",
       "javaCompliance" : "1.8",
       "workingSets" : "Truffle,Python",
@@ -63,7 +72,7 @@ suite = {
 
     "edu.uci.python.runtime" : {
       "sourceDirs" : ["src"],
-      "dependencies" : ["com.oracle.truffle.api","JYTHON","ASM"],
+      "dependencies" : ["com.oracle.truffle.api","JYTHON","ASM","JAMM"],
       "checkstyle" : "edu.uci.python.runtime",
       "javaCompliance" : "1.8",
       "workingSets" : "Truffle,Python",

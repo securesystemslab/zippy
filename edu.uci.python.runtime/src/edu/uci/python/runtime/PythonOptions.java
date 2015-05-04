@@ -44,9 +44,7 @@ public class PythonOptions {
     public static boolean TraceObjectLayoutCreation = true;
 
     // Object storage allocation
-    public static long FixedStorageLocation = 0;
-    public static long FlexibleStorageLocation = 0;
-    public static boolean InstrumentObjectStorageAllocation = false;
+    public static final boolean InstrumentObjectStorageAllocation = false;
 
     // Translation flags
     public static boolean UsePrintFunction = false;

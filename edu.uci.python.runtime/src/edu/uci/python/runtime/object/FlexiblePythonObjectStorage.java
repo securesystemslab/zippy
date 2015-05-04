@@ -39,6 +39,10 @@ public abstract class FlexiblePythonObjectStorage extends PythonObject {
         objectLayout = pythonClass.getInstanceObjectLayout();
         setStorageClassObjectLayout((FlexibleObjectLayout) objectLayout);
         assert verifyLayout();
+
+        if (PythonOptions.InstrumentObjectStorageAllocation) {
+            PythonObjectAllocationInstrumentor.getInstance().instrumentFlexible(this);
+        }
     }
 
     protected abstract FlexibleObjectLayout getStorageClassObjectLayout();

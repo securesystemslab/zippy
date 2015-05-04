@@ -29,7 +29,6 @@ import java.io.*;
 import org.python.core.*;
 import org.python.util.*;
 
-import com.google.monitoring.runtime.instrumentation.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.source.*;
 
@@ -39,6 +38,7 @@ import edu.uci.python.parser.*;
 import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.standardtype.*;
 
 public class ZipPyConsole extends InteractiveConsole {
@@ -70,11 +70,6 @@ public class ZipPyConsole extends InteractiveConsole {
 
         if (PythonOptions.VisualizedAST) {
             result.visualizeToNetwork();
-        }
-
-        if (PythonOptions.InstrumentObjectStorageAllocation) {
-            // TODO: allocation instrumentation.
-            // ConstructorInstrumenter.instrumentClass()
         }
 
         ModuleNode root = (ModuleNode) result.getModuleRoot();
@@ -111,6 +106,10 @@ public class ZipPyConsole extends InteractiveConsole {
 
         if (PythonOptions.VisualizedAST) {
             result.visualizeToNetwork();
+        }
+
+        if (PythonOptions.InstrumentObjectStorageAllocation) {
+            PythonObjectAllocationInstrumentor.getInstance().printAllocations();
         }
 
         if (PythonOptions.ProfileCalls) {
