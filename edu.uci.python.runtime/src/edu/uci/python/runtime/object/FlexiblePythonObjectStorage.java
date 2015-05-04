@@ -31,27 +31,25 @@ import com.oracle.truffle.api.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.standardtype.*;
 
-public class FlexiblePythonObjectStorage extends PythonObject {
-
-    private static Map<Class<?>, FlexibleObjectLayout> storageClassLayouts = new HashMap<>();
-
-// private static FlexibleObjectLayout storageClassLayouts;
+public abstract class FlexiblePythonObjectStorage extends PythonObject {
 
     public FlexiblePythonObjectStorage(PythonClass pythonClass) {
         super(pythonClass);
         assert pythonClass.getInstanceObjectLayout() instanceof FlexibleObjectLayout;
-
         objectLayout = pythonClass.getInstanceObjectLayout();
-        storageClassLayouts.put(this.getClass(), (FlexibleObjectLayout) objectLayout);
+        setStorageClassObjectLayout((FlexibleObjectLayout) objectLayout);
         assert verifyLayout();
     }
+
+    protected abstract FlexibleObjectLayout getStorageClassObjectLayout();
+
+    protected abstract void setStorageClassObjectLayout(FlexibleObjectLayout layout);
 
     @Override
     public void syncObjectLayoutWithClass() {
         CompilerDirectives.transferToInterpreterAndInvalidate();
         assert verifyLayout();
-
-        FlexibleObjectLayout storageLayout = storageClassLayouts.get(this.getClass());
+        FlexibleObjectLayout storageLayout = getStorageClassObjectLayout();
         assert storageLayout != null;
 
         if (objectLayout != storageLayout) {
@@ -76,7 +74,7 @@ public class FlexiblePythonObjectStorage extends PythonObject {
 
         // Synchronize instance object layout with the storage class
         if (!usePrivateLayout) {
-            storageClassLayouts.put(getClass(), (FlexibleObjectLayout) newLayout);
+            setStorageClassObjectLayout((FlexibleObjectLayout) newLayout);
 
             if (!PythonOptions.FlexibleObjectStorageEvolution && !pythonClass.getInstanceObjectLayout().getValidAssumption().isValid()) {
                 pythonClass.updateInstanceObjectLayout(newLayout);

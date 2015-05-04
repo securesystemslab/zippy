@@ -111,8 +111,11 @@ public final class FlexibleStorageClassGenerator {
             addField(entry.getKey(), getPrimitiveStoredClass(location.getStoredClass()));
         }
 
+        addStaticField("LAYOUT", FlexibleObjectLayout.class);
         addConstructor();
         addConstructorAdaptor();
+        addClassLayoutGetter();
+        addClassLayoutSetter();
 
         classWriter.visitEnd();
         return classWriter.toByteArray();
@@ -132,6 +135,11 @@ public final class FlexibleStorageClassGenerator {
 
     private void addField(String name, Class<?> clazz) {
         fieldVisitor = classWriter.visitField(ACC_PROTECTED, ATTRIBUTE_FIELD_PREFIX + name, CodegenUtils.ci(clazz), null, null);
+        fieldVisitor.visitEnd();
+    }
+
+    private void addStaticField(String name, Class<?> clazz) {
+        fieldVisitor = classWriter.visitField(ACC_PROTECTED + ACC_STATIC, name, CodegenUtils.ci(clazz), null, null);
         fieldVisitor.visitEnd();
     }
 
@@ -173,4 +181,40 @@ public final class FlexibleStorageClassGenerator {
         methodVisitor.visitMaxs(3, 1);
         methodVisitor.visitEnd();
     }
+
+    private void addClassLayoutGetter() {
+        methodVisitor = classWriter.visitMethod(ACC_PROTECTED, "getStorageClassObjectLayout", "()Ledu/uci/python/runtime/object/FlexibleObjectLayout;", null, null);
+        methodVisitor.visitCode();
+        Label l0 = new Label();
+        methodVisitor.visitLabel(l0);
+        methodVisitor.visitLineNumber(15, l0);
+        methodVisitor.visitFieldInsn(GETSTATIC, validClassName, "LAYOUT", "Ledu/uci/python/runtime/object/FlexibleObjectLayout;");
+        methodVisitor.visitInsn(ARETURN);
+        Label l1 = new Label();
+        methodVisitor.visitLabel(l1);
+        methodVisitor.visitLocalVariable("this", "L" + PYTHON_CLASS + ";", null, l0, l1, 0);
+        methodVisitor.visitMaxs(1, 1);
+        methodVisitor.visitEnd();
+    }
+
+    private void addClassLayoutSetter() {
+        methodVisitor = classWriter.visitMethod(ACC_PROTECTED, "setStorageClassObjectLayout", "(Ledu/uci/python/runtime/object/FlexibleObjectLayout;)V", null, null);
+        methodVisitor.visitCode();
+        Label l0 = new Label();
+        methodVisitor.visitLabel(l0);
+        methodVisitor.visitLineNumber(20, l0);
+        methodVisitor.visitVarInsn(ALOAD, 1);
+        methodVisitor.visitFieldInsn(PUTSTATIC, validClassName, "LAYOUT", "Ledu/uci/python/runtime/object/FlexibleObjectLayout;");
+        Label l1 = new Label();
+        methodVisitor.visitLabel(l1);
+        methodVisitor.visitLineNumber(21, l1);
+        methodVisitor.visitInsn(RETURN);
+        Label l2 = new Label();
+        methodVisitor.visitLabel(l2);
+        methodVisitor.visitLocalVariable("this", "L" + PYTHON_CLASS + ";", null, l0, l2, 0);
+        methodVisitor.visitLocalVariable("layout", "Ledu/uci/python/runtime/object/FlexibleObjectLayout;", null, l0, l2, 1);
+        methodVisitor.visitMaxs(1, 2);
+        methodVisitor.visitEnd();
+    }
+
 }
