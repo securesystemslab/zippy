@@ -19,7 +19,7 @@ suite = {
     "JAMM" : {
       "path" : "lib/jamm-0.2.5.jar",
       "urls" : [
-        "http://www.java2s.com/Code/JarDownload/jamm/jamm-0.2.5.jar.zip",
+        "http://central.maven.org/maven2/com/github/stephenc/jamm/0.2.5/jamm-0.2.5.jar",
       ],
       "sha1" : "a7e1d83aeae56432dc75ae8ea674e391faf81c0f",
     },
