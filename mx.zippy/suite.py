@@ -21,7 +21,7 @@ suite = {
       "urls" : [
         "http://central.maven.org/maven2/com/github/stephenc/jamm/0.2.5/jamm-0.2.5.jar",
       ],
-      "sha1" : "a7e1d83aeae56432dc75ae8ea674e391faf81c0f",
+      "sha1" : "0422d3543c01df2f1d8bd1f3064adb54fb9e93f3",
     },
 
   },
