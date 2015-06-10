@@ -26,9 +26,11 @@ package edu.uci.python.nodes;
 
 import java.util.*;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.dsl.internal.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.nodes.NodeUtil.*;
+import com.oracle.truffle.api.nodes.NodeFieldAccessor.NodeFieldKind;
+
+import edu.uci.python.runtime.object.*;
 
 public class PNodeUtil {
 
@@ -57,8 +59,9 @@ public class PNodeUtil {
             public boolean visit(Node node) {
                 if (node instanceof PNode) {
                     PNode pnode = (PNode) node;
+
                     for (Node child : pnode.getChildren()) {
-                        if (child != null) {
+                        if (child != null && (child instanceof PNode)) {
                             expressions.add((PNode) child);
                         }
                     }
@@ -94,11 +97,11 @@ public class PNodeUtil {
         /**
          * zwei: only compares parent node and data fields for now.
          */
-        if (!nodeClassEquals(toMatch, candidate, nodeClass.getParentOffset())) {
+        if (!nodeClassEquals(toMatch, candidate, nodeClass.getParentField().getOffset())) {
             return false;
         }
 
-        for (NodeField nfield : nodeClass.getFields()) {
+        for (NodeFieldAccessor nfield : nodeClass.getFields()) {
             if (nfield.getKind() != NodeFieldKind.DATA) {
                 continue;
             }
@@ -119,14 +122,14 @@ public class PNodeUtil {
     }
 
     private static boolean nodeClassEquals(Node toMatch, Node candidate, long nodeOffset) {
-        Object left = CompilerDirectives.unsafeGetObject(toMatch, nodeOffset, false, null);
-        Object right = CompilerDirectives.unsafeGetObject(candidate, nodeOffset, false, null);
+        Object left = ObjectLayoutUtil.getUnsafeAccess().getObject(toMatch, nodeOffset, false, null);
+        Object right = ObjectLayoutUtil.getUnsafeAccess().getObject(candidate, nodeOffset, false, null);
         return left.getClass().equals(right.getClass());
     }
 
     private static boolean nodeFieldEquals(Node toMatch, Node candidate, long fieldOffset) {
-        Object left = CompilerDirectives.unsafeGetObject(toMatch, fieldOffset, false, null);
-        Object right = CompilerDirectives.unsafeGetObject(candidate, fieldOffset, false, null);
+        Object left = ObjectLayoutUtil.getUnsafeAccess().getObject(toMatch, fieldOffset, false, null);
+        Object right = ObjectLayoutUtil.getUnsafeAccess().getObject(candidate, fieldOffset, false, null);
         return left == right;
     }
 

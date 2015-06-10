@@ -47,7 +47,7 @@ public final class BooleanStorageLocation extends FieldStorageLocation {
 
     public boolean readBoolean(PythonObject object) throws UnexpectedResultException {
         if (isSet(object)) {
-            return CompilerDirectives.unsafeGetBoolean(object, offset, true, this);
+            return ObjectLayoutUtil.getUnsafeAccess().getBoolean(object, offset, true, this);
         } else {
             throw new UnexpectedResultException(PNone.NONE);
         }
@@ -65,7 +65,7 @@ public final class BooleanStorageLocation extends FieldStorageLocation {
     }
 
     public void writeBoolean(PythonObject object, boolean value) {
-        CompilerDirectives.unsafePutBoolean(object, offset, value, this);
+        ObjectLayoutUtil.getUnsafeAccess().putBoolean(object, offset, value, this);
         markAsSet(object);
     }
 

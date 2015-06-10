@@ -26,9 +26,14 @@ package edu.uci.python.runtime.function;
 
 import java.util.*;
 
+import sun.misc.*;
+
+import com.oracle.graal.truffle.unsafe.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+
+import edu.uci.python.runtime.object.*;
 
 //@formatter:off
 /**
@@ -188,7 +193,7 @@ public class PArguments {
     }
 
     public static VirtualFrame getVirtualFrameCargoArguments(Frame frame) {
-        return CompilerDirectives.unsafeCast(frame.getArguments()[INDEX_GENERATOR_FRAME], VirtualFrame.class, true);
+        return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(frame.getArguments()[INDEX_GENERATOR_FRAME], VirtualFrame.class, true, true);
     }
 
     public static MaterializedFrame getGeneratorFrame(Frame frame) {
@@ -197,7 +202,7 @@ public class PArguments {
 
     public static GeneratorControlData getControlData(Frame frame) {
         MaterializedFrame generatorFrame = getGeneratorFrame(frame);
-        return CompilerDirectives.unsafeCast(generatorFrame.getArguments()[INDEX_GENERATOR_FRAME], GeneratorControlData.class, true);
+        return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(generatorFrame.getArguments()[INDEX_GENERATOR_FRAME], GeneratorControlData.class, true, true);
     }
 
     public static void setGeneratorFrame(Object[] arguments, MaterializedFrame generatorFrame) {

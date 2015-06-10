@@ -76,7 +76,7 @@ public class TranslationEnvironment {
     public void beginScope(PythonTree scopeEntity, ScopeInfo.ScopeKind kind) {
         scopeLevel++;
         ScopeInfo info = scopeInfos.get(scopeEntity);
-        currentScope = info != null ? info : new ScopeInfo(TranslationUtil.getScopeId(scopeEntity, kind), kind, new FrameDescriptor(PythonFrameTypeConversion.getInstance()), currentScope);
+        currentScope = info != null ? info : new ScopeInfo(TranslationUtil.getScopeId(scopeEntity, kind), kind, new FrameDescriptor(), currentScope);
 
         if (globalScope == null) {
             globalScope = currentScope;

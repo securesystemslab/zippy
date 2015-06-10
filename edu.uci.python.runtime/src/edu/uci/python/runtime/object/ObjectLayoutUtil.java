@@ -28,22 +28,30 @@ import java.lang.reflect.*;
 
 import sun.misc.*;
 
+import com.oracle.graal.truffle.unsafe.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.NodeUtil.*;
+import com.oracle.truffle.api.unsafe.*;
 
 public class ObjectLayoutUtil {
 
     public static final FieldOffsetProvider OFFSET_PROVIDER = unsafeFieldOffsetProvider();
+    private static final Unsafe unsafe = com.oracle.jvmci.common.UnsafeAccess.unsafe;
+    private static final UnsafeAccess unsafeAccess = Truffle.getRuntime().getCapability(UnsafeAccessFactory.class).createUnsafeAccess(unsafe);
 
     private static FieldOffsetProvider unsafeFieldOffsetProvider() {
         try {
-            Field field = NodeUtil.class.getDeclaredField("unsafeFieldOffsetProvider");
+            Field field = NodeFieldAccessor.class.getDeclaredField("unsafeFieldOffsetProvider");
             field.setAccessible(true);
             return (FieldOffsetProvider) field.get(null);
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static UnsafeAccess getUnsafeAccess() {
+        return unsafeAccess;
     }
 
     protected static long getExactPrimitiveDoubleOffsetOf(int index) {
@@ -81,37 +89,37 @@ public class ObjectLayoutUtil {
     }
 
     public static final Object readObjectArrayUnsafeAt(Object[] array, int index, Object locationIdentity) {
-        return CompilerDirectives.unsafeGetObject(array, Unsafe.ARRAY_OBJECT_BASE_OFFSET + Unsafe.ARRAY_OBJECT_INDEX_SCALE * index, true, locationIdentity);
+        return unsafeAccess.getObject(array, Unsafe.ARRAY_OBJECT_BASE_OFFSET + Unsafe.ARRAY_OBJECT_INDEX_SCALE * index, true, locationIdentity);
     }
 
     public static final void writeObjectArrayUnsafeAt(Object[] array, int index, Object value, Object locationIdentity) {
-        CompilerDirectives.unsafePutObject(array, Unsafe.ARRAY_OBJECT_BASE_OFFSET + Unsafe.ARRAY_OBJECT_INDEX_SCALE * index, value, locationIdentity);
+        unsafeAccess.putObject(array, Unsafe.ARRAY_OBJECT_BASE_OFFSET + Unsafe.ARRAY_OBJECT_INDEX_SCALE * index, value, locationIdentity);
     }
 
     public static final int readIntArrayUnsafeAt(int[] array, int index, Object locationIdentity) {
-        return CompilerDirectives.unsafeGetInt(array, Unsafe.ARRAY_INT_BASE_OFFSET + Unsafe.ARRAY_INT_INDEX_SCALE * index, true, locationIdentity);
+        return unsafeAccess.getInt(array, Unsafe.ARRAY_INT_BASE_OFFSET + Unsafe.ARRAY_INT_INDEX_SCALE * index, true, locationIdentity);
     }
 
     public static final void writeIntArrayUnsafeAt(int[] array, int index, int value, Object locationIdentity) {
-        CompilerDirectives.unsafePutInt(array, Unsafe.ARRAY_INT_BASE_OFFSET + Unsafe.ARRAY_INT_INDEX_SCALE * index, value, locationIdentity);
+        unsafeAccess.putInt(array, Unsafe.ARRAY_INT_BASE_OFFSET + Unsafe.ARRAY_INT_INDEX_SCALE * index, value, locationIdentity);
     }
 
     public static final double readDoubleArrayUnsafeAt(double[] array, int index, Object locationIdentity) {
-        return CompilerDirectives.unsafeGetDouble(array, Unsafe.ARRAY_DOUBLE_BASE_OFFSET + Unsafe.ARRAY_DOUBLE_INDEX_SCALE * index, true, locationIdentity);
+        return unsafeAccess.getDouble(array, Unsafe.ARRAY_DOUBLE_BASE_OFFSET + Unsafe.ARRAY_DOUBLE_INDEX_SCALE * index, true, locationIdentity);
     }
 
     public static final void writeDoubleArrayUnsafeAt(double[] array, int index, double value, Object locationIdentity) {
-        CompilerDirectives.unsafePutDouble(array, Unsafe.ARRAY_DOUBLE_BASE_OFFSET + Unsafe.ARRAY_DOUBLE_INDEX_SCALE * index, value, locationIdentity);
+        unsafeAccess.putDouble(array, Unsafe.ARRAY_DOUBLE_BASE_OFFSET + Unsafe.ARRAY_DOUBLE_INDEX_SCALE * index, value, locationIdentity);
     }
 
     public static final char readCharArrayUnsafeAt(char[] array, int index, Object locationIdentity) {
-        final short value = CompilerDirectives.unsafeGetShort(array, Unsafe.ARRAY_CHAR_BASE_OFFSET + Unsafe.ARRAY_CHAR_INDEX_SCALE * index, true, locationIdentity);
-        return CompilerDirectives.unsafeCast(value, char.class, true);
+        final short value = unsafeAccess.getShort(array, Unsafe.ARRAY_CHAR_BASE_OFFSET + Unsafe.ARRAY_CHAR_INDEX_SCALE * index, true, locationIdentity);
+        return unsafeAccess.uncheckedCast(value, char.class, true, true);
     }
 
     public static final void writeCharArrayUnsafeAt(char[] array, int index, char value, Object locationIdentity) {
-        final short castedValue = CompilerDirectives.unsafeCast(value, short.class, true);
-        CompilerDirectives.unsafePutShort(array, Unsafe.ARRAY_CHAR_BASE_OFFSET + Unsafe.ARRAY_CHAR_INDEX_SCALE * index, castedValue, locationIdentity);
+        final short castedValue = unsafeAccess.uncheckedCast(value, short.class, true, true);
+        unsafeAccess.putShort(array, Unsafe.ARRAY_CHAR_BASE_OFFSET + Unsafe.ARRAY_CHAR_INDEX_SCALE * index, castedValue, locationIdentity);
     }
 
 }

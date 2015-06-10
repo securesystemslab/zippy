@@ -35,6 +35,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.object.*;
 
 public abstract class GeneratorForNode extends LoopNode implements GeneratorControlNode {
 
@@ -116,12 +117,13 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
         }
 
         protected PRangeIterator getPRangeIterator(VirtualFrame frame) {
-            return CompilerDirectives.unsafeCast(getIterator(frame), PRangeIterator.class, false);
+            return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(getIterator(frame), PRangeIterator.class, false, true);
         }
 
         @Override
         protected void executeIterator(VirtualFrame frame) throws StopIterationException {
-            if (getIterator(frame) != null) {
+            PRangeIterator iterator = (PRangeIterator) getIterator(frame);
+            if (iterator != null) {
                 return;
             }
 
@@ -165,7 +167,7 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
         }
 
         protected PSequenceIterator getPSequenceIterator(VirtualFrame frame) {
-            return CompilerDirectives.unsafeCast(getIterator(frame), PSequenceIterator.class, false);
+            return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(getIterator(frame), PSequenceIterator.class, false, true);
         }
 
         @Override
@@ -214,7 +216,7 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
         }
 
         protected PGenerator getPGenerator(VirtualFrame frame) {
-            return CompilerDirectives.unsafeCast(getIterator(frame), PGenerator.class, false);
+            return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(getIterator(frame), PGenerator.class, false, true);
         }
 
         @Override
