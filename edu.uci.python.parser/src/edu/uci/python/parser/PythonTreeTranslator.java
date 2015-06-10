@@ -46,7 +46,6 @@ import edu.uci.python.nodes.call.*;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.control.LoopNode;
 import edu.uci.python.nodes.expression.*;
-import edu.uci.python.nodes.expression.BinaryBooleanNodeFactory.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.literal.*;
@@ -734,7 +733,7 @@ public class PythonTreeTranslator extends Visitor {
             if (i == 0) {
                 currentCompare = newComparison;
             } else {
-                currentCompare = AndNodeFactory.create(currentCompare, newComparison);
+                currentCompare = new AndNode(currentCompare, newComparison);
             }
         }
 
