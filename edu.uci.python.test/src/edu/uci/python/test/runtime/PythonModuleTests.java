@@ -42,8 +42,8 @@ public class PythonModuleTests {
         PythonModule module = new PythonModule(context, "testModule", null);
 
         assertEquals("testModule", module.getAttribute("__name__").toString());
-        assertEquals("", module.getAttribute("__doc__").toString());
-        assertEquals("", module.getAttribute("__package__").toString());
+        assertEquals("None", module.getAttribute("__doc__").toString());
+        assertEquals("None", module.getAttribute("__package__").toString());
     }
 
     @Test

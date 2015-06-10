@@ -48,9 +48,36 @@ public class IfTests {
     }
 
     @Test
+    public void none() {
+        String source = "a = None\n" + //
+                        "if a is None:\n" + //
+                        "    print('a is', a)\n" + //
+                        "else:\n" + //
+                        "    print('Error!')\n" + //
+                        "if a is not None:\n" + //
+                        "    print('Error!')\n" + //
+                        "else:\n" + //
+                        "    print('a is', a)\n" + //
+                        "if a:\n" + //
+                        "    print('Error!')\n" + //
+                        "else:\n" + //
+                        "    print('a is', a)\n" + //
+                        "if not a:\n" + //
+                        "    print('a is', a)\n" + "else:\n" + //
+                        "    print('Error!')\n"; //
+        assertPrints("a is None\na is None\na is None\na is None\n", source);
+    }
+
+    @Test
     public void elif() {
         Path script = Paths.get("if-test.py");
         assertPrints("31\n", script);
+    }
+
+    @Test
+    public void noneAndClass() {
+        Path script = Paths.get("if-class-none-test.py");
+        assertPrints("a is None\na is None\na is None\na is None\n", script);
     }
 
 }

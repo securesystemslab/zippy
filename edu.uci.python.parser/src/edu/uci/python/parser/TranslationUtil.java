@@ -32,6 +32,7 @@ import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.runtime.datatype.*;
 
 public class TranslationUtil {
 
@@ -71,7 +72,7 @@ public class TranslationUtil {
         NodeFactory factory = NodeFactory.getInstance();
 
         if (name.equals("None")) {
-            return EmptyNode.create();
+            return NoneNode.create();
         } else if (name.equals("True")) {
             return factory.createBooleanLiteral(true);
         } else if (name.equals("False")) {

@@ -22,30 +22,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test.grammar;
+package edu.uci.python.nodes;
 
-import static edu.uci.python.test.PythonTests.*;
+import com.oracle.truffle.api.frame.*;
 
-import org.junit.*;
+import edu.uci.python.runtime.datatype.*;
 
-public class BinaryBooleanTests {
+public final class NoneNode extends PNode {
 
-    @Test
-    public void logicAnd() {
-        assertPrints("0\n", "print(0 and 1)");
-        assertPrints("0\n", "print(2 and 0)");
-        assertPrints("0\n", "print(0 and 12953285437432947239)");
-        assertPrints("9.9292\n", "print(2.4343 and 9.9292)");
-        assertPrints("None\n", "print(None and 8)");
+    private NoneNode() {
     }
 
-    @Test
-    public void logicOr() {
-        assertPrints("1\n", "print(0 or 1)");
-        assertPrints("2\n", "print(2 or 0)");
-        assertPrints("12953285437432947239\n", "print(0 or 12953285437432947239)");
-        assertPrints("2.4343\n", "print(2.4343 or 9.9292)");
-        assertPrints("8\n", "print(None or 8)");
+    public static NoneNode create() {
+        return new NoneNode();
+    }
+
+    @Override
+    public Object execute(VirtualFrame frame) {
+        return PNone.NONENode;
     }
 
 }

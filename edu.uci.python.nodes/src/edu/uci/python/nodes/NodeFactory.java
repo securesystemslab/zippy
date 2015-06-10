@@ -50,7 +50,6 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.control.LoopNode;
 import edu.uci.python.nodes.expression.*;
-import edu.uci.python.nodes.expression.BinaryBooleanNodeFactory.*;
 import edu.uci.python.nodes.expression.BinaryArithmeticNodeFactory.*;
 import edu.uci.python.nodes.expression.BinaryComparisonNodeFactory.*;
 import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.*;
@@ -294,9 +293,9 @@ public class NodeFactory {
     public PNode createBooleanOperation(boolopType operator, PNode left, PNode right) {
         switch (operator) {
             case And:
-                return AndNodeFactory.create(left, right);
+                return new AndNode(left, right);
             case Or:
-                return OrNodeFactory.create(left, right);
+                return new OrNode(left, right);
             default:
                 throw new RuntimeException("unexpected operation: " + operator);
         }
