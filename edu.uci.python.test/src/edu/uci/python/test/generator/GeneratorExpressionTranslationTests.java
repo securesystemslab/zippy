@@ -46,8 +46,8 @@ public class GeneratorExpressionTranslationTests {
 
         PythonParseResult parsed = getParseResult(source);
         RootNode root = parsed.getFunctionRoot("foo");
-        GeneratorExpressionNode genexp = NodeUtil.findFirstNodeInstance(root, GeneratorExpressionNode.class);
-        assertTrue(genexp == null || genexp.isOptimized());
+        int genexp = NodeUtil.findAllNodeInstances(root, GeneratorExpressionNode.class).size();
+        assertTrue(genexp == 0);
     }
 
     @Test
@@ -60,8 +60,8 @@ public class GeneratorExpressionTranslationTests {
 
         PythonParseResult parsed = getParseResult(source);
         RootNode root = parsed.getFunctionRoot("foo");
-        GeneratorExpressionNode genexp = NodeUtil.findFirstNodeInstance(root, GeneratorExpressionNode.class);
-        assertTrue(genexp != null);
+        int genexp = NodeUtil.findAllNodeInstances(root, GeneratorExpressionNode.class).size();
+        assertTrue(genexp != 0);
     }
 
     @Test
@@ -75,8 +75,8 @@ public class GeneratorExpressionTranslationTests {
 
         PythonParseResult parsed = getParseResult(source);
         RootNode root = parsed.getFunctionRoot("foo");
-        GeneratorExpressionNode genexp = NodeUtil.findFirstNodeInstance(root, GeneratorExpressionNode.class);
-        assertTrue(genexp != null);
+        int genexp = NodeUtil.findAllNodeInstances(root, GeneratorExpressionNode.class).size();
+        assertTrue(genexp != 0);
     }
 
     @Test
@@ -90,8 +90,8 @@ public class GeneratorExpressionTranslationTests {
 
         PythonParseResult parsed = getParseResult(source);
         RootNode root = parsed.getFunctionRoot("foo");
-        GeneratorExpressionNode genexp = NodeUtil.findFirstNodeInstance(root, GeneratorExpressionNode.class);
-        assertTrue(genexp != null);
+        int genexp = NodeUtil.findAllNodeInstances(root, GeneratorExpressionNode.class).size();
+        assertTrue(genexp != 0);
     }
 
     @Test
@@ -106,8 +106,8 @@ public class GeneratorExpressionTranslationTests {
 
         PythonParseResult parsed = getParseResult(source);
         RootNode root = parsed.getFunctionRoot("foo");
-        GeneratorExpressionNode genexp = NodeUtil.findFirstNodeInstance(root, GeneratorExpressionNode.class);
-        assertTrue(genexp != null);
+        int genexp = NodeUtil.findAllNodeInstances(root, GeneratorExpressionNode.class).size();
+        assertTrue(genexp != 0);
     }
 
     @Test
@@ -121,8 +121,8 @@ public class GeneratorExpressionTranslationTests {
 
         PythonParseResult parsed = getParseResult(source);
         RootNode root = parsed.getFunctionRoot("foo");
-        GeneratorExpressionNode genexp = NodeUtil.findFirstNodeInstance(root, GeneratorExpressionNode.class);
-        assertTrue(genexp != null);
+        int genexp = NodeUtil.findAllNodeInstances(root, GeneratorExpressionNode.class).size();
+        assertTrue(genexp != 0);
     }
 
 }

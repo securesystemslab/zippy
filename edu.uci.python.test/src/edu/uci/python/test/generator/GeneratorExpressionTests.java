@@ -85,7 +85,19 @@ public class GeneratorExpressionTests {
     @Test
     public void sumGenExp() {
         Path script = Paths.get("generator-expression-sum-test.py");
-        assertPrints("20\n20\n", script);
+        assertPrints("20\n0\n", script);
+    }
+
+    @Test
+    public void sum2GenExp() {
+        Path script = Paths.get("generator-expression-sum-2-test.py");
+        assertPrints("20\n0\n", script);
+    }
+
+    @Test
+    public void nextGenExp() {
+        Path script = Paths.get("generator-expression-next-test.py");
+        assertPrints("8\n", script);
     }
 
 }

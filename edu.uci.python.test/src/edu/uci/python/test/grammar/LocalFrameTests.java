@@ -152,13 +152,16 @@ public class LocalFrameTests {
     @Test
     public void intToComplex() {
         String source = "def foo():\n" + //
+                        "    y = 0\n" + //
                         "    for i in range(2):\n" + //
                         "        x = 0\n" + //
                         "        for j in range(2):\n" + //
                         "            x = x + 5j\n" + //
+                        "        y = y + x\n" + //
+                        "    print(y)\n" + //
                         "\n" + //
                         "foo()\n";
 
-        assertPrints("", source);
+        assertPrints("20j\n", source);
     }
 }

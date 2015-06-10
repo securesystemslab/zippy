@@ -82,7 +82,9 @@ public class GeneratorOptimizationTests {
         PythonOptions.OptimizeGeneratorExpressions = true;
         Path script = Paths.get("generator-inline-genexp-builtin-test.py");
         PythonParseResult ast = assertPrintContains("420\n", script);
-        Node listComp = NodeUtil.findFirstNodeInstance(ast.getFunctionRoot("call_generator_builtin"), ListComprehensionNode.class);
+// Node listComp = NodeUtil.findFirstNodeInstance(ast.getFunctionRoot("call_generator_builtin"),
+// ListComprehensionNode.class);
+        Node listComp = NodeUtil.findAllNodeInstances(ast.getFunctionRoot("call_generator_builtin"), ListComprehensionNode.class).get(0);
         assertTrue(listComp != null);
     }
 

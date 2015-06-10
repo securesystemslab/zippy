@@ -42,6 +42,7 @@ public final class PGenerator extends PythonBuiltinObject implements PIterator {
     protected final RootCallTarget callTarget;
     protected final FrameDescriptor frameDescriptor;
     protected final Object[] arguments;
+    protected boolean isGenerated;
 
     public static PGenerator create(String name, RootCallTarget callTarget, FrameDescriptor frameDescriptor, MaterializedFrame declarationFrame, Object[] arguments, int numOfActiveFlags,
                     int numOfGeneratorBlockNode, int numOfGeneratorForNode) {
@@ -61,6 +62,7 @@ public final class PGenerator extends PythonBuiltinObject implements PIterator {
         this.callTarget = callTarget;
         this.frameDescriptor = frameDescriptor;
         this.arguments = arguments;
+        this.isGenerated = false;
     }
 
     @Override
@@ -82,7 +84,14 @@ public final class PGenerator extends PythonBuiltinObject implements PIterator {
 
     @Override
     public Object __next__() throws StopIterationException {
-        return callTarget.call(arguments);
+        if (isGenerated)
+            throw StopIterationException.INSTANCE;
+        try {
+            return callTarget.call(arguments);
+        } catch (StopIterationException stopIterationException) {
+            this.isGenerated = true;
+            throw stopIterationException;
+        }
     }
 
     public Object send(Object value) throws StopIterationException {
