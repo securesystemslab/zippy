@@ -26,12 +26,13 @@ package edu.uci.python.nodes.subscript;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.object.*;
 
+@GenerateNodeFactory
 public abstract class IndexNode extends UnaryOpNode {
 
     @Specialization

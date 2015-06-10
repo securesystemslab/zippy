@@ -33,6 +33,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
 
 @NodeInfo(shortName = "subscript_delete")
+@GenerateNodeFactory
 public abstract class SubscriptDeleteNode extends BinaryOpNode {
 
     public PNode getPrimary() {

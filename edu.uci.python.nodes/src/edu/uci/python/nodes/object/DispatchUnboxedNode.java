@@ -46,15 +46,15 @@ public abstract class DispatchUnboxedNode extends Node {
     public abstract Object getValue(VirtualFrame frame, PythonBuiltinObject primaryObj);
 
     public int getIntValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectInteger(getValue(frame, primaryObj));
+        return PythonTypesGen.expectInteger(getValue(frame, primaryObj));
     }
 
     public double getDoubleValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectDouble(getValue(frame, primaryObj));
+        return PythonTypesGen.expectDouble(getValue(frame, primaryObj));
     }
 
     public boolean getBooleanValue(VirtualFrame frame, PythonBuiltinObject primaryObj) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectBoolean(getValue(frame, primaryObj));
+        return PythonTypesGen.expectBoolean(getValue(frame, primaryObj));
     }
 
     protected DispatchUnboxedNode rewrite(PythonBuiltinObject primaryObj, DispatchUnboxedNode next) {

@@ -59,17 +59,17 @@ public abstract class ReadIndexedArgumentNode extends PNode {
 
         @Override
         public boolean executeBoolean(VirtualFrame frame) throws UnexpectedResultException {
-            return PythonTypesGen.PYTHONTYPES.expectBoolean(execute(frame));
+            return PythonTypesGen.expectBoolean(execute(frame));
         }
 
         @Override
         public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
-            return PythonTypesGen.PYTHONTYPES.expectInteger(execute(frame));
+            return PythonTypesGen.expectInteger(execute(frame));
         }
 
         @Override
         public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
-            return PythonTypesGen.PYTHONTYPES.expectDouble(execute(frame));
+            return PythonTypesGen.expectDouble(execute(frame));
         }
 
         @Override

@@ -39,18 +39,19 @@ import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
+@GenerateNodeFactory
 public abstract class GetIteratorNode extends UnaryOpNode {
 
     public abstract Object executeWith(VirtualFrame frame, Object value);
 
-    @Specialization(order = 1, guards = "isIntStorage")
-    public Object doPListInt(PList value) {
-        return new PIntegerSequenceIterator((IntSequenceStorage) value.getStorage());
+    @Specialization(order = 1, guards = "isIntStorage(primary)")
+    public Object doPListInt(PList primary) {
+        return new PIntegerSequenceIterator((IntSequenceStorage) primary.getStorage());
     }
 
-    @Specialization(order = 2, guards = "isDoubleStorage")
-    public Object doPListDouble(PList value) {
-        return new PDoubleSequenceIterator((DoubleSequenceStorage) value.getStorage());
+    @Specialization(order = 2, guards = "isDoubleStorage(primary)")
+    public Object doPListDouble(PList primary) {
+        return new PDoubleSequenceIterator((DoubleSequenceStorage) primary.getStorage());
     }
 
     @Specialization(order = 4)
@@ -166,7 +167,7 @@ public abstract class GetIteratorNode extends UnaryOpNode {
             PGenerator generator;
 
             try {
-                generator = PythonTypesGen.PYTHONTYPES.expectPGenerator(value);
+                generator = PythonTypesGen.expectPGenerator(value);
             } catch (UnexpectedResultException e) {
                 throw new IllegalStateException();
             }

@@ -28,6 +28,7 @@ import java.util.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.dsl.*;
+import com.oracle.truffle.api.dsl.NodeFactory;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -36,8 +37,10 @@ import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 
+@GenerateNodeFactory
 public abstract class ComprehensionNode extends PNode {
 
     @Child protected PNode write;
@@ -67,6 +70,7 @@ public abstract class ComprehensionNode extends PNode {
         }
     }
 
+    @GenerateNodeFactory
     public static final class TupleComprehensionNode extends ComprehensionNode {
 
         public TupleComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
@@ -83,6 +87,7 @@ public abstract class ComprehensionNode extends PNode {
     }
 
     @NodeChild(value = "rightNode", type = PNode.class)
+    @GenerateNodeFactory
     public abstract static class ArrayListAddNode extends FrameSlotNode {
 
         public ArrayListAddNode(FrameSlot frameSlot) {
@@ -101,10 +106,11 @@ public abstract class ComprehensionNode extends PNode {
 
         @SuppressWarnings("unchecked")
         private ArrayList<Object> getList(Frame frame) {
-            return CompilerDirectives.unsafeCast(getObject(frame), ArrayList.class, true);
+            return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(getObject(frame), ArrayList.class, true, true);
         }
     }
 
+    @GenerateNodeFactory
     public static final class SetComprehensionNode extends ComprehensionNode {
 
         public SetComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
@@ -121,6 +127,7 @@ public abstract class ComprehensionNode extends PNode {
     }
 
     @NodeChild(value = "rightNode", type = PNode.class)
+    @GenerateNodeFactory
     public abstract static class TreeSetAddNode extends FrameSlotNode {
 
         public TreeSetAddNode(FrameSlot frameSlot) {
@@ -139,10 +146,11 @@ public abstract class ComprehensionNode extends PNode {
 
         @SuppressWarnings("unchecked")
         private TreeSet<Object> getSet(Frame frame) {
-            return CompilerDirectives.unsafeCast(getObject(frame), TreeSet.class, true);
+            return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(getObject(frame), TreeSet.class, true, true);
         }
     }
 
+    @GenerateNodeFactory
     public static final class DictComprehensionNode extends ComprehensionNode {
 
         public DictComprehensionNode(FrameSlot frameSlot, PNode comprehension) {
@@ -159,6 +167,7 @@ public abstract class ComprehensionNode extends PNode {
     }
 
     @NodeChildren({@NodeChild(value = "key", type = PNode.class), @NodeChild(value = "value", type = PNode.class)})
+    @GenerateNodeFactory
     public abstract static class MapPutNode extends FrameSlotNode {
 
         public MapPutNode(FrameSlot frameSlot) {
@@ -177,10 +186,11 @@ public abstract class ComprehensionNode extends PNode {
 
         @SuppressWarnings("unchecked")
         private TreeMap<Object, Object> getMap(Frame frame) {
-            return CompilerDirectives.unsafeCast(getObject(frame), TreeMap.class, true);
+            return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(getObject(frame), TreeMap.class, true, true);
         }
     }
 
+    @GenerateNodeFactory
     public static final class ComprehensionGuardNode extends PNode {
 
         private final FrameDescriptor frameDescriptor;

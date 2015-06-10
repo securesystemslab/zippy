@@ -30,11 +30,12 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
 
 public abstract class ReadVariableNode extends FrameSlotNode implements ReadNode {
 
-    @Child protected ReadVariableNode next;
+    @Child protected PNode next;
 
     public ReadVariableNode(FrameSlot slot) {
         super(slot);
@@ -95,7 +96,7 @@ public abstract class ReadVariableNode extends FrameSlotNode implements ReadNode
         if (frameSlot.getKind() == FrameSlotKind.Boolean) {
             return getBoolean(accessingFrame);
         } else {
-            return PythonTypesGen.PYTHONTYPES.expectBoolean(executeNext(frame));
+            return PythonTypesGen.expectBoolean(executeNext(frame));
         }
     }
 
@@ -111,7 +112,7 @@ public abstract class ReadVariableNode extends FrameSlotNode implements ReadNode
         if (frameSlot.getKind() == FrameSlotKind.Int) {
             return getInteger(accessingFrame);
         } else {
-            return PythonTypesGen.PYTHONTYPES.expectInteger(executeNext(frame));
+            return PythonTypesGen.expectInteger(executeNext(frame));
         }
     }
 
@@ -127,7 +128,7 @@ public abstract class ReadVariableNode extends FrameSlotNode implements ReadNode
         if (frameSlot.getKind() == FrameSlotKind.Double) {
             return getDouble(accessingFrame);
         } else {
-            return PythonTypesGen.PYTHONTYPES.expectDouble(executeNext(frame));
+            return PythonTypesGen.expectDouble(executeNext(frame));
         }
     }
 

@@ -58,6 +58,7 @@ public final class StringBuiltins extends PythonBuiltins {
 
     // str.startswith(prefix[, start[, end]])
     @Builtin(name = "startswith", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class StartsWithNode extends PythonBuiltinNode {
 
         @Specialization
@@ -77,6 +78,7 @@ public final class StringBuiltins extends PythonBuiltins {
 
     // str.join(iterable)
     @Builtin(name = "join", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class JoinNode extends PythonBuiltinNode {
 
         @ExplodeLoop
@@ -95,7 +97,7 @@ public final class StringBuiltins extends PythonBuiltins {
         }
 
         @ExplodeLoop
-        @Specialization(guards = "is2ndObjectStorage")
+        @Specialization(guards = "is2ndObjectStorage(string,list)")
         public String join(String string, PList list) {
             StringBuilder sb = new StringBuilder();
             ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
@@ -164,6 +166,7 @@ public final class StringBuiltins extends PythonBuiltins {
 
     // str.upper()
     @Builtin(name = "upper", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class UpperNode extends PythonBuiltinNode {
 
         @Specialization
@@ -174,6 +177,7 @@ public final class StringBuiltins extends PythonBuiltins {
 
     // static str.maketrans()
     @Builtin(name = "maketrans", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class MakeTransNode extends PythonBuiltinNode {
 
         @Specialization
@@ -195,6 +199,7 @@ public final class StringBuiltins extends PythonBuiltins {
 
     // str.translate()
     @Builtin(name = "translate", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class TranslateNode extends PythonBuiltinNode {
 
         @Specialization
@@ -214,6 +219,7 @@ public final class StringBuiltins extends PythonBuiltins {
 
     // str.lower()
     @Builtin(name = "lower", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class LowerNode extends PythonBuiltinNode {
 
         @Specialization
@@ -224,6 +230,7 @@ public final class StringBuiltins extends PythonBuiltins {
 
     // str.split
     @Builtin(name = "split", maxNumOfArguments = 3)
+    @GenerateNodeFactory
     public abstract static class SplitNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")

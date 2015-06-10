@@ -40,6 +40,7 @@ import edu.uci.python.runtime.sequence.storage.*;
 
 @NodeInfo(shortName = "for")
 @NodeChild(value = "iterator", type = GetIteratorNode.class)
+@GenerateNodeFactory
 public abstract class ForNode extends LoopNode {
 
     @Child protected PNode target;
@@ -153,7 +154,7 @@ public abstract class ForNode extends LoopNode {
         return PNone.NONE;
     }
 
-    @Specialization(guards = "isObjectStorageIterator")
+    @Specialization(guards = "isObjectStorageIterator(iterator)")
     public Object doObjectStorageIterator(VirtualFrame frame, PSequenceIterator iterator) {
         int count = 0;
         int index = 0;

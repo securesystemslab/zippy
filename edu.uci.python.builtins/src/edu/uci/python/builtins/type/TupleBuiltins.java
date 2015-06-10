@@ -44,6 +44,7 @@ public class TupleBuiltins extends PythonBuiltins {
 
     // index(element)
     @Builtin(name = "index", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class IndexNode extends PythonBuiltinNode {
 
         @Specialization

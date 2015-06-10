@@ -33,6 +33,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
 
 @NodeInfo(shortName = "subscript_store_slice")
+@GenerateNodeFactory
 public abstract class SubscriptStoreSliceNode extends SubscriptStoreNode {
 
     @Override

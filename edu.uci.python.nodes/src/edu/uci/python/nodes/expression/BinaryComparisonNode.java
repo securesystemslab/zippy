@@ -36,9 +36,11 @@ import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtype.*;
 
+@GenerateNodeFactory
 public abstract class BinaryComparisonNode extends BinaryOpNode {
 
     @NodeInfo(shortName = "==")
+    @GenerateNodeFactory
     public abstract static class EqualNode extends BinaryComparisonNode {
 
         @Specialization(order = 0)
@@ -93,14 +95,14 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
             return left.equals(right);
         }
 
-        @Specialization(order = 36, guards = "areBothIntStorage")
+        @Specialization(order = 36, guards = "areBothIntStorage(left,right)")
         boolean doPListInt(PList left, PList right) {
             IntSequenceStorage leftStore = (IntSequenceStorage) left.getStorage();
             IntSequenceStorage rightStore = (IntSequenceStorage) right.getStorage();
             return leftStore.equals(rightStore);
         }
 
-        @Specialization(order = 37, guards = "areBothObjectStorage")
+        @Specialization(order = 37, guards = "areBothObjectStorage(left,right)")
         boolean doPListObject(PList left, PList right) {
             ObjectSequenceStorage leftStore = (ObjectSequenceStorage) left.getStorage();
             ObjectSequenceStorage rightStore = (ObjectSequenceStorage) right.getStorage();
@@ -128,13 +130,13 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 100, guards = "isNotPythonObject")
+        @Specialization(order = 100, guards = "isNotPythonObject(left)")
         Object doPythonObject(Object left, PythonObject right) {
             return false;
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 110, guards = "is2ndNotPythonObject")
+        @Specialization(order = 110, guards = "is2ndNotPythonObject(left,right)")
         Object doPythonObject(PythonObject left, Object right) {
             return false;
         }
@@ -149,6 +151,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     }
 
     @NodeInfo(shortName = "!=")
+    @GenerateNodeFactory
     public abstract static class NotEqualNode extends BinaryComparisonNode {
 
         @Specialization
@@ -204,6 +207,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     }
 
     @NodeInfo(shortName = "<")
+    @GenerateNodeFactory
     public abstract static class LessThanNode extends BinaryComparisonNode {
 
         @Specialization
@@ -238,6 +242,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     }
 
     @NodeInfo(shortName = "<=")
+    @GenerateNodeFactory
     public abstract static class LessThanEqualNode extends BinaryComparisonNode {
 
         @Specialization
@@ -273,6 +278,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     }
 
     @NodeInfo(shortName = ">")
+    @GenerateNodeFactory
     public abstract static class GreaterThanNode extends BinaryComparisonNode {
 
         @Specialization(order = 1)
@@ -312,6 +318,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     }
 
     @NodeInfo(shortName = ">=")
+    @GenerateNodeFactory
     public abstract static class GreaterThanEqualNode extends BinaryComparisonNode {
 
         @Specialization(order = 1)
@@ -351,6 +358,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     }
 
     @NodeInfo(shortName = "is")
+    @GenerateNodeFactory
     public abstract static class IsNode extends BinaryComparisonNode {
 
         @SuppressWarnings("unused")
@@ -383,13 +391,13 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         @SuppressWarnings("unused")
         @Specialization(order = 10)
         boolean doLeftPNone(PNone left, Object right) {
-            return PNone.NONE == right;
+            return PNone.NONENode == right || PNone.NONE == right;
         }
 
         @SuppressWarnings("unused")
         @Specialization(order = 11)
         boolean doRightPNone(Object left, PNone right) {
-            return left == PNone.NONE;
+            return left == PNone.NONENode || left == PNone.NONE;
         }
 
         @Fallback
@@ -399,6 +407,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     }
 
     @NodeInfo(shortName = "is not")
+    @GenerateNodeFactory
     public abstract static class IsNotNode extends BinaryComparisonNode {
 
         @Specialization(order = 1)
@@ -419,13 +428,13 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         @SuppressWarnings("unused")
         @Specialization(order = 10)
         public boolean doLeftPNone(PNone left, Object right) {
-            return PNone.NONE != right;
+            return PNone.NONENode != right && PNone.NONE != right;
         }
 
         @SuppressWarnings("unused")
         @Specialization(order = 11)
         public boolean doRightPNone(Object left, PNone right) {
-            return left != PNone.NONE;
+            return left != PNone.NONENode && left != PNone.NONE;
         }
 
         @Fallback
@@ -435,6 +444,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     }
 
     @NodeInfo(shortName = "in")
+    @GenerateNodeFactory
     public abstract static class InNode extends BinaryComparisonNode {
 
         @Specialization
@@ -453,7 +463,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 10, guards = "isEmptyDict")
+        @Specialization(order = 10, guards = "isEmptyDict(left,right)")
         public boolean doPDictionaryEmpty(Object left, PDict right) {
             return false;
         }
@@ -469,6 +479,7 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     }
 
     @NodeInfo(shortName = "not in")
+    @GenerateNodeFactory
     public abstract static class NotInNode extends BinaryComparisonNode {
 
         @Specialization(order = 5)
@@ -477,24 +488,24 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 10, guards = "is2ndEmptyStorage")
+        @Specialization(order = 10, guards = "is2ndEmptyStorage(left,right)")
         public boolean doPListEmpty(Object left, PList right) {
             return true;
         }
 
-        @Specialization(order = 11, guards = "is2ndIntStorage")
+        @Specialization(order = 11, guards = "is2ndIntStorage(left,right)")
         public boolean doPListInt(int left, PList right) {
             IntSequenceStorage store = (IntSequenceStorage) right.getStorage();
             return store.indexOfInt(left) == -1;
         }
 
-        @Specialization(order = 12, guards = "is2ndDoubleStorage")
+        @Specialization(order = 12, guards = "is2ndDoubleStorage(left,right)")
         public boolean doPListDouble(double left, PList right) {
             DoubleSequenceStorage store = (DoubleSequenceStorage) right.getStorage();
             return store.indexOfDouble(left) == -1;
         }
 
-        @Specialization(order = 13, guards = "is2ndObjectStorage")
+        @Specialization(order = 13, guards = "is2ndObjectStorage(left,right)")
         public boolean doPListObject(Object left, PList right) {
             ObjectSequenceStorage store = (ObjectSequenceStorage) right.getStorage();
             return store.index(left) == -1;

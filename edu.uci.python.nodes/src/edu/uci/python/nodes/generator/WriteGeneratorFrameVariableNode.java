@@ -35,6 +35,7 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 
 @NodeChild(value = "rightNode", type = PNode.class)
+@GenerateNodeFactory
 public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode implements WriteNode {
 
     public WriteGeneratorFrameVariableNode(FrameSlot slot) {
@@ -71,21 +72,21 @@ public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode impl
         return right;
     }
 
-    @Specialization(order = 1, guards = "isBooleanKind")
+    @Specialization(order = 1, guards = "isBooleanKind(frame)")
     public boolean write(VirtualFrame frame, boolean right) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         mframe.setBoolean(frameSlot, right);
         return right;
     }
 
-    @Specialization(order = 2, guards = "isIntegerKind")
+    @Specialization(order = 2, guards = "isIntegerKind(frame)")
     public int write(VirtualFrame frame, int value) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         mframe.setInt(frameSlot, value);
         return value;
     }
 
-    @Specialization(order = 3, guards = "isIntOrObjectKind")
+    @Specialization(order = 3, guards = "isIntOrObjectKind(frame)")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         setObject(mframe, value);
@@ -93,14 +94,14 @@ public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode impl
         return value;
     }
 
-    @Specialization(order = 4, guards = "isDoubleKind")
+    @Specialization(order = 4, guards = "isDoubleKind(frame)")
     public double write(VirtualFrame frame, double right) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         mframe.setDouble(frameSlot, right);
         return right;
     }
 
-    @Specialization(order = 5, guards = "isObjectKind")
+    @Specialization(order = 5, guards = "isObjectKind(frame)")
     public Object write(VirtualFrame frame, Object right) {
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         setObject(mframe, right);

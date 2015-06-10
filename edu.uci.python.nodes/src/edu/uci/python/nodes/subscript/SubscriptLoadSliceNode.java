@@ -35,6 +35,7 @@ import edu.uci.python.runtime.datatype.PSlice.PStopSlice;
 import edu.uci.python.runtime.sequence.*;
 
 @NodeInfo(shortName = "subscript_load_slice")
+@GenerateNodeFactory
 public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
 
     @Override

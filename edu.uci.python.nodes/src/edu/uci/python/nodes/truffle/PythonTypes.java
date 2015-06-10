@@ -90,27 +90,27 @@ public class PythonTypes {
      * Type coercion: Python bool to Python int (Integer).
      */
     @ImplicitCast
-    public int booleanToInt(boolean value) {
+    public static int booleanToInt(boolean value) {
         return value ? 1 : 0;
     }
 
     @ImplicitCast
-    public BigInteger intToBigInteger(int value) {
+    public static BigInteger intToBigInteger(int value) {
         return BigInteger.valueOf(value);
     }
 
     @ImplicitCast
-    public double intToDouble(int value) {
+    public static double intToDouble(int value) {
         return value;
     }
 
     @ImplicitCast
-    public double bigIntegerToDouble(BigInteger value) {
+    public static double bigIntegerToDouble(BigInteger value) {
         return value.doubleValue();
     }
 
     @ImplicitCast
-    public String unboxPString(PString value) {
+    public static String unboxPString(PString value) {
         return value.getValue();
     }
 

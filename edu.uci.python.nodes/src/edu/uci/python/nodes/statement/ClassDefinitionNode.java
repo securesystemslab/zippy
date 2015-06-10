@@ -36,6 +36,7 @@ import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtype.*;
 
 @NodeChild(value = "definitionFunction", type = PNode.class)
+@GenerateNodeFactory
 public abstract class ClassDefinitionNode extends StatementNode {
 
     private final PythonContext context;

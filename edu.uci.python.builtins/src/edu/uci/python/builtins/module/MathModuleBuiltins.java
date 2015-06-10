@@ -34,7 +34,7 @@ import edu.uci.python.nodes.function.*;
 /**
  * @author zwei
  * @author myq
- * 
+ *
  */
 public class MathModuleBuiltins extends PythonBuiltins {
 
@@ -45,6 +45,7 @@ public class MathModuleBuiltins extends PythonBuiltins {
 
     // math.sqrt
     @Builtin(name = "sqrt", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class SqrtNode extends PythonBuiltinNode {
 
         @Specialization
@@ -59,6 +60,7 @@ public class MathModuleBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "exp", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ExpNode extends PythonBuiltinNode {
 
         @Specialization
@@ -73,6 +75,7 @@ public class MathModuleBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "pi", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class PiNode extends PythonBuiltinNode {
 
         @Specialization
@@ -82,6 +85,7 @@ public class MathModuleBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "e", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ENode extends PythonBuiltinNode {
 
         @Specialization
@@ -92,6 +96,7 @@ public class MathModuleBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "ceil", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class CeilNode extends PythonBuiltinNode {
 
         @Specialization
@@ -101,6 +106,7 @@ public class MathModuleBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "acos", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class AcosNode extends PythonBuiltinNode {
 
         @Specialization
@@ -115,6 +121,7 @@ public class MathModuleBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "cos", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class CosNode extends PythonBuiltinNode {
 
         @Specialization
@@ -129,6 +136,7 @@ public class MathModuleBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "sin", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class SinNode extends PythonBuiltinNode {
 
         @Specialization
@@ -143,6 +151,7 @@ public class MathModuleBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "log", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class LogNode extends PythonBuiltinNode {
 
         @Specialization

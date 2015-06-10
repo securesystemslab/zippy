@@ -128,7 +128,7 @@ public abstract class PythonCallNode extends PNode {
         boolean isSpecialMethodDispatch = false;
 
         try {
-            callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(callee);
+            callable = PythonTypesGen.expectPythonCallable(callee);
         } catch (UnexpectedResultException e) {
             // fall through
         }

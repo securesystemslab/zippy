@@ -199,7 +199,7 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
         public Object executeWrite(VirtualFrame frame, Object value) {
             PythonObject primary = executePrimary(frame);
             try {
-                int ivalue = PythonTypesGen.PYTHONTYPES.expectInteger(value);
+                int ivalue = PythonTypesGen.expectInteger(value);
                 dispatch.setIntValue(frame, primary, ivalue);
                 return ivalue;
             } catch (UnexpectedResultException e) {
@@ -245,7 +245,7 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
         public Object executeWrite(VirtualFrame frame, Object value) {
             PythonObject primary = executePrimary(frame);
             try {
-                double dvalue = PythonTypesGen.PYTHONTYPES.expectDouble(value);
+                double dvalue = PythonTypesGen.expectDouble(value);
                 dispatch.setDoubleValue(frame, primary, dvalue);
                 return dvalue;
             } catch (UnexpectedResultException e) {
@@ -291,7 +291,7 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
         public Object executeWrite(VirtualFrame frame, Object value) {
             PythonObject primary = executePrimary(frame);
             try {
-                boolean bvalue = PythonTypesGen.PYTHONTYPES.expectBoolean(value);
+                boolean bvalue = PythonTypesGen.expectBoolean(value);
                 dispatch.setBooleanValue(frame, primary, bvalue);
                 return bvalue;
             } catch (UnexpectedResultException e) {

@@ -49,29 +49,30 @@ public class ListBuiltins extends PythonBuiltins {
 
     // list.append(x)
     @Builtin(name = "append", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ListAppendNode extends PythonBuiltinNode {
 
-        @Specialization(order = 1, guards = "isEmptyStorage")
+        @Specialization(order = 1, guards = "isEmptyStorage(list)")
         public PList appendEmpty(PList list, Object arg) {
             list.append(arg);
             return list;
         }
 
-        @Specialization(order = 2, guards = "isIntStorage")
+        @Specialization(order = 2, guards = "isIntStorage(list)")
         public PList appendInt(PList list, int arg) {
             IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
             store.appendInt(arg);
             return list;
         }
 
-        @Specialization(order = 3, guards = "isDoubleStorage")
+        @Specialization(order = 3, guards = "isDoubleStorage(list)")
         public PList appendDouble(PList list, double arg) {
             DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
             store.appendDouble(arg);
             return list;
         }
 
-        @Specialization(order = 4, guards = "isObjectStorage")
+        @Specialization(order = 4, guards = "isObjectStorage(list)")
         public PList appendObject(PList list, Object arg) {
             ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
             store.append(arg);
@@ -81,6 +82,7 @@ public class ListBuiltins extends PythonBuiltins {
 
     // list.extend(L)
     @Builtin(name = "extend", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ListExtendNode extends PythonBuiltinNode {
 
         @Specialization
@@ -98,6 +100,7 @@ public class ListBuiltins extends PythonBuiltins {
 
     // list.insert(i, x)
     @Builtin(name = "insert", fixedNumOfArguments = 3, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ListInsertNode extends PythonBuiltinNode {
 
         @Specialization
@@ -115,6 +118,7 @@ public class ListBuiltins extends PythonBuiltins {
 
     // list.remove(x)
     @Builtin(name = "remove", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ListRemoveNode extends PythonBuiltinNode {
 
         @Specialization
@@ -127,21 +131,22 @@ public class ListBuiltins extends PythonBuiltins {
 
     // list.pop([i])
     @Builtin(name = "pop", minNumOfArguments = 1, maxNumOfArguments = 2)
+    @GenerateNodeFactory
     public abstract static class ListPopNode extends PythonBuiltinNode {
 
-        @Specialization(order = 0, guards = "isIntStorage")
+        @Specialization(order = 0, guards = "isIntStorage(list)")
         public int popInt(PList list, @SuppressWarnings("unused") PNone none) {
             IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
             return store.popInt();
         }
 
-        @Specialization(order = 1, guards = "isDoubleStorage")
+        @Specialization(order = 1, guards = "isDoubleStorage(list)")
         public double popDouble(PList list, @SuppressWarnings("unused") PNone none) {
             DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
             return store.popDouble();
         }
 
-        @Specialization(order = 2, guards = "isObjectStorage")
+        @Specialization(order = 2, guards = "isObjectStorage(list)")
         public Object popObject(PList list, @SuppressWarnings("unused") PNone none) {
             ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
             return store.popObject();
@@ -170,6 +175,7 @@ public class ListBuiltins extends PythonBuiltins {
 
     // list.index(x)
     @Builtin(name = "index", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ListIndexNode extends PythonBuiltinNode {
 
         @Specialization
@@ -180,6 +186,7 @@ public class ListBuiltins extends PythonBuiltins {
 
     // list.count(x)
     @Builtin(name = "count", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ListCountNode extends PythonBuiltinNode {
 
         @Specialization
@@ -202,6 +209,7 @@ public class ListBuiltins extends PythonBuiltins {
 
     // list.sort()
     @Builtin(name = "sort", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ListSortNode extends PythonBuiltinNode {
 
         @Specialization
@@ -213,6 +221,7 @@ public class ListBuiltins extends PythonBuiltins {
 
     // list.reverse()
     @Builtin(name = "reverse", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ListReverseNode extends PythonBuiltinNode {
 
         @Specialization

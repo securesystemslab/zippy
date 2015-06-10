@@ -49,6 +49,7 @@ public final class DictBuiltins extends PythonBuiltins {
 
     // setdefault(key[, default])
     @Builtin(name = "setdefault", fixedNumOfArguments = 3, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class SetDefaultNode extends PythonBuiltinNode {
 
         @Specialization
@@ -64,6 +65,7 @@ public final class DictBuiltins extends PythonBuiltins {
 
     // pop(key[, default])
     @Builtin(name = "pop", fixedNumOfArguments = 3, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class PopNode extends PythonBuiltinNode {
 
         @Specialization
@@ -80,6 +82,7 @@ public final class DictBuiltins extends PythonBuiltins {
 
     // popitem()
     @Builtin(name = "popitem", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class PopItemNode extends PythonBuiltinNode {
 
         @Specialization
@@ -94,6 +97,7 @@ public final class DictBuiltins extends PythonBuiltins {
 
     // keys()
     @Builtin(name = "keys", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class KeysNode extends PythonBuiltinNode {
 
         @ExplodeLoop
@@ -116,6 +120,7 @@ public final class DictBuiltins extends PythonBuiltins {
 
     // items()
     @Builtin(name = "items", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ItemsNode extends PythonBuiltinNode {
 
         @Specialization
@@ -126,6 +131,7 @@ public final class DictBuiltins extends PythonBuiltins {
 
     // get(key[, default])
     @Builtin(name = "get", fixedNumOfArguments = 3, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class GetNode extends PythonBuiltinNode {
 
         @Specialization
@@ -137,6 +143,7 @@ public final class DictBuiltins extends PythonBuiltins {
 
     // copy()
     @Builtin(name = "copy", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class CopyNode extends PythonBuiltinNode {
 
         @Specialization
@@ -147,6 +154,7 @@ public final class DictBuiltins extends PythonBuiltins {
 
     // clear()
     @Builtin(name = "clear", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ClearNode extends PythonBuiltinNode {
 
         @Specialization
@@ -158,6 +166,7 @@ public final class DictBuiltins extends PythonBuiltins {
 
     // values()
     @Builtin(name = "values", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ValuesNode extends PythonBuiltinNode {
 
         @Specialization

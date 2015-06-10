@@ -32,7 +32,6 @@ import com.oracle.truffle.api.frame.*;
 
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.call.*;
-import edu.uci.python.runtime.object.*;
 
 @NodeChildren({@NodeChild(value = "leftNode", type = PNode.class), @NodeChild(value = "rightNode", type = PNode.class)})
 public abstract class BinaryOpNode extends PNode {
@@ -49,10 +48,6 @@ public abstract class BinaryOpNode extends PNode {
     public CallDispatchSpecialNode getSpecialMethodDispatch() {
         assert dispatch != null;
         return dispatch;
-    }
-
-    protected static final boolean isEitherOperandPythonObject(Object left, Object right) {
-        return left instanceof PythonObject || right instanceof PythonObject;
     }
 
     protected final Object doSpecialMethodCall(VirtualFrame frame, String specialMethodId, Object left, Object right) {

@@ -33,6 +33,7 @@ import edu.uci.python.runtime.sequence.storage.*;
 /**
  * Implements LIST_APPEND bytecode in CPython.
  */
+@GenerateNodeFactory
 public abstract class ListAppendNode extends BinaryOpNode {
 
     @Specialization
@@ -41,13 +42,13 @@ public abstract class ListAppendNode extends BinaryOpNode {
         return right;
     }
 
-    @Specialization(order = 1, guards = "isEmptyStorage")
+    @Specialization(order = 1, guards = "isEmptyStorage(list)")
     public int doEmptyStorage(PList list, int right) {
         list.append(right);
         return right;
     }
 
-    @Specialization(order = 2, guards = "isIntStorage")
+    @Specialization(order = 2, guards = "isIntStorage(list)")
     public int doIntStorage(PList list, int right) {
         IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
         store.appendInt(right);
@@ -67,7 +68,7 @@ public abstract class ListAppendNode extends BinaryOpNode {
         return right;
     }
 
-    @Specialization(order = 4, guards = "isDoubleStorage")
+    @Specialization(order = 4, guards = "isDoubleStorage(list)")
     public double doDoubleStorage(PList list, double right) {
         DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
         store.appendDouble(right);

@@ -26,16 +26,17 @@ package edu.uci.python.nodes.frame;
 
 import java.math.*;
 
-import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.NodeFactory;
 import edu.uci.python.runtime.datatype.*;
 
 @NodeInfo(shortName = "write_local")
 @NodeChild(value = "rightNode", type = PNode.class)
+@GenerateNodeFactory
 public abstract class WriteLocalVariableNode extends FrameSlotNode implements WriteNode {
 
     public abstract PNode getRightNode();
@@ -71,32 +72,32 @@ public abstract class WriteLocalVariableNode extends FrameSlotNode implements Wr
         return right;
     }
 
-    @Specialization(order = 1, guards = "isBooleanKind")
+    @Specialization(order = 1, guards = "isBooleanKind(frame)")
     public boolean write(VirtualFrame frame, boolean right) {
         frame.setBoolean(frameSlot, right);
         return right;
     }
 
-    @Specialization(order = 2, guards = "isIntegerKind")
+    @Specialization(order = 2, guards = "isIntegerKind(frame)")
     public int write(VirtualFrame frame, int value) {
         frame.setInt(frameSlot, value);
         return value;
     }
 
-    @Specialization(order = 3, guards = "isIntOrObjectKind")
+    @Specialization(order = 3, guards = "isIntOrObjectKind(frame)")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
         setObject(frame, value);
         frameSlot.setKind(FrameSlotKind.Object);
         return value;
     }
 
-    @Specialization(order = 4, guards = "isDoubleKind")
+    @Specialization(order = 4, guards = "isDoubleKind(frame)")
     public double write(VirtualFrame frame, double right) {
         frame.setDouble(frameSlot, right);
         return right;
     }
 
-    @Specialization(order = 5, guards = "isObjectKind")
+    @Specialization(order = 5, guards = "isObjectKind(frame)")
     public Object write(VirtualFrame frame, Object right) {
         setObject(frame, right);
         return right;

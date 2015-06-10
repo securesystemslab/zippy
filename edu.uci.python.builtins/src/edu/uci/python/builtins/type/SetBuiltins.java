@@ -45,6 +45,7 @@ public final class SetBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "clear", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ClearNode extends PythonBuiltinNode {
 
         @Specialization
@@ -55,6 +56,7 @@ public final class SetBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "add", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class AddNode extends PythonBuiltinNode {
 
         @Specialization

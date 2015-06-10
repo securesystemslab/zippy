@@ -40,6 +40,7 @@ import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
 @NodeInfo(shortName = "subscript_load_index")
+@GenerateNodeFactory
 public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
 
     public PNode makeWriteNode(PNode rhs) {
@@ -62,37 +63,37 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         return new String(new char[]{charactor});
     }
 
-    @Specialization(order = 1, guards = {"isIntStorage", "isIndexPositive"})
+    @Specialization(order = 1, guards = {"isIntStorage(primary)", "isIndexPositive(primary,idx)"})
     public int doPListInt(PList primary, int idx) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
         return store.getIntItemNormalized(idx);
     }
 
-    @Specialization(order = 2, guards = {"isIntStorage", "isIndexNegative"})
+    @Specialization(order = 2, guards = {"isIntStorage(primary)", "isIndexNegative(primary,idx)"})
     public int doPListIntNegative(PList primary, int idx) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
         return store.getIntItemNormalized(idx + store.length());
     }
 
-    @Specialization(order = 3, guards = {"isDoubleStorage", "isIndexPositive"})
+    @Specialization(order = 3, guards = {"isDoubleStorage(primary)", "isIndexPositive(primary,idx)"})
     public double doPListDouble(PList primary, int idx) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
         return store.getDoubleItemNormalized(idx);
     }
 
-    @Specialization(order = 4, guards = {"isDoubleStorage", "isIndexNegative"})
+    @Specialization(order = 4, guards = {"isDoubleStorage(primary)", "isIndexNegative(primary,idx)"})
     public double doPListDoubleNegative(PList primary, int idx) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
         return store.getDoubleItemNormalized(idx + store.length());
     }
 
-    @Specialization(order = 5, guards = {"isObjectStorage", "isIndexPositive"})
+    @Specialization(order = 5, guards = {"isObjectStorage(primary)", "isIndexPositive(primary,idx)"})
     public Object doPListObject(PList primary, int idx) {
         final ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
         return store.getItemNormalized(idx);
     }
 
-    @Specialization(order = 6, guards = {"isObjectStorage", "isIndexNegative"})
+    @Specialization(order = 6, guards = {"isObjectStorage(primary)", "isIndexNegative(primary,idx)"})
     public Object doPListObjectNegative(PList primary, int idx) {
         final ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
         return store.getItemNormalized(idx + store.length());
@@ -103,12 +104,12 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         return list.getItem(idx);
     }
 
-    @Specialization(order = 8, guards = "isIndexPositive")
+    @Specialization(order = 8, guards = "isIndexPositive(tuple,idx)")
     public Object doPTuplePositive(PTuple tuple, int idx) {
         return tuple.getItemNormalized(idx);
     }
 
-    @Specialization(order = 9, guards = "isIndexNegative")
+    @Specialization(order = 9, guards = "isIndexNegative(tuple,idx)")
     public Object doPTupleNegative(PTuple tuple, int idx) {
         return tuple.getItemNormalized(idx + tuple.len());
     }
@@ -118,12 +119,12 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         return tuple.getItem(idx);
     }
 
-    @Specialization(order = 11, guards = "isIndexPositive")
+    @Specialization(order = 11, guards = "isIndexPositive(primary,idx)")
     public Object doPRangePositive(PRange primary, int idx) {
         return primary.getItemNormalized(idx);
     }
 
-    @Specialization(order = 12, guards = "isIndexNegative")
+    @Specialization(order = 12, guards = "isIndexNegative(primary,idx)")
     public Object doPRangeNegative(PRange primary, int idx) {
         return primary.getItemNormalized(idx + primary.len());
     }
@@ -146,32 +147,32 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     /**
      * Unboxed array reads.
      */
-    @Specialization(order = 20, guards = "isIndexPositive")
+    @Specialization(order = 20, guards = "isIndexPositive(primary,idx)")
     public int doPIntArray(PIntArray primary, int idx) {
         return primary.getIntItemNormalized(idx);
     }
 
-    @Specialization(order = 21, guards = "isIndexNegative")
+    @Specialization(order = 21, guards = "isIndexNegative(primary,idx)")
     public int doPIntArrayNegative(PIntArray primary, int idx) {
         return primary.getIntItemNormalized(idx + primary.len());
     }
 
-    @Specialization(order = 22, guards = "isIndexPositive")
+    @Specialization(order = 22, guards = "isIndexPositive(primary,idx)")
     public double doPDoubleArray(PDoubleArray primary, int idx) {
         return primary.getDoubleItemNormalized(idx);
     }
 
-    @Specialization(order = 23, guards = "isIndexNegative")
+    @Specialization(order = 23, guards = "isIndexNegative(primary,idx)")
     public double doPDoubleArrayNegative(PDoubleArray primary, int idx) {
         return primary.getDoubleItemNormalized(idx + primary.len());
     }
 
-    @Specialization(order = 24, guards = "isIndexPositive")
+    @Specialization(order = 24, guards = "isIndexPositive(primary,idx)")
     public char doPCharArray(PCharArray primary, int idx) {
         return primary.getCharItemNormalized(idx);
     }
 
-    @Specialization(order = 25, guards = "isIndexNegative")
+    @Specialization(order = 25, guards = "isIndexNegative(primary,idx)")
     public char doPCharArrayNegative(PCharArray primary, int idx) {
         return primary.getCharItemNormalized(idx + primary.len());
     }

@@ -40,6 +40,7 @@ public class GeneratorBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "__next__", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class NextNode extends PythonBuiltinNode {
 
         @Specialization
@@ -49,6 +50,7 @@ public class GeneratorBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "send", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class SendNode extends PythonBuiltinNode {
 
         @Specialization

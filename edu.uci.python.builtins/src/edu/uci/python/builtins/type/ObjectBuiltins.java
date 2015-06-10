@@ -45,6 +45,7 @@ public class ObjectBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "__eq__", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class EqNode extends PythonBuiltinNode {
 
         @Specialization
@@ -54,6 +55,7 @@ public class ObjectBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "__str__", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class StrNode extends PythonBuiltinNode {
 
         @Specialization
@@ -63,6 +65,7 @@ public class ObjectBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "__repr__", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class ReprNode extends PythonBuiltinNode {
 
         @Specialization

@@ -37,6 +37,7 @@ import edu.uci.python.runtime.function.*;
  * Transfer a local variable value from the current frame to a cargo frame.
  */
 @NodeChild(value = "right", type = PNode.class)
+@GenerateNodeFactory
 public abstract class FrameTransferNode extends FrameSlotNode {
 
     public FrameTransferNode(FrameSlot slot) {
@@ -47,7 +48,7 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         super(prev.frameSlot);
     }
 
-    @Specialization(order = 0, guards = "isBooleanKind")
+    @Specialization(order = 0, guards = "isBooleanKind(frame)")
     public boolean write(VirtualFrame frame, boolean right) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
         assert frameSlot.getFrameDescriptor() == cargoFrame.getFrameDescriptor();
@@ -55,7 +56,7 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         return right;
     }
 
-    @Specialization(guards = "isIntegerKind")
+    @Specialization(guards = "isIntegerKind(frame)")
     public int doInteger(VirtualFrame frame, int value) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
         assert frameSlot.getFrameDescriptor() == cargoFrame.getFrameDescriptor();
@@ -63,7 +64,7 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         return value;
     }
 
-    @Specialization(guards = "isIntOrObjectKind")
+    @Specialization(guards = "isIntOrObjectKind(frame)")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
         assert frameSlot.getFrameDescriptor() == cargoFrame.getFrameDescriptor();
@@ -71,7 +72,7 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         return value;
     }
 
-    @Specialization(guards = "isDoubleKind")
+    @Specialization(guards = "isDoubleKind(frame)")
     public double doDouble(VirtualFrame frame, double right) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
         assert frameSlot.getFrameDescriptor() == cargoFrame.getFrameDescriptor();
@@ -79,7 +80,7 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         return right;
     }
 
-    @Specialization(guards = "isObjectKind")
+    @Specialization(guards = "isObjectKind(frame)")
     public Object write(VirtualFrame frame, Object right) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
         assert frameSlot.getFrameDescriptor() == cargoFrame.getFrameDescriptor();

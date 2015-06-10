@@ -53,15 +53,15 @@ public abstract class AttributeReadNode extends Node {
     public abstract Object getValueUnsafe(PythonObject storage);
 
     public int getIntValueUnsafe(PythonObject storage) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectInteger(getValueUnsafe(storage));
+        return PythonTypesGen.expectInteger(getValueUnsafe(storage));
     }
 
     public double getDoubleValueUnsafe(PythonObject storage) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectDouble(getValueUnsafe(storage));
+        return PythonTypesGen.expectDouble(getValueUnsafe(storage));
     }
 
     public boolean getBooleanValueUnsafe(PythonObject storage) throws UnexpectedResultException {
-        return PythonTypesGen.PYTHONTYPES.expectBoolean(getValueUnsafe(storage));
+        return PythonTypesGen.expectBoolean(getValueUnsafe(storage));
     }
 
     public static final class ReadArrayObjectAttributeNode extends AttributeReadNode {

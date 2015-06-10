@@ -31,7 +31,7 @@ import java.math.BigInteger;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -39,13 +39,19 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.misc.*;
+import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
 public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
     @NodeInfo(shortName = "__add__")
+    @GenerateNodeFactory
     public abstract static class AddNode extends BinaryArithmeticNode {
+
+        public static final boolean isEitherOperandPythonObject(Object left, Object right) {
+            return left instanceof PythonObject || right instanceof PythonObject;
+        }
 
         @Specialization
         int doBoolean(boolean left, boolean right) {
@@ -116,7 +122,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left + right;
         }
 
-        @Specialization(guards = "areBothIntStorage")
+        @Specialization(guards = "areBothIntStorage(left,right)")
         PList doPListInt(PList left, PList right) {
             IntSequenceStorage leftStore = (IntSequenceStorage) left.getStorage().copy();
             IntSequenceStorage rightStore = (IntSequenceStorage) right.getStorage();
@@ -124,7 +130,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return new PList(leftStore);
         }
 
-        @Specialization(guards = "areBothObjectStorage")
+        @Specialization(guards = "areBothObjectStorage(left,right)")
         PList doPListObject(PList left, PList right) {
             ObjectSequenceStorage leftStore = (ObjectSequenceStorage) left.getStorage().copy();
             ObjectSequenceStorage rightStore = (ObjectSequenceStorage) right.getStorage();
@@ -147,13 +153,14 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.__add__(right);
         }
 
-        @SuppressWarnings("unused")
         @Specialization
         int doNoneInt(PNone left, int right) {
+            if (left == PNone.NONENode)
+                doGeneric(left, right);
             return right;
         }
 
-        @Specialization(guards = "isEitherOperandPythonObject")
+        @Specialization(guards = "isEitherOperandPythonObject(left,right)")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__add__", left, right);
         }
@@ -161,11 +168,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         // TODO: type info for operands in type error message.
         @Fallback
         Object doGeneric(Object left, Object right) {
-            throw Py.TypeError("unsupported operand type(s) for +: " + left + " " + right);
+            throw Py.TypeError("unsupported operand type(s) for +: " + left + " + " + right);
         }
     }
 
     @NodeInfo(shortName = "__sub__")
+    @GenerateNodeFactory
     public abstract static class SubNode extends BinaryArithmeticNode {
 
         @Specialization(rewriteOn = ArithmeticException.class)
@@ -205,13 +213,14 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.difference(right);
         }
 
-        @Specialization(guards = "isEitherOperandPythonObject")
+        @Specialization(guards = "isEitherOperandPythonObject(left,right)")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__sub__", left, right);
         }
     }
 
     @NodeInfo(shortName = "__mul__")
+    @GenerateNodeFactory
     public abstract static class MulNode extends BinaryArithmeticNode {
 
         @Specialization(rewriteOn = ArithmeticException.class)
@@ -229,7 +238,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return doBigInteger(left, BigInteger.valueOf(right));
         }
 
-        @SlowPath
+        @TruffleBoundary
         @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.multiply(right);
@@ -305,7 +314,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return str;
         }
 
-        @Specialization(guards = "isEitherOperandPythonObject")
+        @Specialization(guards = "isEitherOperandPythonObject(left,right)")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__mul__", left, right);
         }
@@ -318,6 +327,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
     }
 
     @NodeInfo(shortName = "__div__")
+    @GenerateNodeFactory
     public abstract static class DivNode extends BinaryArithmeticNode {
 
         /*
@@ -366,7 +376,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left.div(right);
         }
 
-        @Specialization(guards = "isEitherOperandPythonObject")
+        @Specialization(guards = "isEitherOperandPythonObject(left,right)")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__truediv__", left, right);
         }
@@ -378,6 +388,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
     }
 
     @NodeInfo(shortName = "__floordiv__")
+    @GenerateNodeFactory
     public abstract static class FloorDivNode extends BinaryArithmeticNode {
 
         @Specialization
@@ -395,7 +406,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return Math.floor(left / right);
         }
 
-        @Specialization(guards = "isEitherOperandPythonObject")
+        @Specialization(guards = "isEitherOperandPythonObject(left,right)")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__floordiv__", left, right);
         }
@@ -407,9 +418,10 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
     }
 
     @NodeInfo(shortName = "__mod__")
+    @GenerateNodeFactory
     public abstract static class ModuloNode extends BinaryArithmeticNode {
 
-        @Specialization(guards = "isLeftPositive")
+        @Specialization(guards = "isLeftPositive(left,right)")
         int doInteger(int left, int right) {
             return left % right;
         }
@@ -429,7 +441,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left < 0;
         }
 
-        @SlowPath
+        @TruffleBoundary
         @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.mod(right);
@@ -443,14 +455,14 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         /**
          * Delegate to Jython for String formatting.
          */
-        @SlowPath
+        @TruffleBoundary
         @Specialization
         Object doString(String left, Object right) {
             PyString sleft = new PyString(left);
             return unboxPyObject(sleft.__mod__(adaptToPyObject(right)));
         }
 
-        @Specialization(order = 20, guards = "isEitherOperandPythonObject")
+        @Specialization(order = 20, guards = "isEitherOperandPythonObject(left,right)")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__mod__", left, right);
         }
@@ -462,6 +474,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
     }
 
     @NodeInfo(shortName = "__pow__")
+    @GenerateNodeFactory
     public abstract static class PowerNode extends BinaryArithmeticNode {
 
         @Specialization
@@ -480,7 +493,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return Math.pow(left, right);
         }
 
-        @Specialization(guards = "isEitherOperandPythonObject")
+        @Specialization(guards = "isEitherOperandPythonObject(left,right)")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__pow__", left, right);
         }

@@ -102,4 +102,11 @@ public class BinaryArithTests {
         assertPrints("18446744073709551615\n", source);
     }
 
+    @Test
+    public void NonePlusInt() {
+        String source = "a = None\n" + //
+                        "a += 1\n";
+        assertError("TypeError: unsupported operand type(s) for +: None + 1\n", source);
+    }
+
 }

@@ -52,6 +52,7 @@ import edu.uci.python.runtime.standardtype.*;
  * @author Gulfem
  * @author zwei
  */
+
 public final class BuiltinConstructors extends PythonBuiltins {
 
     @Override
@@ -61,6 +62,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // bool([x])
     @Builtin(name = "bool", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class BoolNode extends PythonBuiltinNode {
 
         @Specialization
@@ -96,6 +98,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // bytes([source[, encoding[, errors]]])
     @Builtin(name = "bytes", minNumOfArguments = 0, maxNumOfArguments = 3, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class BytesNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
@@ -107,6 +110,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // complex([real[, imag]])
     @Builtin(name = "complex", minNumOfArguments = 0, maxNumOfArguments = 2, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class ComplexNode extends PythonBuiltinNode {
 
         @Specialization
@@ -145,47 +149,28 @@ public final class BuiltinConstructors extends PythonBuiltins {
     // dict(mapping, **kwarg)
     // dict(iterable, **kwarg)
     @Builtin(name = "dict", minNumOfArguments = 0, takesVariableArguments = true, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class DictionaryNode extends PythonBuiltinNode {
 
-        protected static boolean emptyArgument(PTuple args) {
-            return args.len() == 0;
-        }
-
-        protected static boolean oneArgument(PTuple args) {
-            return args.len() == 1;
-        }
-
-        protected static boolean firstArgIsDict(PTuple args) {
-            return args.getItem(0) instanceof PDict;
-        }
-
-        protected static boolean firstArgIsIterable(PTuple args) {
-            return args.getItem(0) instanceof PIterable;
-        }
-
-        protected static boolean firstArgIsIterator(PTuple args) {
-            return args.getItem(0) instanceof PIterator;
-        }
-
         @SuppressWarnings("unused")
-        @Specialization(order = 0, guards = "emptyArgument")
+        @Specialization(order = 0, guards = "emptyArgument(args)")
         public PDict dictEmpty(PTuple args) {
             return new PDict();
         }
 
-        @Specialization(order = 1, guards = {"oneArgument", "firstArgIsDict"})
+        @Specialization(order = 1, guards = {"oneArgument(args)", "firstArgIsDict(args)"})
         public PDict dictFromDict(PTuple args) {
             return new PDict(((PDict) args.getItem(0)).getMap());
         }
 
-        @Specialization(order = 2, guards = {"oneArgument", "firstArgIsIterable"})
+        @Specialization(order = 2, guards = {"oneArgument(args)", "firstArgIsIterable(args)"})
         public PDict dictFromIterable(PTuple args) {
             PIterable iterable = (PIterable) args.getItem(0);
             PIterator iter = iterable.__iter__();
             return new PDict(iter);
         }
 
-        @Specialization(order = 3, guards = {"oneArgument", "firstArgIsIterator"})
+        @Specialization(order = 3, guards = {"oneArgument(args)", "firstArgIsIterator(args)"})
         public PDict dictFromIterator(PTuple args) {
             PIterator iter = (PIterator) args.getItem(0);
             return new PDict(iter);
@@ -200,6 +185,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // enumerate(iterable, start=0)
     @Builtin(name = "enumerate", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"start"}, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class EnumerateNode extends PythonBuiltinNode {
         /**
          * TODO enumerate can take a keyword argument start, and currently that's not supported.
@@ -231,6 +217,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // float([x])
     @Builtin(name = "float", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class FloatNode extends PythonBuiltinNode {
 
         @Specialization
@@ -255,10 +242,11 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // frozenset([iterable])
     @Builtin(name = "frozenset", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class FrozenSetNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 0, guards = "emptyArguments")
+        @Specialization(order = 0, guards = "emptyArguments(arg)")
         public PFrozenSet frozensetEmpty(Object arg) {
             return new PFrozenSet();
         }
@@ -294,22 +282,23 @@ public final class BuiltinConstructors extends PythonBuiltins {
     // int(x=0)
     // int(x, base=10)
     @Builtin(name = "int", minNumOfArguments = 0, maxNumOfArguments = 1, takesKeywordArguments = true, keywordNames = {"base"}, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class IntNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "noKeywordArg")
+        @Specialization(guards = "noKeywordArg(arg,keywordArg)")
         public int createInt(int arg, Object keywordArg) {
             return arg;
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "noKeywordArg")
+        @Specialization(guards = "noKeywordArg(arg,keywordArg)")
         public BigInteger createInt(BigInteger arg, Object keywordArg) {
             return arg;
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "noKeywordArg")
+        @Specialization(guards = "noKeywordArg(arg,keywordArg)")
         public Object createInt(double arg, Object keywordArg) {
             return JavaTypeConversions.doubleToInt(arg);
         }
@@ -321,7 +310,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "noKeywordArg")
+        @Specialization(guards = "noKeywordArg(arg,keywordArg)")
         public Object createInt(String arg, Object keywordArg) {
             return JavaTypeConversions.stringToInt(arg, 10);
         }
@@ -343,6 +332,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // list([iterable])
     @Builtin(name = "list", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class ListNode extends PythonBuiltinNode {
 
         @Specialization
@@ -381,6 +371,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // map(function, iterable, ...)
     @Builtin(name = "map", minNumOfArguments = 2, takesVariableArguments = true, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class MapNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
@@ -448,6 +439,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // object()
     @Builtin(name = "object", maxNumOfArguments = 1, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class ObjectNode extends PythonBuiltinNode {
 
         @Specialization
@@ -465,16 +457,17 @@ public final class BuiltinConstructors extends PythonBuiltins {
     // range(stop)
     // range(start, stop[, step])
     @Builtin(name = "range", minNumOfArguments = 1, maxNumOfArguments = 3, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class RangeNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 1, guards = "caseStop")
+        @Specialization(order = 1, guards = "caseStop(stop,start,step)")
         public PSequence rangeStop(int stop, Object start, Object step) {
             return new PRange(stop);
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 2, guards = "caseStartStop")
+        @Specialization(order = 2, guards = "caseStartStop(stop,start,step)")
         public PSequence rangeStartStop(int start, int stop, Object step) {
             return new PRange(start, stop);
         }
@@ -517,6 +510,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // set([iterable])
     @Builtin(name = "set", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class SetNode extends PythonBuiltinNode {
 
         @Specialization
@@ -539,7 +533,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
             return new PSet(iterator);
         }
 
-        @Specialization(guards = "emptyArguments")
+        @Specialization(guards = "emptyArguments(none)")
         public PSet set(@SuppressWarnings("unused") PNone none) {
             return new PSet();
         }
@@ -558,6 +552,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     // str(object='')
     // str(object=b'', encoding='utf-8', errors='strict')
     @Builtin(name = "str", minNumOfArguments = 0, maxNumOfArguments = 1, takesKeywordArguments = true, takesVariableKeywords = true, keywordNames = {"object, encoding, errors"}, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class StrNode extends PythonBuiltinNode {
 
         @Specialization
@@ -578,6 +573,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // tuple([iterable])
     @Builtin(name = "tuple", minNumOfArguments = 0, maxNumOfArguments = 1, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class TupleNode extends PythonBuiltinNode {
 
         @Specialization(order = 1)
@@ -603,6 +599,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
     // zip(*iterables)
     @Builtin(name = "zip", minNumOfArguments = 0, takesVariableArguments = true, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class ZipNode extends PythonBuiltinNode {
 
         @Child protected GetIteratorNode getIterator;
@@ -626,7 +623,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         private PIterator getIterable(Object arg) {
             try {
-                return PythonTypesGen.PYTHONTYPES.expectPIterator(getIterator.executeWith(null, arg));
+                return PythonTypesGen.expectPIterator(getIterator.executeWith(null, arg));
             } catch (UnexpectedResultException e) {
                 throw new RuntimeException("zip does not support iterable object " + arg.getClass());
             }

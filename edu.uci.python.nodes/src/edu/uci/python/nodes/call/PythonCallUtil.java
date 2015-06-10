@@ -94,7 +94,7 @@ public class PythonCallUtil {
     protected static PythonCallable resolveSpecialMethod(Object operand, String specialMethodId) {
         PythonObject primary;
         try {
-            primary = PythonTypesGen.PYTHONTYPES.expectPythonObject(operand);
+            primary = PythonTypesGen.expectPythonObject(operand);
         } catch (UnexpectedResultException e1) {
             return null;
         }
@@ -102,7 +102,7 @@ public class PythonCallUtil {
         PythonCallable callee;
 
         try {
-            callee = PythonTypesGen.PYTHONTYPES.expectPythonCallable(primary.getAttribute(specialMethodId));
+            callee = PythonTypesGen.expectPythonCallable(primary.getAttribute(specialMethodId));
         } catch (UnexpectedResultException e) {
             return null;
         }

@@ -29,7 +29,6 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.object.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
@@ -88,7 +87,7 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
             PythonObject pyobj;
 
             try {
-                pyobj = PythonTypesGen.PYTHONTYPES.expectPythonObject(primary);
+                pyobj = PythonTypesGen.expectPythonObject(primary);
             } catch (UnexpectedResultException e) {
                 return false;
             }
@@ -150,14 +149,6 @@ public abstract class CallDispatchSpecialNode extends CallDispatchNode {
 
         public PGeneratorFunction getGeneratorFunction() {
             return genfunc;
-        }
-
-        @Override
-        protected void onAdopt() {
-            RootNode root = getRootNode();
-            if (root instanceof FunctionRootNode) {
-                ((FunctionRootNode) root).reportGeneratorDispatch();
-            }
         }
 
         @Override

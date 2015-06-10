@@ -123,14 +123,6 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
         }
 
         @Override
-        protected void onAdopt() {
-            RootNode root = getRootNode();
-            if (root instanceof FunctionRootNode) {
-                ((FunctionRootNode) root).reportGeneratorDispatch();
-            }
-        }
-
-        @Override
         public NodeCost getCost() {
             return getCost(next);
         }

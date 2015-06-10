@@ -118,7 +118,7 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
             if (frameSlot.getKind() == FrameSlotKind.Int) {
                 return getInteger(frame);
             } else {
-                return PythonTypesGen.PYTHONTYPES.expectInteger(executeNext(frame));
+                return PythonTypesGen.expectInteger(executeNext(frame));
             }
         }
 

@@ -26,12 +26,14 @@ package edu.uci.python.nodes.expression;
 
 import java.math.BigInteger;
 
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.*;
 
+@GenerateNodeFactory
 public abstract class UnaryArithmeticNode extends UnaryOpNode {
 
     @NodeInfo(shortName = "+")
+    @GenerateNodeFactory
     public abstract static class PlusNode extends UnaryArithmeticNode {
 
         @Specialization
@@ -51,6 +53,7 @@ public abstract class UnaryArithmeticNode extends UnaryOpNode {
     }
 
     @NodeInfo(shortName = "-")
+    @GenerateNodeFactory
     public abstract static class MinusNode extends UnaryArithmeticNode {
 
         @Specialization
@@ -69,6 +72,7 @@ public abstract class UnaryArithmeticNode extends UnaryOpNode {
         }
     }
 
+    @GenerateNodeFactory
     public abstract static class InvertNode extends UnaryArithmeticNode {
 
         @Specialization

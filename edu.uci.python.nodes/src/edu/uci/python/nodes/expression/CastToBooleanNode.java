@@ -37,6 +37,7 @@ import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
+@GenerateNodeFactory
 public abstract class CastToBooleanNode extends UnaryOpNode {
 
     /**
@@ -48,6 +49,7 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
     @Override
     public abstract boolean executeBoolean(VirtualFrame frame);
 
+    @GenerateNodeFactory
     public abstract static class YesNode extends CastToBooleanNode {
 
         @Specialization(order = 0)
@@ -75,7 +77,7 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
             return operand.length() != 0;
         }
 
-        @Specialization(order = 6, guards = "isNone")
+        @Specialization(order = 6, guards = "isNone(operand)")
         boolean doNone(@SuppressWarnings("unused") Object operand) {
             return false;
         }
@@ -101,26 +103,26 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
             return operand.len() != 0;
         }
 
-        @Specialization(order = 12, guards = "isEmptyStorage")
+        @Specialization(order = 12, guards = "isEmptyStorage(list)")
         public boolean doPListEmpty(@SuppressWarnings("unused") PList list) {
             return false;
         }
 
-        @Specialization(order = 13, guards = "isIntStorage")
-        public boolean doPListInt(PList list) {
-            IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
+        @Specialization(order = 13, guards = "isIntStorage(primary)")
+        public boolean doPListInt(PList primary) {
+            IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
             return store.length() != 0;
         }
 
-        @Specialization(order = 14, guards = "isDoubleStorage")
-        public boolean doPListDouble(PList list) {
-            DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
+        @Specialization(order = 14, guards = "isDoubleStorage(primary)")
+        public boolean doPListDouble(PList primary) {
+            DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
             return store.length() != 0;
         }
 
-        @Specialization(order = 15, guards = "isObjectStorage")
-        public boolean doPListObject(PList list) {
-            ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
+        @Specialization(order = 15, guards = "isObjectStorage(primary)")
+        public boolean doPListObject(PList primary) {
+            ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
             return store.length() != 0;
         }
 
@@ -145,6 +147,7 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
         }
     }
 
+    @GenerateNodeFactory
     public abstract static class NotNode extends CastToBooleanNode {
 
         @Specialization
@@ -173,7 +176,7 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "isNone")
+        @Specialization(guards = "isNone(operand)")
         boolean doNone(Object operand) {
             return true;
         }
@@ -183,26 +186,26 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
             return operand.len() == 0;
         }
 
-        @Specialization(guards = "isEmptyStorage")
+        @Specialization(guards = "isEmptyStorage(list)")
         public boolean doPListEmpty(@SuppressWarnings("unused") PList list) {
             return false;
         }
 
-        @Specialization(guards = "isIntStorage")
-        public boolean doPListInt(PList list) {
-            IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
+        @Specialization(guards = "isIntStorage(primary)")
+        public boolean doPListInt(PList primary) {
+            IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
             return store.length() == 0;
         }
 
-        @Specialization(guards = "isDoubleStorage")
-        public boolean doPListDouble(PList list) {
-            DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
+        @Specialization(guards = "isDoubleStorage(primary)")
+        public boolean doPListDouble(PList primary) {
+            DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
             return store.length() == 0;
         }
 
-        @Specialization(guards = "isObjectStorage")
-        public boolean doPListObject(PList list) {
-            ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
+        @Specialization(guards = "isObjectStorage(primary)")
+        public boolean doPListObject(PList primary) {
+            ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
             return store.length() == 0;
         }
 

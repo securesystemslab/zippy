@@ -51,6 +51,7 @@ public class RandomModuleBuiltins extends PythonBuiltins {
     protected static java.util.Random javaRandom = new java.util.Random();
 
     @Builtin(name = "seed", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class SeedNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
@@ -86,6 +87,7 @@ public class RandomModuleBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "jumpahead", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class JumpAheadNode extends PythonBuiltinNode {
         @Specialization
         public PNone jumpahead(int jumps) {
@@ -105,6 +107,7 @@ public class RandomModuleBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "setstate", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class SetStateNode extends PythonBuiltinNode {
 
         @Specialization
@@ -134,6 +137,7 @@ public class RandomModuleBuiltins extends PythonBuiltins {
 
     // TODO: randrange is not part of _random
     @Builtin(name = "randrange", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class RandRangeNode extends PythonBuiltinNode {
 
         @Specialization
@@ -163,6 +167,7 @@ public class RandomModuleBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "getstate", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class GetStateNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
@@ -186,6 +191,7 @@ public class RandomModuleBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "random", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class RandomNode extends PythonBuiltinNode {
 
         @Specialization
@@ -195,6 +201,7 @@ public class RandomModuleBuiltins extends PythonBuiltins {
     }
 
     @Builtin(name = "getrandbits", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
     public abstract static class GetRandBitsNode extends PythonBuiltinNode {
 
         @Specialization
