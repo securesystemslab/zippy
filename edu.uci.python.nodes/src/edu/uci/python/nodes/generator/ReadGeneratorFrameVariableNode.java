@@ -120,7 +120,7 @@ public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
             if (frameSlot.getKind() == FrameSlotKind.Int) {
                 return getInteger(mframe);
             } else {
-                return PythonTypesGen.PYTHONTYPES.expectInteger(executeNext(frame));
+                return PythonTypesGen.expectInteger(execute(frame));
             }
         }
 
@@ -162,7 +162,7 @@ public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
             if (mframe.isObject(frameSlot)) {
                 return getObject(mframe);
             } else {
-                return executeNext(frame);
+                return execute(frame);
             }
         }
     }

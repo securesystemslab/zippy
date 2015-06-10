@@ -34,7 +34,7 @@ import edu.uci.python.nodes.statement.*;
 public abstract class LoopNode extends StatementNode {
 
     @Child protected PNode body;
-    protected final BranchProfile loopBodyBranch = new BranchProfile();
+    protected final BranchProfile loopBodyBranch = BranchProfile.create();
 
     public LoopNode(PNode body) {
         this.body = body;

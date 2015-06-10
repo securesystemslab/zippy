@@ -36,7 +36,7 @@ public final class StopIterationTargetNode extends StatementNode {
     @Child protected PNode tryPart;
     @Child protected PNode catchPart;
 
-    private final BranchProfile breakProfile = new BranchProfile();
+    private final BranchProfile breakProfile = BranchProfile.create();
 
     public StopIterationTargetNode(PNode tryPart, PNode catchPart) {
         this.tryPart = tryPart;
