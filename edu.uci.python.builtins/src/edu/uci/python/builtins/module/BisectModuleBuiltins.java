@@ -3,14 +3,14 @@
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met: 
- * 
+ * modification, are permitted provided that the following conditions are met:
+ *
  * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer. 
+ *    list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright notice,
  *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution. 
- * 
+ *    and/or other materials provided with the distribution.
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
  * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,7 +26,7 @@ package edu.uci.python.builtins.module;
 
 import java.util.*;
 
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.builtins.*;
@@ -47,6 +47,7 @@ public final class BisectModuleBuiltins extends PythonBuiltins {
 
     // bisect.bisect(a, x, lo=0, hi=len(a))
     @Builtin(name = "bisect", hasFixedNumOfArguments = true, fixedNumOfArguments = 2, takesKeywordArguments = true, takesVariableKeywords = true, keywordNames = {"lo", "hi"})
+    @GenerateNodeFactory
     public abstract static class PythonBisectNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
@@ -77,7 +78,7 @@ public final class BisectModuleBuiltins extends PythonBuiltins {
             }
         }
 
-        @SlowPath
+        @TruffleBoundary
         public int binarySearchRightDouble(PSequence seq, int start, int stop, double key) {
             if (start <= stop) {
                 int middle = (stop - start) / 2 + start;
@@ -108,7 +109,7 @@ public final class BisectModuleBuiltins extends PythonBuiltins {
             return -1; // should not happen
         }
 
-        @SlowPath
+        @TruffleBoundary
         public int binarySearchRightStr(PSequence seq, int start, int stop, String key) {
             if (start <= stop) {
                 int middle = (stop - start) / 2 + start;

@@ -29,7 +29,7 @@ import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -107,7 +107,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             PythonObject primary;
 
             try {
-                primary = PythonTypesGen.PYTHONTYPES.expectPythonObject(primaryNode.execute(frame));
+                primary = PythonTypesGen.expectPythonObject(primaryNode.execute(frame));
                 return attribute.getValue(frame, primary);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -120,11 +120,11 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             PythonObject primary;
 
             try {
-                primary = PythonTypesGen.PYTHONTYPES.expectPythonObject(primaryNode.execute(frame));
+                primary = PythonTypesGen.expectPythonObject(primaryNode.execute(frame));
                 return attribute.getIntValue(frame, primary);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                return PythonTypesGen.PYTHONTYPES.expectInteger(specializeAndExecute(frame, e.getResult()));
+                return PythonTypesGen.expectInteger(specializeAndExecute(frame, e.getResult()));
             }
         }
 
@@ -133,11 +133,11 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             PythonObject primary;
 
             try {
-                primary = PythonTypesGen.PYTHONTYPES.expectPythonObject(primaryNode.execute(frame));
+                primary = PythonTypesGen.expectPythonObject(primaryNode.execute(frame));
                 return attribute.getDoubleValue(frame, primary);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                return PythonTypesGen.PYTHONTYPES.expectDouble(specializeAndExecute(frame, e.getResult()));
+                return PythonTypesGen.expectDouble(specializeAndExecute(frame, e.getResult()));
             }
         }
 
@@ -146,11 +146,11 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             PythonObject primary;
 
             try {
-                primary = PythonTypesGen.PYTHONTYPES.expectPythonObject(primaryNode.execute(frame));
+                primary = PythonTypesGen.expectPythonObject(primaryNode.execute(frame));
                 return attribute.getBooleanValue(frame, primary);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                return PythonTypesGen.PYTHONTYPES.expectBoolean(specializeAndExecute(frame, e.getResult()));
+                return PythonTypesGen.expectBoolean(specializeAndExecute(frame, e.getResult()));
             }
         }
 
@@ -175,7 +175,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             PythonObject primary;
             Object value;
             try {
-                primary = PythonTypesGen.PYTHONTYPES.expectPythonObject(primaryNode.execute(frame));
+                primary = PythonTypesGen.expectPythonObject(primaryNode.execute(frame));
                 value = attribute.getValue(frame, primary);
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -217,7 +217,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
                 return attribute.getIntValue(frame, PythonContext.boxAsPythonBuiltinObject(primaryNode.execute(frame)));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                return PythonTypesGen.PYTHONTYPES.expectInteger(specializeAndExecute(frame, e.getResult()));
+                return PythonTypesGen.expectInteger(specializeAndExecute(frame, e.getResult()));
             }
         }
 
@@ -227,7 +227,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
                 return attribute.getDoubleValue(frame, PythonContext.boxAsPythonBuiltinObject(primaryNode.execute(frame)));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                return PythonTypesGen.PYTHONTYPES.expectDouble(specializeAndExecute(frame, e.getResult()));
+                return PythonTypesGen.expectDouble(specializeAndExecute(frame, e.getResult()));
             }
         }
 
@@ -237,7 +237,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
                 return attribute.getBooleanValue(frame, PythonContext.boxAsPythonBuiltinObject(primaryNode.execute(frame)));
             } catch (UnexpectedResultException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                return PythonTypesGen.PYTHONTYPES.expectBoolean(specializeAndExecute(frame, e.getResult()));
+                return PythonTypesGen.expectBoolean(specializeAndExecute(frame, e.getResult()));
             }
         }
 
@@ -294,7 +294,7 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
             return findAttr(pyobj);
         }
 
-        @SlowPath
+        @TruffleBoundary
         private Object findAttr(PyObject pyobj) {
             return unboxPyObject(pyobj.__findattr__(attributeId));
         }

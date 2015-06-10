@@ -27,7 +27,7 @@ package edu.uci.python.nodes.frame;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -115,7 +115,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
                 return read.getIntValueUnsafe(globalScope);
             } catch (InvalidAssumptionException e) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
-                return PythonTypesGen.PYTHONTYPES.expectInteger(specializeAndExecute(frame));
+                return PythonTypesGen.expectInteger(specializeAndExecute(frame));
             }
         }
 
@@ -125,7 +125,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
                 check.accept(globalScope);
                 return read.getDoubleValueUnsafe(globalScope);
             } catch (InvalidAssumptionException e) {
-                return PythonTypesGen.PYTHONTYPES.expectDouble(specializeAndExecute(frame));
+                return PythonTypesGen.expectDouble(specializeAndExecute(frame));
             }
         }
 
@@ -135,7 +135,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
                 check.accept(globalScope);
                 return read.getBooleanValueUnsafe(globalScope);
             } catch (InvalidAssumptionException e) {
-                return PythonTypesGen.PYTHONTYPES.expectBoolean(specializeAndExecute(frame));
+                return PythonTypesGen.expectBoolean(specializeAndExecute(frame));
             }
         }
 
@@ -212,7 +212,7 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
             return execute(frame);
         }
 
-        @SlowPath
+        @TruffleBoundary
         protected Object slowPathLookup() {
             Object value = PySystemState.getDefaultBuiltins().__finditem__(attributeId);
 

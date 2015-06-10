@@ -47,7 +47,7 @@ public class BuiltinFunctionRootNode extends RootNode {
     }
 
     @Override
-    public RootNode split() {
+    public RootNode copy() {
         return new BuiltinFunctionRootNode(functionName, NodeUtil.cloneNode(uninitialized));
     }
 

@@ -24,7 +24,7 @@
  */
 package edu.uci.python.nodes.function;
 
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -46,21 +46,14 @@ public abstract class PythonBuiltinNode extends PNode {
     public abstract PythonContext getContext();
 
     /**
-     * Argument guards.
-     */
-    protected static boolean emptyArguments(VirtualFrame frame) {
-        return PArguments.getUserArgumentLength(frame) == 0;
-    }
-
-    /**
      * This is obviously a slow path.
      */
-    @SlowPath
+    @TruffleBoundary
     public static String callAttributeSlowPath(PythonObject obj, String attributeId) {
         PythonCallable callable;
 
         try {
-            callable = PythonTypesGen.PYTHONTYPES.expectPythonCallable(obj.getAttribute(attributeId));
+            callable = PythonTypesGen.expectPythonCallable(obj.getAttribute(attributeId));
         } catch (UnexpectedResultException e) {
             throw new IllegalStateException();
         }

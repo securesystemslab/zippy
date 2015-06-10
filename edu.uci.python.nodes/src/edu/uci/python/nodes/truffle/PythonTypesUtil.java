@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
@@ -50,7 +50,7 @@ public class PythonTypesUtil {
         return new PyTuple(adaptedValue);
     }
 
-    @SlowPath
+    @TruffleBoundary
     public static PyObject adaptToPyObject(Object value) {
         CompilerAsserts.neverPartOfCompilation();
 
@@ -116,7 +116,7 @@ public class PythonTypesUtil {
         throw new RuntimeException("unexpected type! " + value.getClass());
     }
 
-    @SlowPath
+    @TruffleBoundary
     public static PyObject[] adaptToPyObjects(Object[] values) {
         List<PyObject> converted = new ArrayList<>(values.length);
 
@@ -133,7 +133,7 @@ public class PythonTypesUtil {
         return converted.toArray(new PyObject[values.length]);
     }
 
-    @SlowPath
+    @TruffleBoundary
     public static Object unboxPyObject(PyObject value) {
         if (value instanceof PyInteger) {
             return ((PyInteger) value).getValue();

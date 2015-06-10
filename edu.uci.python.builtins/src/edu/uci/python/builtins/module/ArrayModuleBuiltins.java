@@ -28,7 +28,7 @@ import java.util.*;
 
 import org.python.core.*;
 
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -56,10 +56,11 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
 
     // array.array(typecode[, initializer])
     @Builtin(name = "array", minNumOfArguments = 1, maxNumOfArguments = 2)
+    @GenerateNodeFactory
     public abstract static class PythonArrayNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 1, guards = "noInitializer")
+        @Specialization(order = 1, guards = "noInitializer(typeCode,initializer)")
         public PArray array(String typeCode, Object initializer) {
             /**
              * TODO @param typeCode should be a char, not a string
@@ -107,11 +108,6 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
             throw new RuntimeException("Unsupported initializer " + initializer);
         }
 
-        @SuppressWarnings("unused")
-        public static boolean noInitializer(String typeCode, Object initializer) {
-            return (initializer instanceof PNone);
-        }
-
         private static PArray makeEmptyArray(char type) {
             switch (type) {
                 case 'c':
@@ -136,7 +132,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                     try {
                         while (true) {
                             try {
-                                intArray[i++] = PythonTypesGen.PYTHONTYPES.expectInteger(iter.__next__());
+                                intArray[i++] = PythonTypesGen.expectInteger(iter.__next__());
                             } catch (UnexpectedResultException e) {
                                 operandTypeError();
                             }
@@ -151,7 +147,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
                     double[] doubleArray = new double[store.length()];
 
                     for (i = 0; i < doubleArray.length; i++) {
-                        doubleArray[i] = PythonTypesGen.PYTHONTYPES.asImplicitDouble(store.getItemNormalized(i));
+                        doubleArray[i] = PythonTypesGen.asImplicitDouble(store.getItemNormalized(i));
                     }
 
                     return new PDoubleArray(doubleArray);
@@ -160,12 +156,12 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
             }
         }
 
-        @SlowPath
+        @TruffleBoundary
         private static void typeError(String typeCode, Object initializer) {
             throw Py.TypeError("unsupported operand type:" + typeCode.charAt(0) + " " + initializer + " and 'array.array'");
         }
 
-        @SlowPath
+        @TruffleBoundary
         private static void operandTypeError() {
             throw new RuntimeException("Unexpected argument type for array() ");
         }

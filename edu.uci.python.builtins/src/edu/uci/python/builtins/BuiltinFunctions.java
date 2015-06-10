@@ -51,7 +51,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.CompilerDirectives.SlowPath;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 
 /**
  * @author Gulfem
@@ -66,6 +66,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // abs(x)
     @Builtin(name = "abs", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class AbsNode extends PythonBuiltinNode {
 
         @Specialization
@@ -102,6 +103,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // all(iterable)
     @Builtin(name = "all", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class AllNode extends PythonBuiltinNode {
 
         @Child protected CastToBooleanNode toBoolean;
@@ -143,6 +145,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // any(iterable)
     @Builtin(name = "any", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class AnyNode extends PythonBuiltinNode {
 
         @Child protected CastToBooleanNode toBoolean;
@@ -184,6 +187,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // callable(object)
     @Builtin(name = "callable", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class CallableNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
@@ -208,6 +212,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // chr(i)
     @Builtin(name = "chr", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class ChrNode extends PythonBuiltinNode {
 
         @Specialization
@@ -246,6 +251,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // dir([object])
     @Builtin(name = "dir", minNumOfArguments = 0, maxNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class DirNode extends PythonBuiltinNode {
 
         @Specialization
@@ -276,6 +282,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // divmod(a, b)
     @Builtin(name = "divmod", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
+    @GenerateNodeFactory
     public abstract static class DivModNode extends PythonBuiltinNode {
 
         @Specialization
@@ -288,7 +295,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return new PTuple(divideAndRemainderSlowStub(a, b));
         }
 
-        @SlowPath
+        @TruffleBoundary
         private static BigInteger[] divideAndRemainderSlowStub(BigInteger a, BigInteger b) {
             return a.divideAndRemainder(b);
         }
@@ -302,6 +309,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // eval(expression, globals=None, locals=None)
     @Builtin(name = "eval", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class EvalNode extends PythonBuiltinNode {
 
         @Specialization
@@ -309,7 +317,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return evalExpression(expression);
         }
 
-        @SlowPath
+        @TruffleBoundary
         private Object evalExpression(String expression) {
             PythonParser parser = getContext().getParser();
             PythonParseResult parsed = parser.parse(getContext(), new PythonModule(getContext(), "<eval>", null), expression);
@@ -322,6 +330,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // filter(function, iterable)
     @Builtin(name = "filter", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
+    @GenerateNodeFactory
     public abstract static class FilterNode extends PythonBuiltinNode {
 
         @Specialization
@@ -351,6 +360,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // getattr(object, name[, default])
     @Builtin(name = "getattr", minNumOfArguments = 2, maxNumOfArguments = 3)
+    @GenerateNodeFactory
     public abstract static class GetAttrNode extends PythonBuiltinNode {
 
         @Specialization(order = 1)
@@ -389,7 +399,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 5, guards = "isForJSON")
+        @Specialization(order = 5, guards = "isForJSON(list,attributeId,defaultValue)")
         public Object doPythonBuiltinObjectForJSON(PList list, String attributeId, Object defaultValue) {
             return defaultValue;
         }
@@ -402,11 +412,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return attribute != null ? defaultValue : attribute;
         }
 
-        @SuppressWarnings("unused")
-        protected static boolean isForJSON(Object obj, String id, Object defaultValue) {
-            return id.equals("for_json");
-        }
-
         @Specialization
         public Object getAttr(Object object, Object name, Object defaultValue) {
             throw new RuntimeException("getAttr is not supported for " + object + " " + object.getClass() + " name " + name + " defaultValue " + defaultValue);
@@ -415,6 +420,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // hasattr(object, name)
     @Builtin(name = "hasattr", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
+    @GenerateNodeFactory
     public abstract static class HasAttrNode extends PythonBuiltinNode {
 
         @Specialization
@@ -440,6 +446,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // id(object)
     @Builtin(name = "id", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class IdNode extends PythonBuiltinNode {
 
         /**
@@ -457,6 +464,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // isinstance(object, classinfo)
     @Builtin(name = "isinstance", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
+    @GenerateNodeFactory
     public abstract static class IsIntanceNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
@@ -503,13 +511,9 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
-        @Specialization(order = 10, guards = "is2ndNotTuple")
+        @Specialization(order = 10, guards = "is2ndNotTuple(val,cls)")
         public boolean isinstance(@SuppressWarnings("unused") int val, Object cls) {
             return PInt.__class__ == cls;
-        }
-
-        protected static boolean is2ndNotTuple(@SuppressWarnings("unused") Object first, Object second) {
-            return !(second instanceof PTuple);
         }
 
         @ExplodeLoop
@@ -536,7 +540,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
-        @Specialization(order = 20, guards = "is2ndNotTuple")
+        @Specialization(order = 20, guards = "is2ndNotTuple(obj,cls)")
         public boolean isinstance(PythonBuiltinObject obj, Object cls) {
             return obj.__class__() == cls;
         }
@@ -568,6 +572,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // issubclass(class, classinfo)
     @Builtin(name = "issubclass", hasFixedNumOfArguments = true, fixedNumOfArguments = 2)
+    @GenerateNodeFactory
     public abstract static class IsSubClassNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
@@ -610,6 +615,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // iter(object[, sentinel])
     @Builtin(name = "iter", minNumOfArguments = 1, maxNumOfArguments = 2)
+    @GenerateNodeFactory
     public abstract static class IterNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
@@ -632,6 +638,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // len(s)
     @Builtin(name = "len", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class LenNode extends PythonBuiltinNode {
 
         @CompilationFinal @Child protected CallDispatchSpecialNode dispatch;
@@ -647,30 +654,30 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 10, guards = "isEmptyStorage")
+        @Specialization(order = 10, guards = "isEmptyStorage(list)")
         public int lenPListEmpty(PList list) {
             return 0;
         }
 
-        @Specialization(order = 11, guards = "isIntStorage")
+        @Specialization(order = 11, guards = "isIntStorage(list)")
         public int lenPListInt(PList list) {
             IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
             return store.length();
         }
 
-        @Specialization(order = 12, guards = "isDoubleStorage")
+        @Specialization(order = 12, guards = "isDoubleStorage(list)")
         public int lenPListDouble(PList list) {
             DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
             return store.length();
         }
 
-        @Specialization(order = 13, guards = "isObjectStorage")
+        @Specialization(order = 13, guards = "isObjectStorage(list)")
         public int lenPListObject(PList list) {
             ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
             return store.length();
         }
 
-        @Specialization(order = 14, guards = "isBasicStorage")
+        @Specialization(order = 14, guards = "isBasicStorage(list)")
         public int lenPList(PList list) {
             BasicSequenceStorage store = (BasicSequenceStorage) list.getStorage();
             return store.length();
@@ -700,22 +707,23 @@ public final class BuiltinFunctions extends PythonBuiltins {
     // max(iterable, *[, key])
     // max(arg1, arg2, *args[, key])
     @Builtin(name = "max", minNumOfArguments = 1, takesKeywordArguments = true, takesVariableArguments = true, keywordNames = {"key"})
+    @GenerateNodeFactory
     public abstract static class MaxNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 1, guards = "hasOneArgument")
+        @Specialization(order = 1, guards = "hasOneArgument(arg1,args,keywordArg)")
         public Object maxSequence(PSequence arg1, PTuple args, Object keywordArg) {
             return arg1.getMax();
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 2, guards = "hasOneArgument")
+        @Specialization(order = 2, guards = "hasOneArgument(arg1,args,keywordArg)")
         public Object maxBaseSet(PBaseSet arg1, PTuple args, Object keywordArg) {
             return arg1.getMax();
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 3, guards = "hasOneArgument")
+        @Specialization(order = 3, guards = "hasOneArgument(arg1,args,keywordArg)")
         public Object maxDictionary(PDict arg1, PTuple args, Object keywordArg) {
             return arg1.getMax();
         }
@@ -778,38 +786,35 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return args[args.length - 1];
         }
 
-        @SuppressWarnings("unused")
-        public static boolean hasOneArgument(Object arg1, PTuple args, Object keywordArg) {
-            return (args.len() == 0 && keywordArg instanceof PNone);
-        }
     }
 
     // min(iterable, *[, key])
     // min(arg1, arg2, *args[, key])
     @Builtin(name = "min", minNumOfArguments = 1, takesKeywordArguments = true, takesVariableArguments = true, keywordNames = {"key"})
+    @GenerateNodeFactory
     public abstract static class MinNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "hasOneArgument")
+        @Specialization(guards = "hasOneArgument(arg1,args,keywordArg)")
         public Object minString(String arg1, PTuple args, Object keywordArg) {
             PString pstring = new PString(arg1);
             return pstring.getMin();
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "hasOneArgument")
+        @Specialization(guards = "hasOneArgument(arg1,args,keywordArg)")
         public Object minSequence(PSequence arg1, PTuple args, Object keywordArg) {
             return arg1.getMin();
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "hasOneArgument")
+        @Specialization(guards = "hasOneArgument(arg1,args,keywordArg)")
         public Object minBaseSet(PBaseSet arg1, PTuple args, Object keywordArg) {
             return arg1.getMin();
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "hasOneArgument")
+        @Specialization(guards = "hasOneArgument(arg1,args,keywordArg)")
         public Object minDictionary(PDict arg1, PTuple args, Object keywordArg) {
             return arg1.getMin();
         }
@@ -856,15 +861,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return copy[0];
         }
 
-        @SuppressWarnings("unused")
-        public static boolean hasOneArgument(Object arg1, PTuple args, Object keywordArg) {
-            return (args.len() == 0 && keywordArg instanceof PNone);
-        }
     }
 
     // next(iterator[, default])
     @SuppressWarnings("unused")
     @Builtin(name = "next", minNumOfArguments = 1, maxNumOfArguments = 2)
+    @GenerateNodeFactory
     public abstract static class NextNode extends PythonBuiltinNode {
 
         @Specialization
@@ -895,6 +897,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // ord(c)
     @Builtin(name = "ord", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class OrdNode extends PythonBuiltinNode {
 
         @Specialization
@@ -909,9 +912,10 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
     @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
+    @GenerateNodeFactory
     public abstract static class PrintNode extends PythonBuiltinNode {
 
-        @SlowPath
+        @TruffleBoundary
         @Specialization
         public Object print(PTuple values, Object[] keywords) {
             String sep = null;
@@ -931,7 +935,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return print(values, sep, end);
         }
 
-        @SlowPath
+        @TruffleBoundary
         private Object print(PTuple values, String possibleSep, String possibleEnd) {
             String sep = possibleSep;
             String end = possibleEnd;
@@ -972,6 +976,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // repr(object)
     @Builtin(name = "repr", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class ReprNode extends PythonBuiltinNode {
 
         @Specialization
@@ -987,6 +992,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // reversed(seq)
     @Builtin(name = "reversed", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class ReversedNode extends PythonBuiltinNode {
 
         @Specialization
@@ -1002,6 +1008,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // round(number[, ndigits])
     @Builtin(name = "round", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class RoundNode extends PythonBuiltinNode {
 
         @Specialization
@@ -1017,6 +1024,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // setattr(object, name, value)
     @Builtin(name = "setattr", hasFixedNumOfArguments = true, fixedNumOfArguments = 3)
+    @GenerateNodeFactory
     public abstract static class SetAttrNode extends PythonBuiltinNode {
 
         @Specialization(order = 1)
@@ -1051,6 +1059,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // sum(iterable[, start])
     @Builtin(name = "sum", minNumOfArguments = 1, takesKeywordArguments = true, maxNumOfArguments = 2, keywordNames = {"start"})
+    @GenerateNodeFactory
     public abstract static class SumNode extends PythonBuiltinNode {
         /**
          * Incomplete. Only support ints.
@@ -1078,6 +1087,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // super([type[, object-or-type]])
     @Builtin(name = "super", minNumOfArguments = 1, maxNumOfArguments = 2)
+    @GenerateNodeFactory
     public abstract static class SuperNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
@@ -1094,6 +1104,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // type(object)
     @Builtin(name = "type", hasFixedNumOfArguments = true, fixedNumOfArguments = 1, isConstructor = true)
+    @GenerateNodeFactory
     public abstract static class TypeNode extends PythonBuiltinNode {
 
         @Specialization
@@ -1151,6 +1162,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
     // __import__(name, globals=None, locals=None, fromlist=(), level=0)
     @Builtin(name = "__import__", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @GenerateNodeFactory
     public abstract static class ImportNode extends PythonBuiltinNode {
 
         @Specialization
@@ -1165,7 +1177,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
     }
 
-    @SlowPath
+    @TruffleBoundary
     private static void typeError(String message) {
         throw Py.TypeError(message);
     }

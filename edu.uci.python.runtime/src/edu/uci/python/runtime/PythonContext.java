@@ -179,9 +179,4 @@ public class PythonContext extends ExecutionContext {
         return "PYTHON";
     }
 
-    @Override
-    protected void setSourceCallback(SourceCallback sourceCallback) {
-        throw new UnsupportedOperationException();
-    }
-
 }

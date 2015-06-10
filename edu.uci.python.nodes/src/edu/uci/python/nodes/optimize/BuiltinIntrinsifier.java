@@ -108,7 +108,7 @@ public class BuiltinIntrinsifier {
     private void transformToComprehension(IntrinsifiableBuiltin target) {
         FrameDescriptor genexpFrame = genexp.getFrameDescriptor();
         FrameDescriptor enclosingFrame = genexp.getEnclosingFrameDescriptor();
-        PNode genexpBody = ((FunctionRootNode) genexp.getFunctionRootNode()).split().getBody();
+        PNode genexpBody = ((FunctionRootNode) genexp.getFunctionRootNode()).copy().getBody();
         genexpBody = NodeUtil.findFirstNodeInstance(genexpBody, ForNode.class);
 
         for (FrameSlot genexpSlot : genexpFrame.getSlots()) {
