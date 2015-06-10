@@ -29,7 +29,7 @@ import java.util.*;
 
 import com.oracle.truffle.api.*;
 
-import edu.uci.python.profiler.*;
+//import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.function.*;
@@ -86,17 +86,19 @@ public abstract class PythonBuiltins {
                 setBuiltinClass(builtin.name(), builtinClass);
             } else {
                 setBuiltinFunction(builtin.name(), function);
-                if (PythonOptions.ProfileCalls) {
-                    PNode body = ((BuiltinFunctionRootNode) callTarget.getRootNode()).getBody();
-                    SourceSection sourceSection = source.createSection("builtin-in", index);
-                    body.assignSourceSection(sourceSection);
-
-                    PythonWrapperNode wrapperNode = null;
-                    wrapperNode = PythonProfilerNodeProber.getInstance().probeAsMethodBody(body, context);
-
-                    body.replace(wrapperNode);
-                    index++;
-                }
+                // TODO: Redesign Python profiler based on the new changes from Truffle
+// Instrumentation
+// if (PythonOptions.ProfileCalls) {
+// PNode body = ((BuiltinFunctionRootNode) callTarget.getRootNode()).getBody();
+// SourceSection sourceSection = source.createSection("builtin-in", index);
+// body.assignSourceSection(sourceSection);
+//
+// PythonWrapperNode wrapperNode = null;
+// wrapperNode = PythonProfilerNodeProber.getInstance().probeAsMethodBody(body, context);
+//
+// body.replace(wrapperNode);
+// index++;
+// }
             }
         }
     }

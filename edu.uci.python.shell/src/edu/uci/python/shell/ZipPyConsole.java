@@ -35,7 +35,7 @@ import com.oracle.truffle.api.source.*;
 import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.*;
 import edu.uci.python.parser.*;
-import edu.uci.python.profiler.*;
+//import edu.uci.python.profiler.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
@@ -82,12 +82,12 @@ public class ZipPyConsole extends InteractiveConsole {
          * child parent relationship
          */
 
-        ProfilerTranslator profilerTranslator = null;
+// ProfilerTranslator profilerTranslator = null;
 
         if (PythonOptions.ProfileCalls || PythonOptions.ProfileControlFlow || PythonOptions.ProfileVariableAccesses || PythonOptions.ProfileOperations || PythonOptions.ProfileCollectionOperations) {
-            profilerTranslator = new ProfilerTranslator(result, result.getContext());
-
-            profilerTranslator.translate();
+// profilerTranslator = new ProfilerTranslator(result, result.getContext());
+//
+// profilerTranslator.translate();
 
             if (PythonOptions.PrintAST) {
                 // CheckStyle: stop system..print check
@@ -113,31 +113,31 @@ public class ZipPyConsole extends InteractiveConsole {
         }
 
         if (PythonOptions.ProfileCalls) {
-            profilerTranslator.getProfilerResultPrinter().printCallProfilerResults();
+// profilerTranslator.getProfilerResultPrinter().printCallProfilerResults();
         }
 
         if (PythonOptions.ProfileControlFlow) {
-            profilerTranslator.getProfilerResultPrinter().printControlFlowProfilerResults();
+// profilerTranslator.getProfilerResultPrinter().printControlFlowProfilerResults();
         }
 
         if (PythonOptions.ProfileVariableAccesses) {
-            profilerTranslator.getProfilerResultPrinter().printVariableAccessProfilerResults();
+// profilerTranslator.getProfilerResultPrinter().printVariableAccessProfilerResults();
         }
 
         if (PythonOptions.ProfileOperations) {
-            profilerTranslator.getProfilerResultPrinter().printOperationProfilerResults();
+// profilerTranslator.getProfilerResultPrinter().printOperationProfilerResults();
         }
 
         if (PythonOptions.ProfileCollectionOperations) {
-            profilerTranslator.getProfilerResultPrinter().printCollectionOperationsProfilerResults();
+// profilerTranslator.getProfilerResultPrinter().printCollectionOperationsProfilerResults();
         }
 
         if (PythonOptions.TraceNodesWithoutSourceSection) {
-            profilerTranslator.getProfilerResultPrinter().printNodesEmptySourceSections();
+// profilerTranslator.getProfilerResultPrinter().printNodesEmptySourceSections();
         }
 
         if (PythonOptions.TraceNodesUsingExistingProbe) {
-            profilerTranslator.getProfilerResultPrinter().printNodesUsingExistingProbes();
+// profilerTranslator.getProfilerResultPrinter().printNodesUsingExistingProbes();
         }
 
         Py.flushLine();
