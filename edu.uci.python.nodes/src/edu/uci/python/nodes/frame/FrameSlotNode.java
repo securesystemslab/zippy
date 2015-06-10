@@ -76,27 +76,27 @@ public abstract class FrameSlotNode extends PNode {
         }
     }
 
-    protected final boolean isNotIllegal() {
+    protected final boolean isNotIllegal(Frame frame) {
         return frameSlot.getKind() != FrameSlotKind.Illegal;
     }
 
-    protected final boolean isBooleanKind() {
+    protected final boolean isBooleanKind(Frame frame) {
         return isKind(FrameSlotKind.Boolean);
     }
 
-    protected final boolean isIntegerKind() {
+    protected final boolean isIntegerKind(Frame frame) {
         return isKind(FrameSlotKind.Int);
     }
 
-    protected final boolean isDoubleKind() {
+    protected final boolean isDoubleKind(Frame frame) {
         return isKind(FrameSlotKind.Double) || intToDouble();
     }
 
-    protected final boolean isIntOrObjectKind() {
+    protected final boolean isIntOrObjectKind(Frame frame) {
         return isKind(FrameSlotKind.Int) || isKind(FrameSlotKind.Object);
     }
 
-    protected final boolean isObjectKind() {
+    protected final boolean isObjectKind(Frame frame) {
         if (frameSlot.getKind() != FrameSlotKind.Object) {
             CompilerDirectives.transferToInterpreter();
             frameSlot.setKind(FrameSlotKind.Object);

@@ -77,8 +77,6 @@ public class GeneratorTranslator {
             read.replace(ReadGeneratorFrameVariableNode.create(read.getSlot()));
         }
 
-        assert NodeUtil.findFirstNodeInstance(root, ReadLocalVariableNode.class) == null;
-
         for (YieldNode yield : NodeUtil.findAllNodeInstances(root, YieldNode.class)) {
             replaceYield(yield);
         }
@@ -170,7 +168,7 @@ public class GeneratorTranslator {
 
         if (needToHandleComplicatedYieldExpression) {
             needToHandleComplicatedYieldExpression = false;
-            // TranslationUtil.notCovered("Yield expression used in a complicated expressin");
+            // TranslationUtil.notCovered("Yield expression used in a complicated expression");
             handleComplicatedYieldExpression(yield);
         }
 
@@ -319,7 +317,7 @@ public class GeneratorTranslator {
                 continue;
             }
 
-            if (NodeUtil.findFirstNodeInstance(child, YieldNode.class) != null) {
+            if (NodeUtil.findAllNodeInstances(child, YieldNode.class).size() != 0) {
                 continue;
             }
 
