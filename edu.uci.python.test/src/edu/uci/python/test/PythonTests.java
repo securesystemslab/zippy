@@ -106,6 +106,8 @@ public class PythonTests {
             path = "edu.uci.python.test/src/tests";
         } else if (Files.isDirectory(Paths.get("../../edu.uci.python.test/src/tests"))) {
             path = "../../graal/edu.uci.python.test/src/tests";
+        } else if (Files.isDirectory(Paths.get("src/tests"))) {
+            path = "src/tests";
         } else {
             throw new RuntimeException("Unable to locate edu.uci.python.test/src/tests/");
         }
@@ -132,6 +134,8 @@ public class PythonTests {
             path = "edu.uci.python.test/src/tests";
         } else if (Files.isDirectory(Paths.get("../../edu.uci.python.test/src/tests"))) {
             path = "../../edu.uci.python.test/src/tests";
+        } else if (Files.isDirectory(Paths.get("src/tests"))) {
+            path = "src/tests";
         } else {
             throw new RuntimeException("Unable to locate edu.uci.python.test/src/tests/");
         }
