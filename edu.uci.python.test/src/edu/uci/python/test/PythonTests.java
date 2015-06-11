@@ -125,6 +125,41 @@ public class PythonTests {
         assertEquals(expected, result);
     }
 
+    public static void assertBenchNoError(Path scriptName, String arg) {
+        final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+        final PrintStream printStream = new PrintStream(byteArray);
+
+        String path = null;
+        if (Files.isDirectory(Paths.get("edu.uci.python.benchmark"))) {
+            path = "edu.uci.python.benchmark/src/";
+        } else if (Files.isDirectory(Paths.get("../../edu.uci.python.benchmark/src/"))) {
+            path = "../../graal/edu.uci.python.test/src/tests";
+        } else if (Files.isDirectory(Paths.get("src/tests"))) {
+            path = "src/tests";
+        } else {
+            throw new RuntimeException("Unable to locate edu.uci.python.benchmark/src/");
+        }
+
+        PythonContext context = getContext(printStream, System.err);
+        Source source;
+        try {
+            source = Source.fromFileName(path + "benchmarks" + File.separatorChar + scriptName.toString());
+        } catch (IOException e) {
+            try {
+                source = Source.fromFileName(path + "micro" + File.separatorChar + scriptName.toString());
+            } catch (IOException ee) {
+                throw new IllegalStateException();
+            }
+        }
+
+        String[] args = new String[]{scriptName.toString(), arg};
+
+        RunScript.runScript(args, source, context);
+
+        String result = byteArray.toString().replaceAll("\r\n", "\n");
+        assertNotEquals("", result);
+    }
+
     public static PythonParseResult assertPrintContains(String expected, Path scriptName) {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
