@@ -26,10 +26,6 @@ package edu.uci.python.runtime.function;
 
 import java.util.*;
 
-import sun.misc.*;
-
-import com.oracle.graal.truffle.unsafe.*;
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 

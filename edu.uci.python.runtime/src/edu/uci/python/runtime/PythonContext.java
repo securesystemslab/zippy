@@ -28,7 +28,6 @@ import java.io.*;
 import java.lang.invoke.*;
 
 import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.source.*;
 
@@ -172,11 +171,6 @@ public class PythonContext extends ExecutionContext {
     public RuntimeException getCurrentException() {
         assert currentException != null;
         return currentException;
-    }
-
-    @Override
-    public String getLanguageShortName() {
-        return "PYTHON";
     }
 
 }

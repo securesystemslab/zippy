@@ -28,7 +28,6 @@ import java.lang.reflect.*;
 
 import sun.misc.*;
 
-import com.oracle.graal.truffle.unsafe.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.NodeUtil.*;

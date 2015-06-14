@@ -24,7 +24,6 @@
  */
 package edu.uci.python.builtins;
 
-import java.io.*;
 import java.util.*;
 
 import com.oracle.truffle.api.*;
@@ -38,7 +37,6 @@ import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.function.*;
 
 import com.oracle.truffle.api.dsl.NodeFactory;
-import com.oracle.truffle.api.source.*;
 
 /**
  * @author Gulfem
@@ -51,18 +49,18 @@ public abstract class PythonBuiltins {
 
     protected abstract List<? extends NodeFactory<? extends PythonBuiltinNode>> getNodeFactories();
 
-    private static int index = 1;
+// private static int index = 1;
 
     @SuppressWarnings("unchecked")
     public void initialize(PythonContext context) {
-        Source source = null;
-        if (PythonOptions.ProfileCalls) {
-            try {
-                source = Source.fromFileName("graal/edu.uci.python.test/src/tests/builtins.py");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+// Source source = null;
+// if (PythonOptions.ProfileCalls) {
+// try {
+// source = Source.fromFileName("graal/edu.uci.python.test/src/tests/builtins.py");
+// } catch (IOException e) {
+// e.printStackTrace();
+// }
+// }
 
         List<NodeFactory<PythonBuiltinNode>> factories = (List<NodeFactory<PythonBuiltinNode>>) getNodeFactories();
         assert factories != null : "No factories found. Override getFactories() to resolve this.";

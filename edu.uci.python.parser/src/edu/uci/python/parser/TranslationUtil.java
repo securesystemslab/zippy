@@ -32,7 +32,6 @@ import org.python.antlr.ast.*;
 import org.python.antlr.base.*;
 
 import edu.uci.python.nodes.*;
-import edu.uci.python.runtime.datatype.*;
 
 public class TranslationUtil {
 

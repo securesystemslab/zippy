@@ -26,6 +26,7 @@ package edu.uci.python.nodes.frame;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
+
 import edu.uci.python.nodes.*;
 
 public abstract class FrameSlotNode extends PNode {
@@ -76,27 +77,27 @@ public abstract class FrameSlotNode extends PNode {
         }
     }
 
-    protected final boolean isNotIllegal(Frame frame) {
+    protected final boolean isNotIllegal(@SuppressWarnings("unused") Frame frame) {
         return frameSlot.getKind() != FrameSlotKind.Illegal;
     }
 
-    protected final boolean isBooleanKind(Frame frame) {
+    protected final boolean isBooleanKind(@SuppressWarnings("unused") Frame frame) {
         return isKind(FrameSlotKind.Boolean);
     }
 
-    protected final boolean isIntegerKind(Frame frame) {
+    protected final boolean isIntegerKind(@SuppressWarnings("unused") Frame frame) {
         return isKind(FrameSlotKind.Int);
     }
 
-    protected final boolean isDoubleKind(Frame frame) {
+    protected final boolean isDoubleKind(@SuppressWarnings("unused") Frame frame) {
         return isKind(FrameSlotKind.Double) || intToDouble();
     }
 
-    protected final boolean isIntOrObjectKind(Frame frame) {
+    protected final boolean isIntOrObjectKind(@SuppressWarnings("unused") Frame frame) {
         return isKind(FrameSlotKind.Int) || isKind(FrameSlotKind.Object);
     }
 
-    protected final boolean isObjectKind(Frame frame) {
+    protected final boolean isObjectKind(@SuppressWarnings("unused") Frame frame) {
         if (frameSlot.getKind() != FrameSlotKind.Object) {
             CompilerDirectives.transferToInterpreter();
             frameSlot.setKind(FrameSlotKind.Object);

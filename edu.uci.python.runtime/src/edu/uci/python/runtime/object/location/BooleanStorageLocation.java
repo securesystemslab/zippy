@@ -24,7 +24,6 @@
  */
 package edu.uci.python.runtime.object.location;
 
-import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.runtime.datatype.*;
