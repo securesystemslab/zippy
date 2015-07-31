@@ -4,6 +4,8 @@ import mx_graal
 import pymarks
 import json
 
+_suite = mx.suite('zippy')
+
 def pythonShellCp():
     return mx.classpath("edu.uci.python.shell");
 
@@ -18,12 +20,21 @@ def python(args):
     vmArgs = [a[1:] for a in args if a[0] == '@']
     pythonArgs = [a for a in args if a[0] != '@']
 
+    truffle_jar = mx.distribution('truffle:TRUFFLE').path
+    vmArgs = ['-Xbootclasspath/p:' + truffle_jar] + vmArgs
     mx_graal.vm(vmArgs + ['-cp', pythonShellCp(), pythonShellClass()] + pythonArgs)
 
 def _bench_harness_body(args, vmArgs):
     # args is from ArgumentParser.parseArgs
     resultFile = args.resultfile
-    vm = mx_graal._get_vm()
+    # add truffle
+    truffle_jar = mx.distribution('truffle:TRUFFLE').path
+    if vmArgs is None:
+        vmArgs = ['-Xbootclasspath/p:' + truffle_jar]
+    else:
+        vmArgs = ['-Xbootclasspath/p:' + truffle_jar] + vmArgs
+
+    vm = mx_graal.get_vm()
     results = {}
     benchmarks = []
     bmargs = args.remainder
@@ -128,15 +139,13 @@ def bench(args):
     parser = ArgumentParser(prog='mx bench')
     parser.add_argument('-resultfile', action='store', help='result file')
 
-    vm = mx_graal.VM('server' if mx_graal._vm is None else mx_graal._vm)
+    vm = mx_graal.VM('server' if mx_graal.get_vm() is None else mx_graal.get_vm())
     with vm:
         mx.bench(args, harness=_bench_harness_body, parser=parser)
 
-def mx_init(suite):
-    commands = {
-        # new commands
-        'python' : [python, '[Python args|@VM options]'],
-        # core overrides
-        'bench' : [bench, ''],
-    }
-    mx.update_commands(suite, commands)
+mx.update_commands(_suite, {
+    # core overrides
+    'bench' : [bench, ''],
+    # new commands
+    'python' : [python, '[Python args|@VM options]'],
+})
