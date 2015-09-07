@@ -34,18 +34,22 @@ import edu.uci.python.runtime.exception.*;
 
 public final class BreakTargetNode extends StatementNode {
 
-    @Child protected PNode child;
+    @Child protected PNode statement;
 
     private final BranchProfile breakProfile = BranchProfile.create();
 
-    public BreakTargetNode(PNode child) {
-        this.child = child;
+    public BreakTargetNode(PNode statement) {
+        this.statement = statement;
+    }
+
+    public PNode getStatement() {
+        return statement;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
         try {
-            return child.execute(frame);
+            return statement.execute(frame);
         } catch (BreakException ex) {
             breakProfile.enter();
             return PNone.NONE;

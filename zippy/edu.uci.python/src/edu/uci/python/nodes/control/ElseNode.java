@@ -39,6 +39,14 @@ public final class ElseNode extends StatementNode {
         this.orelse = orelse;
     }
 
+    public PNode getThen() {
+        return then;
+    }
+
+    public PNode getOrelse() {
+        return orelse;
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         then.execute(frame);
