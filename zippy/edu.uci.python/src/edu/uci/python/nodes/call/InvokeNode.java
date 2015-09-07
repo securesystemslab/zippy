@@ -40,6 +40,7 @@ public abstract class InvokeNode extends Node {
 
     protected abstract Object invoke(VirtualFrame frame, Object primary, Object[] arguments, PKeyword[] keywords);
 
+    @SuppressWarnings("deprecation")
     protected boolean isInlined() {
         return callNode.isInlined();
     }

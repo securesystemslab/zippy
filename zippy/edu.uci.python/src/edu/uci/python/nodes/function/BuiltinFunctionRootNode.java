@@ -27,6 +27,7 @@ package edu.uci.python.nodes.function;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.*;
 import edu.uci.python.nodes.*;
 
 /**
@@ -41,6 +42,7 @@ public class BuiltinFunctionRootNode extends RootNode {
     private final PythonBuiltinNode uninitialized;
 
     public BuiltinFunctionRootNode(String functionName, PythonBuiltinNode builtinNode) {
+        super(PythonLanguage.class, null, null);
         this.functionName = functionName;
         this.body = builtinNode;
         this.uninitialized = NodeUtil.cloneNode(builtinNode);

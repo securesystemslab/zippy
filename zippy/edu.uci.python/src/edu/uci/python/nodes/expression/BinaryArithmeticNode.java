@@ -198,7 +198,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization
-        PComplex doComplexDoulbe(PComplex left, double right) {
+        PComplex doComplexDouble(PComplex left, double right) {
             PComplex result = new PComplex(left.getReal() - right, left.getImag());
             return result;
         }
