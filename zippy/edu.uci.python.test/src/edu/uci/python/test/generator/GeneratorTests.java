@@ -126,4 +126,20 @@ public class GeneratorTests {
         assertPrints("0\n1\n2\n3\n4\n", script);
     }
 
+    @Test
+    public void mm2d_naive() {
+        Path script = Paths.get("mm2d_naive.py");
+        assertPrints("result =  [[1387598, 869266, 1216497, 1356679, 1111220], " + //
+                        "[1357976, 918765, 1304513, 1252453, 1132022], [1138504, " + //
+                        "571763, 1084725, 1012620, 849145], [1445834, 907246, " + //
+                        "1247034, 995240, 1150001], [1765378, 1289141, 1742128, " + //
+                        "1467277, 1521093]]\n", script);
+    }
+
+    @Test
+    public void mm2d_random_naive() {
+        Path script = Paths.get("mm2d_random_naive.py");
+        assertPrints("", script);
+    }
+
 }

@@ -47,4 +47,15 @@ public class BenchmarkTests {
         assertPrints("3\n3\n3\n", script);
     }
 
+    @Test
+    public void richards3() {
+        Path script = Paths.get("richards3.py");
+        assertBenchNoError(script, "3");
+    }
+
+    @Test
+    public void bm_ai() {
+        Path script = Paths.get("bm-ai.py");
+        assertBenchNoError(script, "0");
+    }
 }

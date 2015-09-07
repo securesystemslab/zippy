@@ -30,6 +30,8 @@ import java.nio.file.*;
 
 import org.junit.*;
 
+import edu.uci.python.runtime.*;
+
 public class ForTests {
 
     @Test
@@ -38,6 +40,26 @@ public class ForTests {
                         "for i in a:\n" + //
                         "  print(i)";
         assertPrints("1\n2\n3\n", source);
+    }
+
+    @Test
+    public void simple2() {
+        String source = "a = [1, 2, 3]\n" + //
+                        "c = [0, 0, 0]\n" + //
+                        "for i in range(len(a)):\n" + //
+                        "  c[i] = a[i]*2\n" + //
+                        "print(c)";
+        assertPrints("[2, 4, 6]\n", source);
+    }
+
+    @Test
+    public void simple3() {
+        String source = "a = ['a', 'b', 'c']\n" + //
+                        "c = [0, 0, 0]\n" + //
+                        "for i in range(len(a)-1):\n" + //
+                        "  c[i] = a[i]\n" + //
+                        "print(c)";
+        assertPrints("['a', 'b', 0]\n", source);
     }
 
     @Test
