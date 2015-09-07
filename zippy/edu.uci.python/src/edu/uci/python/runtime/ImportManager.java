@@ -61,7 +61,7 @@ public class ImportManager {
             workingDir = workingDir.replaceAll("/graal/edu.uci.python.test", "");
         }
 
-        String librayPath = workingDir + File.separatorChar + "lib-python" + File.separatorChar + "3";
+        String librayPath = workingDir + File.separatorChar + "zippy" + File.separatorChar + "lib-python" + File.separatorChar + "3";
         return librayPath;
     }
 
