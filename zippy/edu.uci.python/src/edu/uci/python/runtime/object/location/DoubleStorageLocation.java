@@ -49,7 +49,7 @@ public final class DoubleStorageLocation extends FieldStorageLocation {
 
     public double readDouble(PythonObject object) throws UnexpectedResultException {
         if (isSet(object)) {
-            return ObjectLayoutUtil.getUnsafeAccess().getDouble(object, offset, true, this);
+            return ObjectLayoutUtil.getDouble(object, offset, true, this);
         } else {
             throw new UnexpectedResultException(PNone.NONE);
         }
@@ -67,7 +67,7 @@ public final class DoubleStorageLocation extends FieldStorageLocation {
     }
 
     public void writeDouble(PythonObject object, Double value) {
-        ObjectLayoutUtil.getUnsafeAccess().putDouble(object, offset, value, this);
+        ObjectLayoutUtil.putDouble(object, offset, value, this);
         markAsSet(object);
     }
 

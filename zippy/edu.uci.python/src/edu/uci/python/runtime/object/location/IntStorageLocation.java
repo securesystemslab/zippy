@@ -49,7 +49,7 @@ public final class IntStorageLocation extends FieldStorageLocation {
 
     public int readInt(PythonObject object) throws UnexpectedResultException {
         if (isSet(object)) {
-            return ObjectLayoutUtil.getUnsafeAccess().getInt(object, offset, true, this);
+            return ObjectLayoutUtil.getInt(object, offset, true, this);
         } else {
             throw new UnexpectedResultException(PNone.NONE);
         }
@@ -67,7 +67,7 @@ public final class IntStorageLocation extends FieldStorageLocation {
     }
 
     public void writeInt(PythonObject object, int value) {
-        ObjectLayoutUtil.getUnsafeAccess().putInt(object, offset, value, this);
+        ObjectLayoutUtil.putInt(object, offset, value, this);
         markAsSet(object);
     }
 

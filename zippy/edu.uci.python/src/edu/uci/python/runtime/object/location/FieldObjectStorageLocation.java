@@ -37,12 +37,12 @@ public final class FieldObjectStorageLocation extends FieldStorageLocation {
 
     @Override
     public Object read(PythonObject object) {
-        return ObjectLayoutUtil.getUnsafeAccess().getObject(object, offset, true, this);
+        return ObjectLayoutUtil.getObject(object, offset, true, this);
     }
 
     @Override
     public void write(PythonObject object, Object value) {
-        ObjectLayoutUtil.getUnsafeAccess().putObject(object, offset, value, this);
+        ObjectLayoutUtil.putObject(object, offset, value, this);
         markAsSet(object);
     }
 

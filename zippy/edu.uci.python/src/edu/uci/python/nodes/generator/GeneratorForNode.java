@@ -117,7 +117,7 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
         }
 
         protected PRangeIterator getPRangeIterator(VirtualFrame frame) {
-            return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(getIterator(frame), PRangeIterator.class, false, true);
+            return (PRangeIterator) getIterator(frame);
         }
 
         @Override
@@ -167,7 +167,7 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
         }
 
         protected PSequenceIterator getPSequenceIterator(VirtualFrame frame) {
-            return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(getIterator(frame), PSequenceIterator.class, false, true);
+            return (PSequenceIterator) getIterator(frame);
         }
 
         @Override
@@ -216,7 +216,7 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
         }
 
         protected PGenerator getPGenerator(VirtualFrame frame) {
-            return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(getIterator(frame), PGenerator.class, false, true);
+            return (PGenerator) getIterator(frame);
         }
 
         @Override

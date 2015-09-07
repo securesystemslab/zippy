@@ -105,7 +105,7 @@ public abstract class ComprehensionNode extends PNode {
 
         @SuppressWarnings("unchecked")
         private ArrayList<Object> getList(Frame frame) {
-            return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(getObject(frame), ArrayList.class, true, true);
+            return (ArrayList<Object>) getObject(frame);
         }
     }
 
@@ -145,7 +145,7 @@ public abstract class ComprehensionNode extends PNode {
 
         @SuppressWarnings("unchecked")
         private TreeSet<Object> getSet(Frame frame) {
-            return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(getObject(frame), TreeSet.class, true, true);
+            return (TreeSet<Object>) getObject(frame);
         }
     }
 
@@ -185,7 +185,7 @@ public abstract class ComprehensionNode extends PNode {
 
         @SuppressWarnings("unchecked")
         private TreeMap<Object, Object> getMap(Frame frame) {
-            return ObjectLayoutUtil.getUnsafeAccess().uncheckedCast(getObject(frame), TreeMap.class, true, true);
+            return (TreeMap<Object, Object>) getObject(frame);
         }
     }
 

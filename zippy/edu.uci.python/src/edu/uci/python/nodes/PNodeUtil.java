@@ -96,7 +96,7 @@ public class PNodeUtil {
         /**
          * zwei: only compares parent node and data fields for now.
          */
-        if (!nodeClassEquals(toMatch, candidate, nodeClass.getParentField().getOffset())) {
+        if (!nodeClassEquals(toMatch, candidate, ObjectLayoutUtil.getFieldOffset(nodeClass.getParentField()))) {
             return false;
         }
 
@@ -112,7 +112,7 @@ public class PNodeUtil {
                 continue;
             }
 
-            if (!nodeFieldEquals(toMatch, candidate, nfield.getOffset())) {
+            if (!nodeFieldEquals(toMatch, candidate, ObjectLayoutUtil.getFieldOffset(nfield))) {
                 return false;
             }
         }
@@ -121,14 +121,14 @@ public class PNodeUtil {
     }
 
     private static boolean nodeClassEquals(Node toMatch, Node candidate, long nodeOffset) {
-        Object left = ObjectLayoutUtil.getUnsafeAccess().getObject(toMatch, nodeOffset, false, null);
-        Object right = ObjectLayoutUtil.getUnsafeAccess().getObject(candidate, nodeOffset, false, null);
+        Object left = ObjectLayoutUtil.getObject(toMatch, nodeOffset, false, null);
+        Object right = ObjectLayoutUtil.getObject(candidate, nodeOffset, false, null);
         return left.getClass().equals(right.getClass());
     }
 
     private static boolean nodeFieldEquals(Node toMatch, Node candidate, long fieldOffset) {
-        Object left = ObjectLayoutUtil.getUnsafeAccess().getObject(toMatch, fieldOffset, false, null);
-        Object right = ObjectLayoutUtil.getUnsafeAccess().getObject(candidate, fieldOffset, false, null);
+        Object left = ObjectLayoutUtil.getObject(toMatch, fieldOffset, false, null);
+        Object right = ObjectLayoutUtil.getObject(candidate, fieldOffset, false, null);
         return left == right;
     }
 
