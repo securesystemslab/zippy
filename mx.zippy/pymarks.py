@@ -11,7 +11,7 @@ def getPythonTestBenchmarks(vm):
     benchmarks = pythonTestBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
-        script = "edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        script = "zippy/benchmarks/src/benchmarks/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
         tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
 
@@ -22,7 +22,7 @@ def getPython2MicroBenchmarks(vm):
     benchmarks = python2MicroBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
-        script = "edu.uci.python.benchmark/src/micro/" + benchmark + ".py"
+        script = "zippy/benchmarks/src/micro/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
         tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
 
@@ -33,7 +33,7 @@ def getPythonMicroBenchmarks(vm):
     benchmarks = pythonMicroBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
-        script = "edu.uci.python.benchmark/src/micro/" + benchmark + ".py"
+        script = "zippy/benchmarks/src/micro/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
         tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
 
@@ -44,7 +44,7 @@ def getPythonBenchmarks(vm):
     benchmarks = pythonBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
-        script = "edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        script = "zippy/benchmarks/src/benchmarks/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
         tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
 
@@ -55,7 +55,7 @@ def getPythonBenchmarksNoPeeling(vm):
     benchmarks = pythonGeneratorBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
-        script = "edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        script = "zippy/benchmarks/src/benchmarks/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, "-no-generator-peeling"]
         tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
 
@@ -66,7 +66,7 @@ def getPythonObjectBenchmarksFlex(vm):
     benchmarks = pythonObjectBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
-        script = "edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        script = "zippy/benchmarks/src/benchmarks/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, "-flexible-object-storage"]
         tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
 
@@ -77,7 +77,7 @@ def getPythonObjectBenchmarksFlexStorageEvolution(vm):
     benchmarks = pythonObjectBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
-        script = "edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        script = "zippy/benchmarks/src/benchmarks/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, "-flexible-storage-evolution"]
         tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=benchVmOpts))
 
@@ -88,7 +88,7 @@ def getPythonBenchmarksProfiling(vm, profile_option=None):
     benchmarks = pythonProfilerBenchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
-        script = "edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        script = "zippy/benchmarks/src/benchmarks/" + benchmark + ".py"
         if (profile_option is not None):
             cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg, profile_option, "-sort"]
         else :
@@ -103,7 +103,7 @@ def getPython2Benchmarks(vm):
     benchmarks = python2Benchmarks
     tests = []
     for benchmark, arg in benchmarks.iteritems():
-        script = "edu.uci.python.benchmark/src/benchmarks/" + benchmark + ".py"
+        script = "zippy/benchmarks/src/benchmarks/" + benchmark + ".py"
         cmd = ['-cp', mx.classpath("edu.uci.python.shell"), "edu.uci.python.shell.Shell", script, arg]
         vmOpts = ['-Xms2g', '-Xmx2g']
         tests.append(ZippyTest("Python-" + benchmark, cmd, successREs=[success], failureREs=[error], scoreMatchers=[matcher], vmOpts=vmOpts))

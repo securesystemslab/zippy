@@ -41,8 +41,8 @@ import org.junit.*;
 
 """
 
-pathTestBench='../edu.uci.python.test/src/edu/uci/python/test/benchmarks/'
-pathBench='edu.uci.python.benchmark//src//benchmarks//'
+pathTestBench='../zippy/edu.uci.python.test/src/edu/uci/python/test/benchmarks/'
+pathBench='zippy//benchmarks//src//benchmarks//'
 
 testClassNamep1 = 'public class '
 testClassNamep2 = ' {\n'
