@@ -1,7 +1,26 @@
 suite = {
-  "mxversion" : "2.8.0",
+  "mxversion" : "5.0",
   "name" : "zippy",
+
+  "defaultLicense" : "BSD-2-Clause",
+
+  "imports" : {
+    "suites": [
+            {
+               "name" : "graal",
+               "version" : "bdf6b2a608d143c3d22c72b801ead7e8cfffe94d",
+               "urls" : [
+                    {"url" : "http://hg.openjdk.java.net/graal/graal-compiler", "kind" : "hg"},
+                ]
+            },
+    ]
+   },
+
+
   "libraries" : {
+
+    # ------------- Libraries -------------
+
     "JLINE09" : {
       "path" : "lib/jline-0.9.95-SNAPSHOT.jar",
       "urls" : [
@@ -12,6 +31,7 @@ suite = {
 
     "JYTHON" : {
       "path" : "lib/jython-standalone-2.7-b3.jar",
+    #   "licence" : "PSFv2",
       "urls" : [
         "http://repo1.maven.org/maven2/org/python/jython-standalone/2.7-b3/jython-standalone-2.7-b3.jar",
       ],
@@ -44,31 +64,16 @@ suite = {
   },
 
   "projects" : {
-    "edu.uci.python.nodes" : {
-      "sourceDirs" : ["src"],
-      "dependencies" : ["edu.uci.python.runtime","com.oracle.truffle.api","com.oracle.truffle.api.dsl","com.oracle.graal.truffle","JYTHON"],
-      "checkstyle" : "edu.uci.python.runtime",
-      "javaCompliance" : "1.8",
-      "annotationProcessors" : ["com.oracle.truffle.dsl.processor"],
-      "workingSets" : "Truffle,Python",
-    },
 
-    "edu.uci.python.parser" : {
-      "sourceDirs" : ["src"],
-#      "dependencies" : ["edu.uci.python.nodes","edu.uci.python.profiler","edu.uci.python.builtins","JYTHON"],
-      "dependencies" : ["edu.uci.python.nodes","edu.uci.python.builtins","JYTHON"],
-      "checkstyle" : "edu.uci.python.runtime",
-      "javaCompliance" : "1.8",
-      "workingSets" : "Truffle,Python",
-    },
+    # ------------- ZipPy -------------
 
-    "edu.uci.python.shell" : {
+    "edu.uci.python" : {
+      "subDir" : "zippy",
       "sourceDirs" : ["src"],
-#      "dependencies" : ["JLINE09","edu.uci.python.nodes","edu.uci.python.profiler","edu.uci.python.runtime","edu.uci.python.parser","edu.uci.python.builtins",
-      "dependencies" : ["JLINE09","edu.uci.python.nodes","edu.uci.python.runtime","edu.uci.python.parser","edu.uci.python.builtins",
-      "JYTHON","JAVA_ALLOCATION_INSTRUMENTER"],
-      "checkstyle" : "edu.uci.python.runtime",
+      "dependencies" : ["truffle:TRUFFLE_API","truffle:TRUFFLE_DSL_PROCESSOR","graal:GRAAL_TRUFFLE","JYTHON","graal:JAVA_ALLOCATION_INSTRUMENTER","ASM","JAMM","JLINE09"],
+      "checkstyle" : "edu.uci.python",
       "javaCompliance" : "1.8",
+      "annotationProcessors" : ["truffle:TRUFFLE_DSL_PROCESSOR"],
       "workingSets" : "Truffle,Python",
     },
 
@@ -80,49 +85,37 @@ suite = {
 #      "workingSets" : "Truffle,Python",
 #    },
 
-    "edu.uci.python.builtins" : {
-      "sourceDirs" : ["src"],
-#      "dependencies" : ["edu.uci.python.nodes","edu.uci.python.runtime","edu.uci.python.profiler","com.oracle.truffle.api","com.oracle.truffle.api.dsl","JYTHON"],
-      "dependencies" : ["edu.uci.python.nodes","edu.uci.python.runtime","com.oracle.truffle.api","com.oracle.truffle.api.dsl","JYTHON"],
-      "checkstyle" : "edu.uci.python.runtime",
-      "javaCompliance" : "1.8",
-      "annotationProcessors" : ["com.oracle.truffle.dsl.processor"],
-      "workingSets" : "Truffle,Python",
-    },
-
-    "edu.uci.python.runtime" : {
-      "sourceDirs" : ["src"],
-      "dependencies" : ["com.oracle.truffle.api","com.oracle.graal.truffle","JYTHON","ASM","JAMM"],
-      "checkstyle" : "edu.uci.python.runtime",
-      "javaCompliance" : "1.8",
-      "workingSets" : "Truffle,Python",
-    },
-
-    "edu.uci.python.benchmark" : {
-      "sourceDirs" : ["src"],
-      "dependencies" : ["edu.uci.python.nodes","edu.uci.python.runtime","JUNIT"],
-      "checkstyle" : "edu.uci.python.runtime",
-      "javaCompliance" : "1.8",
-      "workingSets" : "Truffle,Python",
-    },
-
     "edu.uci.python.test" : {
+      "subDir" : "zippy",
       "sourceDirs" : ["src"],
-      "dependencies" : ["edu.uci.python.nodes","edu.uci.python.runtime","edu.uci.python.shell","JUNIT"],
-      "checkstyle" : "edu.uci.python.runtime",
+      "dependencies" : ["edu.uci.python","mx:JUNIT"],
+      "checkstyle" : "edu.uci.python",
       "javaCompliance" : "1.8",
       "workingSets" : "Truffle,Python",
     },
 
   },
 
+  # "licenses" : {
+  #   "BSD-2-Clause" : {
+  #     "name" : "FreeBSD License",
+  #     "url" : "http://opensource.org/licenses/BSD-2-Clause",
+  #   },
+  #   "PSFv2" : {
+  #     "name" : "PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2",
+  #     "url" : "http://www.jython.org/license.html",
+  #   }
+  # },
+
+
   "distributions" : {
     "ZIPPY" : {
       "path" : "zippy.jar",
       "dependencies" : [
-        "edu.uci.python.shell",
+        "edu.uci.python",
       ],
-      "sourcesPath" : "zippy-sources.jar",
+    #   "license" : "BSD-2-Clause",
+      "sourcesPath" : "zippy.src.zip",
     },
 
   },
