@@ -6,34 +6,15 @@ import json
 
 _suite = mx.suite('zippy')
 
-def pythonShellCp():
-    return mx.classpath("edu.uci.python");
-
-def pythonShellClass():
-    return "edu.uci.python.shell.Shell";
-
 def python(args):
-    """run a Python program or shell
+    """run a Python program or shell"""
 
-    VM args should have a @ prefix."""
-
-    vmArgs = [a[1:] for a in args if a[0] == '@']
-    pythonArgs = [a for a in args if a[0] != '@']
-
-    truffle_jar = mx.distribution('truffle:TRUFFLE_API').path
-    vmArgs = ['-Xbootclasspath/p:' + truffle_jar] + vmArgs
-    vmArgs = vmArgs + ['-cp', pythonShellCp(), pythonShellClass()] + pythonArgs
-    mx_graal.vm(vmArgs)
+    vmArgs, zippyArgs = mx.extract_VM_args(args)
+    mx.run_java(vmArgs + ['-cp', mx.classpath(["TRUFFLE_API", "edu.uci.python"]), "edu.uci.python.shell.Shell"] + zippyArgs)
 
 def _bench_harness_body(args, vmArgs):
     # args is from ArgumentParser.parseArgs
     resultFile = args.resultfile
-    # add truffle
-    truffle_jar = mx.distribution('truffle:TRUFFLE').path
-    if vmArgs is None:
-        vmArgs = ['-Xbootclasspath/p:' + truffle_jar]
-    else:
-        vmArgs = ['-Xbootclasspath/p:' + truffle_jar] + vmArgs
 
     vm = mx_graal.get_vm()
     results = {}
