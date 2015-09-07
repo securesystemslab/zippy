@@ -80,7 +80,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         return boxed;
     }
 
-    protected int[] getInternalIntArray() {
+    public int[] getInternalIntArray() {
         return values;
     }
 

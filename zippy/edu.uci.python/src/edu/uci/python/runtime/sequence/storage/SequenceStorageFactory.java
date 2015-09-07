@@ -25,6 +25,7 @@
 package edu.uci.python.runtime.sequence.storage;
 
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.sequence.*;
 
 public class SequenceStorageFactory {
 
@@ -48,6 +49,8 @@ public class SequenceStorageFactory {
             return new IntSequenceStorage(specializeToInt(values));
         } else if (canSpecializeToDouble(values)) {
             return new DoubleSequenceStorage(specializeToDouble(values));
+        } else if (canSpecializeToList(values)) {
+            return new ListSequenceStorage(specializeToList(values));
         } else {
             return new ObjectSequenceStorage(values);
         }
@@ -99,6 +102,30 @@ public class SequenceStorageFactory {
         }
 
         return doubles;
+    }
+
+    public static boolean canSpecializeToList(Object[] values) {
+        if (!(values[0] instanceof PList)) {
+            return false;
+        }
+
+        for (Object item : values) {
+            if (!(item instanceof PList)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static PList[] specializeToList(Object[] values) {
+        final PList[] list = new PList[values.length];
+
+        for (int i = 0; i < values.length; i++) {
+            list[i] = (PList) values[i];
+        }
+
+        return list;
     }
 
 }

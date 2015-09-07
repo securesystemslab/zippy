@@ -31,6 +31,7 @@ import org.python.core.*;
 import com.oracle.truffle.api.*;
 
 import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.sequence.*;
 
 public final class EmptySequenceStorage extends SequenceStorage {
 
@@ -47,6 +48,8 @@ public final class EmptySequenceStorage extends SequenceStorage {
             generalized = new IntSequenceStorage();
         } else if (value instanceof Double) {
             generalized = new DoubleSequenceStorage();
+        } else if (value instanceof PList) {
+            generalized = new ListSequenceStorage(((PList) value).getStorage().getClass());
         } else {
             generalized = new ObjectSequenceStorage();
         }

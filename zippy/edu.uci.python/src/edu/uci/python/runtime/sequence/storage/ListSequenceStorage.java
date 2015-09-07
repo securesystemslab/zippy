@@ -24,26 +24,42 @@
  */
 package edu.uci.python.runtime.sequence.storage;
 
+import java.io.*;
 import java.util.*;
 
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.sequence.*;
 
-public final class DoubleSequenceStorage extends BasicSequenceStorage {
+public final class ListSequenceStorage extends BasicSequenceStorage {
 
-    private double[] values;
+    private PList[] values;
+    private Class<?> kind;
+    private int dim;
 
-    public DoubleSequenceStorage() {
-        values = new double[]{};
+    public ListSequenceStorage(Class<?> kind) {
+        values = new PList[]{};
+        this.kind = kind;
+        this.dim = 0;
     }
 
-    public DoubleSequenceStorage(double[] elements) {
+    public ListSequenceStorage(PList[] elements) {
+        this(elements, elements[0].getStorage().getClass());
+    }
+
+    public ListSequenceStorage(PList[] elements, Class<?> kind) {
         this.values = elements;
+        capacity = values.length;
         length = elements.length;
-        capacity = elements.length;
+        this.kind = kind;
+        if (elements[0].getStorage() instanceof ListSequenceStorage)
+            this.dim = ((ListSequenceStorage) elements[0].getStorage()).dim + 1;
+        else
+            this.dim = 2;
     }
 
     @Override
@@ -54,13 +70,27 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     protected void increaseCapacityExact(int newCapacity) {
-        values = new double[newCapacity];
+        values = new PList[newCapacity];
         capacity = values.length;
     }
 
     @Override
     public SequenceStorage copy() {
-        return new DoubleSequenceStorage(Arrays.copyOf(values, length));
+        return new ListSequenceStorage(Arrays.copyOf(values, length), this.kind);
+    }
+
+    public Class<?> getKind() {
+        return kind;
+    }
+
+    public int getDim() {
+        if (dim == 0) {
+            if (values[0].getStorage() instanceof ListSequenceStorage)
+                this.dim = ((ListSequenceStorage) values[0].getStorage()).dim + 1;
+            else
+                this.dim = 2;
+        }
+        return dim;
     }
 
     @Override
@@ -77,7 +107,7 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
         return boxed;
     }
 
-    public double[] getInternalDoubleArray() {
+    public PList[] getInternalListArray() {
         return values;
     }
 
@@ -88,10 +118,10 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public Object getItemNormalized(int idx) {
-        return getDoubleItemNormalized(idx);
+        return getListItemNormalized(idx);
     }
 
-    public double getDoubleItemNormalized(int idx) {
+    public PList getListItemNormalized(int idx) {
         try {
             return values[idx];
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -102,14 +132,14 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setItemNormalized(int idx, Object value) throws SequenceStoreException {
-        if (value instanceof Double) {
-            setDoubleItemNormalized(idx, (double) value);
+        if (value instanceof PList) {
+            setListItemNormalized(idx, (PList) value);
         } else {
             throw SequenceStoreException.INSTANCE;
         }
     }
 
-    public void setDoubleItemNormalized(int idx, double value) {
+    public void setListItemNormalized(int idx, PList value) {
         try {
             values[idx] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -120,14 +150,14 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void insertItem(int idx, Object value) throws SequenceStoreException {
-        if (value instanceof Double) {
-            insertDoubleItem(idx, (double) value);
+        if (value instanceof PList) {
+            insertListItem(idx, (PList) value);
         } else {
             throw SequenceStoreException.INSTANCE;
         }
     }
 
-    public void insertDoubleItem(int idx, double value) {
+    public void insertListItem(int idx, PList value) {
         ensureCapacity(length + 1);
 
         // shifting tail to the right by one slot
@@ -141,30 +171,30 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public SequenceStorage getSliceInBound(int start, int stop, int step, int sliceLength) {
-        double[] newArray = new double[sliceLength];
+        PList[] newArray = new PList[sliceLength];
 
         if (step == 1) {
             System.arraycopy(values, start, newArray, 0, sliceLength);
-            return new DoubleSequenceStorage(newArray);
+            return new ListSequenceStorage(newArray, this.kind);
         }
 
         for (int i = start, j = 0; j < sliceLength; i += step, j++) {
             newArray[j] = values[i];
         }
 
-        return new DoubleSequenceStorage(newArray);
+        return new ListSequenceStorage(newArray, this.kind);
     }
 
     @Override
     public void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) throws SequenceStoreException {
-        if (sequence instanceof DoubleSequenceStorage) {
-            setDoubleSliceInBound(start, stop, step, (DoubleSequenceStorage) sequence);
+        if (sequence instanceof ListSequenceStorage) {
+            setListSliceInBound(start, stop, step, (ListSequenceStorage) sequence);
         } else {
             throw new SequenceStoreException();
         }
     }
 
-    public void setDoubleSliceInBound(int start, int stop, int step, DoubleSequenceStorage sequence) {
+    public void setListSliceInBound(int start, int stop, int step, ListSequenceStorage sequence) {
         int otherLength = sequence.length();
 
         // range is the whole sequence?
@@ -193,12 +223,16 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delItemInBound(int idx) {
-        popInBound(idx);
+        if (values.length - 1 == idx) {
+            popList();
+        } else {
+            popInBound(idx);
+        }
     }
 
     @Override
     public Object popInBound(int idx) {
-        double pop = values[idx];
+        PList pop = values[idx];
 
         for (int i = idx; i < values.length - 1; i++) {
             values[i] = values[i + 1];
@@ -208,23 +242,24 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
         return pop;
     }
 
-    public double popDouble() {
-        double pop = values[capacity - 1];
+    public PList popList() {
+        PList pop = values[capacity - 1];
         length--;
         return pop;
     }
 
     @Override
     public int index(Object value) {
-        if (value instanceof Double) {
-            return indexOfDouble((double) value);
+        if (value instanceof PList) {
+            return indexOfList((PList) value);
         } else {
             return super.index(value);
         }
 
     }
 
-    public int indexOfDouble(double value) {
+    @ExplodeLoop
+    public int indexOfList(PList value) {
         for (int i = 0; i < length; i++) {
             if (values[i] == value) {
                 return i;
@@ -236,14 +271,14 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void append(Object value) throws SequenceStoreException {
-        if (value instanceof Double) {
-            appendDouble((double) value);
+        if (value instanceof PList && ((PList) value).getStorage().getClass() == kind) {
+            appendList((PList) value);
         } else {
             throw SequenceStoreException.INSTANCE;
         }
     }
 
-    public void appendDouble(double value) {
+    public void appendList(PList value) {
         ensureCapacity(length + 1);
         values[length] = value;
         length++;
@@ -251,17 +286,18 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void extend(SequenceStorage other) throws SequenceStoreException {
-        if (other instanceof DoubleSequenceStorage) {
-            extendWithIntStorage((DoubleSequenceStorage) other);
+        if (other instanceof ListSequenceStorage) {
+            extendWithListStorage((ListSequenceStorage) other);
         } else {
             throw SequenceStoreException.INSTANCE;
         }
     }
 
-    public void extendWithIntStorage(DoubleSequenceStorage other) {
+    @ExplodeLoop
+    public void extendWithListStorage(ListSequenceStorage other) {
         int extendedLength = length + other.length();
         ensureCapacity(extendedLength);
-        double[] otherValues = other.values;
+        PList[] otherValues = other.values;
 
         for (int i = length, j = 0; i < extendedLength; i++, j++) {
             values[i] = otherValues[j];
@@ -270,6 +306,7 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
         length = extendedLength;
     }
 
+    @ExplodeLoop
     @Override
     public void reverse() {
         int head = 0;
@@ -277,37 +314,46 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
         int middle = (length - 1) / 2;
 
         for (; head <= middle; head++, tail--) {
-            double temp = values[head];
+            PList temp = values[head];
             values[head] = values[tail];
             values[tail] = temp;
         }
     }
 
+    @ExplodeLoop
     @Override
     public void sort() {
-        double[] copy = Arrays.copyOf(values, length);
+        // TODO: need to be tested
+        Object[] copy = Arrays.copyOf(values, length);
         Arrays.sort(copy);
-        values = copy;
+        values = (PList[]) copy;
         minimizeCapacity();
     }
 
     @Override
     public SequenceStorage generalizeFor(Object value) {
+        if (PythonOptions.TraceSequenceStorageGeneralization) {
+            PrintStream ps = System.out;
+            ps.println("[ZipPy]" + this + " generalizing to ObjectSequenceStorage");
+        }
+
         return new ObjectSequenceStorage(getInternalArray());
     }
 
     @Override
     public Object getIndicativeValue() {
-        return .0;
+        return 0;
     }
 
+    @ExplodeLoop
     @Override
     public boolean equals(SequenceStorage other) {
-        if (other.length() != length()) {
+        // TODO: equal algorithm might need more tests
+        if (other.length() != length() || !(other instanceof ListSequenceStorage)) {
             return false;
         }
 
-        double[] otherArray = ((DoubleSequenceStorage) other).getInternalDoubleArray();
+        PList[] otherArray = ((ListSequenceStorage) other).getInternalListArray();
         for (int i = 0; i < length(); i++) {
             if (values[i] != otherArray[i]) {
                 return false;
