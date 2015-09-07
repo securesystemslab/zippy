@@ -210,4 +210,15 @@ public class RandomModuleBuiltins extends PythonBuiltins {
         }
     }
 
+    @Builtin(name = "randint", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
+    public abstract static class RandIntNode extends PythonBuiltinNode {
+
+        @Specialization
+        public int randint(int a, int b) {
+            assert a <= b;
+            return javaRandom.nextInt(b - a) + b;
+        }
+    }
+
 }
