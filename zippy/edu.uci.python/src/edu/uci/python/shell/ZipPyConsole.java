@@ -50,7 +50,7 @@ public class ZipPyConsole extends InteractiveConsole {
 
         try {
             Source source = Source.fromFileName(name);
-            context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser, source);
+            context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser);
             execfile(context, source);
         } catch (IOException e) {
             throw new IllegalStateException();

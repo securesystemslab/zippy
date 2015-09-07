@@ -29,8 +29,6 @@ import java.lang.invoke.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.source.*;
-
 import edu.uci.python.runtime.builtin.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.object.*;
@@ -49,27 +47,27 @@ public class PythonContext extends ExecutionContext {
     private final PythonBuiltinClass moduleClass;
 
     private final PythonParser parser;
-    private final Source source;
+    private final PythonFunctionRegistry functionRegistry;
     private final ImportManager importManager;
 
     private static PythonContext currentContext;
 
     private RuntimeException currentException;
 
-    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser, Source source) {
+    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser) {
         this.options = opts;
         this.lookup = lookup;
         this.typeClass = new PythonBuiltinClass(this, "type", null);
         this.objectClass = new PythonObjectClass(this);
         this.typeClass.unsafeSetSuperClass(objectClass);
         this.moduleClass = new PythonBuiltinClass(this, "module", objectClass);
+        this.functionRegistry = new PythonFunctionRegistry();
 
         assert typeClass.usePrivateLayout() && typeClass.getObjectLayout().isEmpty();
         assert objectClass.usePrivateLayout() && objectClass.getObjectLayout().isEmpty();
         assert moduleClass.usePrivateLayout() && moduleClass.getObjectLayout().isEmpty();
 
         this.parser = parser;
-        this.source = source;
         this.importManager = new ImportManager(this);
 
         // The order matters.
@@ -143,10 +141,6 @@ public class PythonContext extends ExecutionContext {
         return parser;
     }
 
-    public Source getSource() {
-        return source;
-    }
-
     public ImportManager getImportManager() {
         return importManager;
     }
@@ -162,6 +156,10 @@ public class PythonContext extends ExecutionContext {
         } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException();
         }
+    }
+
+    public PythonFunctionRegistry getFunctionRegistry() {
+        return functionRegistry;
     }
 
     public void setCurrentException(RuntimeException e) {
