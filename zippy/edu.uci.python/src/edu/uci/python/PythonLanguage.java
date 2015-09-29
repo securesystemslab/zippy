@@ -25,19 +25,22 @@
 package edu.uci.python;
 
 import java.io.*;
-import java.nio.file.Path;
 
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.debug.*;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.instrument.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.source.*;
 import com.oracle.truffle.api.vm.*;
+import com.oracle.truffle.api.vm.PolyglotEngine.Value;
 
 import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.instruments.PythonDefaultVisualizer;
+import edu.uci.python.nodes.instruments.PythonStandardASTProber;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.function.*;
@@ -46,44 +49,41 @@ import edu.uci.python.runtime.standardtype.*;
 @TruffleLanguage.Registration(name = "Python", version = "3.3", mimeType = "application/x-python")
 public class PythonLanguage extends TruffleLanguage<PythonContext> {
 
+    private static Visualizer visualizer = new PythonDefaultVisualizer();
+    private static ASTProber registeredASTProber; // non-null if prober already registered
+    private DebugSupportProvider debugSupport;
+
     public static final PythonLanguage INSTANCE = new PythonLanguage();
 
-    // TODO: myq re-do this class
-
     @Override
-    protected boolean isObjectOfLanguage(Object object) {
-        return object instanceof PNode;
+    protected PythonContext createContext(Env env) {
+        return new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
     }
 
-    @Override
-    protected ToolSupportProvider getToolSupport() {
-        return getDebugSupport();
-    }
-
-    @Override
-    protected DebugSupportProvider getDebugSupport() {
-        // TODO: Add Python Debugger Support
-        return null;
-    }
-
-    public static void printBanner(String phase) {
-        // CheckStyle: stop system..print check
-        System.out.println("============= " + phase + " ============= ");
-        // CheckStyle: resume system..print check
-    }
-
-    public static void run(TruffleVM context, Path path, String[] args) throws IOException {
-        TruffleVM vm = TruffleVM.newVM().build();
+    public static void main(String[] args) throws IOException {
+        PolyglotEngine vm = PolyglotEngine.buildNew().build();
         assert vm.getLanguages().containsKey("application/x-python");
 
-        Source src = Source.fromFileName(path.toString());
-        PyString pypath = new PyString(System.getProperty("user.dir"));
-        Py.getSystemState().path.insert(0, pypath);
+        PyString path = new PyString(System.getProperty("user.dir"));
+        Py.getSystemState().path.insert(0, path);
 
-        CallTarget result = null;
-        result = (CallTarget) context.eval(src.withMimeType("application/x-python")).get();
+        int repeats = 1;
+        if (args.length >= 2) {
+            repeats = Integer.parseInt(args[1]);
+        }
 
-        result.call(PArguments.empty());
+        Source source;
+        if (args.length == 0) {
+            source = Source.fromReader(new InputStreamReader(System.in), "<stdin>").withMimeType("application/x-python");
+        } else {
+            source = Source.fromFileName(args[0]);
+        }
+        Value s = vm.eval(source);
+        while (repeats-- > 0) {
+            s.invoke(null);
+        }
+
+// result.call(PArguments.empty());
 
         // TODO: fix prints
         if (PythonOptions.PrintAST) {
@@ -133,8 +133,60 @@ public class PythonLanguage extends TruffleLanguage<PythonContext> {
     }
 
     @Override
-    protected PythonContext createContext(com.oracle.truffle.api.TruffleLanguage.Env env) {
-        return new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
+    protected boolean isObjectOfLanguage(Object object) {
+        return object instanceof PNode;
     }
 
+    @Override
+    protected ToolSupportProvider getToolSupport() {
+        return getDebugSupport();
+    }
+
+    @Override
+    protected DebugSupportProvider getDebugSupport() {
+        if (debugSupport == null) {
+            debugSupport = new PythonDebugProvider();
+        }
+        return debugSupport;
+    }
+
+    public static void printBanner(String phase) {
+        // CheckStyle: stop system..print check
+        System.out.println("============= " + phase + " ============= ");
+        // CheckStyle: resume system..print check
+    }
+
+    private final class PythonDebugProvider implements DebugSupportProvider {
+
+        public PythonDebugProvider() {
+            if (registeredASTProber == null) {
+                registeredASTProber = new PythonStandardASTProber();
+                // This should be registered on the TruffleVM
+                Probe.registerASTProber(registeredASTProber);
+            }
+        }
+
+        public Visualizer getVisualizer() {
+            if (visualizer == null) {
+                visualizer = new PythonDefaultVisualizer();
+            }
+            return visualizer;
+        }
+
+        public void enableASTProbing(ASTProber prober) {
+            if (prober != null) {
+                Probe.registerASTProber(prober);
+            }
+        }
+
+        public Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws DebugSupportException {
+            throw new DebugSupportException("evalInContext not supported in this language");
+        }
+
+        public AdvancedInstrumentRootFactory createAdvancedInstrumentRootFactory(String expr, AdvancedInstrumentResultListener resultListener) throws DebugSupportException {
+            throw new DebugSupportException("createAdvancedInstrumentRootFactory not supported in this language");
+        }
+
+    }
 }
+
