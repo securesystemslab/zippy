@@ -1,14 +1,12 @@
 suite = {
-  "mxversion" : "5.0",
+  "mxversion" : "5.5.6",
   "name" : "zippy",
-
-  "defaultLicense" : "BSD-2-Clause",
 
   "imports" : {
     "suites": [
             {
                "name" : "graal",
-               "version" : "bdf6b2a608d143c3d22c72b801ead7e8cfffe94d",
+               "version" : "265e4cfa1f9fbf016da0b36e8df69d620586cd65",
                "urls" : [
                     {"url" : "http://hg.openjdk.java.net/graal/graal-compiler", "kind" : "hg"},
                 ]
@@ -16,6 +14,7 @@ suite = {
     ]
    },
 
+  "defaultLicense" : "BSD-2-Clause",
 
   "libraries" : {
 
@@ -31,7 +30,6 @@ suite = {
 
     "JYTHON" : {
       "path" : "lib/jython-standalone-2.7-b3.jar",
-    #   "licence" : "PSFv2",
       "urls" : [
         "http://repo1.maven.org/maven2/org/python/jython-standalone/2.7-b3/jython-standalone-2.7-b3.jar",
       ],
@@ -79,8 +77,8 @@ suite = {
 
 #    "edu.uci.python.profiler" : {
 #      "sourceDirs" : ["src"],
-#      "dependencies" : ["edu.uci.python.nodes","JYTHON"],
-#      "checkstyle" : "edu.uci.python.runtime",
+#      "dependencies" : ["edu.uci.python","JYTHON"],
+#      "checkstyle" : "edu.uci.python",
 #      "javaCompliance" : "1.8",
 #      "workingSets" : "Truffle,Python",
 #    },
@@ -96,16 +94,12 @@ suite = {
 
   },
 
-  # "licenses" : {
-  #   "BSD-2-Clause" : {
-  #     "name" : "FreeBSD License",
-  #     "url" : "http://opensource.org/licenses/BSD-2-Clause",
-  #   },
-  #   "PSFv2" : {
-  #     "name" : "PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2",
-  #     "url" : "http://www.jython.org/license.html",
-  #   }
-  # },
+  "licenses" : {
+    "BSD-2-Clause" : {
+      "name" : "FreeBSD License",
+      "url" : "http://opensource.org/licenses/BSD-2-Clause",
+    },
+  },
 
 
   "distributions" : {
@@ -114,7 +108,22 @@ suite = {
       "dependencies" : [
         "edu.uci.python",
       ],
-    #   "license" : "BSD-2-Clause",
+
+      "distDependencies" : [
+        "truffle:TRUFFLE_API",
+        "truffle:TRUFFLE_DSL_PROCESSOR",
+        "graal:GRAAL_TRUFFLE"
+        ],
+
+      "exclude" : [
+        "ASM",
+        "JAMM",
+        "JLINE09",
+        "JYTHON",
+        "mx:JUNIT",
+        "graal:JAVA_ALLOCATION_INSTRUMENTER"
+        ],
+
       "sourcesPath" : "zippy.src.zip",
     },
 
