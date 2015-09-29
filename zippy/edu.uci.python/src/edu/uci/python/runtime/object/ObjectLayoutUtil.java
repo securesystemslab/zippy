@@ -29,23 +29,9 @@ import java.lang.reflect.*;
 import sun.misc.*;
 
 import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.nodes.NodeUtil.*;
-
 import edu.uci.python.runtime.object.location.*;
 
 public class ObjectLayoutUtil {
-
-    public static final FieldOffsetProvider OFFSET_PROVIDER = unsafeFieldOffsetProvider();
-
-    private static FieldOffsetProvider unsafeFieldOffsetProvider() {
-        try {
-            Field field = NodeFieldAccessor.class.getDeclaredField("unsafeFieldOffsetProvider");
-            field.setAccessible(true);
-            return (FieldOffsetProvider) field.get(null);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     public static long getFieldOffset(NodeFieldAccessor field) {
         if (field instanceof NodeFieldAccessor.AbstractUnsafeNodeFieldAccessor) {
@@ -64,7 +50,7 @@ public class ObjectLayoutUtil {
         assert index >= 0 && index <= FixedPythonObjectStorage.PRIMITIVE_DOUBLE_STORAGE_LOCATIONS_COUNT - 1;
 
         try {
-            return OFFSET_PROVIDER.objectFieldOffset(FixedPythonObjectStorage.class.getDeclaredField("primitiveDouble" + index));
+            return UnsafeAccess.objectFieldOffset(FixedPythonObjectStorage.class.getDeclaredField("primitiveDouble" + index));
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
@@ -73,7 +59,7 @@ public class ObjectLayoutUtil {
     protected static long getExactPrimitiveIntOffsetOf(int index) {
         assert index >= 0 && index <= FixedPythonObjectStorage.PRIMITIVE_INT_STORAGE_LOCATIONS_COUNT - 1;
         try {
-            return OFFSET_PROVIDER.objectFieldOffset(FixedPythonObjectStorage.class.getDeclaredField("primitiveInt" + index));
+            return UnsafeAccess.objectFieldOffset(FixedPythonObjectStorage.class.getDeclaredField("primitiveInt" + index));
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
@@ -82,7 +68,7 @@ public class ObjectLayoutUtil {
     protected static long getExactFieldObjectOffsetOf(int index) {
         assert index >= 0 && index <= FixedPythonObjectStorage.FIELD_OBJECT_STORAGE_LOCATIONS_COUNT - 1;
         try {
-            return OFFSET_PROVIDER.objectFieldOffset(FixedPythonObjectStorage.class.getDeclaredField("fieldObject" + index));
+            return UnsafeAccess.objectFieldOffset(FixedPythonObjectStorage.class.getDeclaredField("fieldObject" + index));
         } catch (NoSuchFieldException e) {
             throw new RuntimeException(e);
         }
@@ -91,7 +77,7 @@ public class ObjectLayoutUtil {
     protected static long getExactFieldOffsetOf(Class<?> storageClass, String fieldName) throws NoSuchFieldException {
         Field field = storageClass.getDeclaredField(fieldName);
         assert field != null;
-        return OFFSET_PROVIDER.objectFieldOffset(field);
+        return UnsafeAccess.objectFieldOffset(field);
     }
 
     public static final Object readObjectArrayUnsafeAt(Object[] array, int index, Object locationIdentity) {
@@ -163,7 +149,21 @@ public class ObjectLayoutUtil {
     }
 
     private static final class UnsafeAccess {
-        private static final Unsafe UNSAFE = jdk.internal.jvmci.common.UnsafeAccess.unsafe;
+        private static final Unsafe UNSAFE = getUnsafe();
+
+        private static Unsafe getUnsafe() {
+            try {
+                return Unsafe.getUnsafe();
+            } catch (SecurityException e) {
+            }
+            try {
+                Field theUnsafeInstance = Unsafe.class.getDeclaredField("theUnsafe");
+                theUnsafeInstance.setAccessible(true);
+                return (Unsafe) theUnsafeInstance.get(Unsafe.class);
+            } catch (Exception e) {
+                throw new RuntimeException("exception while trying to get Unsafe.theUnsafe via reflection:", e);
+            }
+        }
 
         public static void putBoolean(PythonObject object, long offset, boolean value) {
             UNSAFE.putBoolean(object, offset, value);
