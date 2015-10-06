@@ -50,6 +50,22 @@ public abstract class PGuards {
         return list.getStorage() instanceof DoubleSequenceStorage;
     }
 
+    public static boolean isListStorage(PList list) {
+        return list.getStorage() instanceof ListSequenceStorage;
+    }
+
+    public static boolean is2ndListStorage(@SuppressWarnings("unused") Object first, PList list) {
+        return list.getStorage() instanceof ListSequenceStorage;
+    }
+
+    public static boolean isTupleStorage(PList list) {
+        return list.getStorage() instanceof TupleSequenceStorage;
+    }
+
+    public static boolean is2ndTupleStorage(@SuppressWarnings("unused") Object first, PList list) {
+        return list.getStorage() instanceof TupleSequenceStorage;
+    }
+
     public static boolean isObjectStorage(PList list) {
         return list.getStorage() instanceof ObjectSequenceStorage;
     }
