@@ -24,34 +24,44 @@
  */
 package edu.uci.python;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStreamReader;
 
-import org.python.core.*;
+import org.python.core.Py;
+import org.python.core.PyString;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.debug.*;
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.instrument.*;
-import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.source.*;
-import com.oracle.truffle.api.vm.*;
+import com.oracle.truffle.api.instrument.ASTProber;
+import com.oracle.truffle.api.instrument.AdvancedInstrumentResultListener;
+import com.oracle.truffle.api.instrument.AdvancedInstrumentRootFactory;
+import com.oracle.truffle.api.instrument.Visualizer;
+import com.oracle.truffle.api.instrument.WrapperNode;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.vm.PolyglotEngine;
 import com.oracle.truffle.api.vm.PolyglotEngine.Value;
 
-import edu.uci.python.builtins.*;
-import edu.uci.python.nodes.*;
+import edu.uci.python.builtins.PythonDefaultBuiltinsLookup;
+import edu.uci.python.nodes.ModuleNode;
+import edu.uci.python.nodes.PNode;
 import edu.uci.python.nodes.instruments.PythonDefaultVisualizer;
-import edu.uci.python.nodes.instruments.PythonStandardASTProber;
-import edu.uci.python.parser.*;
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.standardtype.*;
+import edu.uci.python.nodes.statement.StatementNode;
+import edu.uci.python.parser.PythonParserImpl;
+import edu.uci.python.runtime.PythonContext;
+import edu.uci.python.runtime.PythonOptions;
+import edu.uci.python.runtime.PythonParseResult;
+import edu.uci.python.runtime.function.PFunction;
+import edu.uci.python.runtime.standardtype.PythonModule;
 
 @TruffleLanguage.Registration(name = "Python", version = "3.3", mimeType = "application/x-python")
 public class PythonLanguage extends TruffleLanguage<PythonContext> {
 
     private static Visualizer visualizer = new PythonDefaultVisualizer();
     private static ASTProber registeredASTProber; // non-null if prober already registered
-    private DebugSupportProvider debugSupport;
 
     public static final PythonLanguage INSTANCE = new PythonLanguage();
 
@@ -137,56 +147,40 @@ public class PythonLanguage extends TruffleLanguage<PythonContext> {
         return object instanceof PNode;
     }
 
-    @Override
-    protected ToolSupportProvider getToolSupport() {
-        return getDebugSupport();
-    }
-
-    @Override
-    protected DebugSupportProvider getDebugSupport() {
-        if (debugSupport == null) {
-            debugSupport = new PythonDebugProvider();
-        }
-        return debugSupport;
-    }
-
     public static void printBanner(String phase) {
         // CheckStyle: stop system..print check
         System.out.println("============= " + phase + " ============= ");
         // CheckStyle: resume system..print check
     }
 
-    private final class PythonDebugProvider implements DebugSupportProvider {
-
-        public PythonDebugProvider() {
-            if (registeredASTProber == null) {
-                registeredASTProber = new PythonStandardASTProber();
-                // This should be registered on the TruffleVM
-                Probe.registerASTProber(registeredASTProber);
-            }
+    @Override
+    protected Visualizer getVisualizer() {
+        if (visualizer == null) {
+            visualizer = new PythonDefaultVisualizer();
         }
+        return visualizer;
+    }
 
-        public Visualizer getVisualizer() {
-            if (visualizer == null) {
-                visualizer = new PythonDefaultVisualizer();
-            }
-            return visualizer;
+    @Override
+    protected boolean isInstrumentable(Node node) {
+        return node instanceof StatementNode;
+    }
+
+    @Override
+    protected WrapperNode createWrapperNode(Node node) {
+        if (node instanceof StatementNode) {
+// return new StatementWrapperNode((StatementNode) node);
         }
+        return null;
+    }
 
-        public void enableASTProbing(ASTProber prober) {
-            if (prober != null) {
-                Probe.registerASTProber(prober);
-            }
-        }
+    @Override
+    protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
+        throw new IllegalStateException("evalInContext not supported in this language: Python");
+    }
 
-        public Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws DebugSupportException {
-            throw new DebugSupportException("evalInContext not supported in this language");
-        }
-
-        public AdvancedInstrumentRootFactory createAdvancedInstrumentRootFactory(String expr, AdvancedInstrumentResultListener resultListener) throws DebugSupportException {
-            throw new DebugSupportException("createAdvancedInstrumentRootFactory not supported in this language");
-        }
-
+    @Override
+    protected AdvancedInstrumentRootFactory createAdvancedInstrumentRootFactory(String expr, AdvancedInstrumentResultListener resultListener) throws IOException {
+        throw new IllegalStateException("createAdvancedInstrumentRootFactory not supported in this language: Python");
     }
 }
-
