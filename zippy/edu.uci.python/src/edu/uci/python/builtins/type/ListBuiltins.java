@@ -52,27 +52,41 @@ public class ListBuiltins extends PythonBuiltins {
     @GenerateNodeFactory
     public abstract static class ListAppendNode extends PythonBuiltinNode {
 
-        @Specialization(order = 1, guards = "isEmptyStorage(list)")
+        @Specialization(guards = "isEmptyStorage(list)")
         public PList appendEmpty(PList list, Object arg) {
             list.append(arg);
             return list;
         }
 
-        @Specialization(order = 2, guards = "isIntStorage(list)")
+        @Specialization(guards = "isIntStorage(list)")
         public PList appendInt(PList list, int arg) {
             IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
             store.appendInt(arg);
             return list;
         }
 
-        @Specialization(order = 3, guards = "isDoubleStorage(list)")
+        @Specialization(guards = "isDoubleStorage(list)")
         public PList appendDouble(PList list, double arg) {
             DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
             store.appendDouble(arg);
             return list;
         }
 
-        @Specialization(order = 4, guards = "isObjectStorage(list)")
+        @Specialization(guards = "isListStorage(list)")
+        public PList appendList(PList list, PList arg) {
+            ListSequenceStorage store = (ListSequenceStorage) list.getStorage();
+            store.appendList(arg);
+            return list;
+        }
+
+        @Specialization(guards = "isTupleStorage(list)")
+        public PList appendTuple(PList list, PTuple arg) {
+            TupleSequenceStorage store = (TupleSequenceStorage) list.getStorage();
+            store.appendPTuple(arg);
+            return list;
+        }
+
+        @Specialization(guards = "isObjectStorage(list)")
         public PList appendObject(PList list, Object arg) {
             ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
             store.append(arg);

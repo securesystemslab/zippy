@@ -51,6 +51,8 @@ public class SequenceStorageFactory {
             return new DoubleSequenceStorage(specializeToDouble(values));
         } else if (canSpecializeToList(values)) {
             return new ListSequenceStorage(specializeToList(values));
+        } else if (canSpecializeToTuple(values)) {
+            return new TupleSequenceStorage(specializeToTuple(values));
         } else {
             return new ObjectSequenceStorage(values);
         }
@@ -123,6 +125,30 @@ public class SequenceStorageFactory {
 
         for (int i = 0; i < values.length; i++) {
             list[i] = (PList) values[i];
+        }
+
+        return list;
+    }
+
+    public static boolean canSpecializeToTuple(Object[] values) {
+        if (!(values[0] instanceof PTuple)) {
+            return false;
+        }
+
+        for (Object item : values) {
+            if (!(item instanceof PTuple)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static PTuple[] specializeToTuple(Object[] values) {
+        final PTuple[] list = new PTuple[values.length];
+
+        for (int i = 0; i < values.length; i++) {
+            list[i] = (PTuple) values[i];
         }
 
         return list;
