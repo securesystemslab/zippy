@@ -49,6 +49,8 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     public ListSequenceStorage(PList[] elements) {
         this(elements, elements[0].getStorage().getClass());
+        if (kind == ListSequenceStorage.class)
+            this.kind = ((ListSequenceStorage) elements[0].getStorage()).getKind();
     }
 
     public ListSequenceStorage(PList[] elements, Class<?> kind) {
