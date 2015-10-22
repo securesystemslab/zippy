@@ -217,7 +217,18 @@ public class RandomModuleBuiltins extends PythonBuiltins {
         @Specialization
         public int randint(int a, int b) {
             assert a <= b;
-            return javaRandom.nextInt(b - a) + b;
+            return javaRandom.nextInt(b - a) + a;
+        }
+    }
+
+    @Builtin(name = "uniform", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
+    public abstract static class UniformNode extends PythonBuiltinNode {
+
+        @Specialization
+        public double uniform(double a, double b) {
+            assert a <= b;
+            return (b - a) * javaRandom.nextDouble() + a;
         }
     }
 
