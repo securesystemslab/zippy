@@ -35,9 +35,6 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.instrument.ASTProber;
-import com.oracle.truffle.api.instrument.AdvancedInstrumentResultListener;
-import com.oracle.truffle.api.instrument.AdvancedInstrumentRootFactory;
 import com.oracle.truffle.api.instrument.Visualizer;
 import com.oracle.truffle.api.instrument.WrapperNode;
 import com.oracle.truffle.api.nodes.Node;
@@ -61,7 +58,6 @@ import edu.uci.python.runtime.standardtype.PythonModule;
 public class PythonLanguage extends TruffleLanguage<PythonContext> {
 
     private static Visualizer visualizer = new PythonDefaultVisualizer();
-    private static ASTProber registeredASTProber; // non-null if prober already registered
 
     public static final PythonLanguage INSTANCE = new PythonLanguage();
 
@@ -179,8 +175,4 @@ public class PythonLanguage extends TruffleLanguage<PythonContext> {
         throw new IllegalStateException("evalInContext not supported in this language: Python");
     }
 
-    @Override
-    protected AdvancedInstrumentRootFactory createAdvancedInstrumentRootFactory(String expr, AdvancedInstrumentResultListener resultListener) throws IOException {
-        throw new IllegalStateException("createAdvancedInstrumentRootFactory not supported in this language: Python");
-    }
 }

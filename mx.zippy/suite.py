@@ -1,12 +1,12 @@
 suite = {
-  "mxversion" : "5.5.6",
+  "mxversion" : "5.5.8",
   "name" : "zippy",
 
   "imports" : {
     "suites": [
             {
                "name" : "graal",
-               "version" : "5613c604c684eeaddfbc030a97582804ecc64dd1",
+               "version" : "f6e1108b9a94e1bb84c0f499b6d14bbe00e34c46",
                "urls" : [
                     {"url" : "http://hg.openjdk.java.net/graal/graal-compiler", "kind" : "hg"},
                 ]
