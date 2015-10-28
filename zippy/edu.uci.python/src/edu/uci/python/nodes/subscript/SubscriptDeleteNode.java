@@ -44,19 +44,19 @@ public abstract class SubscriptDeleteNode extends BinaryOpNode {
         return getRightNode();
     }
 
-    @Specialization(order = 1)
+    @Specialization
     public Object doPList(PList primary, int index) {
         primary.delItem(index);
         return PNone.NONE;
     }
 
-    @Specialization(order = 2)
+    @Specialization
     public Object doPList(PList primary, PSlice slice) {
         primary.delSlice(slice);
         return PNone.NONE;
     }
 
-    @Specialization(order = 3)
+    @Specialization
     public Object doPDict(PDict primary, Object key) {
         primary.delItem(key);
         return PNone.NONE;

@@ -66,38 +66,38 @@ public abstract class WriteLocalVariableNode extends FrameSlotNode implements Wr
 
     public abstract Object executeWith(VirtualFrame frame, Object value);
 
-    @Specialization(order = 0)
+    @Specialization
     public PNone write(VirtualFrame frame, PNone right) {
         frame.setObject(frameSlot, PNone.NONE);
         return right;
     }
 
-    @Specialization(order = 1, guards = "isBooleanKind(frame)")
+    @Specialization(guards = "isBooleanKind(frame)")
     public boolean write(VirtualFrame frame, boolean right) {
         frame.setBoolean(frameSlot, right);
         return right;
     }
 
-    @Specialization(order = 2, guards = "isIntegerKind(frame)")
+    @Specialization(guards = "isIntegerKind(frame)")
     public int write(VirtualFrame frame, int value) {
         frame.setInt(frameSlot, value);
         return value;
     }
 
-    @Specialization(order = 3, guards = "isIntOrObjectKind(frame)")
+    @Specialization(guards = "isIntOrObjectKind(frame)")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
         setObject(frame, value);
         frameSlot.setKind(FrameSlotKind.Object);
         return value;
     }
 
-    @Specialization(order = 4, guards = "isDoubleKind(frame)")
+    @Specialization(guards = "isDoubleKind(frame)")
     public double write(VirtualFrame frame, double right) {
         frame.setDouble(frameSlot, right);
         return right;
     }
 
-    @Specialization(order = 5, guards = "isObjectKind(frame)")
+    @Specialization(guards = "isObjectKind(frame)")
     public Object write(VirtualFrame frame, Object right) {
         setObject(frame, right);
         return right;

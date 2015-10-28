@@ -41,7 +41,7 @@ public abstract class SubscriptStoreSliceNode extends SubscriptStoreNode {
         return SubscriptLoadSliceNodeFactory.create(getPrimary(), getSlice());
     }
 
-    @Specialization(order = 0)
+    @Specialization
     public Object doPList(PList primary, PSlice slice, PSequence value) {
         primary.setSlice(slice, value);
         return PNone.NONE;
@@ -50,7 +50,7 @@ public abstract class SubscriptStoreSliceNode extends SubscriptStoreNode {
     /**
      * Unboxed array stores.
      */
-    @Specialization(order = 10)
+    @Specialization
     public Object doPArray(PArray primary, PSlice slice, PArray value) {
         primary.setSlice(slice, value);
         return PNone.NONE;

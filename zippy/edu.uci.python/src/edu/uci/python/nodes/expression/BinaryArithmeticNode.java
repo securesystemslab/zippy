@@ -462,7 +462,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return unboxPyObject(sleft.__mod__(adaptToPyObject(right)));
         }
 
-        @Specialization(order = 20, guards = "isEitherOperandPythonObject(left,right)")
+        @Specialization(guards = "isEitherOperandPythonObject(left,right)")
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__mod__", left, right);
         }

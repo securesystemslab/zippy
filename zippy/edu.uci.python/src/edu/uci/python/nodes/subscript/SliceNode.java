@@ -33,49 +33,49 @@ import static edu.uci.python.runtime.sequence.SequenceUtil.*;
 @GenerateNodeFactory
 public abstract class SliceNode extends TernaryOpNode {
 
-    @Specialization(order = 0)
+    @Specialization
     public PSlice doPSlice(int start, int stop, int step) {
         return new PSlice(start, stop, step);
     }
 
     @SuppressWarnings("unused")
-    @Specialization(order = 1)
+    @Specialization
     public PSlice doSlice(PNone start, int stop, int step) {
         return new PSlice(MISSING_INDEX, stop, step);
     }
 
     @SuppressWarnings("unused")
-    @Specialization(order = 2)
+    @Specialization
     public PSlice doPSlice(int start, int stop, PNone step) {
         return new PSlice(start, stop, 1);
     }
 
     @SuppressWarnings("unused")
-    @Specialization(order = 3)
+    @Specialization
     public PSlice doSlice(int start, PNone stop, PNone step) {
         return new PSlice.PStartSlice(start);
     }
 
     @SuppressWarnings("unused")
-    @Specialization(order = 4)
+    @Specialization
     public PSlice doSlice(int start, PNone stop, int step) {
         return new PSlice(start, MISSING_INDEX, step);
     }
 
     @SuppressWarnings("unused")
-    @Specialization(order = 5)
+    @Specialization
     public PSlice doSlice(PNone start, int stop, PNone step) {
         return new PSlice.PStopSlice(stop);
     }
 
     @SuppressWarnings("unused")
-    @Specialization(order = 6)
+    @Specialization
     public PSlice doSlice(PNone start, PNone stop, int step) {
         return new PSlice(MISSING_INDEX, MISSING_INDEX, step);
     }
 
     @SuppressWarnings("unused")
-    @Specialization(order = 7)
+    @Specialization
     public PSlice doSlice(PNone start, PNone stop, PNone step) {
         return new PSlice(MISSING_INDEX, MISSING_INDEX, 1);
     }

@@ -148,32 +148,32 @@ public class ListBuiltins extends PythonBuiltins {
     @GenerateNodeFactory
     public abstract static class ListPopNode extends PythonBuiltinNode {
 
-        @Specialization(order = 0, guards = "isIntStorage(list)")
+        @Specialization(guards = "isIntStorage(list)")
         public int popInt(PList list, @SuppressWarnings("unused") PNone none) {
             IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
             return store.popInt();
         }
 
-        @Specialization(order = 1, guards = "isDoubleStorage(list)")
+        @Specialization(guards = "isDoubleStorage(list)")
         public double popDouble(PList list, @SuppressWarnings("unused") PNone none) {
             DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
             return store.popDouble();
         }
 
-        @Specialization(order = 2, guards = "isObjectStorage(list)")
+        @Specialization(guards = "isObjectStorage(list)")
         public Object popObject(PList list, @SuppressWarnings("unused") PNone none) {
             ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
             return store.popObject();
         }
 
-        @Specialization(order = 3)
+        @Specialization
         public Object popLast(PList list, @SuppressWarnings("unused") PNone none) {
             Object ret = list.getItem(list.len() - 1);
             list.delItem(list.len() - 1);
             return ret;
         }
 
-        @Specialization(order = 4)
+        @Specialization
         public Object pop(PList list, int index) {
             Object ret = list.getItem(index);
             list.delItem(index);
@@ -181,7 +181,7 @@ public class ListBuiltins extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 5)
+        @Specialization
         public Object pop(PList list, Object arg) {
             throw new RuntimeException("invalid arguments for pop()");
         }

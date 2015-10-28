@@ -48,7 +48,7 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         super(prev.frameSlot);
     }
 
-    @Specialization(order = 0, guards = "isBooleanKind(frame)")
+    @Specialization(guards = "isBooleanKind(frame)")
     public boolean write(VirtualFrame frame, boolean right) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
         assert frameSlot.getFrameDescriptor() == cargoFrame.getFrameDescriptor();

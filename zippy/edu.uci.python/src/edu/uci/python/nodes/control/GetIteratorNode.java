@@ -44,93 +44,93 @@ public abstract class GetIteratorNode extends UnaryOpNode {
 
     public abstract Object executeWith(VirtualFrame frame, Object value);
 
-    @Specialization(order = 1, guards = "isIntStorage(primary)")
+    @Specialization(guards = "isIntStorage(primary)")
     public Object doPListInt(PList primary) {
         return new PIntegerSequenceIterator((IntSequenceStorage) primary.getStorage());
     }
 
-    @Specialization(order = 2, guards = "isDoubleStorage(primary)")
+    @Specialization(guards = "isDoubleStorage(primary)")
     public Object doPListDouble(PList primary) {
         return new PDoubleSequenceIterator((DoubleSequenceStorage) primary.getStorage());
     }
 
-    @Specialization(order = 4)
+    @Specialization
     public Object doPList(PList value) {
         return value.__iter__();
     }
 
-    @Specialization(order = 5)
+    @Specialization
     public Object doPRange(PRange value) {
         return value.__iter__();
     }
 
-    @Specialization(order = 6)
+    @Specialization
     public Object doPIntArray(PIntArray value) {
         return value.__iter__();
     }
 
-    @Specialization(order = 7)
+    @Specialization
     public Object doPDoubleArray(PDoubleArray value) {
         return value.__iter__();
     }
 
-    @Specialization(order = 8)
+    @Specialization
     public Object doCharArray(PCharArray value) {
         return value.__iter__();
     }
 
-    @Specialization(order = 9)
+    @Specialization
     public Object doPSequence(PSequence value) {
         return value.__iter__();
     }
 
-    @Specialization(order = 10)
+    @Specialization
     public Object doPBaseSet(PBaseSet value) {
         return value.__iter__();
     }
 
-    @Specialization(order = 11)
+    @Specialization
     public Object doString(String value) {
         return new PStringIterator(value);
     }
 
-    @Specialization(order = 12)
+    @Specialization
     public Object doPDictionary(PDict value) {
         return value.__iter__();
     }
 
-    @Specialization(order = 13)
+    @Specialization
     public Object doPEnumerate(PEnumerate value) {
         return value.__iter__();
     }
 
-    @Specialization(order = 14)
+    @Specialization
     public Object doPZip(PZip value) {
         return value.__iter__();
     }
 
-    @Specialization(order = 15)
+    @Specialization
     public PIntegerIterator doPIntegerIterator(PIntegerIterator value) {
         return value;
     }
 
-    @Specialization(order = 16)
+    @Specialization
     public PIterator doPIterable(PIterable value) {
         return value.__iter__();
     }
 
-    @Specialization(order = 17)
+    @Specialization
     public PGenerator doPGenerator(PGenerator value) {
         replace(new GetGeneratorIteratorNode(getOperand()));
         return value;
     }
 
-    @Specialization(order = 18)
+    @Specialization
     public PIterator doPIterator(PIterator value) {
         return value;
     }
 
-    @Specialization(order = 20)
+    @Specialization
     public Object doPythonObject(VirtualFrame frame, PythonObject value) {
         return doSpecialMethodCall(frame, "__iter__", value);
     }

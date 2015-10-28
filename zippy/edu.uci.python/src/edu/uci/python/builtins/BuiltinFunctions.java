@@ -191,7 +191,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
     public abstract static class CallableNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 1)
+        @Specialization
         public boolean callable(PythonCallable callable) {
             return true;
         }
@@ -363,7 +363,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
     @GenerateNodeFactory
     public abstract static class GetAttrNode extends PythonBuiltinNode {
 
-        @Specialization(order = 1)
+        @Specialization
         public Object getAttrFromModule(PythonModule module, String name, Object defaultValue) {
             Object attrValue = module.getAttribute(name);
             if ((attrValue == PNone.NONE) && defaultValue != PNone.NONE) {
@@ -373,7 +373,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return attrValue;
         }
 
-        @Specialization(order = 2)
+        @Specialization
         public Object getAttrFromClass(PythonClass clazz, String name, Object defaultValue) {
             Object attrValue = clazz.getAttribute(name);
             if ((attrValue == PNone.NONE) && defaultValue != PNone.NONE) {
@@ -383,7 +383,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return attrValue;
         }
 
-        @Specialization(order = 3)
+        @Specialization
         public Object getAttrFromObject(PythonObject object, String name, Object defaultValue) {
             Object attrValue = object.getAttribute(name);
 
@@ -399,12 +399,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 5, guards = "isForJSON(list,attributeId,defaultValue)")
+        @Specialization(guards = "isForJSON(list,attributeId,defaultValue)")
         public Object doPythonBuiltinObjectForJSON(PList list, String attributeId, Object defaultValue) {
             return defaultValue;
         }
 
-        @Specialization(order = 6)
+        @Specialization
         public Object doPythonBuiltinObject(PythonBuiltinObject obj, String attributeId, Object defaultValue) {
             CompilerAsserts.neverPartOfCompilation();
 
@@ -468,7 +468,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
     public abstract static class IsIntanceNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 1)
+        @Specialization
         public boolean isinstance(String str, PythonClass clazz) {
             if (clazz.getName().equals("str")) {
                 return true;
@@ -477,12 +477,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
             }
         }
 
-        @Specialization(order = 2)
+        @Specialization
         public boolean isinstance(PythonClass object, PythonClass clazz) {
             return isInstancePythonClass(object, clazz);
         }
 
-        @Specialization(order = 3)
+        @Specialization
         public boolean isinstance(PythonObject object, PythonClass clazz) {
             return isInstancePythonClass(object, clazz);
         }
@@ -511,13 +511,13 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
-        @Specialization(order = 10, guards = "is2ndNotTuple(val,cls)")
+        @Specialization(guards = "is2ndNotTuple(val,cls)")
         public boolean isinstance(@SuppressWarnings("unused") int val, Object cls) {
             return PInt.__class__ == cls;
         }
 
         @ExplodeLoop
-        @Specialization(order = 11)
+        @Specialization
         public boolean isinstance(@SuppressWarnings("unused") int val, PTuple classTuple) {
             for (int i = 0; i < classTuple.len(); i++) {
                 if (PInt.__class__ == classTuple.getItem(i)) {
@@ -529,7 +529,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @ExplodeLoop
-        @Specialization(order = 15)
+        @Specialization
         public boolean isinstance(@SuppressWarnings("unused") String val, PTuple classTuple) {
             for (int i = 0; i < classTuple.len(); i++) {
                 if (PString.__class__ == classTuple.getItem(i)) {
@@ -540,13 +540,13 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
-        @Specialization(order = 20, guards = "is2ndNotTuple(obj,cls)")
+        @Specialization(guards = "is2ndNotTuple(obj,cls)")
         public boolean isinstance(PythonBuiltinObject obj, Object cls) {
             return obj.__class__() == cls;
         }
 
         @ExplodeLoop
-        @Specialization(order = 25)
+        @Specialization
         public boolean isinstance(PythonBuiltinObject obj, PTuple classTuple) {
             for (int i = 0; i < classTuple.len(); i++) {
                 if (obj.__class__() == classTuple.getItem(i)) {
@@ -558,7 +558,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @ExplodeLoop
-        @Specialization(order = 26)
+        @Specialization
         public boolean isinstance(PythonObject obj, PTuple classTuple) {
             for (int i = 0; i < classTuple.len(); i++) {
                 if (obj.getPythonClass() == classTuple.getItem(i)) {
@@ -576,12 +576,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
     public abstract static class IsSubClassNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 1)
+        @Specialization
         public Object issubclass(PythonModule clazz, PythonClass clazzinfo) {
             return false;
         }
 
-        @Specialization(order = 2)
+        @Specialization
         public Object issubclass(PythonClass clazz, PythonClass clazzinfo) {
             /**
              * TODO How do you check two classes are equal? Name comparison can't be true all the
@@ -602,12 +602,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
-        @Specialization(order = 3)
+        @Specialization
         public Object issubclass(PyObject clazz, PyObject clazzinfo) {
             return Py.isSubClass(clazz, clazzinfo);
         }
 
-        @Specialization(order = 4)
+        @Specialization
         public Object issubclass(Object clazz, Object clazzinfo) {
             throw new RuntimeException("issubclass is not supported for " + clazz + " " + clazz.getClass() + ", " + clazzinfo + " " + clazzinfo.getClass());
         }
@@ -619,18 +619,18 @@ public final class BuiltinFunctions extends PythonBuiltins {
     public abstract static class IterNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 1)
+        @Specialization
         public Object iter(String str, PNone sentinel) {
             return new PStringIterator(str);
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 2)
+        @Specialization
         public Object iter(PIterable iterable, PNone sentinel) {
             return iterable.__iter__();
         }
 
-        @Specialization()
+        @Specialization
         public Object iter(Object object, Object sentinel) {
             throw new RuntimeException("Not supported sentinel case object " + object + " sentinel " + sentinel);
         }
@@ -643,52 +643,52 @@ public final class BuiltinFunctions extends PythonBuiltins {
 
         @CompilationFinal @Child protected CallDispatchSpecialNode dispatch;
 
-        @Specialization(order = 0)
+        @Specialization
         public int len(String arg) {
             return arg.length();
         }
 
-        @Specialization(order = 4)
+        @Specialization
         public int len(PTuple tuple) {
             return tuple.len();
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 10, guards = "isEmptyStorage(list)")
+        @Specialization(guards = "isEmptyStorage(list)")
         public int lenPListEmpty(PList list) {
             return 0;
         }
 
-        @Specialization(order = 11, guards = "isIntStorage(list)")
+        @Specialization(guards = "isIntStorage(list)")
         public int lenPListInt(PList list) {
             IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
             return store.length();
         }
 
-        @Specialization(order = 12, guards = "isDoubleStorage(list)")
+        @Specialization(guards = "isDoubleStorage(list)")
         public int lenPListDouble(PList list) {
             DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
             return store.length();
         }
 
-        @Specialization(order = 13, guards = "isObjectStorage(list)")
+        @Specialization(guards = "isObjectStorage(list)")
         public int lenPListObject(PList list) {
             ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
             return store.length();
         }
 
-        @Specialization(order = 14, guards = "isBasicStorage(list)")
+        @Specialization(guards = "isBasicStorage(list)")
         public int lenPList(PList list) {
             BasicSequenceStorage store = (BasicSequenceStorage) list.getStorage();
             return store.length();
         }
 
-        @Specialization(order = 15)
+        @Specialization
         public int len(PIterable iterable) {
             return iterable.len();
         }
 
-        @Specialization(order = 20)
+        @Specialization
         public Object len(VirtualFrame frame, PythonObject obj) {
             if (dispatch == null) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -711,19 +711,19 @@ public final class BuiltinFunctions extends PythonBuiltins {
     public abstract static class MaxNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 1, guards = "hasOneArgument(arg1,args,keywordArg)")
+        @Specialization(guards = "hasOneArgument(arg1,args,keywordArg)")
         public Object maxSequence(PSequence arg1, PTuple args, Object keywordArg) {
             return arg1.getMax();
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 2, guards = "hasOneArgument(arg1,args,keywordArg)")
+        @Specialization(guards = "hasOneArgument(arg1,args,keywordArg)")
         public Object maxBaseSet(PBaseSet arg1, PTuple args, Object keywordArg) {
             return arg1.getMax();
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 3, guards = "hasOneArgument(arg1,args,keywordArg)")
+        @Specialization(guards = "hasOneArgument(arg1,args,keywordArg)")
         public Object maxDictionary(PDict arg1, PTuple args, Object keywordArg) {
             return arg1.getMax();
         }
@@ -732,7 +732,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
          * Incomplete. Only deals with ints now.
          */
         @SuppressWarnings("unused")
-        @Specialization(order = 4)
+        @Specialization
         public Object maxPIterator(PIterator arg1, PTuple args, PNone keywordArg) {
             int max = Integer.MIN_VALUE;
 
@@ -747,7 +747,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return max;
         }
 
-        @Specialization(order = 5)
+        @Specialization
         public Object maxGeneric(Object arg1, PTuple args, Object keywordArg) {
             if (keywordArg instanceof PNone) {
                 if (args.len() == 1) {
@@ -911,7 +911,8 @@ public final class BuiltinFunctions extends PythonBuiltins {
     }
 
     // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
-    @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
+    @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file",
+                    "flush"}, requiresContext = true)
     @GenerateNodeFactory
     public abstract static class PrintNode extends PythonBuiltinNode {
 
@@ -1027,31 +1028,31 @@ public final class BuiltinFunctions extends PythonBuiltins {
     @GenerateNodeFactory
     public abstract static class SetAttrNode extends PythonBuiltinNode {
 
-        @Specialization(order = 1)
+        @Specialization
         public Object setAttrInModule(PythonModule module, String name, Object value) {
             module.setAttribute(name, value);
             return null;
         }
 
-        @Specialization(order = 2)
+        @Specialization
         public Object setAttrInClass(PythonClass clazz, String name, Object value) {
             clazz.setAttribute(name, value);
             return null;
         }
 
-        @Specialization(order = 3)
+        @Specialization
         public Object setAttrInObject(PythonObject object, String name, Object value) {
             object.setAttribute(name, value);
             return null;
         }
 
-        @Specialization(order = 4)
+        @Specialization
         public Object setAttr(PyObject object, String name, Object value) {
             object.__setitem__(name, PythonTypesUtil.adaptToPyObject(value));
             return null;
         }
 
-        @Specialization(order = 5)
+        @Specialization
         public Object setAttr(Object object, Object name, Object value) {
             throw new RuntimeException("setAttr is not supported for " + object + " " + object.getClass() + " name " + name + " value " + value);
         }

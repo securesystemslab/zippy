@@ -101,7 +101,7 @@ public final class DictBuiltins extends PythonBuiltins {
     public abstract static class KeysNode extends PythonBuiltinNode {
 
         @ExplodeLoop
-        @Specialization(rewriteOn = ClassCastException.class, order = 1)
+        @Specialization(rewriteOn = ClassCastException.class)
         public PList keysPDictInt(PDict self) {
             IntSequenceStorage store = new IntSequenceStorage();
 
@@ -112,7 +112,7 @@ public final class DictBuiltins extends PythonBuiltins {
             return new PList(store);
         }
 
-        @Specialization(order = 2)
+        @Specialization
         public PList keys(PDict self) {
             return new PList(self.__iter__());
         }

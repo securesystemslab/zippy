@@ -60,7 +60,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
     public abstract static class PythonArrayNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 1, guards = "noInitializer(typeCode,initializer)")
+        @Specialization(guards = "noInitializer(typeCode,initializer)")
         public PArray array(String typeCode, Object initializer) {
             /**
              * TODO @param typeCode should be a char, not a string
@@ -68,7 +68,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
             return makeEmptyArray(typeCode.charAt(0));
         }
 
-        @Specialization(order = 2)
+        @Specialization
         public PArray arrayWithRangeInitializer(String typeCode, PRange range) {
             if (!typeCode.equals("i")) {
                 typeError(typeCode, range);
@@ -88,7 +88,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
             return new PIntArray(intArray);
         }
 
-        @Specialization(order = 3)
+        @Specialization
         public PArray arrayWithSequenceInitializer(String typeCode, String str) {
             if (!typeCode.equals("c")) {
                 typeError(typeCode, str);
@@ -97,13 +97,13 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
             return new PCharArray(str.toCharArray());
         }
 
-        @Specialization(order = 4)
+        @Specialization
         public PArray arrayWithSequenceInitializer(String typeCode, PSequence initializer) {
             return makeArray(typeCode.charAt(0), initializer);
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 5)
+        @Specialization
         public PArray arrayWithObjectInitializer(String typeCode, Object initializer) {
             throw new RuntimeException("Unsupported initializer " + initializer);
         }

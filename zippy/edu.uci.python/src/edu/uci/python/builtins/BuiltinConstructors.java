@@ -153,24 +153,24 @@ public final class BuiltinConstructors extends PythonBuiltins {
     public abstract static class DictionaryNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 0, guards = "emptyArgument(args)")
+        @Specialization(guards = "emptyArgument(args)")
         public PDict dictEmpty(PTuple args) {
             return new PDict();
         }
 
-        @Specialization(order = 1, guards = {"oneArgument(args)", "firstArgIsDict(args)"})
+        @Specialization(guards = {"oneArgument(args)", "firstArgIsDict(args)"})
         public PDict dictFromDict(PTuple args) {
             return new PDict(((PDict) args.getItem(0)).getMap());
         }
 
-        @Specialization(order = 2, guards = {"oneArgument(args)", "firstArgIsIterable(args)"})
+        @Specialization(guards = {"oneArgument(args)", "firstArgIsIterable(args)"})
         public PDict dictFromIterable(PTuple args) {
             PIterable iterable = (PIterable) args.getItem(0);
             PIterator iter = iterable.__iter__();
             return new PDict(iter);
         }
 
-        @Specialization(order = 3, guards = {"oneArgument(args)", "firstArgIsIterator(args)"})
+        @Specialization(guards = {"oneArgument(args)", "firstArgIsIterator(args)"})
         public PDict dictFromIterator(PTuple args) {
             PIterator iter = (PIterator) args.getItem(0);
             return new PDict(iter);
@@ -192,14 +192,14 @@ public final class BuiltinConstructors extends PythonBuiltins {
          */
 
         @SuppressWarnings("unused")
-        @Specialization(order = 1)
+        @Specialization()
         public PEnumerate enumerate(String str, PNone keywordArg) {
             PString pstr = new PString(str);
             return new PEnumerate(pstr);
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 2)
+        @Specialization()
         public PEnumerate enumerate(PIterable iterable, PNone keywordArg) {
             return new PEnumerate(iterable);
         }
@@ -246,7 +246,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
     public abstract static class FrozenSetNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 0, guards = "emptyArguments(arg)")
+        @Specialization(guards = "emptyArguments(arg)")
         public PFrozenSet frozensetEmpty(Object arg) {
             return new PFrozenSet();
         }
@@ -273,7 +273,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 10)
+        @Specialization
         public PFrozenSet frozenset(VirtualFrame frame, Object arg) {
             throw new UnsupportedOperationException();
         }
@@ -461,18 +461,18 @@ public final class BuiltinConstructors extends PythonBuiltins {
     public abstract static class RangeNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(order = 1, guards = "caseStop(stop,start,step)")
+        @Specialization(guards = "caseStop(stop,start,step)")
         public PSequence rangeStop(int stop, Object start, Object step) {
             return new PRange(stop);
         }
 
         @SuppressWarnings("unused")
-        @Specialization(order = 2, guards = "caseStartStop(stop,start,step)")
+        @Specialization(guards = "caseStartStop(stop,start,step)")
         public PSequence rangeStartStop(int start, int stop, Object step) {
             return new PRange(start, stop);
         }
 
-        @Specialization(order = 3)
+        @Specialization()
         public PSequence rangeStartStopStep(int start, int stop, int step) {
             return new PRange(start, stop, step);
         }
@@ -576,17 +576,17 @@ public final class BuiltinConstructors extends PythonBuiltins {
     @GenerateNodeFactory
     public abstract static class TupleNode extends PythonBuiltinNode {
 
-        @Specialization(order = 1)
+        @Specialization()
         public PTuple tuple(String arg) {
             return new PTuple(new PStringIterator(arg));
         }
 
-        @Specialization(order = 2)
+        @Specialization()
         public PTuple tuple(PIterable iterable) {
             return new PTuple(iterable.__iter__());
         }
 
-        @Specialization(order = 3)
+        @Specialization()
         public PTuple tuple(PIterator iterator) {
             return new PTuple(iterator);
         }

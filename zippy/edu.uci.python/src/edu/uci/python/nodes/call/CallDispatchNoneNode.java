@@ -97,7 +97,7 @@ public abstract class CallDispatchNoneNode extends CallDispatchNode {
 
         @Override
         public boolean isInlined() {
-            return getCost() == NodeCost.MONOMORPHIC && invoke.isInlined();
+            return getCost() == NodeCost.MONOMORPHIC;
         }
 
         @Override

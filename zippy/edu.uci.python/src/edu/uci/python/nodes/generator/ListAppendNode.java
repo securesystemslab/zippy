@@ -42,20 +42,20 @@ public abstract class ListAppendNode extends BinaryOpNode {
         return right;
     }
 
-    @Specialization(order = 1, guards = "isEmptyStorage(list)")
+    @Specialization(guards = "isEmptyStorage(list)")
     public int doEmptyStorage(PList list, int right) {
         list.append(right);
         return right;
     }
 
-    @Specialization(order = 2, guards = "isIntStorage(list)")
+    @Specialization(guards = "isIntStorage(list)")
     public int doIntStorage(PList list, int right) {
         IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
         store.appendInt(right);
         return right;
     }
 
-    @Specialization(order = 3)
+    @Specialization
     public int doInteger(PList list, int right) {
         SequenceStorage store = list.getStorage();
 
@@ -68,14 +68,14 @@ public abstract class ListAppendNode extends BinaryOpNode {
         return right;
     }
 
-    @Specialization(order = 4, guards = "isDoubleStorage(list)")
+    @Specialization(guards = "isDoubleStorage(list)")
     public double doDoubleStorage(PList list, double right) {
         DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
         store.appendDouble(right);
         return right;
     }
 
-    @Specialization(order = 5)
+    @Specialization
     public double doDouble(PList list, double right) {
         SequenceStorage store = list.getStorage();
 

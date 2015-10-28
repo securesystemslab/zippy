@@ -44,7 +44,7 @@ public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
     }
 
     @ExplodeLoop
-    @Specialization(order = 0)
+    @Specialization
     public String doString(String primary, PSlice slice) {
         final int length = slice.computeActualIndices(primary.length());
         final int start = slice.getStart();
@@ -67,29 +67,29 @@ public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
         }
     }
 
-    @Specialization(order = 4)
+    @Specialization
     public Object doPList(PList list, PSlice slice) {
         return list.getSlice(slice);
     }
 
-    @Specialization(order = 5)
+    @Specialization
     public Object doPTuple(PTuple tuple, PSlice slice) {
         return tuple.getSlice(slice);
     }
 
-    @Specialization(order = 11)
+    @Specialization
     public Object doPRange(PRange range, PStartSlice slice) {
         final int newStart = range.getStart() + slice.getStart();
         return new PRange(newStart, range.getStop(), range.getStep());
     }
 
-    @Specialization(order = 12)
+    @Specialization
     public Object doPRange(PRange range, PStopSlice slice) {
         final int newStop = Math.min(range.getStop(), range.getStart() + slice.getStop());
         return new PRange(range.getStart(), newStop, range.getStep());
     }
 
-    @Specialization(order = 15)
+    @Specialization
     public Object doPRange(PRange range, PSlice slice) {
         return range.getSlice(slice);
     }
@@ -97,7 +97,7 @@ public abstract class SubscriptLoadSliceNode extends SubscriptLoadNode {
     /**
      * Unboxed array reads.
      */
-    @Specialization(order = 20)
+    @Specialization
     public Object doPArray(PArray primary, PSlice slice) {
         return primary.getSlice(slice);
     }
