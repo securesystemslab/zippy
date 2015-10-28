@@ -6,7 +6,7 @@ suite = {
     "suites": [
             {
                "name" : "graal",
-               "version" : "f6e1108b9a94e1bb84c0f499b6d14bbe00e34c46",
+               "version" : "f22b9506329a736554be8b7f6d620a67b7c157bd",
                "urls" : [
                     {"url" : "http://hg.openjdk.java.net/graal/graal-compiler", "kind" : "hg"},
                 ]
