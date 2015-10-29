@@ -30,6 +30,8 @@ import com.oracle.truffle.api.dsl.*;
 
 import edu.uci.python.builtins.*;
 import edu.uci.python.nodes.function.*;
+import edu.uci.python.runtime.datatype.PFloat;
+import edu.uci.python.runtime.standardtype.PythonBuiltinObject;
 
 /**
  * @author zwei
@@ -74,25 +76,10 @@ public class MathModuleBuiltins extends PythonBuiltins {
         }
     }
 
-    @Builtin(name = "pi", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
-    @GenerateNodeFactory
-    public abstract static class PiNode extends PythonBuiltinNode {
-
-        @Specialization
-        public double pi() {
-            return Math.PI;
-        }
-    }
-
-    @Builtin(name = "e", fixedNumOfArguments = 0, hasFixedNumOfArguments = true)
-    @GenerateNodeFactory
-    public abstract static class ENode extends PythonBuiltinNode {
-
-        @Specialization
-        public double e() {
-            return Math.E;
-        }
-
+    public MathModuleBuiltins() {
+        // Add constant values
+        builtinConstants.put("pi", Math.PI);
+        builtinConstants.put("e", Math.E);
     }
 
     @Builtin(name = "ceil", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)

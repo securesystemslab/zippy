@@ -911,8 +911,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
     }
 
     // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
-    @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file",
-                    "flush"}, requiresContext = true)
+    @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
     @GenerateNodeFactory
     public abstract static class PrintNode extends PythonBuiltinNode {
 

@@ -109,6 +109,13 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
     private static void addBuiltinsToModule(PythonModule module, PythonBuiltins builtins, PythonContext context) {
         if (builtins != null) {
             builtins.initialize(context);
+            Map<String, Object> builtinConstants = builtins.getBuiltinConstants();
+            for (Map.Entry<String, Object> entry : builtinConstants.entrySet()) {
+                String constantName = entry.getKey();
+                Object object = entry.getValue();
+                module.setAttribute(constantName, object);
+            }
+
             Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
             for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
                 String methodName = entry.getKey();
@@ -128,12 +135,18 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
     private static void addBuiltinsToClass(PythonBuiltinClass clazz, PythonBuiltins builtins, PythonContext context) {
         if (builtins != null) {
             builtins.initialize(context);
-            Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
+            Map<String, Object> builtinConstants = builtins.getBuiltinConstants();
+            for (Map.Entry<String, Object> entry : builtinConstants.entrySet()) {
+                String className = entry.getKey();
+                Object object = entry.getValue();
+                clazz.setAttributeUnsafe(className, object);
+            }
 
+            Map<String, PBuiltinFunction> builtinFunctions = builtins.getBuiltinFunctions();
             for (Map.Entry<String, PBuiltinFunction> entry : builtinFunctions.entrySet()) {
-                String methodName = entry.getKey();
+                String className = entry.getKey();
                 PBuiltinFunction function = entry.getValue();
-                clazz.setAttributeUnsafe(methodName, function);
+                clazz.setAttributeUnsafe(className, function);
             }
         }
     }
