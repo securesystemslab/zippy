@@ -60,4 +60,54 @@ public class ArgumentsTests {
         assertPrints("do stuff A\ndo stuff B\n", script);
     }
 
+    @Test
+    public void VarArgs() {
+        String source = "\n" + //
+                        "def c(x,y):\n" + //
+                        "  print(\"x \",x,\" y \",y)\n" + //
+
+                        "def a(*args):\n" + //
+                        "  def b(*args):\n" + //
+                        "    c(*args)\n" + //
+                        "  return b\n" + //
+
+                        "y = a()\n" + //
+                        "y(1,2)\n";
+
+        assertPrints("x  1  y  2\n", source);
+    }
+
+    @Test
+    public void VarArgs2() {
+        String source = "\n" + //
+                        "def c(x,y):\n" + //
+                        "  print(\"x \",x,\" y \",y)\n" + //
+
+                        "def a(x,*args):\n" + //
+                        "  def b(y,*args):\n" + //
+                        "    c(*args)\n" + //
+                        "  return b(*args)\n" + //
+
+                        "a(3,4,1,2)\n";
+
+        assertPrints("x  1  y  2\n", source);
+    }
+
+    @Test
+    public void KwArgs() {
+        String source = "\n" + //
+                        "def c(x,y):\n" + //
+                        "  print(\"x \",x,\" y \",y)\n" + //
+
+                        "def a(z,*args,**kwargs):\n" + //
+                        "  for arg in args:\n" + //
+                        "    print(\"arg \", arg)\n" + //
+                        "  def b(w,**kwargs):\n" + //
+                        "    c(**kwargs)\n" + //
+                        "  return b(**kwargs)\n" + //
+
+                        "a(3,9,y=2,x=1,w=4)\n";
+
+        assertPrints("arg  9\nx  1  y  2\n", source);
+    }
 }

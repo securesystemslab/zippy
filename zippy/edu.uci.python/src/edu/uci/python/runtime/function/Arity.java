@@ -78,6 +78,18 @@ public class Arity {
         return isStaticMethod;
     }
 
+    public boolean isTakesFixedNumOfArgs() {
+        return takesFixedNumOfArgs;
+    }
+
+    public int getMinNumOfArgs() {
+        return this.minNumOfArgs;
+    }
+
+    public String getFunctionName() {
+        return this.functionName;
+    }
+
     public List<String> getParameterIds() {
         return parameterIds;
     }
@@ -137,7 +149,7 @@ public class Arity {
     }
 
     private void checkKeyword(String keyword) {
-        if (!parameterIds.contains(keyword)) {
+        if (!takesVarArgs && !parameterIds.contains(keyword)) {
             throw Py.TypeError(functionName + "()" + " got an unexpected keyword argument " + "'" + keyword + "'");
         }
     }

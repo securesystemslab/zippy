@@ -166,13 +166,21 @@ public class PythonTreeTranslator extends Visitor {
         List<expr> defaultExprs = node.getInternalArgs().getInternalDefaults();
         List<PNode> defaultArgs = walkExprList(defaultExprs);
 
+        /**
+         * Decorators
+         */
+        ArrayList<PNode> decoratorslist = new ArrayList<>();
+        for (expr decorator : node.getInternalDecorator_list()) {
+            decoratorslist.add((PNode) visit(decorator));
+        }
+
         environment.beginScope(node, ScopeInfo.ScopeKind.Function);
         environment.setDefaultArgumentNodes(defaultArgs);
 
         /**
          * Parameters
          */
-        Arity arity = createArity(name, node.getInternalArgs(), node.getInternalDecorator_list());
+        Arity arity = createArity(name, node.getInternalArgs(), decoratorslist);
         PNode argumentLoads = visitArgs(node.getInternalArgs());
 
         /**
@@ -211,6 +219,17 @@ public class PythonTreeTranslator extends Visitor {
             funcDef = new FunctionDefinitionNode(name, enclosingClassName, context, arity, defaults, ct, fd, environment.needsDeclarationFrame());
         }
         environment.endScope(node);
+
+        /**
+         * How decorator works:
+         *
+         * @see https://www.python.org/dev/peps/pep-0318/
+         */
+        if (decoratorslist.size() > 0) {
+            for (int i = decoratorslist.size() - 1; i >= 0; i--)
+                funcDef = PythonCallNode.create(context, decoratorslist.get(i), new PNode[]{funcDef}, new PNode[]{}, null, null);
+        }
+
         PNode functionNameWriteNode = environment.findVariable(name).makeWriteNode(funcDef);
         return assignSourceFromNode(nameNode, functionNameWriteNode);
     }
@@ -230,7 +249,7 @@ public class PythonTreeTranslator extends Visitor {
         /**
          * Parameters
          */
-        Arity arity = createArity(name, node.getInternalArgs(), new ArrayList<expr>());
+        Arity arity = createArity(name, node.getInternalArgs(), new ArrayList<PNode>());
         PNode argumentLoads = visitArgs(node.getInternalArgs());
 
         /**
@@ -289,7 +308,7 @@ public class PythonTreeTranslator extends Visitor {
                         gtran.getNumOfGeneratorForNode());
     }
 
-    public Arity createArity(String functionName, arguments node, List<expr> decorators) {
+    public Arity createArity(String functionName, arguments node, List<PNode> decorators) {
         boolean takesVarArgs = false;
         /**
          * takesKeywordArg is true by default, because in Python every parameter can be passed as a
@@ -301,7 +320,7 @@ public class PythonTreeTranslator extends Visitor {
         int numOfArguments = node.getInternalArgs().size();
         int maxNumOfArgs = numOfArguments;
 
-        if (node.getInternalVararg() != null) {
+        if (node.getInternalVararg() != null || node.getInternalKwarg() != null) {
             maxNumOfArgs = -1;
             takesVarArgs = true;
             takesFixedNumOfArgs = false;
@@ -318,28 +337,26 @@ public class PythonTreeTranslator extends Visitor {
             parameterIds.add(((Name) arg).getInternalId());
         }
 
-        if (node.getInternalVararg() != null) {
-            parameterIds.add(node.getInternalVararg());
-        }
-
         int minNumOfArgs = numOfArguments - numOfDefaultArguments;
 
         /**
          * Decorators: classmethod or staticmethod.
          */
-        String decoratorName = null;
-        if (decorators.size() == 1 && decorators.get(0) instanceof Name) {
-            Name decoratorId = (Name) decorators.get(0);
-            decoratorName = decoratorId.getInternalId();
-        }
-
         boolean isClassMethod = false;
         boolean isStaticMethod = false;
-        if (decoratorName != null) {
-            if (decoratorName.equals("classmethod")) {
-                isClassMethod = true;
-            } else if (decoratorName.equals("staticmethod")) {
-                isStaticMethod = true;
+        for (int i = decorators.size() - 1; i >= 0; i--) {
+            PNode decorator = decorators.get(i);
+            if (decorator instanceof ReadGlobalNode) {
+                String decoratorName = ((ReadGlobalNode) decorator).getAttributeId();
+                if (decoratorName != null) {
+                    if (decoratorName.equals("classmethod")) {
+                        isClassMethod = true;
+                        decorators.remove(i);
+                    } else if (decoratorName.equals("staticmethod")) {
+                        isStaticMethod = true;
+                        decorators.remove(i);
+                    }
+                }
             }
         }
 
@@ -371,6 +388,10 @@ public class PythonTreeTranslator extends Visitor {
 
         if (node.getInternalVararg() != null) {
             argumentReads.add(environment.getWriteVarArgsToLocal(node.getInternalVararg()));
+        }
+
+        if (node.getInternalKwarg() != null) {
+            argumentReads.add(environment.getWriteKwArgsToLocal(node.getInternalKwarg()));
         }
 
         /**
@@ -557,7 +578,9 @@ public class PythonTreeTranslator extends Visitor {
         PNode[] argumentNodes = arguments.toArray(new PNode[arguments.size()]);
         List<KeywordLiteralNode> keywords = walkKeywordList(node.getInternalKeywords());
         KeywordLiteralNode[] keywordNodes = keywords.toArray(new KeywordLiteralNode[keywords.size()]);
-        return assignSourceFromNode(node, PythonCallNode.create(context, calleeNode, argumentNodes, keywordNodes));
+        PNode starargs = (node.getInternalStarargs() == null) ? null : (PNode) visit(node.getInternalStarargs());
+        PNode kwargs = (node.getInternalKwargs() == null) ? null : (PNode) visit(node.getInternalKwargs());
+        return assignSourceFromNode(node, PythonCallNode.create(context, calleeNode, argumentNodes, keywordNodes, starargs, kwargs));
     }
 
     @Override

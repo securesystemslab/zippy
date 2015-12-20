@@ -35,7 +35,6 @@ import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.exception.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.object.*;
 
 public abstract class GeneratorForNode extends LoopNode implements GeneratorControlNode {
 

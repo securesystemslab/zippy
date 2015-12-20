@@ -112,6 +112,10 @@ public class ScopeTranslator extends Visitor {
         if (node.getInternalVararg() != null) {
             environment.createLocal(node.getInternalVararg());
         }
+
+        if (node.getInternalKwarg() != null) {
+            environment.createLocal(node.getInternalKwarg());
+        }
     }
 
     @Override

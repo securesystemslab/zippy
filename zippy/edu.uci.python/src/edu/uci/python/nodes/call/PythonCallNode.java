@@ -68,7 +68,7 @@ public abstract class PythonCallNode extends PNode {
         this.passPrimaryAsTheFirstArgument = passPrimary;
     }
 
-    public static PythonCallNode create(PythonContext context, PNode calleeNode, PNode[] argumentNodes, PNode[] keywords) {
+    public static PythonCallNode create(PythonContext context, PNode calleeNode, PNode[] argumentNodes, PNode[] keywords, PNode starargs, PNode kwargs) {
         PNode primaryNode;
         String calleeName;
 
@@ -82,7 +82,7 @@ public abstract class PythonCallNode extends PNode {
             calleeName = "~unknown";
         }
 
-        return new UninitializedCallNode(context, primaryNode, calleeName, calleeNode, new ArgumentsNode(argumentNodes), new ArgumentsNode(keywords));
+        return new UninitializedCallNode(context, primaryNode, calleeName, calleeNode, new ArgumentsNode(argumentNodes, starargs), new ArgumentsNode(keywords, kwargs));
     }
 
     public final String getCalleeName() {
@@ -154,6 +154,8 @@ public abstract class PythonCallNode extends PNode {
          * Evaluates the arguments.
          */
         boolean passPrimaryAsArgument = PythonCallUtil.haveToPassPrimary(primary, callable, this) || isSpecialMethodDispatch;
+        argumentsNode.executeStarargs(frame);
+        keywordsNode.executeStarargs(frame);
         callable.arityCheck(passPrimaryAsArgument ? argumentsNode.length() + 1 : argumentsNode.length(), keywordsNode.length(), PythonCallUtil.getKeywordNames(this));
         Object[] arguments = argumentsNode.executeArguments(frame, passPrimaryAsArgument, isSpecialMethodDispatch ? callee : primary);
         PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);

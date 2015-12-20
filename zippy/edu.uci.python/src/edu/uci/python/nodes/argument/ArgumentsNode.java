@@ -26,28 +26,67 @@ package edu.uci.python.nodes.argument;
 
 import static edu.uci.python.runtime.function.PArguments.*;
 
+import java.util.ArrayList;
+
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
 import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.literal.KeywordLiteralNode;
 import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.sequence.PTuple;
 
 public class ArgumentsNode extends PNode {
 
     private static final Object[] EMPTY_ARGUMENTS = new Object[0];
 
     @Children private final PNode[] arguments;
+    @Child private PNode starargs;
+
+    private int stararglen;
+    private Object starargsValue;
 
     public ArgumentsNode(PNode[] arguments) {
         this.arguments = arguments;
+        this.starargs = EmptyNode.create();
+        this.stararglen = 0;
+        this.starargsValue = null;
+    }
+
+    public ArgumentsNode(PNode[] arguments, PNode starargs) {
+        this.arguments = arguments;
+        this.starargs = (starargs == null) ? EmptyNode.create() : starargs;
+        this.stararglen = 0;
+        this.starargsValue = null;
+    }
+
+    public void executeStarargs(VirtualFrame frame) {
+        if (!(starargs instanceof EmptyNode)) {
+            this.starargsValue = starargs.execute(frame);
+            if (starargsValue instanceof PTuple)
+                this.stararglen = ((PTuple) this.starargsValue).len();
+            if (starargsValue instanceof PKeyword[])
+                this.stararglen = ((PKeyword[]) this.starargsValue).length;
+        }
     }
 
     public PNode[] getArguments() {
         return arguments;
     }
 
+    @ExplodeLoop
+    public String[] getArgKeywordNames() {
+        ArrayList<String> names = new ArrayList<>();
+        for (PNode arg : arguments)
+            names.add(((KeywordLiteralNode) arg).getName());
+        if (stararglen > 0)
+            for (PKeyword arg : ((PKeyword[]) starargsValue))
+                names.add(arg.getName());
+        return names.toArray(new String[length()]);
+    }
+
     public int length() {
-        return arguments.length;
+        return arguments.length + stararglen;
     }
 
     @Override
@@ -57,10 +96,15 @@ public class ArgumentsNode extends PNode {
 
     @ExplodeLoop
     public final Object[] executeArguments(VirtualFrame frame) {
-        final Object[] values = create(arguments.length);
+
+        final Object[] values = create(length());
 
         for (int i = 0; i < arguments.length; i++) {
             values[USER_ARGUMENTS_OFFSET + i] = arguments[i].execute(frame);
+        }
+
+        for (int i = 0; i < stararglen; i++) {
+            values[USER_ARGUMENTS_OFFSET + arguments.length + i] = ((PTuple) starargsValue).getArray()[i];
         }
 
         return values;
@@ -71,7 +115,7 @@ public class ArgumentsNode extends PNode {
      */
     @ExplodeLoop
     public final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary) {
-        final int length = passPrimary ? arguments.length + 1 : arguments.length;
+        final int length = passPrimary ? length() + 1 : length();
         final Object[] values = create(length);
         final int offset;
 
@@ -83,7 +127,11 @@ public class ArgumentsNode extends PNode {
         }
 
         for (int i = 0; i < arguments.length; i++) {
-            values[USER_ARGUMENTS_OFFSET + i + offset] = arguments[i].execute(frame);
+            values[USER_ARGUMENTS_OFFSET + offset + i] = arguments[i].execute(frame);
+        }
+
+        for (int i = 0; i < stararglen; i++) {
+            values[USER_ARGUMENTS_OFFSET + offset + arguments.length + i] = ((PTuple) starargsValue).getArray()[i];
         }
 
         return values;
@@ -91,11 +139,15 @@ public class ArgumentsNode extends PNode {
 
     @ExplodeLoop
     public final Object[] executeArgumentsForJython(VirtualFrame frame) {
-        final int length = arguments.length;
+        final int length = length();
         final Object[] values = length == 0 ? EMPTY_ARGUMENTS : new Object[length];
 
         for (int i = 0; i < arguments.length; i++) {
             values[i] = arguments[i].execute(frame);
+        }
+
+        for (int i = 0; i < stararglen; i++) {
+            values[USER_ARGUMENTS_OFFSET + arguments.length + i] = ((PTuple) starargsValue).getArray()[i];
         }
 
         return values;
@@ -103,10 +155,14 @@ public class ArgumentsNode extends PNode {
 
     @ExplodeLoop
     public final PKeyword[] executeKeywordArguments(VirtualFrame frame) {
-        PKeyword[] keywords = arguments.length == 0 ? PKeyword.EMPTY_KEYWORDS : new PKeyword[arguments.length];
+        PKeyword[] keywords = length() == 0 ? PKeyword.EMPTY_KEYWORDS : new PKeyword[length()];
 
         for (int i = 0; i < arguments.length; i++) {
             keywords[i] = (PKeyword) arguments[i].execute(frame);
+        }
+
+        for (int i = 0; i < stararglen; i++) {
+            keywords[arguments.length + i] = ((PKeyword[]) starargsValue)[i];
         }
 
         return keywords;

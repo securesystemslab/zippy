@@ -81,14 +81,7 @@ public class PythonCallUtil {
 
     @ExplodeLoop
     protected static String[] getKeywordNames(PythonCallNode node) {
-        String[] keywordNames = new String[node.keywordsNode.length()];
-
-        for (int i = 0; i < node.keywordsNode.length(); i++) {
-            KeywordLiteralNode keywordLiteral = (KeywordLiteralNode) node.keywordsNode.getArguments()[i];
-            keywordNames[i] = keywordLiteral.getName();
-        }
-
-        return keywordNames;
+        return node.keywordsNode.getArgKeywordNames();
     }
 
     protected static PythonCallable resolveSpecialMethod(Object operand, String specialMethodId) {

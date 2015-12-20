@@ -166,6 +166,12 @@ public class TranslationEnvironment {
         return factory.createWriteLocal(right, slot);
     }
 
+    public PNode getWriteKwArgsToLocal(String name) {
+        FrameSlot slot = findSlot(name);
+        ReadVarKeywordsNode right = new ReadVarKeywordsNode(new String[]{});
+        return factory.createWriteLocal(right, slot);
+    }
+
     public ReadNode findVariable(String name) {
         assert name != null : "name is null!";
         FrameSlot slot = findSlot(name);

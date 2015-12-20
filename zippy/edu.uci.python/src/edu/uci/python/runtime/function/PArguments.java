@@ -29,8 +29,6 @@ import java.util.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
-import edu.uci.python.runtime.object.*;
-
 //@formatter:off
 /**
  * The layout of an argument array.
@@ -152,23 +150,34 @@ public class PArguments {
     @ExplodeLoop
     public static Object[] applyKeywordArgs(Arity calleeArity, Object[] arguments, PKeyword[] keywords) {
         List<String> parameters = calleeArity.getParameterIds();
-        Object[] combined = create(parameters.size());
-        assert combined.length >= arguments.length : "Parameters size does not match";
-        System.arraycopy(arguments, 0, combined, 0, arguments.length);
+        int minArgs = 0;
+        Object[] combined = arguments;
+        if ((USER_ARGUMENTS_OFFSET + parameters.size()) > arguments.length) {
+            combined = create(parameters.size());
+            System.arraycopy(arguments, 0, combined, 0, arguments.length);
+            minArgs = combined.length - arguments.length;
+        }
+
+        ArrayList<PKeyword> unusedKeywords = new ArrayList<>();
 
         for (int i = 0; i < keywords.length; i++) {
             PKeyword keyarg = keywords[i];
             int keywordIdx = parameters.indexOf(keyarg.getName());
 
-            if (keywordIdx < -1) {
-                /**
-                 * TODO can throw a type error for wrong keyword name // TypeError: foo() got an
-                 * unexpected keyword argument 'c'
-                 */
+            if (keywordIdx != -1) {
+                assert combined[USER_ARGUMENTS_OFFSET + keywordIdx] == null : calleeArity.getFunctionName() + " got multiple values for argument '" + keyarg.getName() + "'";
+                combined[USER_ARGUMENTS_OFFSET + keywordIdx] = keyarg.getValue();
+                minArgs--;
+            } else {
+                unusedKeywords.add(keyarg);
             }
-
-            combined[USER_ARGUMENTS_OFFSET + keywordIdx] = keyarg.getValue();
         }
+
+        assert minArgs <= calleeArity.getMinNumOfArgs() : calleeArity.getFunctionName() + " is missing argument(s)";
+
+        assert !(calleeArity.isTakesFixedNumOfArgs() && !unusedKeywords.isEmpty()) : calleeArity.getFunctionName() + " got an unexpected keyword argument '" + unusedKeywords.get(0).getName() + "'";
+
+        setKeywordArguments(combined, unusedKeywords.toArray(new PKeyword[unusedKeywords.size()]));
 
         return combined;
     }
