@@ -57,11 +57,23 @@ public class ImportManager {
         String workingDir = System.getProperty("user.dir");
 
         // TODO: Fix this hack that supports proper standard lib import in unittest.
-        if (workingDir.endsWith("/graal/edu.uci.python.test")) {
-            workingDir = workingDir.replaceAll("/graal/edu.uci.python.test", "");
+        if (workingDir.endsWith("/zippy/edu.uci.python.test")) {
+            workingDir = workingDir.replaceAll("/zippy/edu.uci.python.test", "");
         }
 
         String librayPath = workingDir + File.separatorChar + "zippy" + File.separatorChar + "lib-python" + File.separatorChar + "3";
+        return librayPath;
+    }
+
+    private static String getPythonLibraryExtrasPath() {
+        String workingDir = System.getProperty("user.dir");
+
+        // TODO: Fix this hack that supports proper standard lib import in unittest.
+        if (workingDir.endsWith("/zippy/edu.uci.python.test")) {
+            workingDir = workingDir.replaceAll("/zippy/edu.uci.python.test", "");
+        }
+
+        String librayPath = workingDir + File.separatorChar + "zippy" + File.separatorChar + "lib-python-extras";
         return librayPath;
     }
 
@@ -71,6 +83,7 @@ public class ImportManager {
         this.importedModules = new HashMap<>();
         this.unsupportedImports = new HashMap<>();
         this.paths.add(getPythonLibraryPath());
+        this.paths.add(getPythonLibraryExtrasPath());
 
         String[] unsupportedImportNames = {"re", "os", "posix", "io", "textwrap", "optparse", "functools", "struct", "decimal", "collections", "threading", "abc", "inspect", "subprocess", "warnings"};
 
@@ -104,7 +117,7 @@ public class ImportManager {
         /**
          * Try to find user module.
          */
-        String path = getPathFromImporterPath(moduleName, relativeto.getModulePath());
+        String path = relativeto.getModulePath() == null ? null : getPathFromImporterPath(moduleName, relativeto.getModulePath());
         if (path != null) {
             return importAndCache(path, moduleName);
         }

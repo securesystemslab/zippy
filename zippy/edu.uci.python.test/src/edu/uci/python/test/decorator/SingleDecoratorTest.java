@@ -57,7 +57,6 @@ public class SingleDecoratorTest {
 
     @Test
     public void decorator_test_wrapper_dec_arg_ab() {
-        PythonOptions.GPUenabled = true;
         String source = "\n" + //
                         "def a(z):\n" + //
                         "  def c(x):\n" + //
