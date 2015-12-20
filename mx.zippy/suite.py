@@ -6,7 +6,7 @@ suite = {
     "suites": [
             {
                "name" : "graal",
-               "version" : "f22b9506329a736554be8b7f6d620a67b7c157bd",
+               "version" : "c07e0f138412a0e2d108ec9e6a879f54e68395f4",
                "urls" : [
                     {"url" : "http://hg.openjdk.java.net/graal/graal-compiler", "kind" : "hg"},
                 ]
@@ -29,11 +29,11 @@ suite = {
     },
 
     "JYTHON" : {
-      "path" : "lib/jython-standalone-2.7-b3.jar",
+      "path" : "lib/jython-standalone-2.7.0.jar",
       "urls" : [
-        "http://repo1.maven.org/maven2/org/python/jython-standalone/2.7-b3/jython-standalone-2.7-b3.jar",
+        "http://search.maven.org/remotecontent?filepath=org/python/jython-standalone/2.7.0/jython-standalone-2.7.0.jar"
       ],
-      "sha1" : "56411f652bcf4acce8e9fb3bc7d06b4a0e926aaf",
+      "sha1" : "cdfb38bc6f8343bcf1d6accc2e1147e8e7b63b75",
     },
 
     "JAMM" : {

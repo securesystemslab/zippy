@@ -67,7 +67,7 @@ public class PythonLanguage extends TruffleLanguage<PythonContext> {
     }
 
     public static void main(String[] args) throws IOException {
-        PolyglotEngine vm = PolyglotEngine.buildNew().build();
+        PolyglotEngine vm = PolyglotEngine.newBuilder().build();
         assert vm.getLanguages().containsKey("application/x-python");
 
         PyString path = new PyString(System.getProperty("user.dir"));
