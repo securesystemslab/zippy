@@ -83,3 +83,4 @@ export.json
 .recommenders
 syntax: regexp
 test\.[0-9]+\.er
+^mxbuild
