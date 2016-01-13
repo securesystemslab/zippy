@@ -1,0 +1,18 @@
+before_install:
+  - sudo add-apt-repository -y ppa:mercurial-ppa/releases
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq mercurial python2.7
+  - hg clone https://bitbucket.org/allr/mx ../mx
+  - export PATH=$PWD/../mx:$PATH
+  - export JAVA_HOME=/usr/lib/jvm/java-8-oracle
+  - export EXTRA_JAVA_HOMES=/usr/lib/jvm/java-7-oracle
+  - export DEFAULT_VM=jvmci
+  # Fix broken dependency
+  - mkdir -p $PWD/../.mx/cache
+  - wget http://central.maven.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar -O $PWD/../.mx/cache/JLINE09_99a18e9a44834afdebc467294e1138364c207402.jar
+
+script:
+  - mx --user-home $PWD/.. build
+
+after_success:
+  - mx --user-home $PWD/.. unittest python.test
