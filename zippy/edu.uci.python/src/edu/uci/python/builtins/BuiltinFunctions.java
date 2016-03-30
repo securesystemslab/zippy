@@ -215,6 +215,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
     @GenerateNodeFactory
     public abstract static class ChrNode extends PythonBuiltinNode {
 
+        @TruffleBoundary
         @Specialization
         public String charFromInt(int arg) {
             if (arg >= 0 && arg < 1114111) {
@@ -224,6 +225,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
             }
         }
 
+        @TruffleBoundary
         @Specialization
         public char charFromObject(BigInteger arg) {
             if (arg.longValue() > Integer.MAX_VALUE) {
@@ -234,11 +236,13 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
+        @TruffleBoundary
         @Specialization
         public Object charFromObject(double arg) {
             throw Py.TypeError("integer argument expected, got float");
         }
 
+        @TruffleBoundary
         @Specialization
         public char charFromObject(Object arg) {
             if (arg instanceof Double) {
