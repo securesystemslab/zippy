@@ -16,7 +16,7 @@ result = [[0,0,0,0],
 import sys, time, random
 
 # N = int(sys.argv[1])
-N = 2 ** 11
+N = 5
 
 X = [[random.randint(0,1000) for i in range(N)] for j in range(N)]
 Y = [[random.randint(0,1000) for i in range(N)] for j in range(N)]

@@ -128,7 +128,7 @@ public class GeneratorTests {
 
     @Test
     public void mm2d_naive() {
-        Path script = Paths.get("mm2d_naive.py");
+        Path script = Paths.get("mm2d_naive_test.py");
         assertPrints("result =  [[1387598, 869266, 1216497, 1356679, 1111220], " + //
                         "[1357976, 918765, 1304513, 1252453, 1132022], [1138504, " + //
                         "571763, 1084725, 1012620, 849145], [1445834, 907246, " + //
@@ -138,7 +138,7 @@ public class GeneratorTests {
 
     @Test
     public void mm2d_random_naive() {
-        Path script = Paths.get("mm2d_random_naive.py");
+        Path script = Paths.get("mm2d_random_naive_5.py");
         assertPrints("", script);
     }
 

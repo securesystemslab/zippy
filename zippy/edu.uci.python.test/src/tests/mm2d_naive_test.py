@@ -15,14 +15,11 @@ result = [[0,0,0,0],
 """
 import sys, time, random
 
-# N = int(sys.argv[1])
-N = 2 ** 11
+N = 5
 
-X = [[random.randint(0,1000) for i in range(N)] for j in range(N)]
-Y = [[random.randint(0,1000) for i in range(N)] for j in range(N)]
+X = [[476, 95, 637, 471, 964], [614, 209, 585, 522, 496], [453, 203, 895, 240, 83], [744, 472, 661, 233, 94], [965, 440, 610, 685, 251]]
+Y = [[666, 824, 682, 342, 709], [924, 366, 365, 151, 613], [588, 13, 556, 666, 303], [354, 377, 806, 832, 438], [458, 266, 128, 377, 328]]
 result = [[0 for i in range(N)] for j in range(N)]
-
-start = time.time()
 
 # iterate through rows of X
 for i in range(len(X)):
@@ -33,8 +30,7 @@ for i in range(len(X)):
            result[i][j] += X[i][k] * Y[k][j]
 
 
-duration = "N: %d  Time: %.5f" % (N, (time.time() - start))
-# print("Naive " + duration)
+print("result = ", result)
 
 
 """
