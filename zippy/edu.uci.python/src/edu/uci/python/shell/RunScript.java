@@ -27,7 +27,6 @@ package edu.uci.python.shell;
 import java.io.*;
 
 import org.python.core.*;
-import org.python.core.imp;
 import org.python.core.util.*;
 import org.python.modules.*;
 import org.python.modules.posix.*;
@@ -127,8 +126,15 @@ public class RunScript {
 
     public static PythonParseResult runScript(String[] args, Source source, PythonContext context) {
         // Setup the basic python system state from these options
-        PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
-        PySystemState systemState = Py.getSystemState();
+        PySystemState systemState;
+        if (args.length > 0) {
+            Py.setSystemState(new PySystemState()).argv = passArgs(args);
+            Py.getSystemState().argv = passArgs(args);
+            systemState = Py.getSystemState();
+        } else {
+            PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
+            systemState = Py.getSystemState();
+        }
 
         // Now create an interpreter
         ZipPyConsole interp = new ZipPyConsole();
@@ -199,6 +205,16 @@ public class RunScript {
         } catch (PyException pye) {
             // continue
         }
+    }
+
+    private static PyList passArgs(String[] args) {
+        PyList argv = new PyList();
+        if (args != null) {
+            for (String arg : args) {
+                argv.append(Py.newStringOrUnicode(arg));
+            }
+        }
+        return argv;
     }
 
 }

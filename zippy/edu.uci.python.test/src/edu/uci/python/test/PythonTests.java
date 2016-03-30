@@ -101,17 +101,16 @@ public class PythonTests {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
 
-        String path = null;
-        if (Files.isDirectory(Paths.get("edu.uci.python.test/src/tests"))) {
-            path = "edu.uci.python.test/src/tests";
-        } else if (Files.isDirectory(Paths.get("../../edu.uci.python.test/src/tests"))) {
-            path = "../../graal/edu.uci.python.test/src/tests";
-        } else if (Files.isDirectory(Paths.get("zippy/edu.uci.python.test/src/tests"))) {
-            path = "zippy/edu.uci.python.test/src/tests";
-        } else if (Files.isDirectory(Paths.get("src/tests"))) {
-            path = "src/tests";
+        String path = "edu.uci.python.test/src/tests";
+        // calling from eclipse unit test
+        if (Files.isDirectory(Paths.get("../" + path))) {
+            path = "../" + path;
+        }
+        // calling from mx unittest python.test
+        else if (Files.isDirectory(Paths.get("zippy/" + path))) {
+            path = "zippy/" + path;
         } else {
-            throw new RuntimeException("Unable to locate edu.uci.python.test/src/tests/");
+            throw new RuntimeException("Unable to locate edu.uci.python.test/src/test");
         }
 
         PythonContext context = getContext(printStream, System.err);
@@ -119,7 +118,7 @@ public class PythonTests {
         try {
             source = Source.fromFileName(path + File.separatorChar + scriptName.toString());
         } catch (IOException e) {
-            throw new IllegalStateException();
+            throw new IllegalStateException("test couldn't be found: " + path + File.separatorChar + scriptName.toString());
         }
 
         RunScript.runScript(new String[0], source, context);
@@ -128,40 +127,35 @@ public class PythonTests {
     }
 
     public static void assertBenchNoError(Path scriptName, String arg) {
-        final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
-        final PrintStream printStream = new PrintStream(byteArray);
+        final ByteArrayOutputStream byteArrayErr = new ByteArrayOutputStream();
+        final ByteArrayOutputStream byteArrayOut = new ByteArrayOutputStream();
+        final PrintStream printErrStream = new PrintStream(byteArrayErr);
+        final PrintStream printOutStream = new PrintStream(byteArrayOut);
 
-        String path = null;
-        if (Files.isDirectory(Paths.get("benchmarks"))) {
-            path = "benchmarks/src/";
-        } else if (Files.isDirectory(Paths.get("zippy/benchmarks/src/"))) {
-            path = "zippy/edu.uci.python.test/src/tests";
-        } else if (Files.isDirectory(Paths.get("../../benchmarks/src/"))) {
-            path = "../../zippy/edu.uci.python.test/src/tests";
-        } else if (Files.isDirectory(Paths.get("edu.uci.python.test/src/tests"))) {
-            path = "edu.uci.python.test/src/tests";
-        } else if (Files.isDirectory(Paths.get("../../edu.uci.python.test/src/tests"))) {
-            path = "../../zippy/edu.uci.python.test/src/tests";
-        } else if (Files.isDirectory(Paths.get("zippy/edu.uci.python.test/src/tests"))) {
-            path = "zippy/edu.uci.python.test/src/tests";
-        } else if (Files.isDirectory(Paths.get("src/tests"))) {
-            path = "src/tests";
+        String path = "benchmarks/src";
+        // calling from eclipse unit test
+        if (Files.isDirectory(Paths.get("../" + path))) {
+            path = "../" + path;
+        }
+        // calling from mx unittest python.test
+        else if (Files.isDirectory(Paths.get("zippy/" + path))) {
+            path = "zippy/" + path;
         } else {
             throw new RuntimeException("Unable to locate benchmarks/src/");
         }
 
-        PythonContext context = getContext(printStream, System.err);
+        PythonContext context = getContext(printOutStream, printErrStream);
         Source source;
         try {
             source = Source.fromFileName(path + File.separatorChar + scriptName.toString());
         } catch (IOException e) {
             try {
-                source = Source.fromFileName(path + "benchmarks" + File.separatorChar + scriptName.toString());
+                source = Source.fromFileName(path + File.separatorChar + "benchmarks" + File.separatorChar + scriptName.toString());
             } catch (IOException ee) {
                 try {
-                    source = Source.fromFileName(path + "micro" + File.separatorChar + scriptName.toString());
+                    source = Source.fromFileName(path + File.separatorChar + "micro" + File.separatorChar + scriptName.toString());
                 } catch (IOException eee) {
-                    throw new IllegalStateException();
+                    throw new IllegalStateException("Unable to locate " + path + " (benchmarks or micro) /" + scriptName.toString());
                 }
             }
         }
@@ -170,8 +164,9 @@ public class PythonTests {
 
         RunScript.runScript(args, source, context);
 
-        String result = byteArray.toString().replaceAll("\r\n", "\n");
-        System.out.println(result);
+        String err = byteArrayErr.toString().replaceAll("\r\n", "\n");
+        String result = byteArrayOut.toString().replaceAll("\r\n", "\n");
+        assertEquals("", err);
         assertNotEquals("", result);
     }
 
@@ -179,17 +174,16 @@ public class PythonTests {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
 
-        String path = null;
-        if (Files.isDirectory(Paths.get("edu.uci.python.test/src/tests"))) {
-            path = "edu.uci.python.test/src/tests";
-        } else if (Files.isDirectory(Paths.get("zippy/edu.uci.python.test/src/tests"))) {
-            path = "zippy/edu.uci.python.test/src/tests";
-        } else if (Files.isDirectory(Paths.get("../../edu.uci.python.test/src/tests"))) {
-            path = "../../edu.uci.python.test/src/tests";
-        } else if (Files.isDirectory(Paths.get("src/tests"))) {
-            path = "src/tests";
+        String path = "edu.uci.python.test/src/tests";
+        // calling from eclipse unit test
+        if (Files.isDirectory(Paths.get("../" + path))) {
+            path = "../" + path;
+        }
+        // calling from mx unittest python.test
+        else if (Files.isDirectory(Paths.get("zippy/" + path))) {
+            path = "zippy/" + path;
         } else {
-            throw new RuntimeException("Unable to locate edu.uci.python.test/src/tests/");
+            throw new RuntimeException("Unable to locate edu.uci.python.test/src/test");
         }
 
         PythonContext context = getContext(printStream, System.err);
