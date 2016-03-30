@@ -18,7 +18,7 @@ ZipPy is currently maintained by [Secure Systems and Software Laboratory](https:
 2. Clone mxtool:
 
         $ cd $ZIPPY_HOME
-        $ hg clone ssh://hg@bitbucket.org/allr/mx
+        $ git clone https://github.com/graalvm/mx.git
 
 3. Append the `mxtool` directory to your `PATH`.
 
@@ -37,7 +37,7 @@ ZipPy is currently maintained by [Secure Systems and Software Laboratory](https:
 
         JAVA_HOME=<path to JDK 8>
         EXTRA_JAVA_HOMES=<path to JDK 7>
-        DEFAULT_VM=server
+        DEFAULT_VM=jvmci
 
 #### Build:
 
