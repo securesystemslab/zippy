@@ -45,6 +45,12 @@ public class MathModuleBuiltins extends PythonBuiltins {
         return MathModuleBuiltinsFactory.getFactories();
     }
 
+    public MathModuleBuiltins() {
+        // Add constant values
+        builtinConstants.put("pi", Math.PI);
+        builtinConstants.put("e", Math.E);
+    }
+
     // math.sqrt
     @Builtin(name = "sqrt", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
     @GenerateNodeFactory
@@ -74,12 +80,6 @@ public class MathModuleBuiltins extends PythonBuiltins {
         public double exp(double value) {
             return Math.exp(value);
         }
-    }
-
-    public MathModuleBuiltins() {
-        // Add constant values
-        builtinConstants.put("pi", Math.PI);
-        builtinConstants.put("e", Math.E);
     }
 
     @Builtin(name = "ceil", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
@@ -151,4 +151,20 @@ public class MathModuleBuiltins extends PythonBuiltins {
             return Math.log(value);
         }
     }
+
+    @Builtin(name = "fabs", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
+    public abstract static class fabsNode extends PythonBuiltinNode {
+
+        @Specialization
+        public double fabs(int value) {
+            return Math.abs(value);
+        }
+
+        @Specialization
+        public double fabs(double value) {
+            return Math.abs(value);
+        }
+    }
+
 }
