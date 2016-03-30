@@ -45,7 +45,7 @@ public final class ReadVarArgsNode extends ReadIndexedArgumentNode {
         return executePTuple(frame);
     }
 
-    @ExplodeLoop
+// @ExplodeLoop
     @Override
     public PTuple executePTuple(VirtualFrame frame) {
         final int userArgumentLength = PArguments.getUserArgumentLength(frame);

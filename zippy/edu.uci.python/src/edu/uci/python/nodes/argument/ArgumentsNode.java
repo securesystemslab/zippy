@@ -74,7 +74,7 @@ public class ArgumentsNode extends PNode {
         return arguments;
     }
 
-    @ExplodeLoop
+// @ExplodeLoop
     public String[] getArgKeywordNames() {
         ArrayList<String> names = new ArrayList<>();
         for (PNode arg : arguments)
@@ -94,10 +94,11 @@ public class ArgumentsNode extends PNode {
         return executeArguments(frame);
     }
 
-    @ExplodeLoop
+// @ExplodeLoop
     public final Object[] executeArguments(VirtualFrame frame) {
 
         final Object[] values = create(length());
+        frame.materialize();
 
         for (int i = 0; i < arguments.length; i++) {
             values[USER_ARGUMENTS_OFFSET + i] = arguments[i].execute(frame);
@@ -113,12 +114,12 @@ public class ArgumentsNode extends PNode {
     /**
      * Pack primary into the evaluated arguments array if passPrimary is true.
      */
-    @ExplodeLoop
+// @ExplodeLoop
     public final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary) {
         final int length = passPrimary ? length() + 1 : length();
         final Object[] values = create(length);
         final int offset;
-
+        frame.materialize();
         if (passPrimary) {
             values[USER_ARGUMENTS_OFFSET] = primary;
             offset = 1;
@@ -137,11 +138,11 @@ public class ArgumentsNode extends PNode {
         return values;
     }
 
-    @ExplodeLoop
+// @ExplodeLoop
     public final Object[] executeArgumentsForJython(VirtualFrame frame) {
         final int length = length();
         final Object[] values = length == 0 ? EMPTY_ARGUMENTS : new Object[length];
-
+        frame.materialize();
         for (int i = 0; i < arguments.length; i++) {
             values[i] = arguments[i].execute(frame);
         }
@@ -153,10 +154,10 @@ public class ArgumentsNode extends PNode {
         return values;
     }
 
-    @ExplodeLoop
+// @ExplodeLoop
     public final PKeyword[] executeKeywordArguments(VirtualFrame frame) {
         PKeyword[] keywords = length() == 0 ? PKeyword.EMPTY_KEYWORDS : new PKeyword[length()];
-
+        frame.materialize();
         for (int i = 0; i < arguments.length; i++) {
             keywords[i] = (PKeyword) arguments[i].execute(frame);
         }

@@ -266,7 +266,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
         }
     }
 
-    @ExplodeLoop
+// @ExplodeLoop
     public void extendWithIntStorage(IntSequenceStorage other) {
         int extendedLength = length + other.length();
         ensureCapacity(extendedLength);

@@ -147,7 +147,7 @@ public class PArguments {
         return results;
     }
 
-    @ExplodeLoop
+// @ExplodeLoop
     public static Object[] applyKeywordArgs(Arity calleeArity, Object[] arguments, PKeyword[] keywords) {
         List<String> parameters = calleeArity.getParameterIds();
         int minArgs = 0;
@@ -182,7 +182,7 @@ public class PArguments {
         return combined;
     }
 
-    @ExplodeLoop
+// @ExplodeLoop
     public static PKeyword getKeyword(Frame frame, String name) {
         PKeyword[] keywordArguments = getKeywordArguments(frame);
 

@@ -81,7 +81,7 @@ public final class StringBuiltins extends PythonBuiltins {
     @GenerateNodeFactory
     public abstract static class JoinNode extends PythonBuiltinNode {
 
-        @ExplodeLoop
+// @ExplodeLoop
         @Specialization
         public String join(String string, String arg) {
             StringBuilder sb = new StringBuilder();
@@ -96,7 +96,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @ExplodeLoop
+// @ExplodeLoop
         @Specialization(guards = "is2ndObjectStorage(string,list)")
         public String join(String string, PList list) {
             StringBuilder sb = new StringBuilder();
@@ -111,7 +111,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @ExplodeLoop
+// @ExplodeLoop
         @Specialization
         public String join(String string, PCharArray array) {
             StringBuilder sb = new StringBuilder();
@@ -126,7 +126,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @ExplodeLoop
+// @ExplodeLoop
         @Specialization
         public String join(String string, PSequence seq) {
             StringBuilder sb = new StringBuilder();
@@ -140,7 +140,7 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-        @ExplodeLoop
+// @ExplodeLoop
         @Specialization
         public String join(String string, PSet arg) {
             if (arg.len() == 0) {

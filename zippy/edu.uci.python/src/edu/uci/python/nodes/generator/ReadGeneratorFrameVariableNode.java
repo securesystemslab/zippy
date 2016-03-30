@@ -161,9 +161,9 @@ public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
             MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
             if (mframe.isObject(frameSlot)) {
                 return getObject(mframe);
-            } else {
-                return execute(frame);
             }
+
+            return null;
         }
     }
 
