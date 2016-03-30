@@ -1,14 +1,15 @@
 suite = {
-  "mxversion" : "5.6.9",
+  "mxversion" : "5.14.0",
   "name" : "zippy",
-
+  "versionConflictResolution" : "latest",
   "imports" : {
-    "suites": [
+    "suites" : [
             {
-               "name" : "graal",
-               "version" : "1a1a163340e7cdf06a1a442d20abea7d705618bb",
+               "name" : "graal-core",
+               "version" : "1071e7c10c3b654b1ca8885904690bd5bb0e694c",
                "urls" : [
-                    {"url" : "http://hg.openjdk.java.net/graal/graal-compiler", "kind" : "hg"},
+                    {"url" : "https://github.com/graalvm/graal-core", "kind" : "git"},
+                    {"url" : "https://curio.ssw.jku.at/nexus/content/repositories/snapshots", "kind" : "binary"},
                 ]
             },
     ]
@@ -21,7 +22,6 @@ suite = {
     # ------------- Libraries -------------
 
     "JLINE09" : {
-      "path" : "lib/jline-0.9.95-SNAPSHOT.jar",
       "urls" : [
         "http://mirrors.ibiblio.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar",
       ],
@@ -37,7 +37,6 @@ suite = {
     },
 
     "JAMM" : {
-      "path" : "lib/jamm-0.2.5.jar",
       "urls" : [
         "http://central.maven.org/maven2/com/github/stephenc/jamm/0.2.5/jamm-0.2.5.jar",
       ],
@@ -45,7 +44,6 @@ suite = {
     },
 
     "ASM" : {
-      "path" : "lib/asm-5.0.3.jar",
       "urls" : [
         "http://lafo.ssw.uni-linz.ac.at/graal-external-deps/asm-5.0.3.jar",
         "https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm/5.0.3/asm-5.0.3.jar",
@@ -68,7 +66,16 @@ suite = {
     "edu.uci.python" : {
       "subDir" : "zippy",
       "sourceDirs" : ["src"],
-      "dependencies" : ["truffle:TRUFFLE_API","truffle:TRUFFLE_DSL_PROCESSOR","graal:GRAAL_TRUFFLE","JYTHON","graal:JAVA_ALLOCATION_INSTRUMENTER","ASM","JAMM","JLINE09"],
+      "dependencies" : [
+                "truffle:TRUFFLE_API",
+                "truffle:TRUFFLE_DSL_PROCESSOR",
+                # "graal:GRAAL_TRUFFLE",
+                "JYTHON",
+                # "graal:JAVA_ALLOCATION_INSTRUMENTER",
+                "ASM",
+                "JAMM",
+                "JLINE09",
+                ],
       "checkstyle" : "edu.uci.python",
       "javaCompliance" : "1.8",
       "annotationProcessors" : ["truffle:TRUFFLE_DSL_PROCESSOR"],
@@ -112,7 +119,6 @@ suite = {
       "distDependencies" : [
         "truffle:TRUFFLE_API",
         "truffle:TRUFFLE_DSL_PROCESSOR",
-        "graal:GRAAL_TRUFFLE"
         ],
 
       "exclude" : [
@@ -121,7 +127,6 @@ suite = {
         "JLINE09",
         "JYTHON",
         "mx:JUNIT",
-        "graal:JAVA_ALLOCATION_INSTRUMENTER"
         ],
 
       "sourcesPath" : "zippy.src.zip",

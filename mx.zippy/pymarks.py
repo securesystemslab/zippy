@@ -1,5 +1,5 @@
 from outputparser import OutputParser, ValuesMatcher
-import re, mx, mx_graal, os, sys, StringIO, subprocess, time
+import re, mx, mx_graal_core, os, sys, StringIO, subprocess, time
 from os.path import isfile, join, exists
 from sanitycheck import Test, Tee, _noneAsEmptyList
 from pymarksparams import *
@@ -138,7 +138,7 @@ class ZippyTest(Test):
             parser.addMatcher(scoreMatcher)
 
         if self.benchmarkCompilationRate:
-            if vm == 'graal':
+            if vm == 'jvmci':
                 bps = re.compile(r"ParsedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
                 ibps = re.compile(r"InlinedBytecodesPerSecond@final: (?P<rate>[0-9]+)")
                 parser.addMatcher(ValuesMatcher(bps, {'group' : 'ParsedBytecodesPerSecond', 'name' : self.name, 'score' : '<rate>'}))
@@ -179,7 +179,7 @@ class ZippyTest(Test):
             elif vm == 'pypy3':
                 result = mx.run(['pypy3'] + self.cmd[-2:], out=tee.eat)
             else:
-                result = mx_graal.vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
+                result = mx_graal_core.run_vm(self.vmOpts + _noneAsEmptyList(extraVmOpts) + self.cmd, vm, nonZeroIsFatal=False, out=tee.eat, err=subprocess.STDOUT, cwd=cwd, vmbuild=vmbuild)
 
             if result != 0:
                 mx.abort("Benchmark failed (non-zero retcode)")
