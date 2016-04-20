@@ -10,7 +10,6 @@ ZipPy is currently maintained by [Secure Systems and Software Laboratory](https:
 #### Prerequisites:
 
 1. Install the most recent [JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
-2. Install the most recent [JDK 7](http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html)
  
 #### Getting ZipPy:
 
@@ -33,10 +32,9 @@ ZipPy is currently maintained by [Secure Systems and Software Laboratory](https:
         $ cd $ZIPPY_HOME/zippy
         $ mx spull
 
-6. Create a file `$ZIPPY_HOME/zippy/mx.zippy/env` and add JDK 8 and JDK 7 paths
+6. Create a file `$ZIPPY_HOME/zippy/mx.zippy/env` and add JDK 8 paths
 
         JAVA_HOME=<path to JDK 8>
-        EXTRA_JAVA_HOMES=<path to JDK 7>
         DEFAULT_VM=jvmci
 
 #### Build:
