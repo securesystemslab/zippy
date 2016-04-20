@@ -47,11 +47,7 @@ def do_run_python(args, extraVmArgs=None, jdk=None, nonZeroIsFatal=True):
     if extraVmArgs:
         vmArgs += extraVmArgs
 
-    if len(zippyArgs) > 0:
-        vmArgs.append("edu.uci.python.shell.Shell")
-    else:
-        print 'Interactive shell is not implemented yet..'
-        sys.exit(1)
+    vmArgs.append("edu.uci.python.shell.Shell")
 
     return mx.run_java(vmArgs + args, nonZeroIsFatal=nonZeroIsFatal, jdk=jdk)
 
