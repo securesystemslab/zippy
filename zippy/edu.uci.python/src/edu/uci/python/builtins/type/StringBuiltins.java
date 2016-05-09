@@ -24,17 +24,22 @@
  */
 package edu.uci.python.builtins.type;
 
-import java.util.*;
+import java.util.List;
 
-import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateNodeFactory;
+import com.oracle.truffle.api.dsl.Specialization;
 
-import edu.uci.python.builtins.*;
-import edu.uci.python.nodes.function.*;
-import edu.uci.python.runtime.array.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.sequence.storage.*;
+import edu.uci.python.builtins.Builtin;
+import edu.uci.python.builtins.PythonBuiltins;
+import edu.uci.python.nodes.function.PythonBuiltinNode;
+import edu.uci.python.runtime.array.PCharArray;
+import edu.uci.python.runtime.datatype.PDict;
+import edu.uci.python.runtime.datatype.PNone;
+import edu.uci.python.runtime.sequence.PList;
+import edu.uci.python.runtime.sequence.PSequence;
+import edu.uci.python.runtime.sequence.PSet;
+import edu.uci.python.runtime.sequence.storage.ObjectSequenceStorage;
 
 /**
  * @author Gulfem

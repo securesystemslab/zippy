@@ -24,16 +24,17 @@
  */
 package edu.uci.python.nodes.argument;
 
-import static edu.uci.python.runtime.function.PArguments.*;
+import static edu.uci.python.runtime.function.PArguments.USER_ARGUMENTS_OFFSET;
+import static edu.uci.python.runtime.function.PArguments.create;
 
 import java.util.ArrayList;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
 
-import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.EmptyNode;
+import edu.uci.python.nodes.PNode;
 import edu.uci.python.nodes.literal.KeywordLiteralNode;
-import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.function.PKeyword;
 import edu.uci.python.runtime.sequence.PTuple;
 
 public class ArgumentsNode extends PNode {

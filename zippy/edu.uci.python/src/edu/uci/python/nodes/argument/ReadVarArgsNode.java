@@ -24,11 +24,10 @@
  */
 package edu.uci.python.nodes.argument;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
 
-import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.function.PArguments;
+import edu.uci.python.runtime.sequence.PTuple;
 
 /**
  * @author Gulfem

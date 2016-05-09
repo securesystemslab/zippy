@@ -25,28 +25,18 @@
 package edu.uci.python;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
-
-import org.python.core.Py;
-import org.python.core.PyString;
 
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.instrument.Visualizer;
-import com.oracle.truffle.api.instrument.WrapperNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.Source;
-import com.oracle.truffle.api.vm.PolyglotEngine;
-import com.oracle.truffle.api.vm.PolyglotEngine.Value;
 
 import edu.uci.python.builtins.PythonDefaultBuiltinsLookup;
 import edu.uci.python.nodes.ModuleNode;
 import edu.uci.python.nodes.PNode;
-import edu.uci.python.nodes.instruments.PythonDefaultVisualizer;
-import edu.uci.python.nodes.statement.StatementNode;
 import edu.uci.python.parser.PythonParserImpl;
 import edu.uci.python.runtime.PythonContext;
 import edu.uci.python.runtime.PythonOptions;
@@ -54,10 +44,11 @@ import edu.uci.python.runtime.PythonParseResult;
 import edu.uci.python.runtime.function.PFunction;
 import edu.uci.python.runtime.standardtype.PythonModule;
 
-@TruffleLanguage.Registration(name = "Python", version = "3.3", mimeType = "application/x-python")
+@TruffleLanguage.Registration(name = "Python", version = "3.3", mimeType = PythonLanguage.MIME_TYPE)
 public class PythonLanguage extends TruffleLanguage<PythonContext> {
 
-    private static Visualizer visualizer = new PythonDefaultVisualizer();
+    public static final String MIME_TYPE = "application/x-python";
+    public static final String EXTENSION = ".py";
 
     public static final PythonLanguage INSTANCE = new PythonLanguage();
 
@@ -66,58 +57,11 @@ public class PythonLanguage extends TruffleLanguage<PythonContext> {
         return new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
     }
 
-    public static void main(String[] args) throws IOException {
-        PolyglotEngine vm = PolyglotEngine.newBuilder().build();
-        assert vm.getLanguages().containsKey("application/x-python");
-
-        PyString path = new PyString(System.getProperty("user.dir"));
-        Py.getSystemState().path.insert(0, path);
-
-        int repeats = 1;
-        if (args.length >= 2) {
-            repeats = Integer.parseInt(args[1]);
-        }
-
-        Source source;
-        if (args.length == 0) {
-            source = Source.fromReader(new InputStreamReader(System.in), "<stdin>").withMimeType("application/x-python");
-        } else {
-            source = Source.fromFileName(args[0]);
-        }
-        Value s = vm.eval(source);
-        while (repeats-- > 0) {
-            s.invoke(null);
-        }
-
-// result.call(PArguments.empty());
-
-        // TODO: fix prints
-        if (PythonOptions.PrintAST) {
-            printBanner("After Specialization");
-// result.printAST();
-        }
-
-        if (PythonOptions.VisualizedAST) {
-// result.visualizeToNetwork();
-        }
-
-        Py.flushLine();
-    }
-
     @Override
     protected CallTarget parse(Source code, Node node, String... argumentNames) throws IOException {
         PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
         PythonModule module = context.createMainModule(code.getPath());
         PythonParseResult result = context.getParser().parse(context, module, code);
-        if (PythonOptions.PrintAST) {
-            printBanner("Before Specialization");
-            result.printAST();
-        }
-
-        if (PythonOptions.VisualizedAST) {
-            result.visualizeToNetwork();
-        }
-
         ModuleNode root = (ModuleNode) result.getModuleRoot();
         RootCallTarget moduleCallTarget = Truffle.getRuntime().createCallTarget(root);
         return moduleCallTarget;
@@ -143,36 +87,17 @@ public class PythonLanguage extends TruffleLanguage<PythonContext> {
         return object instanceof PNode;
     }
 
-    public static void printBanner(String phase) {
-        // CheckStyle: stop system..print check
-        System.out.println("============= " + phase + " ============= ");
-        // CheckStyle: resume system..print check
-    }
-
-    @Override
-    protected Visualizer getVisualizer() {
-        if (visualizer == null) {
-            visualizer = new PythonDefaultVisualizer();
-        }
-        return visualizer;
-    }
-
-    @Override
-    protected boolean isInstrumentable(Node node) {
-        return node instanceof StatementNode;
-    }
-
-    @Override
-    protected WrapperNode createWrapperNode(Node node) {
-        if (node instanceof StatementNode) {
-// return new StatementWrapperNode((StatementNode) node);
-        }
-        return null;
-    }
-
     @Override
     protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
         throw new IllegalStateException("evalInContext not supported in this language: Python");
+    }
+
+    public Node unprotectedCreateFindContextNode() {
+        return super.createFindContextNode();
+    }
+
+    public PythonContext unprotectedFindContext(Node node) {
+        return super.findContext(node);
     }
 
 }

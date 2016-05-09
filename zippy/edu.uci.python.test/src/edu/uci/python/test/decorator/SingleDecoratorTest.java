@@ -4,8 +4,6 @@ import static edu.uci.python.test.PythonTests.assertPrints;
 
 import org.junit.Test;
 
-import edu.uci.python.runtime.PythonOptions;
-
 public class SingleDecoratorTest {
 
     @Test
