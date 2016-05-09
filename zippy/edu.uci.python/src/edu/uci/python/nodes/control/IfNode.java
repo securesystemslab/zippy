@@ -25,21 +25,18 @@
 package edu.uci.python.nodes.control;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.utilities.*;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.expression.*;
-import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.nodes.EmptyNode;
+import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.expression.CastToBooleanNode;
+import edu.uci.python.nodes.statement.StatementNode;
+import edu.uci.python.runtime.datatype.PNone;
 
 public class IfNode extends StatementNode {
 
     @Child protected CastToBooleanNode condition;
     @Child protected PNode then;
     @Child protected PNode orelse;
-
-    protected final BranchProfile thenProfile = BranchProfile.create();
-    protected final BranchProfile elseProfile = BranchProfile.create();
 
     public IfNode(CastToBooleanNode condition, PNode then, PNode orelse) {
         this.condition = condition;
@@ -70,10 +67,8 @@ public class IfNode extends StatementNode {
     @Override
     public Object execute(VirtualFrame frame) {
         if (condition.executeBoolean(frame)) {
-            thenProfile.enter();
             return then.execute(frame);
         } else {
-            elseProfile.enter();
             return orelse.execute(frame);
         }
     }
@@ -87,7 +82,6 @@ public class IfNode extends StatementNode {
         @Override
         public Object execute(VirtualFrame frame) {
             if (condition.executeBoolean(frame)) {
-                thenProfile.enter();
                 return then.execute(frame);
             }
 

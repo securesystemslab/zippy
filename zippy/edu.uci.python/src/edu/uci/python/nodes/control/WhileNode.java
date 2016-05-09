@@ -48,11 +48,11 @@ public class WhileNode extends LoopNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
+        @SuppressWarnings("unused")
         int count = 0;
 
         try {
             while (condition.executeBoolean(frame)) {
-                loopBodyBranch.enter();
                 body.execute(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
@@ -61,7 +61,6 @@ public class WhileNode extends LoopNode {
             }
         } finally {
             if (CompilerDirectives.inInterpreter()) {
-                reportLoopCount(count);
             }
         }
 

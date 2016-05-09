@@ -24,17 +24,12 @@
  */
 package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.utilities.*;
-
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statement.*;
+import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.statement.StatementNode;
 
 public abstract class LoopNode extends StatementNode {
 
     @Child protected PNode body;
-    protected final BranchProfile loopBodyBranch = BranchProfile.create();
 
     public LoopNode(PNode body) {
         this.body = body;
@@ -42,16 +37,6 @@ public abstract class LoopNode extends StatementNode {
 
     public PNode getBody() {
         return body;
-    }
-
-    protected void reportLoopCount(int count) {
-        CompilerAsserts.neverPartOfCompilation();
-        RootNode root = getRootNode();
-        assert root != null;
-
-        if (root.getCallTarget() instanceof LoopCountReceiver) {
-            ((LoopCountReceiver) root.getCallTarget()).reportLoopCount(count);
-        }
     }
 
 }

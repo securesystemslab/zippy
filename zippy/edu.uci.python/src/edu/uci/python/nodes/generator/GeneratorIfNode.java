@@ -69,7 +69,6 @@ public class GeneratorIfNode extends IfNode implements GeneratorControlNode {
 
     protected final Object executeThen(VirtualFrame frame) {
         setActive(frame, thenFlagSlot, true);
-        thenProfile.enter();
         then.execute(frame);
         setActive(frame, thenFlagSlot, false);
         return PNone.NONE;
@@ -77,7 +76,6 @@ public class GeneratorIfNode extends IfNode implements GeneratorControlNode {
 
     protected final Object executeElse(VirtualFrame frame) {
         setActive(frame, elseFlagSlot, true);
-        elseProfile.enter();
         orelse.execute(frame);
         setActive(frame, elseFlagSlot, false);
         return PNone.NONE;

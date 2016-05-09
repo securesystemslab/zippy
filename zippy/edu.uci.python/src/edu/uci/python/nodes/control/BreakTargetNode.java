@@ -24,19 +24,16 @@
  */
 package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.utilities.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.exception.*;
+import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.statement.StatementNode;
+import edu.uci.python.runtime.datatype.PNone;
+import edu.uci.python.runtime.exception.BreakException;
 
 public final class BreakTargetNode extends StatementNode {
 
     @Child protected PNode statement;
-
-    private final BranchProfile breakProfile = BranchProfile.create();
 
     public BreakTargetNode(PNode statement) {
         this.statement = statement;
@@ -51,7 +48,6 @@ public final class BreakTargetNode extends StatementNode {
         try {
             return statement.execute(frame);
         } catch (BreakException ex) {
-            breakProfile.enter();
             return PNone.NONE;
         }
     }

@@ -42,7 +42,7 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
     @Child protected GetIteratorNode getIterator;
 
     private final int iteratorSlot;
-    private int count;
+    @SuppressWarnings("unused") private int count;
 
     public GeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body, int iteratorSlot) {
         super(body);
@@ -68,11 +68,6 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
     }
 
     protected final Object doReturn(VirtualFrame frame) {
-        if (CompilerDirectives.inInterpreter()) {
-            reportLoopCount(count);
-            count = 0;
-        }
-
         setIterator(frame, null);
         return PNone.NONE;
     }
@@ -85,7 +80,6 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
 
     @Override
     public Object execute(VirtualFrame frame) {
-        loopBodyBranch.enter();
 
         try {
             executeIterator(frame);

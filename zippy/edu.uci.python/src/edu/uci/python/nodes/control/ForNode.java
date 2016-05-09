@@ -61,18 +61,12 @@ public abstract class ForNode extends LoopNode {
 
     public abstract PNode getIterator();
 
-    @Override
-    protected final void reportLoopCount(int count) {
-        if (CompilerDirectives.inInterpreter()) {
-            super.reportLoopCount(count);
-        }
-    }
-
     @Specialization
     public Object doPRange(VirtualFrame frame, PRangeIterator range) {
         final int start = range.getStart();
         final int stop = range.getStop();
         final int step = range.getStep();
+        @SuppressWarnings("unused")
         int count = 0;
 
         for (int i = start; i < stop; i += step) {
@@ -84,18 +78,17 @@ public abstract class ForNode extends LoopNode {
             }
         }
 
-        reportLoopCount(count);
         return PNone.NONE;
     }
 
     @Specialization
     public Object doIntegerSequenceIterator(VirtualFrame frame, PIntegerSequenceIterator iterator) {
+        @SuppressWarnings("unused")
         int count = 0;
         int index = 0;
         IntSequenceStorage store = iterator.getSequenceStorage();
 
         while (index < store.length()) {
-            loopBodyBranch.enter();
             ((WriteNode) target).executeWrite(frame, store.getIntItemNormalized(index++));
             body.executeVoid(frame);
 
@@ -104,17 +97,16 @@ public abstract class ForNode extends LoopNode {
             }
         }
 
-        reportLoopCount(count);
         return PNone.NONE;
     }
 
     @Specialization
     public Object doIntegerIterator(VirtualFrame frame, PIntegerIterator iterator) {
+        @SuppressWarnings("unused")
         int count = 0;
 
         try {
             while (true) {
-                loopBodyBranch.enter();
                 ((WriteNode) target).executeWrite(frame, iterator.__nextInt__());
                 body.executeVoid(frame);
 
@@ -124,8 +116,6 @@ public abstract class ForNode extends LoopNode {
             }
         } catch (StopIterationException e) {
 
-        } finally {
-            reportLoopCount(count);
         }
 
         return PNone.NONE;
@@ -133,11 +123,11 @@ public abstract class ForNode extends LoopNode {
 
     @Specialization
     public Object doDoubleIterator(VirtualFrame frame, PDoubleIterator iterator) {
+        @SuppressWarnings("unused")
         int count = 0;
 
         try {
             while (true) {
-                loopBodyBranch.enter();
                 ((WriteNode) target).executeWrite(frame, iterator.__nextDouble__());
                 body.executeVoid(frame);
 
@@ -147,8 +137,6 @@ public abstract class ForNode extends LoopNode {
             }
         } catch (StopIterationException e) {
 
-        } finally {
-            reportLoopCount(count);
         }
 
         return PNone.NONE;
@@ -156,13 +144,13 @@ public abstract class ForNode extends LoopNode {
 
     @Specialization(guards = "isObjectStorageIterator(iterator)")
     public Object doObjectStorageIterator(VirtualFrame frame, PSequenceIterator iterator) {
+        @SuppressWarnings("unused")
         int count = 0;
         int index = 0;
         PList list = (PList) iterator.getSeqence();
         ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
 
         while (index < store.length()) {
-            loopBodyBranch.enter();
             ((WriteNode) target).executeWrite(frame, store.getItemNormalized(index++));
             body.executeVoid(frame);
 
@@ -171,18 +159,17 @@ public abstract class ForNode extends LoopNode {
             }
         }
 
-        reportLoopCount(count);
         return PNone.NONE;
     }
 
     @Specialization
     public Object doIterator(VirtualFrame frame, PSequenceIterator iterator) {
+        @SuppressWarnings("unused")
         int count = 0;
         int index = 0;
         PSequence sequence = iterator.getSeqence();
 
         while (index < sequence.len()) {
-            loopBodyBranch.enter();
             ((WriteNode) target).executeWrite(frame, sequence.getItem(index++));
             body.executeVoid(frame);
 
@@ -190,8 +177,6 @@ public abstract class ForNode extends LoopNode {
                 count++;
             }
         }
-
-        reportLoopCount(count);
         return PNone.NONE;
     }
 
@@ -201,7 +186,6 @@ public abstract class ForNode extends LoopNode {
 
         try {
             while (true) {
-                loopBodyBranch.enter();
                 ((WriteNode) target).executeWrite(frame, generator.__next__());
                 body.executeVoid(frame);
 
@@ -211,8 +195,6 @@ public abstract class ForNode extends LoopNode {
             }
         } catch (StopIterationException e) {
 
-        } finally {
-            reportLoopCount(count);
         }
 
         if (CompilerDirectives.inInterpreter()) {
@@ -230,11 +212,11 @@ public abstract class ForNode extends LoopNode {
 
     @Specialization
     public Object doIterator(VirtualFrame frame, PIterator iterator) {
+        @SuppressWarnings("unused")
         int count = 0;
 
         try {
             while (true) {
-                loopBodyBranch.enter();
                 ((WriteNode) target).executeWrite(frame, iterator.__next__());
                 body.executeVoid(frame);
 
@@ -244,8 +226,6 @@ public abstract class ForNode extends LoopNode {
             }
         } catch (StopIterationException e) {
 
-        } finally {
-            reportLoopCount(count);
         }
 
         return PNone.NONE;

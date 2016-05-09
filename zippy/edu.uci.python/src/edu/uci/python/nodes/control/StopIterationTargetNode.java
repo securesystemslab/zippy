@@ -24,19 +24,16 @@
  */
 package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.utilities.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.exception.*;
+import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.statement.StatementNode;
+import edu.uci.python.runtime.exception.StopIterationException;
 
 public final class StopIterationTargetNode extends StatementNode {
 
     @Child protected PNode tryPart;
     @Child protected PNode catchPart;
-
-    private final BranchProfile breakProfile = BranchProfile.create();
 
     public StopIterationTargetNode(PNode tryPart, PNode catchPart) {
         this.tryPart = tryPart;
@@ -48,7 +45,6 @@ public final class StopIterationTargetNode extends StatementNode {
         try {
             return tryPart.execute(frame);
         } catch (StopIterationException ex) {
-            breakProfile.enter();
             return catchPart.execute(frame);
         }
     }

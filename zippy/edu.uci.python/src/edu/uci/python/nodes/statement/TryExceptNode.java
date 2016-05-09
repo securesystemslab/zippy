@@ -24,19 +24,16 @@
  */
 package edu.uci.python.nodes.statement;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.utilities.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ControlFlowException;
 
-import edu.uci.python.nodes.*;
+import edu.uci.python.nodes.PNode;
 
 public class TryExceptNode extends StatementNode {
 
     @Child protected PNode body;
     @Children final ExceptNode[] exceptNodes;
     @Child protected PNode orelse;
-
-    private final BranchProfile exceptProfile = BranchProfile.create();
 
     public TryExceptNode(PNode body, ExceptNode[] exceptNodes, PNode orelse) {
         this.body = body;
@@ -50,7 +47,6 @@ public class TryExceptNode extends StatementNode {
             body.execute(frame);
             return orelse.execute(frame);
         } catch (RuntimeException ex) {
-            exceptProfile.enter();
             return catchException(frame, ex);
         }
     }

@@ -24,15 +24,15 @@
  */
 package edu.uci.python.nodes.generator;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.frame.VirtualFrame;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.expression.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.function.*;
+import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.control.WhileNode;
+import edu.uci.python.nodes.expression.CastToBooleanNode;
+import edu.uci.python.runtime.datatype.PNone;
+import edu.uci.python.runtime.exception.BreakException;
+import edu.uci.python.runtime.function.PArguments;
 
 /**
  * @author zwei
@@ -40,7 +40,7 @@ import edu.uci.python.runtime.function.*;
 public final class GeneratorWhileNode extends WhileNode implements GeneratorControlNode {
 
     private final int flagSlot;
-    private int count;
+    @SuppressWarnings("unused") private int count;
 
     public GeneratorWhileNode(CastToBooleanNode condition, PNode body, int flagSlot) {
         super(condition, body);
@@ -62,11 +62,6 @@ public final class GeneratorWhileNode extends WhileNode implements GeneratorCont
     }
 
     private Object doReturn(VirtualFrame frame) {
-        if (CompilerDirectives.inInterpreter()) {
-            reportLoopCount(count);
-            count = 0;
-        }
-
         assert !isActive(frame);
         return PNone.NONE;
     }

@@ -24,19 +24,16 @@
  */
 package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.utilities.*;
+import com.oracle.truffle.api.frame.VirtualFrame;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.statement.*;
-import edu.uci.python.runtime.exception.*;
+import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.statement.StatementNode;
+import edu.uci.python.runtime.exception.ReturnException;
 
 public class ReturnTargetNode extends StatementNode {
 
     @Child protected PNode body;
     @Child protected PNode returnValue;
-
-    private final BranchProfile returnProfile = BranchProfile.create();
 
     public ReturnTargetNode(PNode body, PNode returnValue) {
         this.body = body;
@@ -60,7 +57,6 @@ public class ReturnTargetNode extends StatementNode {
         try {
             return body.execute(frame);
         } catch (ReturnException ire) {
-            returnProfile.enter();
             return returnValue.execute(frame);
         }
     }
