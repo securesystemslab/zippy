@@ -31,6 +31,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.nodes.NodeUtil.*;
+import com.oracle.truffle.api.source.SourceSection;
 
 import edu.uci.python.*;
 import edu.uci.python.nodes.*;
@@ -74,8 +75,9 @@ public final class FunctionRootNode extends RootNode {
     @Child protected PNode body;
     private PNode uninitializedBody;
 
-    public FunctionRootNode(PythonContext context, String functionName, boolean isGenerator, FrameDescriptor frameDescriptor, PNode body) {
-        super(PythonLanguage.class, null, frameDescriptor); // SourceSection is not supported yet.
+    public FunctionRootNode(PythonContext context, SourceSection sourceSection, String functionName, boolean isGenerator, FrameDescriptor frameDescriptor, PNode body) {
+        super(PythonLanguage.class, sourceSection, frameDescriptor); // SourceSection is not
+// supported yet.
         this.context = context;
         this.functionName = functionName;
         this.isGenerator = isGenerator;
@@ -113,7 +115,7 @@ public final class FunctionRootNode extends RootNode {
 
     @Override
     public FunctionRootNode copy() {
-        return new FunctionRootNode(context, functionName, isGenerator, getFrameDescriptor().shallowCopy(), uninitializedBody);
+        return new FunctionRootNode(context, getSourceSection(), functionName, isGenerator, getFrameDescriptor().shallowCopy(), uninitializedBody);
     }
 
     @Override

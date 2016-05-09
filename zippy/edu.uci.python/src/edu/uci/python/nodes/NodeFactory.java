@@ -46,6 +46,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.source.SourceSection;
 
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.control.LoopNode;
@@ -80,8 +81,8 @@ public class NodeFactory {
         return new ModuleNode(name, block, fd);
     }
 
-    public FunctionRootNode createFunctionRoot(PythonContext context, String functionName, boolean isGenerator, FrameDescriptor frameDescriptor, PNode body) {
-        return new FunctionRootNode(context, functionName, isGenerator, frameDescriptor, body);
+    public FunctionRootNode createFunctionRoot(PythonContext context, SourceSection sourceSection, String functionName, boolean isGenerator, FrameDescriptor frameDescriptor, PNode body) {
+        return new FunctionRootNode(context, sourceSection, functionName, isGenerator, frameDescriptor, body);
     }
 
     public ClassDefinitionNode createClassDef(PythonContext context, String moduleName, String name, PNode[] baseClasses, FunctionDefinitionNode definitnionFunction) {

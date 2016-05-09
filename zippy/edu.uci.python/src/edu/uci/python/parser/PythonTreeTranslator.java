@@ -202,8 +202,7 @@ public class PythonTreeTranslator extends Visitor {
          */
         FrameDescriptor fd = environment.getCurrentFrame();
         String fullName = enclosingClassName == null ? name : enclosingClassName + '.' + name;
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, fullName, environment.isInGeneratorScope(), fd, body);
-        assignSourceToRootNode(node, funcRoot);
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, getSourcePythonTree(node), fullName, environment.isInGeneratorScope(), fd, body);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
         result.addParsedFunction(name, funcRoot);
 
@@ -268,7 +267,7 @@ public class PythonTreeTranslator extends Visitor {
          * Lambda function root
          */
         FrameDescriptor fd = environment.getCurrentFrame();
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, environment.isInGeneratorScope(), fd, bodyNode);
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, getSourcePythonTree(node), name, environment.isInGeneratorScope(), fd, bodyNode);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
         result.addParsedFunction(name, funcRoot);
 
@@ -301,7 +300,7 @@ public class PythonTreeTranslator extends Visitor {
     private GeneratorExpressionNode createGeneratorExpressionDefinition(StatementNode body, int lineNum) {
         FrameDescriptor fd = environment.getCurrentFrame();
         String generatorName = "generator_exp:" + lineNum;
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, generatorName, true, fd, body);
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, body.getSourceSection(), generatorName, true, fd, body);
         result.addParsedFunction(generatorName, funcRoot);
         GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
         return new GeneratorExpressionNode(generatorName, context, gtran.translate(), fd, environment.needsDeclarationFrame(), gtran.getNumOfActiveFlags(), gtran.getNumOfGeneratorBlockNode(),
@@ -550,7 +549,7 @@ public class PythonTreeTranslator extends Visitor {
 
         environment.beginScope(node, ScopeInfo.ScopeKind.Class);
         PNode body = factory.createBlock(visitStatements(node.getInternalBody()));
-        FunctionRootNode funcRoot = factory.createFunctionRoot(context, name, false, environment.getCurrentFrame(), body);
+        FunctionRootNode funcRoot = factory.createFunctionRoot(context, getSourcePythonTree(nameNode), name, false, environment.getCurrentFrame(), body);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
         FunctionDefinitionNode funcDef = new FunctionDefinitionNode(name, null, context, new Arity(name, 0, 0, new ArrayList<String>()), EmptyNode.create(), ct, environment.getCurrentFrame(),
                         environment.needsDeclarationFrame());
@@ -775,7 +774,7 @@ public class PythonTreeTranslator extends Visitor {
         PNode primary = (PNode) visit(node.getInternalValue());
         Name attrName = node.getInternalAttrName();
         PNode getAttribute = factory.createGetAttribute(primary, node.getInternalAttr());
-        assignSourceToGetAttribute(getAttribute, primary, attrName);
+        assignSourceToGetAttribute(getAttribute, attrName);
         return getAttribute;
     }
 
@@ -1256,9 +1255,9 @@ public class PythonTreeTranslator extends Visitor {
         }
     }
 
-    private PNode assignSourceToGetAttribute(PNode truffleNode, PNode primary, Name attributeName) {
+    private PNode assignSourceToGetAttribute(PNode truffleNode, Name attributeName) {
         String identifier = "identifier";
-        int charStartIndex = primary.getSourceSection().getCharIndex();
+        int charStartIndex = attributeName.getCharStartIndex();
         int charStopIndex = attributeName.getCharStopIndex();
         int charLength = charStopIndex - charStartIndex;
         SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
@@ -1266,14 +1265,13 @@ public class PythonTreeTranslator extends Visitor {
         return truffleNode;
     }
 
-    private RootNode assignSourceToRootNode(PythonTree node, RootNode rootNode) {
+    private SourceSection getSourcePythonTree(PythonTree node) {
         String identifier = node.getText();
         int charStartIndex = node.getCharStartIndex();
         int charStopIndex = node.getCharStopIndex();
         int charLength = charStopIndex - charStartIndex;
         SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
-        rootNode.assignSourceSection(sourceSection);
-        return rootNode;
+        return sourceSection;
     }
 
     private PNode assignSourceToBlockNode(PNode node, List<stmt> statements) {

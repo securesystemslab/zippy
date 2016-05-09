@@ -28,9 +28,12 @@ import java.math.BigInteger;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.source.SourceSection;
+
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.builtin.*;
@@ -46,6 +49,8 @@ import edu.uci.python.runtime.standardtype.*;
 @TypeSystemReference(PythonTypes.class)
 @ImportStatic(PGuards.class)
 public abstract class PNode extends Node {
+
+    @CompilationFinal private SourceSection sourceSection;
 
     public abstract Object execute(VirtualFrame frame);
 
@@ -254,4 +259,13 @@ public abstract class PNode extends Node {
         return false;
     }
 
+    public void clearSourceSection()
+    {
+        this.sourceSection = null;
+    }
+
+    public void assignSourceSection(SourceSection source)
+    {
+        this.sourceSection = source;
+    }
 }

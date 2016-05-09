@@ -24,12 +24,18 @@
  */
 package edu.uci.python.nodes;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeClass;
+import com.oracle.truffle.api.nodes.NodeFieldAccessor;
 import com.oracle.truffle.api.nodes.NodeFieldAccessor.NodeFieldKind;
+import com.oracle.truffle.api.nodes.NodeUtil;
+import com.oracle.truffle.api.nodes.NodeVisitor;
+import com.oracle.truffle.api.nodes.RootNode;
 
-import edu.uci.python.runtime.object.*;
+import edu.uci.python.runtime.object.ObjectLayoutUtil;
 
 public class PNodeUtil {
 
@@ -132,9 +138,10 @@ public class PNodeUtil {
         return left == right;
     }
 
-    public static void clearSourceSections(Node node) {
+    public static void clearSourceSections(PNode node) {
         node.clearSourceSection();
-        for (Node child : node.getChildren()) {
+        for (Node c : node.getChildren()) {
+            PNode child = (PNode) c;
             if (child != null) {
                 child.clearSourceSection();
                 clearSourceSections(child);
