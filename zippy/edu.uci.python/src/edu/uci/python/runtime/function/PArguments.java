@@ -24,10 +24,12 @@
  */
 package edu.uci.python.runtime.function;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.frame.Frame;
+import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 
 //@formatter:off
 /**
@@ -87,7 +89,6 @@ public class PArguments {
         return initialArguments;
     }
 
-    @ExplodeLoop
     public static Object[] createWithUserArguments(Object... userArguments) {
         Object[] arguments = create(userArguments.length);
 
@@ -134,7 +135,6 @@ public class PArguments {
         return frame.getArguments().length - USER_ARGUMENTS_OFFSET;
     }
 
-    @ExplodeLoop
     public static Object[] insertSelf(Object[] arguments, Object self) {
         final int userArgumentLength = arguments.length - USER_ARGUMENTS_OFFSET;
         Object[] results = create(userArgumentLength + 1);
@@ -147,7 +147,6 @@ public class PArguments {
         return results;
     }
 
-// @ExplodeLoop
     public static Object[] applyKeywordArgs(Arity calleeArity, Object[] arguments, PKeyword[] keywords) {
         List<String> parameters = calleeArity.getParameterIds();
         int minArgs = 0;
@@ -182,7 +181,6 @@ public class PArguments {
         return combined;
     }
 
-// @ExplodeLoop
     public static PKeyword getKeyword(Frame frame, String name) {
         PKeyword[] keywordArguments = getKeywordArguments(frame);
 

@@ -24,16 +24,34 @@
  */
 package edu.uci.python.builtins;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
-import edu.uci.python.builtins.module.*;
-import edu.uci.python.builtins.type.*;
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtin.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtype.*;
+import edu.uci.python.builtins.module.ArrayModuleBuiltins;
+import edu.uci.python.builtins.module.MathModuleBuiltins;
+import edu.uci.python.builtins.module.RandomModuleBuiltins;
+import edu.uci.python.builtins.module.TimeModuleBuiltins;
+import edu.uci.python.builtins.type.DictBuiltins;
+import edu.uci.python.builtins.type.GeneratorBuiltins;
+import edu.uci.python.builtins.type.ListBuiltins;
+import edu.uci.python.builtins.type.ObjectBuiltins;
+import edu.uci.python.builtins.type.SetBuiltins;
+import edu.uci.python.builtins.type.StringBuiltins;
+import edu.uci.python.builtins.type.TupleBuiltins;
+import edu.uci.python.runtime.PythonContext;
+import edu.uci.python.runtime.builtin.PythonBuiltinClass;
+import edu.uci.python.runtime.builtin.PythonBuiltinsLookup;
+import edu.uci.python.runtime.datatype.PDict;
+import edu.uci.python.runtime.datatype.PFloat;
+import edu.uci.python.runtime.datatype.PGenerator;
+import edu.uci.python.runtime.datatype.PInt;
+import edu.uci.python.runtime.function.PBuiltinFunction;
+import edu.uci.python.runtime.sequence.PList;
+import edu.uci.python.runtime.sequence.PSet;
+import edu.uci.python.runtime.sequence.PString;
+import edu.uci.python.runtime.sequence.PTuple;
+import edu.uci.python.runtime.standardtype.PythonBuiltinObject;
+import edu.uci.python.runtime.standardtype.PythonModule;
 
 /**
  * @author Gulfem

@@ -50,18 +50,8 @@ public abstract class PythonBuiltins {
 
     protected abstract List<? extends NodeFactory<? extends PythonBuiltinNode>> getNodeFactories();
 
-// private static int index = 1;
-
     @SuppressWarnings("unchecked")
     public void initialize(PythonContext context) {
-// Source source = null;
-// if (PythonOptions.ProfileCalls) {
-// try {
-// source = Source.fromFileName("graal/edu.uci.python.test/src/tests/builtins.py");
-// } catch (IOException e) {
-// e.printStackTrace();
-// }
-// }
 
         List<NodeFactory<PythonBuiltinNode>> factories = (List<NodeFactory<PythonBuiltinNode>>) getNodeFactories();
         assert factories != null : "No factories found. Override getFactories() to resolve this.";
@@ -86,18 +76,6 @@ public abstract class PythonBuiltins {
             } else {
                 setBuiltinFunction(builtin.name(), function);
                 // TODO: Redesign Python profiler based on the new changes from Truffle
-// Instrumentation
-// if (PythonOptions.ProfileCalls) {
-// PNode body = ((BuiltinFunctionRootNode) callTarget.getRootNode()).getBody();
-// SourceSection sourceSection = source.createSection("builtin-in", index);
-// body.assignSourceSection(sourceSection);
-//
-// PythonWrapperNode wrapperNode = null;
-// wrapperNode = PythonProfilerNodeProber.getInstance().probeAsMethodBody(body, context);
-//
-// body.replace(wrapperNode);
-// index++;
-// }
             }
         }
     }

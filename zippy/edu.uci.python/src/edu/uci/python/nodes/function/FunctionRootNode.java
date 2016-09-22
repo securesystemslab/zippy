@@ -316,8 +316,8 @@ public final class FunctionRootNode extends RootNode {
         }
 
         optimizedGeneratorDispatches.add(dispatch);
-        PrintStream ps = System.out;
-        ps.println("[ZipPy] peeled generator " + genfun.getCallTarget() + " in " + getRootNode());
+        if (PythonOptions.TraceGeneratorInlining)
+            System.out.println("[ZipPy] peeled generator " + genfun.getCallTarget() + " in " + getRootNode());
         return true;
     }
 
@@ -367,8 +367,8 @@ public final class FunctionRootNode extends RootNode {
             genexp.setEnclosingFrameGenerator(false);
         }
 
-        PrintStream ps = System.out;
-        ps.println("[ZipPy] peeled generator not aligned " + generator.getCallTarget() + " in " + getRootNode());
+        if (PythonOptions.TraceGeneratorInlining)
+            System.out.println("[ZipPy] peeled generator not aligned " + generator.getCallTarget() + " in " + getRootNode());
         return true;
     }
 

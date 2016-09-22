@@ -24,27 +24,45 @@
  */
 package edu.uci.python.nodes.optimize;
 
-import java.io.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeUtil;
+import com.oracle.truffle.api.nodes.RootNode;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.argument.*;
-import edu.uci.python.nodes.call.*;
+import edu.uci.python.nodes.EmptyNode;
+import edu.uci.python.nodes.NodeFactory;
+import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.PNodeUtil;
+import edu.uci.python.nodes.argument.ArgumentsNode;
+import edu.uci.python.nodes.argument.ReadIndexedArgumentNode;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
+import edu.uci.python.nodes.call.CallDispatchNoneNode;
+import edu.uci.python.nodes.call.CallDispatchNoneNode.GeneratorDispatchNoneNode;
+import edu.uci.python.nodes.call.CallDispatchNoneNode.UninitializedDispatchNoneNode;
 import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
 import edu.uci.python.nodes.call.PythonCallNode.NoneCallNode;
-import edu.uci.python.nodes.call.CallDispatchNoneNode.*;
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.frame.*;
-import edu.uci.python.nodes.function.*;
-import edu.uci.python.nodes.generator.*;
-import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.*;
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.function.*;
-import static edu.uci.python.nodes.function.GeneratorFunctionDefinitionNode.*;
+import edu.uci.python.nodes.control.BlockNode;
+import edu.uci.python.nodes.control.GetIteratorNode;
+import edu.uci.python.nodes.control.ReturnTargetNode;
+import edu.uci.python.nodes.frame.FrameSlotNode;
+import edu.uci.python.nodes.frame.ReadLevelVariableNode;
+import edu.uci.python.nodes.frame.ReadLocalVariableNode;
+import edu.uci.python.nodes.frame.WriteLocalVariableNodeFactory;
+import edu.uci.python.nodes.function.FunctionRootNode;
+import edu.uci.python.nodes.function.GeneratorExpressionNode;
+import edu.uci.python.nodes.function.GeneratorFunctionDefinitionNode.StatelessGeneratorFunctionDefinitionNode;
+import edu.uci.python.nodes.generator.FrameSwappingNode;
+import edu.uci.python.nodes.generator.GeneratorReturnTargetNode;
+import edu.uci.python.nodes.generator.ReadGeneratorFrameVariableNode;
+import edu.uci.python.nodes.generator.WriteGeneratorFrameVariableNodeFactory;
+import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.PeeledGeneratorLoopBoxedNode;
+import edu.uci.python.runtime.PythonContext;
+import edu.uci.python.runtime.PythonOptions;
+import edu.uci.python.runtime.function.PGeneratorFunction;
 
 public class GeneratorExpressionOptimizer {
 
@@ -70,8 +88,9 @@ public class GeneratorExpressionOptimizer {
             EscapeAnalyzer escapeAnalyzer = new EscapeAnalyzer(functionRoot, genExp);
 
             if (!escapeAnalyzer.escapes()) {
-                PrintStream out = System.out;
-                out.println("[ZipPy] escapse analysis: " + genExp + " does not escape current frame");
+                if (PythonOptions.TraceGeneratorInlining)
+                    System.out.println("[ZipPy] escapse analysis: " + genExp + " does not escape current frame");
+
                 transform(genExp, escapeAnalyzer);
             } else {
                 functionRoot.reportGeneratorExpression();
@@ -152,8 +171,8 @@ public class GeneratorExpressionOptimizer {
         }
 
         genexp.setAsOptimized();
-        PrintStream out = System.out;
-        out.println("[ZipPy] genexp optimizer: transform " + genexp + " to inlineable generator call");
+        if (PythonOptions.TraceGeneratorInlining)
+            System.out.println("[ZipPy] genexp optimizer: transform " + genexp + " to inlineable generator call");
     }
 
     /**

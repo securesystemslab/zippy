@@ -24,19 +24,28 @@
  */
 package edu.uci.python.nodes.optimize;
 
-import java.io.*;
+import com.oracle.truffle.api.Assumption;
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeUtil;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
-
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.call.*;
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.frame.*;
-import edu.uci.python.nodes.function.*;
-import edu.uci.python.nodes.generator.*;
-import edu.uci.python.runtime.*;
+import edu.uci.python.nodes.ModuleNode;
+import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.call.PythonCallNode;
+import edu.uci.python.nodes.control.ForNode;
+import edu.uci.python.nodes.control.ReturnTargetNode;
+import edu.uci.python.nodes.frame.ReadLevelVariableNode;
+import edu.uci.python.nodes.frame.ReadLocalVariableNode;
+import edu.uci.python.nodes.frame.WriteLocalVariableNode;
+import edu.uci.python.nodes.frame.WriteLocalVariableNodeFactory;
+import edu.uci.python.nodes.function.FunctionRootNode;
+import edu.uci.python.nodes.function.GeneratorExpressionNode;
+import edu.uci.python.nodes.generator.GeneratorReturnTargetNode;
+import edu.uci.python.nodes.generator.YieldNode;
+import edu.uci.python.runtime.PythonContext;
+import edu.uci.python.runtime.PythonOptions;
 
 public class BuiltinIntrinsifier {
 
@@ -133,8 +142,8 @@ public class BuiltinIntrinsifier {
         callNode.replace(target.createComprehensionNode(listCompSlot, genexpBody));
 
         genexp.setAsOptimized();
-        PrintStream out = System.out;
-        out.println("[ZipPy] builtin intrinsifier: transform " + genexp + " with call to '" + target.getName() + "' to " + target.getName() + " comprehension");
+        if (PythonOptions.TraceGeneratorInlining)
+            System.out.println("[ZipPy] builtin intrinsifier: transform " + genexp + " with call to '" + target.getName() + "' to " + target.getName() + " comprehension");
     }
 
     private static void redirectLocalRead(FrameSlot orig, FrameSlot target, PNode root) {

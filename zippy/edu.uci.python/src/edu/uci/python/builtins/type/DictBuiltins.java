@@ -24,16 +24,19 @@
  */
 package edu.uci.python.builtins.type;
 
-import java.util.*;
+import java.util.List;
 
-import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.dsl.GenerateNodeFactory;
+import com.oracle.truffle.api.dsl.Specialization;
 
-import edu.uci.python.builtins.*;
-import edu.uci.python.nodes.function.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.sequence.storage.*;
+import edu.uci.python.builtins.Builtin;
+import edu.uci.python.builtins.PythonBuiltins;
+import edu.uci.python.nodes.function.PythonBuiltinNode;
+import edu.uci.python.runtime.datatype.PDict;
+import edu.uci.python.runtime.datatype.PDictView;
+import edu.uci.python.runtime.sequence.PList;
+import edu.uci.python.runtime.sequence.PTuple;
+import edu.uci.python.runtime.sequence.storage.IntSequenceStorage;
 
 /**
  * @author Gulfem
@@ -100,7 +103,6 @@ public final class DictBuiltins extends PythonBuiltins {
     @GenerateNodeFactory
     public abstract static class KeysNode extends PythonBuiltinNode {
 
-        @ExplodeLoop
         @Specialization(rewriteOn = ClassCastException.class)
         public PList keysPDictInt(PDict self) {
             IntSequenceStorage store = new IntSequenceStorage();

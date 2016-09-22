@@ -39,4 +39,8 @@ public abstract class LoopNode extends StatementNode {
         return body;
     }
 
+    protected int reportLoopCount(int count) {
+        return count;
+    }
+
 }
