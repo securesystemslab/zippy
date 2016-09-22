@@ -9,7 +9,7 @@ ZipPy is currently maintained by [Secure Systems and Software Laboratory](https:
 
 #### Prerequisites:
 
-1. Install the most recent [JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/index.html)
+1. Install the most recent [labsJDK 8](http://www.oracle.com/technetwork/oracle-labs/program-languages/downloads/index.html)
  
 #### Getting ZipPy:
 
@@ -25,16 +25,16 @@ ZipPy is currently maintained by [Secure Systems and Software Laboratory](https:
 
 4. Clone ZipPy:
 
-        $ hg clone ssh://hg@bitbucket.org/ssllab/zippy
+        $ git clone https://github.com/securesystemslab/zippy.git
 
 5. Get all ZipPy's dependencies:
 
         $ cd $ZIPPY_HOME/zippy
         $ mx spull
 
-6. Create a file `$ZIPPY_HOME/zippy/mx.zippy/env` and add JDK 8 paths
+6. Create a file `$ZIPPY_HOME/zippy/mx.zippy/env` and add JDK path
 
-        JAVA_HOME=<path to JDK 8>
+        JAVA_HOME=<path to labsjdk>
         DEFAULT_VM=jvmci
 
 #### Build:
@@ -52,4 +52,4 @@ ZipPy is currently maintained by [Secure Systems and Software Laboratory](https:
     $ cd $ZIPPY_HOME/zippy
     $ mx unittest python.test
 
-For more details and instructions for downloading and building the system, please visit the [ZipPy Wiki](https://bitbucket.org/ssllab/zippy/wiki).
+For more details and instructions for downloading and building the system, please visit the [ZipPy Wiki](https://github.com/securesystemslab/zippy/wiki).
