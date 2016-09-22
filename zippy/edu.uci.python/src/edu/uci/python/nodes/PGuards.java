@@ -42,6 +42,18 @@ public abstract class PGuards {
         return first.getStorage() instanceof IntSequenceStorage && second.getStorage() instanceof IntSequenceStorage;
     }
 
+    public static boolean isLongStorage(PList list) {
+        return list.getStorage() instanceof LongSequenceStorage;
+    }
+
+    public static boolean is2ndLongStorage(@SuppressWarnings("unused") Object first, PList list) {
+        return list.getStorage() instanceof LongSequenceStorage;
+    }
+
+    public static boolean areBothLongStorage(PList first, PList second) {
+        return first.getStorage() instanceof LongSequenceStorage && second.getStorage() instanceof LongSequenceStorage;
+    }
+
     public static boolean isDoubleStorage(PList list) {
         return list.getStorage() instanceof DoubleSequenceStorage;
     }
@@ -158,12 +170,23 @@ public abstract class PGuards {
     }
 
     @SuppressWarnings("unused")
+    public static boolean isIndexNegative(Object primary, int idx) {
+        return idx < 0;
+    }
+
+    @SuppressWarnings("unused")
+    public static boolean isIndexPositive(Object primary, long idx) {
+        return idx >= 0;
+    }
+
+    @SuppressWarnings("unused")
+    public static boolean isIndexNegative(Object primary, long idx) {
+        return idx < 0;
+    }
+
+    @SuppressWarnings("unused")
     public static boolean noInitializer(String typeCode, Object initializer) {
         return (initializer instanceof PNone);
     }
 
-    @SuppressWarnings("unused")
-    public static boolean isIndexNegative(Object primary, int idx) {
-        return idx < 0;
-    }
 }

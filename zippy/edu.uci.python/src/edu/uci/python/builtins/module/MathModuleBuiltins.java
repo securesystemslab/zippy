@@ -24,6 +24,7 @@
  */
 package edu.uci.python.builtins.module;
 
+import java.math.BigInteger;
 import java.util.List;
 
 import com.oracle.truffle.api.dsl.GenerateNodeFactory;
@@ -90,6 +91,16 @@ public class MathModuleBuiltins extends PythonBuiltins {
         @Specialization
         public double ceil(double value) {
             return Math.ceil(value);
+        }
+    }
+
+    @Builtin(name = "floor", fixedNumOfArguments = 1, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
+    public abstract static class FloorNode extends PythonBuiltinNode {
+
+        @Specialization
+        public double floor(double value) {
+            return Math.floor(value);
         }
     }
 
@@ -166,6 +177,28 @@ public class MathModuleBuiltins extends PythonBuiltins {
         public double fabs(double value) {
             return Math.abs(value);
         }
+    }
+
+    @Builtin(name = "pow", fixedNumOfArguments = 2, hasFixedNumOfArguments = true)
+    @GenerateNodeFactory
+    public abstract static class PowNode extends PythonBuiltinNode {
+
+        @Specialization
+        int pow(int left, int right) {
+            return (int) Math.pow(left, right);
+        }
+
+        @Specialization
+        BigInteger pow(BigInteger left, BigInteger right) {
+            double value = Math.pow(left.doubleValue(), right.doubleValue());
+            return BigInteger.valueOf((long) value);
+        }
+
+        @Specialization
+        double pow(double left, double right) {
+            return Math.pow(left, right);
+        }
+
     }
 
 }

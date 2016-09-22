@@ -65,6 +65,13 @@ public class ListBuiltins extends PythonBuiltins {
             return list;
         }
 
+        @Specialization(guards = "isLongStorage(list)")
+        public PList appendLong(PList list, long arg) {
+            LongSequenceStorage store = (LongSequenceStorage) list.getStorage();
+            store.appendLong(arg);
+            return list;
+        }
+
         @Specialization(guards = "isDoubleStorage(list)")
         public PList appendDouble(PList list, double arg) {
             DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
@@ -152,6 +159,12 @@ public class ListBuiltins extends PythonBuiltins {
         public int popInt(PList list, @SuppressWarnings("unused") PNone none) {
             IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
             return store.popInt();
+        }
+
+        @Specialization(guards = "isLongStorage(list)")
+        public long popLong(PList list, @SuppressWarnings("unused") PNone none) {
+            LongSequenceStorage store = (LongSequenceStorage) list.getStorage();
+            return store.popLong();
         }
 
         @Specialization(guards = "isDoubleStorage(list)")

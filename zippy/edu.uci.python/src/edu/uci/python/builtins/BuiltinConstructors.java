@@ -30,6 +30,7 @@ import java.util.*;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
@@ -222,6 +223,11 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         @Specialization
         public double floatFromInt(int arg) {
+            return arg;
+        }
+
+        @Specialization
+        public double floatFromFloat(double arg) {
             return arg;
         }
 
@@ -467,28 +473,86 @@ public final class BuiltinConstructors extends PythonBuiltins {
         }
 
         @SuppressWarnings("unused")
+        @Specialization(guards = "caseStop(stop,start,step)")
+        public PSequence rangeStop(long stop, Object start, Object step) {
+            return new PRange(BigInteger.valueOf(stop).intValue());
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(guards = "caseStop(stop,start,step)")
+        public PSequence rangeStop(BigInteger stop, Object start, Object step) {
+            return new PRange(stop.intValue());
+        }
+
+        @SuppressWarnings("unused")
         @Specialization(guards = "caseStartStop(stop,start,step)")
         public PSequence rangeStartStop(int start, int stop, Object step) {
             return new PRange(start, stop);
         }
 
-        @Specialization()
+        @SuppressWarnings("unused")
+        @Specialization(guards = "caseStartStop(stop,start,step)")
+        public PSequence rangeStartStop(int start, long stop, Object step) {
+            return new PRange(start, BigInteger.valueOf(stop).intValue());
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(guards = "caseStartStop(stop,start,step)")
+        public PSequence rangeStartStop(long start, int stop, Object step) {
+            return new PRange(BigInteger.valueOf(start).intValue(), stop);
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(guards = "caseStartStop(stop,start,step)")
+        public PSequence rangeStartStop(long start, long stop, Object step) {
+            return new PRange(BigInteger.valueOf(start).intValue(), BigInteger.valueOf(stop).intValue());
+        }
+
+        @Specialization
         public PSequence rangeStartStopStep(int start, int stop, int step) {
             return new PRange(start, stop, step);
         }
 
         @Specialization
+        public PSequence rangeStartStopStep(long start, long stop, long step) {
+            return new PRange((int) start, BigInteger.valueOf(stop).intValue(), BigInteger.valueOf(step).intValue());
+        }
+
+        @Specialization
         public PSequence rangeStartStopStep(Object start, Object stop, Object step) {
-            if (start instanceof Integer) {
-                int intStart = (int) start;
-                if (stop instanceof PNone) {
+            if (isNumber(start)) {
+                int intStart = 0;
+                if (start instanceof Integer)
+                    intStart = (int) start;
+                else if (start instanceof Long)
+                    intStart = BigInteger.valueOf((long) (start)).intValue();
+                else
+                    intStart = ((BigInteger) start).intValue();
+
+                if (stop instanceof PNone)
                     return new PRange(intStart);
-                } else if (stop instanceof Integer) {
-                    int intStop = (int) stop;
-                    if (step instanceof PNone) {
+
+                if (isNumber(stop)) {
+                    int intStop = 0;
+                    if (stop instanceof Integer)
+                        intStop = (int) stop;
+                    else if (stop instanceof Long)
+                        intStop = BigInteger.valueOf((long) (stop)).intValue();
+                    else
+                        intStop = ((BigInteger) stop).intValue();
+
+                    if (step instanceof PNone)
                         return new PRange(intStart, intStop);
-                    } else {
-                        int intStep = (int) step;
+
+                    if (isNumber(step)) {
+                        int intStep = 0;
+                        if (step instanceof Integer)
+                            intStep = (int) step;
+                        else if (step instanceof Long)
+                            intStep = BigInteger.valueOf((long) (step)).intValue();
+                        else
+                            intStep = ((BigInteger) step).intValue();
+
                         return new PRange(intStart, intStop, intStep);
                     }
                 }
@@ -497,8 +561,22 @@ public final class BuiltinConstructors extends PythonBuiltins {
             throw Py.TypeError("range does not support " + start + ", " + stop + ", " + step);
         }
 
+        public static boolean isNumber(Object value) {
+            return value instanceof Integer || value instanceof Long || value instanceof BigInteger;
+        }
+
         @SuppressWarnings("unused")
         public static boolean caseStop(int stop, Object start, Object step) {
+            return start == PNone.NONE && step == PNone.NONE;
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean caseStop(long stop, Object start, Object step) {
+            return start == PNone.NONE && step == PNone.NONE;
+        }
+
+        @SuppressWarnings("unused")
+        public static boolean caseStop(BigInteger stop, Object start, Object step) {
             return start == PNone.NONE && step == PNone.NONE;
         }
 
@@ -506,6 +584,12 @@ public final class BuiltinConstructors extends PythonBuiltins {
         public static boolean caseStartStop(int start, int stop, Object step) {
             return step == PNone.NONE;
         }
+
+        @SuppressWarnings("unused")
+        public static boolean caseStartStop(long start, long stop, Object step) {
+            return step == PNone.NONE;
+        }
+
     }
 
     // set([iterable])
@@ -556,10 +640,21 @@ public final class BuiltinConstructors extends PythonBuiltins {
     public abstract static class StrNode extends PythonBuiltinNode {
 
         @Specialization
+        public String str(boolean arg) {
+            return arg ? "True" : "False";
+        }
+
+        @Specialization
         public String str(int val) {
             return Integer.toString(val);
         }
 
+        @Specialization
+        public String str(double arg) {
+            return JavaTypeConversions.doubleToString(arg);
+        }
+
+        @TruffleBoundary
         @Specialization
         public String str(PythonObject obj) {
             return PythonBuiltinNode.callAttributeSlowPath(obj, "__str__");
@@ -604,7 +699,6 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         @Child protected GetIteratorNode getIterator;
 
-        @ExplodeLoop
         @Specialization
         public PZip zip(PTuple args) {
             if (getIterator == null) {

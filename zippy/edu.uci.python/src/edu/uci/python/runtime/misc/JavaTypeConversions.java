@@ -27,8 +27,11 @@ package edu.uci.python.runtime.misc;
 import java.math.*;
 
 import org.python.core.*;
+import org.python.core.stringlib.FloatFormatter;
+import org.python.core.stringlib.InternalFormat.Spec;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 
 import edu.uci.python.runtime.datatype.*;
 
@@ -199,6 +202,7 @@ public class JavaTypeConversions {
 
     // Taken from Jython PyString's atof() method
     // The last statement throw Py.ValueError is modified
+    @TruffleBoundary
     public static double convertStringToDouble(String str) {
         StringBuilder s = null;
         int n = str.length();
@@ -374,6 +378,43 @@ public class JavaTypeConversions {
             return end - 1;
         }
         return end;
+    }
+
+    @TruffleBoundary
+    public static String doubleToString(double item) {
+
+        String d = Double.toString(item);
+        int exp = d.indexOf("E");
+        if (exp != -1) {
+            int l = d.length() - 1;
+            if (exp == (l - 2)) {
+                if (d.charAt(exp + 1) == '-') {
+                    if (Integer.valueOf(d.charAt(l) + "") == 4)
+                        /*- Java convert double when 0.000###... while Python does it when 0.0000####... */
+                        d = Double.toString((item * 10)).replace(".", ".0");
+                    else
+                        d = d.substring(0, l) + "0" + d.substring(l);
+
+                    exp = d.indexOf("E");
+                }
+            }
+            if (exp != -1 && d.charAt(exp + 1) != '-')
+                d = d.substring(0, exp + 1) + "+" + d.substring(exp + 1, l + 1);
+            d = d.toLowerCase();
+        }
+        return d;
+    }
+
+    @TruffleBoundary
+    public static String doubleToStringJython(double item) {
+        String d = Double.toString(item);
+        if (d.indexOf('E') != -1) {
+            StringBuilder result = new StringBuilder();
+            FloatFormatter format = new FloatFormatter(result, new Spec(17, Spec.NONE));
+            format.format(item);
+            return result.toString();
+        }
+        return d;
     }
 
     // Taken from Jython __builtin__ class chr(int i) method

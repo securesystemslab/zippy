@@ -520,7 +520,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return PInt.__class__ == cls;
         }
 
-        @ExplodeLoop
         @Specialization
         public boolean isinstance(@SuppressWarnings("unused") int val, PTuple classTuple) {
             for (int i = 0; i < classTuple.len(); i++) {
@@ -532,7 +531,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
-        @ExplodeLoop
         @Specialization
         public boolean isinstance(@SuppressWarnings("unused") String val, PTuple classTuple) {
             for (int i = 0; i < classTuple.len(); i++) {
@@ -549,7 +547,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return obj.__class__() == cls;
         }
 
-        @ExplodeLoop
         @Specialization
         public boolean isinstance(PythonBuiltinObject obj, PTuple classTuple) {
             for (int i = 0; i < classTuple.len(); i++) {
@@ -561,7 +558,6 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return false;
         }
 
-        @ExplodeLoop
         @Specialization
         public boolean isinstance(PythonObject obj, PTuple classTuple) {
             for (int i = 0; i < classTuple.len(); i++) {
@@ -669,6 +665,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return store.length();
         }
 
+        @Specialization(guards = "isLongStorage(list)")
+        public int lenPListLong(PList list) {
+            LongSequenceStorage store = (LongSequenceStorage) list.getStorage();
+            return store.length();
+        }
+
         @Specialization(guards = "isDoubleStorage(list)")
         public int lenPListDouble(PList list) {
             DoubleSequenceStorage store = (DoubleSequenceStorage) list.getStorage();
@@ -685,6 +687,12 @@ public final class BuiltinFunctions extends PythonBuiltins {
         public int lenPList(PList list) {
             BasicSequenceStorage store = (BasicSequenceStorage) list.getStorage();
             return store.length();
+        }
+
+        @TruffleBoundary
+        @Specialization
+        public int lenPList(PyList list) {
+            return list.__len__();
         }
 
         @Specialization
@@ -769,20 +777,35 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         private static Object getMax(Object arg1, Object arg2) {
-            if (arg1 instanceof Integer) {
-                int arg1Int = (Integer) arg1;
-                if (arg2 instanceof Integer) {
-                    int arg2Int = (Integer) arg2;
-                    return Math.max(arg1Int, arg2Int);
-                }
-            } else if (arg1 instanceof Double) {
+
+            if (arg1 instanceof Double) {
                 double arg1Double = (Double) arg1;
                 if (arg2 instanceof Integer || arg2 instanceof Double) {
                     double arg2Double = (Double) arg2;
                     return Math.max(arg1Double, arg2Double);
                 }
             }
-            throw new RuntimeException("Unsupported min operation");
+
+            BigInteger a = null;
+            if (arg1 instanceof Integer)
+                a = BigInteger.valueOf(Long.valueOf((int) arg1));
+            else if (arg1 instanceof Long)
+                a = BigInteger.valueOf((long) arg1);
+            else if (arg1 instanceof BigInteger)
+                a = (BigInteger) arg1;
+
+            BigInteger b = null;
+            if (arg2 instanceof Integer)
+                b = BigInteger.valueOf(Long.valueOf((int) arg2));
+            else if (arg2 instanceof Long)
+                b = BigInteger.valueOf((long) arg2);
+            else if (arg2 instanceof BigInteger)
+                b = (BigInteger) arg2;
+
+            if (a != null && b != null)
+                return a.max(b);
+
+            throw new RuntimeException("Unsupported max operation");
         }
 
         private static Object getMax(Object[] args) {
@@ -843,19 +866,32 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         private static Object getMin(Object arg1, Object arg2) {
-            if (arg1 instanceof Integer) {
-                int arg1Int = (Integer) arg1;
-                if (arg2 instanceof Integer) {
-                    int arg2Int = (Integer) arg2;
-                    return Math.min(arg1Int, arg2Int);
-                }
-            } else if (arg1 instanceof Double) {
+            if (arg1 instanceof Double) {
                 double arg1Double = (Double) arg1;
-                if (arg2 instanceof Integer || arg2 instanceof Double) {
+                if (arg2 instanceof Integer || arg2 instanceof Long || arg2 instanceof Double) {
                     double arg2Double = (Double) arg2;
                     return Math.min(arg1Double, arg2Double);
                 }
             }
+            BigInteger a = null;
+            if (arg1 instanceof Integer)
+                a = BigInteger.valueOf(Long.valueOf((int) arg1));
+            else if (arg1 instanceof Long)
+                a = BigInteger.valueOf((long) arg1);
+            else if (arg1 instanceof BigInteger)
+                a = (BigInteger) arg1;
+
+            BigInteger b = null;
+            if (arg2 instanceof Integer)
+                b = BigInteger.valueOf(Long.valueOf((int) arg2));
+            else if (arg2 instanceof Long)
+                b = BigInteger.valueOf((long) arg2);
+            else if (arg2 instanceof BigInteger)
+                b = (BigInteger) arg2;
+
+            if (a != null && b != null)
+                return a.min(b);
+
             throw new RuntimeException("Unsupported min operation");
         }
 
@@ -915,7 +951,8 @@ public final class BuiltinFunctions extends PythonBuiltins {
     }
 
     // print(*objects, sep=' ', end='\n', file=sys.stdout, flush=False)
-    @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file", "flush"}, requiresContext = true)
+    @Builtin(name = "print", minNumOfArguments = 0, takesKeywordArguments = true, takesVariableArguments = true, takesVariableKeywords = true, keywordNames = {"sep", "end", "file",
+                    "flush"}, requiresContext = true)
     @GenerateNodeFactory
     public abstract static class PrintNode extends PythonBuiltinNode {
 
@@ -967,11 +1004,14 @@ public final class BuiltinFunctions extends PythonBuiltins {
             return PNone.NONE;
         }
 
+        @TruffleBoundary
         private static String stringifyElement(Object element) {
             if (element instanceof Boolean) {
                 return ((boolean) element ? "True" : "False");
             } else if (element instanceof PythonObject) {
                 return PythonBuiltinNode.callAttributeSlowPath((PythonObject) element, "__repr__");
+            } else if (element instanceof Double) {
+                return JavaTypeConversions.doubleToString((double) element);
             } else {
                 return element.toString();
             }
@@ -1011,18 +1051,51 @@ public final class BuiltinFunctions extends PythonBuiltins {
     }
 
     // round(number[, ndigits])
-    @Builtin(name = "round", hasFixedNumOfArguments = true, fixedNumOfArguments = 1)
+    @Builtin(name = "round", minNumOfArguments = 1, maxNumOfArguments = 2)
     @GenerateNodeFactory
     public abstract static class RoundNode extends PythonBuiltinNode {
 
+        @SuppressWarnings("unused")
         @Specialization
-        public int round(int arg) {
-            return Math.round(arg);
+        public double round(int arg, int n) {
+            return arg;
         }
 
+        /**
+         * The logic is borrowed from Jython.
+         *
+         */
+        @TruffleBoundary
         @Specialization
-        public double round(double arg) {
-            return Math.round(arg);
+        public double round(double x, Object nn) {
+            int n = 0;
+            if (nn != PNone.NONE)
+                n = (int) nn;
+            if (Double.isNaN(x) || Double.isInfinite(x) || x == 0.0) {
+                // nans, infinities and zeros round to themselves
+                return x;
+
+            } else {
+
+                // (Slightly less than) n*log2(10).
+                float nlog2_10 = 3.3219f * n;
+
+                // x = a * 2^b and a<2.
+                int b = Math.getExponent(x);
+
+                if (nlog2_10 > 52 - b) {
+                    // When n*log2(10) > nmax, the lsb of abs(x) is >1, so x rounds to itself.
+                    return x;
+                } else if (nlog2_10 < -(b + 2)) {
+                    // When n*log2(10) < -(b+2), abs(x)<0.5*10^n so x rounds to (signed) zero.
+                    return Math.copySign(0.0, x);
+                } else {
+                    // We have to work it out properly.
+                    BigDecimal xx = new BigDecimal(x);
+                    BigDecimal rr = xx.setScale(n, RoundingMode.HALF_UP);
+                    return rr.doubleValue();
+                }
+            }
         }
     }
 
@@ -1069,10 +1142,51 @@ public final class BuiltinFunctions extends PythonBuiltins {
          * Incomplete. Only support ints.
          */
 
+        @Specialization(guards = "isIntStorage(list)")
+        public int doPIteratorInt(PList list) {
+            PIterator iterator = list.__iter__();
+            int sum = 0;
+            try {
+                while (true) {
+                    sum += (int) iterator.__next__();
+                }
+            } catch (StopIterationException e) {
+            }
+
+            return sum;
+        }
+
+        @Specialization(guards = "isLongStorage(list)")
+        public long doPIteratorLong(PList list) {
+            PIterator iterator = list.__iter__();
+            long sum = 0;
+            try {
+                while (true) {
+                    sum += (long) iterator.__next__();
+                }
+            } catch (StopIterationException e) {
+            }
+
+            return sum;
+        }
+
+        @Specialization(guards = "isDoubleStorage(list)")
+        public double doPIteratorDouble(PList list) {
+            PIterator iterator = list.__iter__();
+            double sum = 0.0;
+            try {
+                while (true) {
+                    sum += (double) iterator.__next__();
+                }
+            } catch (StopIterationException e) {
+            }
+
+            return sum;
+        }
+
         @Specialization
         public int doPIterable(PIterable iterable) {
-            PIterator iter = iterable.__iter__();
-            return doPIterator(iter);
+            return doPIterator(iterable.__iter__());
         }
 
         @Specialization

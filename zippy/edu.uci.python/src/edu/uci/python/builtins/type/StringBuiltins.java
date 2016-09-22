@@ -24,26 +24,23 @@
  */
 package edu.uci.python.builtins.type;
 
-import java.util.List;
+import java.util.*;
+import java.util.regex.Pattern;
 
-import com.oracle.truffle.api.dsl.Fallback;
-import com.oracle.truffle.api.dsl.GenerateNodeFactory;
-import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+import com.oracle.truffle.api.dsl.*;
 
-import edu.uci.python.builtins.Builtin;
-import edu.uci.python.builtins.PythonBuiltins;
-import edu.uci.python.nodes.function.PythonBuiltinNode;
-import edu.uci.python.runtime.array.PCharArray;
-import edu.uci.python.runtime.datatype.PDict;
-import edu.uci.python.runtime.datatype.PNone;
-import edu.uci.python.runtime.sequence.PList;
-import edu.uci.python.runtime.sequence.PSequence;
-import edu.uci.python.runtime.sequence.PSet;
-import edu.uci.python.runtime.sequence.storage.ObjectSequenceStorage;
+import edu.uci.python.builtins.*;
+import edu.uci.python.nodes.function.*;
+import edu.uci.python.runtime.array.*;
+import edu.uci.python.runtime.datatype.*;
+import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
 /**
  * @author Gulfem
  * @author zwei
+ * @author myq
  */
 
 public final class StringBuiltins extends PythonBuiltins {
@@ -86,7 +83,6 @@ public final class StringBuiltins extends PythonBuiltins {
     @GenerateNodeFactory
     public abstract static class JoinNode extends PythonBuiltinNode {
 
-// @ExplodeLoop
         @Specialization
         public String join(String string, String arg) {
             StringBuilder sb = new StringBuilder();
@@ -101,7 +97,6 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-// @ExplodeLoop
         @Specialization(guards = "is2ndObjectStorage(string,list)")
         public String join(String string, PList list) {
             StringBuilder sb = new StringBuilder();
@@ -116,7 +111,6 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-// @ExplodeLoop
         @Specialization
         public String join(String string, PCharArray array) {
             StringBuilder sb = new StringBuilder();
@@ -131,7 +125,6 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-// @ExplodeLoop
         @Specialization
         public String join(String string, PSequence seq) {
             StringBuilder sb = new StringBuilder();
@@ -145,7 +138,6 @@ public final class StringBuiltins extends PythonBuiltins {
             return sb.toString();
         }
 
-// @ExplodeLoop
         @Specialization
         public String join(String string, PSet arg) {
             if (arg.len() == 0) {
@@ -244,6 +236,17 @@ public final class StringBuiltins extends PythonBuiltins {
             return splitfields(self, -1);
         }
 
+        @SuppressWarnings("unused")
+        @TruffleBoundary
+        @Specialization
+        public PList doSplit(String self, String sep, PNone maxsplit) {
+            PList list = new PList();
+            String[] strs = self.split(Pattern.quote(sep));
+            for (String s : strs)
+                list.append(s);
+            return list;
+        }
+
         @Specialization
         public PList doSplit(String self, @SuppressWarnings("unused") PNone sep, int maxsplit) {
             return splitfields(self, maxsplit);
@@ -309,4 +312,26 @@ public final class StringBuiltins extends PythonBuiltins {
         }
     }
 
+    // str.replace
+    @Builtin(name = "replace", minNumOfArguments = 3, maxNumOfArguments = 4)
+    @GenerateNodeFactory
+    public abstract static class ReplaceNode extends PythonBuiltinNode {
+
+        @SuppressWarnings("unused")
+        @Specialization
+        public String doReplace(String self, String old, String with, PNone maxsplit) {
+            return self.replace(old, with);
+        }
+
+        @TruffleBoundary
+        @Specialization
+        public String doReplace(String self, String old, String with, int maxsplit) {
+            String newSelf = self;
+            for (int i = 0; i < maxsplit; i++) {
+                newSelf = newSelf.replaceFirst(old, with);
+            }
+            return newSelf;
+        }
+
+    }
 }
