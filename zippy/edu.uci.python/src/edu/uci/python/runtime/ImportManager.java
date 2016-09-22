@@ -31,8 +31,11 @@ import java.util.*;
 import org.python.core.*;
 
 import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.source.*;
+import com.oracle.truffle.api.source.Source.Builder;
 
+import edu.uci.python.PythonLanguage;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.standardtype.*;
 
@@ -52,6 +55,7 @@ public class ImportManager {
 
     // Unsupported Imports:
     private final Map<String, Boolean> unsupportedImports;
+    private final Map<String, Map<String, PyObject>> jythonImports;
 
     private static String getPythonLibraryPath() {
         String workingDir = System.getProperty("user.dir");
@@ -82,6 +86,7 @@ public class ImportManager {
         this.paths = new ArrayList<>();
         this.importedModules = new HashMap<>();
         this.unsupportedImports = new HashMap<>();
+        this.jythonImports = new HashMap<>();
         this.paths.add(getPythonLibraryPath());
         this.paths.add(getPythonLibraryExtrasPath());
 
@@ -96,9 +101,9 @@ public class ImportManager {
         return importModule(context.getMainModule(), moduleName);
     }
 
-    public Object importModule(PythonModule relativeto, String moduleName) {
+    public Object importModule(PythonModule relativeto, String module) {
         CompilerAsserts.neverPartOfCompilation();
-
+        String moduleName = getModuleName(module);
         /**
          * Look up built-in modules supported by ZipPy
          */
@@ -110,34 +115,61 @@ public class ImportManager {
         /**
          * Go to Jython for blacklisted modules.
          */
-        if (unsupportedImports.containsKey(moduleName)) {
-            return importFromJython(moduleName);
-        }
+        String path = null;
 
-        /**
-         * Try to find user module.
-         */
-        String path = relativeto.getModulePath() == null ? null : getPathFromImporterPath(moduleName, relativeto.getModulePath());
-        if (path != null) {
-            return importAndCache(path, moduleName);
-        }
+        if (unsupportedImports.containsKey(moduleName))
+            return importFromJython(path, moduleName);
 
-        /**
-         * Try to find from system paths.
-         */
-        updateSystemPathFromJython();
-        for (String directoryPath : paths) {
-            path = getPathFromLibrary(directoryPath, moduleName);
+        try {
+            /**
+             * Try to find user module.
+             */
+            path = relativeto.getModulePath() == null ? null : getPathFromImporterPath(moduleName, relativeto.getModulePath());
+            Map<String, PyObject> jythonModule = null;
+            if (jythonImports.containsKey(moduleName)) {
+                if (jythonImports.get(moduleName).containsKey(path))
+                    return jythonImports.get(moduleName).get(path);
+                else
+                    jythonModule = jythonImports.get(moduleName);
+            }
 
             if (path != null) {
                 return importAndCache(path, moduleName);
             }
+
+            /**
+             * Try to find from system paths.
+             */
+            updateSystemPathFromJython();
+            for (String directoryPath : paths) {
+                path = getPathFromLibrary(directoryPath, moduleName);
+
+                if (jythonModule != null && jythonModule.containsKey(path))
+                    return jythonModule.get(path);
+
+                if (path != null) {
+                    return importAndCache(path, moduleName);
+                }
+            }
+        } catch (Exception e) {
+            if (path != null) {
+                if (importedModules.containsKey(path)) {
+                    importedModules.remove(path);
+
+                }
+                try {
+                    String dirPath = new File(path).getCanonicalFile().getParent();
+                    Py.getSystemState().path.append(new PyString(dirPath));
+                } catch (Exception e1) {
+                }
+            }
+            // fall through to Jython import
         }
 
         /**
          * Eventually fall back to Jython, and might return null.
          */
-        return importFromJython(moduleName);
+        return importFromJython(path, moduleName);
     }
 
     private void updateSystemPathFromJython() {
@@ -163,13 +195,30 @@ public class ImportManager {
         }
     }
 
-    private static PyObject importFromJython(String moduleName) {
+    private PyObject importFromJython(String path, String moduleName) {
         if (PythonOptions.TraceImports) {
             // CheckStyle: stop system..print check
             System.out.println("[ZipPy] importing from jython runtime " + moduleName);
             // CheckStyle: resume system..print check
         }
-        return __builtin__.__import__(moduleName);
+        PyObject module = __builtin__.__import__(moduleName);
+        if (path != null) {
+            if (!jythonImports.containsKey(moduleName))
+                jythonImports.put(moduleName, new HashMap<String, PyObject>());
+
+            jythonImports.get(moduleName).put(path, module);
+        }
+        return module;
+    }
+
+    private static String getModuleName(String moduleName) {
+        String name = (moduleName.indexOf('.') == -1) ? moduleName : null;
+        if (name == null) {
+            int dotIdx = moduleName.lastIndexOf('.');
+            name = moduleName.substring(dotIdx + 1);
+        }
+
+        return name;
     }
 
     private static String getPathFromImporterPath(String moduleName, String basePath) {
@@ -197,8 +246,9 @@ public class ImportManager {
         importedModulePath = path + File.separatorChar + moduleName;
         File importingDirectory = new File(importedModulePath);
         importingFile = new File(importingDirectory, "__init__.py");
-        if (importingDirectory.isDirectory() && importingFile.exists()) {
-            return importingFile.toString();
+        if (importingDirectory.isDirectory()) {
+            if (importingFile.exists())
+                return importingFile.toString();
         }
 
         return null;
@@ -242,12 +292,15 @@ public class ImportManager {
         return null;
     }
 
-    private PythonModule importAndCache(String path, String moduleName) {
+    @TruffleBoundary
+    private Object importAndCache(String path, String moduleName) {
         PythonModule importedModule = importedModules.get(path);
         if (importedModule == null) {
+            if (importedModules.containsKey(path))
+                return importFromJython(path, moduleName);
+
             importedModule = tryImporting(path, moduleName);
         }
-
         assert importedModule.getAttribute("__name__").equals(moduleName);
         return importedModule;
     }
@@ -269,15 +322,17 @@ public class ImportManager {
 
         if (file.exists()) {
             PythonModule importedModule = new PythonModule(context, moduleName, path);
-            Source source;
+            Builder<IOException, RuntimeException, RuntimeException> builder = null;
+            Source source = null;
 
             try {
-                source = Source.fromFileName(path);
+                builder = Source.newBuilder(new File(path));
+                builder.mimeType(PythonLanguage.MIME_TYPE);
+                source = builder.build();
             } catch (IOException e) {
                 throw new IllegalStateException();
             }
 
-            importedModules.put(path, importedModule);
             PythonParseResult parsedModule = context.getParser().parse(context, importedModule, source);
             if (parsedModule != null) {
                 if (PythonOptions.TraceImports) {
@@ -289,6 +344,7 @@ public class ImportManager {
                     parsedModule.printAST();
                 }
             }
+            importedModules.put(path, parsedModule.getModule());
 
             return parsedModule;
         }

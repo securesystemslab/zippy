@@ -426,7 +426,8 @@ public class PythonTreeTranslator extends Visitor {
             /**
              * Two WriteLocalNode are created for every default argument. We have to give different
              * source sections to these write nodes. <br>
-             * WriteLocalVariableUninitializedNode ----> This WriteNode is created in this for loop <br>
+             * WriteLocalVariableUninitializedNode ----> This WriteNode is created in this for loop
+             * <br>
              * rightNode = ReadDefaultArgumentNode <br>
              * ApplyArgumentsNode <br>
              * WriteLocalVariableUninitializedNode <br>
@@ -481,14 +482,9 @@ public class PythonTreeTranslator extends Visitor {
         }
 
         String target = aliaz.getInternalAsname() != null ? aliaz.getInternalAsname() : importName;
-        Name importNameNode = aliaz.getInternalAsnameNode();
         PNode importNode = factory.createImportFrom(context, relativeto, fromModuleName, importName);
         ReadNode read = environment.findVariable(target);
         PNode writeNode = read.makeWriteNode(importNode);
-
-        if (importNameNode != null) {
-            assignSourceFromNode(importNameNode, writeNode);
-        }
 
         return writeNode;
     }
@@ -502,14 +498,19 @@ public class PythonTreeTranslator extends Visitor {
     public Object visitImport(Import node) throws Exception {
         List<alias> aliases = node.getInternalNames();
         assert !aliases.isEmpty();
+        PNode singleImport = null;
 
         if (aliases.size() == 1) {
-            return assignSourceFromNode(node, createSingleImportStatement(aliases.get(0)));
+            singleImport = assignSourceFromNode(node, createSingleImportStatement(aliases.get(0)));
+            assignSourceFromNode(node, singleImport);
+            return singleImport;
         }
 
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
-            imports.add(createSingleImportStatement(aliases.get(i)));
+            singleImport = createSingleImportStatement(aliases.get(i));
+            assignSourceFromNode(node, singleImport);
+            imports.add(singleImport);
         }
 
         return factory.createBlock(imports);
@@ -521,15 +522,20 @@ public class PythonTreeTranslator extends Visitor {
             return EmptyNode.create();
         }
         List<alias> aliases = node.getInternalNames();
+        PNode singleImport = null;
         assert !aliases.isEmpty();
 
         if (aliases.size() == 1) {
-            return createSingleImportFromStatement(aliases.get(0), node.getInternalModule());
+            singleImport = createSingleImportFromStatement(aliases.get(0), node.getInternalModule());
+            assignSourceFromNode(node, singleImport);
+            return singleImport;
         }
 
         List<PNode> imports = new ArrayList<>();
         for (int i = 0; i < aliases.size(); i++) {
-            imports.add(createSingleImportFromStatement(aliases.get(i), node.getInternalModule()));
+            singleImport = createSingleImportFromStatement(aliases.get(i), node.getInternalModule());
+            assignSourceFromNode(node, singleImport);
+            imports.add(singleImport);
         }
 
         return factory.createBlock(imports);
@@ -1227,7 +1233,10 @@ public class PythonTreeTranslator extends Visitor {
         int charStartIndex = node.getCharStartIndex();
         int charStopIndex = node.getCharStopIndex();
         int charLength = charStopIndex - charStartIndex;
-        SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
+        int startColumn = node.getToken().getCharPositionInLine();
+        int startLine = node.getToken().getLine();
+        SourceSection sourceSection = source.createSection(identifier, startLine, startColumn, charLength);
+// SourceSection sourceSection = source.createSection(identifier, charStartIndex, charLength);
         truffleNode.assignSourceSection(sourceSection);
         return truffleNode;
     }
