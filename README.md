@@ -1,4 +1,4 @@
-![zippy-logo-200-rounded.jpg](https://bitbucket.org/repo/o5E6dr/images/3337486587-zippy-logo-200-rounded.jpg)
+![zippy-logo-200-rounded.jpg](http://ssllab.org/zippy_logo.jpeg)
 # ZipPy [![Build Status](https://travis-ci.org/qunaibit/zippy-mirror.svg?branch=master)](https://travis-ci.org/qunaibit/zippy-mirror) #
 
 ZipPy is a fast and lightweight [Python 3](https://www.python.org/) implementation built using the [Truffle](http://openjdk.java.net/projects/graal/) framework. ZipPy leverages the underlying Java JIT compiler and compiles Python programs to highly optimized machine code at runtime.
