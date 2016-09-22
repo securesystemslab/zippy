@@ -24,15 +24,16 @@ result = [[0 for i in range(N)] for j in range(N)]
 
 start = time.time()
 
-# iterate through rows of X
-for i in range(len(X)):
-   # iterate through columns of Y
-   for j in range(len(Y[0])):
-       # iterate through rows of Y
-       for k in range(len(Y)):
-           result[i][j] += X[i][k] * Y[k][j]
+def mm():
+    # iterate through rows of X
+    for i in range(len(X)):
+       # iterate through columns of Y
+       for j in range(len(Y[0])):
+           # iterate through rows of Y
+           for k in range(len(Y)):
+               result[i][j] += X[i][k] * Y[k][j]
 
-
+mm()
 duration = "N: %d  Time: %.5f" % (N, (time.time() - start))
 # print("Naive " + duration)
 

@@ -24,12 +24,13 @@
  */
 package edu.uci.python.test.grammar;
 
-import static edu.uci.python.test.PythonTests.assertPrints;
+import static edu.uci.python.test.PythonTests.*;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 
-import org.junit.Test;
+import org.junit.*;
+
+import edu.uci.python.runtime.*;
 
 public class ForTests {
 

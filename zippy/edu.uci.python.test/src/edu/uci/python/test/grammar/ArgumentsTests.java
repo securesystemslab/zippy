@@ -94,6 +94,38 @@ public class ArgumentsTests {
     }
 
     @Test
+    public void VarArgs3() {
+        String source = "\n" + //
+                        "def c(x,y):\n" + //
+                        "  print(\"x \",x,\" y \",y)\n" + //
+
+                        "def a(x,*args):\n" + //
+                        "  def b(y,*args):\n" + //
+                        "    c(*args)\n" + //
+                        "  return b(*args)\n" + //
+
+                        "a(3,4,1,2)\n" + //
+                        "a(3,4,10,20)\n";
+
+        assertPrints("x  1  y  2\nx  10  y  20\n", source);
+    }
+
+    @Test
+    public void VarArgs4() {
+        String source = "\n" + //
+                        "def c(x,y):\n" + //
+                        "  print(\"x \",x,\" y \",y)\n" + //
+
+                        "def a(*args):\n" + //
+                        "  c(*args)\n" + //
+
+                        "a(1,2)\n" + //
+                        "a(10,20)\n";
+
+        assertPrints("x  1  y  2\nx  10  y  20\n", source);
+    }
+
+    @Test
     public void KwArgs() {
         String source = "\n" + //
                         "def c(x,y):\n" + //

@@ -84,7 +84,8 @@ public class GeneratorOptimizationTests {
         PythonParseResult ast = assertPrintContains("420\n", script);
 // Node listComp = NodeUtil.findFirstNodeInstance(ast.getFunctionRoot("call_generator_builtin"),
 // ListComprehensionNode.class);
-        Node listComp = NodeUtil.findAllNodeInstances(ast.getFunctionRoot("call_generator_builtin"), ListComprehensionNode.class).get(0);
+        Node listComp = NodeUtil.findAllNodeInstances(ast.getFunctionRoot("call_generator_builtin"),
+                        ListComprehensionNode.class).get(0);
         assertTrue(listComp != null);
     }
 

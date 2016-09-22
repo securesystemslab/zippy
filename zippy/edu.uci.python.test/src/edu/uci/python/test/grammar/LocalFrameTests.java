@@ -68,7 +68,7 @@ public class LocalFrameTests {
                         "\n" + //
                         "foo()\n";
 
-        assertPrints("42\n4294929942949294929429\n1.0226023673688797E21\n", source);
+        assertPrints("42\n4294929942949294929429\n1.0226023673688797e+21\n", source);
     }
 
     @Test

@@ -8,14 +8,14 @@
 import sys, time
 
 def main():
-    cout = sys.stdout.write
+    # cout = sys.stdout.write
     size = int(sys.argv[1])
     xr_size = range(size)
     xr_iter = range(50)
     bit = 128
     byte_acc = 0
 
-    cout("P4\n%d %d\n" % (size, size))
+    # cout("P4\n%d %d\n" % (size, size))
     #print("P4\n%d %d\n" % (size, size))
 
     size = float(size)
@@ -35,12 +35,12 @@ def main():
             if bit > 1:
                 bit >>= 1
             else:
-                cout(chr(byte_acc))
+                # cout(chr(byte_acc))
                 bit = 128
                 byte_acc = 0
 
         if bit != 128:
-            cout(chr(byte_acc))
+            # cout(chr(byte_acc))
             bit = 128
             byte_acc = 0
 

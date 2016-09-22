@@ -44,13 +44,37 @@ public class BinaryArithTests {
     @Test
     public void bigIntegerDiv() {
         String source = "print(22222222222222222222 / 2)\n";
-        assertPrints("1.111111111111111E19\n", source);
+        assertPrints("1.111111111111111e+19\n", source);
+    }
+
+    @Test
+    public void simpleIntegerDiv() {
+        String source = "print(7 / 2)\n";
+        assertPrints("3.5\n", source);
     }
 
     @Test
     public void additionAndMultiply() {
         String source = "print(345606 + 364 * 2)\n";
         assertPrints("346334\n", source);
+    }
+
+    @Test
+    public void shouldBeInteger() {
+        String source = "print(64 * 64 / (16 * 16))\n";
+        assertPrints("16.0\n", source);
+    }
+
+    @Test
+    public void intOverflow() {
+        String source = "print((30020 + 2**31) % 2**32 - 2**31)\n";
+        assertPrints("30020\n", source);
+    }
+
+    @Test
+    public void intOverflowPow() {
+        String source = "x = 2**31 + 3; print(x)\n";
+        assertPrints("2147483651\n", source);
     }
 
     @Test
@@ -85,14 +109,14 @@ public class BinaryArithTests {
                         "d = 2 ** 4\n" + //
                         "e = 2.5 ** 3.0\n" + //
                         "print(a,b,c,d,e)\n";
-        assertPrints("1.07343919141098672E17 1.07343919141098675E18 -8.21361754992E11 16 15.625\n", source);
+        assertPrints("1.07343919141098672e+17 1.07343919141098675e+18 -8.21361754992e+11 16 15.625\n", source);
     }
 
     @Test
     public void modulo() {
         assertPrints("4\n", "print(14 % 5)");
         assertPrints("20\n", "print(54528840284285205820 % 52)");
-        assertPrints("2.7440432148750915E-9\n", "print(43253252 % 0.7)");
+        assertPrints("2.7440432148750915e-09\n", "print(43253252 % 0.7)");
     }
 
     @Test

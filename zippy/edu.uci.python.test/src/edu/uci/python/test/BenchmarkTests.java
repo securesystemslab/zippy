@@ -50,13 +50,13 @@ public class BenchmarkTests {
     @Test
     public void richards3() {
         Path script = Paths.get("richards3.py");
-        assertBenchNoError(script, "3");
+        assertBenchNoError(script, new String[]{script.toString(), "3"});
     }
 
     @Test
     public void bm_ai() {
         Path script = Paths.get("bm-ai.py");
-        assertBenchNoError(script, "0");
+        assertBenchNoError(script, new String[]{script.toString(), "0"});
     }
 
     @Ignore
@@ -80,8 +80,8 @@ public class BenchmarkTests {
 
     @Test
     public void mandelbrot3_300() {
-        Path script = Paths.get("mandelbrot3.py");
-        assertBenchNoError(script, "300");
+        Path script = Paths.get("mandelbrot3_noprint.py");
+        assertBenchNoError(script, new String[]{script.toString(), "300"});
     }
 
     @Test
@@ -109,14 +109,36 @@ public class BenchmarkTests {
     @Test
     public void blackscholes_test() {
         Path script = Paths.get("blackscholes_test.py");
-        assertPrints("callResultGold [1.396983862573739E-9, 0.0, " + //
-                        "7.193200293552689E-4, 0.6719761796630808, " + //
-                        "4.670179620697247, 0.0, 0.006353603213258834, " + //
-                        "2.7463027009490424]\n" + //
-                        "putResultGold [83.16933913397106, 37.170898228963324, " + //
-                        "62.33647515966393, 48.02061790368548, 1.9917883994019536, " + //
-                        "76.54358491978775, 56.56440552070942, 18.991943836674068]\n", script);
+        Path output = Paths.get("blackscholes_test.output");
+        assertPrints(output, script);
+    }
 
+    @Ignore
+    @Test
+    public void simplejson_bench_test() {
+        Path script = Paths.get("simplejson-bench.py");
+        assertBenchNoError(script, new String[]{"simplejson-bench.py", "100"});
+    }
+
+    @Ignore
+    @Test
+    public void whoosh_bench_test() {
+        Path script = Paths.get("whoosh-bench.py");
+        assertBenchNoError(script, new String[]{"whoosh-bench.py", "50"});
+    }
+
+    @Ignore
+    @Test
+    public void pymaging_bench_test() {
+        Path script = Paths.get("pymaging-bench.py");
+        assertBenchNoError(script, new String[]{"pymaging-bench.py", "50"});
+    }
+
+    @Ignore
+    @Test
+    public void sympy_bench_test() {
+        Path script = Paths.get("sympy-bench.py");
+        assertBenchNoError(script, new String[]{"sympy-bench.py", "200"});
     }
 
 }

@@ -53,12 +53,30 @@ public class BuiltinFunctionTests {
     }
 
     @Test
+    public void roundTest0() {
+        String source = "x = round(2.5)\n" + "print(x)";
+        assertPrints("3.0\n", source);
+    }
+
+    @Test
+    public void roundTest1() {
+        String source = "x = round(2.4)\n" + "print(x)";
+        assertPrints("2.0\n", source);
+    }
+
+    @Test
+    public void roundTest2() {
+        String source = "x = round(2.56,1)\n" + "print(x)";
+        assertPrints("2.6\n", source);
+    }
+
+    @Test
     public void absTest() {
         String source = "x = abs(10)\n" + "print(x)\n" +
 
-        "x = abs(10.25)\n" + "print(x)\n" +
+                        "x = abs(10.25)\n" + "print(x)\n" +
 
-        "x = abs(1 + 2j)\n" + "print(x)\n";
+                        "x = abs(1 + 2j)\n" + "print(x)\n";
 
         assertPrints("10\n10.25\n2.23606797749979\n", source);
     }
@@ -75,9 +93,9 @@ public class BuiltinFunctionTests {
     public void boolTest() {
         String source = "x = bool(10)\n" + "print(x)\n" +
 
-        "x = bool(0.0)\n" + "print(x)\n" +
+                        "x = bool(0.0)\n" + "print(x)\n" +
 
-        "x = bool()\n" + "print(x)\n";
+                        "x = bool()\n" + "print(x)\n";
 
         assertPrints("True\nFalse\nFalse\n", source);
     }
@@ -115,15 +133,15 @@ public class BuiltinFunctionTests {
     public void floatTest() {
         String source = "x = float(2)\n" + "print(x)\n" +
 
-        "x = float('+1.23')\n" + "print(x)\n" +
+                        "x = float('+1.23')\n" + "print(x)\n" +
 
-        "x = float('   -12345')\n" + "print(x)\n" +
+                        "x = float('   -12345')\n" + "print(x)\n" +
 
-        "x = float('1e-003')\n" + "print(x)\n" +
+                        "x = float('1e-003')\n" + "print(x)\n" +
 
-        "x = float('+1E6')\n" + "print(x)\n" +
+                        "x = float('+1E6')\n" + "print(x)\n" +
 
-        "x = float()\n" + "print(x)\n";
+                        "x = float()\n" + "print(x)\n";
 
         assertPrints("2.0\n1.23\n-12345.0\n0.001\n1000000.0\n0.0\n", source);
     }
@@ -132,13 +150,13 @@ public class BuiltinFunctionTests {
     public void intTest() {
         String source = "x = int(3)\n" + "print(x)\n" +
 
-        "x = int(2.9)\n" + "print(x)\n" +
+                        "x = int(2.9)\n" + "print(x)\n" +
 
-        "x = int(\"4\")\n" + "print(x)\n" +
+                        "x = int(\"4\")\n" + "print(x)\n" +
 
-        "x = int(2147483648)\n" + "print(x)\n" +
+                        "x = int(2147483648)\n" + "print(x)\n" +
 
-        "x = int()\n" + "print(x)\n";
+                        "x = int()\n" + "print(x)\n";
 
         assertPrints("3\n2\n4\n2147483648\n0\n", source);
     }
@@ -147,13 +165,13 @@ public class BuiltinFunctionTests {
     public void isinstanceTest() {
         String source = "class Student:\n\t" +
 
-        "def __init__(self, id):\n\t\t" + "self.id = id\n" +
+                        "def __init__(self, id):\n\t\t" + "self.id = id\n" +
 
-        "student = Student(10)\n" +
+                        "student = Student(10)\n" +
 
-        "x = isinstance(student, Student)\n" +
+                        "x = isinstance(student, Student)\n" +
 
-        "print(x)\n";
+                        "print(x)\n";
 
         assertPrints("True\n", source);
     }
@@ -162,11 +180,11 @@ public class BuiltinFunctionTests {
     public void iterTest() {
         String source = "for element in iter(\"hello\"):\n\t" +
 
-        "print(element)\n" +
+                        "print(element)\n" +
 
-        "for element in iter([10, 20, 30]):\n\t" +
+                        "for element in iter([10, 20, 30]):\n\t" +
 
-        "print(element)\n";
+                        "print(element)\n";
 
         assertPrints("h\ne\nl\nl\no\n10\n20\n30\n", source);
     }
@@ -192,7 +210,7 @@ public class BuiltinFunctionTests {
     public void maxTest() {
         String source = "x = max(10, 20)\n" + "print(x)\n" +
 
-        "x = max(20.8, 10.3)\n" + "print(x)";
+                        "x = max(20.8, 10.3)\n" + "print(x)";
 
         assertPrints("20\n20.8\n", source);
     }
@@ -201,11 +219,11 @@ public class BuiltinFunctionTests {
     public void nextTest() {
         String source = "x = iter([10, 20, 30])\n" +
 
-        "print(next(x))\n" +
+                        "print(next(x))\n" +
 
-        "print(next(x))\n" +
+                        "print(next(x))\n" +
 
-        "print(next(x))\n";
+                        "print(next(x))\n";
 
         assertPrints("10\n20\n30\n", source);
     }
@@ -214,9 +232,9 @@ public class BuiltinFunctionTests {
     public void rangeTest() {
         String source = "print(list(range(10)))\n" +
 
-        "print(list(range(1, 11)))\n" +
+                        "print(list(range(1, 11)))\n" +
 
-        "print(list(range(0, 30, 5)))\n";
+                        "print(list(range(0, 30, 5)))\n";
 
         assertPrints("[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]\n[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]\n[0, 5, 10, 15, 20, 25]\n", source);
     }
@@ -249,6 +267,18 @@ public class BuiltinFunctionTests {
     public void divmodInt() {
         String source = "print(divmod(42, 3))";
         assertPrints("(14, 0)\n", source);
+    }
+
+    @Test
+    public void printE() {
+        String source = "x=0.0000000012;print(x);print(str(0.000000000012))";
+        assertPrints("1.2e-09\n1.2e-11\n", source);
+    }
+
+    @Test
+    public void printE2() {
+        String source = "x=[0.0001000002, 0.0000000012, 0.000000000012];print(x);";
+        assertPrints("[0.0001000002, 1.2e-09, 1.2e-11]\n", source);
     }
 
     @Test

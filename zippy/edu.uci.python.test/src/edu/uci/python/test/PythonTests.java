@@ -30,8 +30,11 @@ import java.nio.file.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.source.*;
+import com.oracle.truffle.api.source.Source.Builder;
 
 import static org.junit.Assert.*;
+
+import edu.uci.python.PythonLanguage;
 import edu.uci.python.builtins.*;
 import edu.uci.python.parser.*;
 import edu.uci.python.runtime.*;
@@ -44,7 +47,7 @@ public class PythonTests {
         final PrintStream printStream = new PrintStream(byteArray);
 
         PythonContext context = getContext(printStream, System.err);
-        Source source = Source.fromText(code, "(test)");
+        Source source = getTestCode(code);
         RunScript.runScript(new String[0], source, context);
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertTrue(result.contains(expected));
@@ -55,7 +58,7 @@ public class PythonTests {
         final PrintStream printStream = new PrintStream(byteArray);
 
         PythonContext context = getContext(printStream, System.err);
-        Source source = Source.fromText(code, "(test)");
+        Source source = getTestCode(code);
         PythonParseResult parseResult = RunScript.runScript(new String[0], source, context);
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertEquals(expected, result);
@@ -67,7 +70,7 @@ public class PythonTests {
         final PrintStream printStream = new PrintStream(byteArray);
 
         PythonContext context = getContext(printStream, System.err);
-        Source source = Source.fromText(code, "(test)");
+        Source source = getTestCode(code);
         new ZipPyConsole().parseFile(context, source);
         return byteArray.toString().replaceAll("\r\n", "\n");
     }
@@ -77,7 +80,7 @@ public class PythonTests {
         final PrintStream printStream = new PrintStream(byteArray);
 
         PythonContext context = getContext(printStream, System.err);
-        Source source = Source.fromText(code, "(test)");
+        Source source = getTestCode(code);
         return new ZipPyConsole().parseFile(context, source);
     }
 
@@ -88,7 +91,7 @@ public class PythonTests {
 
         try {
             PythonContext context = getContext(System.out, printStream);
-            Source source = Source.fromText(code, "(test)");
+            Source source = getTestCode(code);
             RunScript.runThrowableScript(new String[0], source, context);
         } catch (Throwable err) {
             error = err.toString();
@@ -101,71 +104,60 @@ public class PythonTests {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
 
-        String path = "edu.uci.python.test/src/tests";
-        // calling from eclipse unit test
-        if (Files.isDirectory(Paths.get("../" + path))) {
-            path = "../" + path;
-        }
-        // calling from mx unittest python.test
-        else if (Files.isDirectory(Paths.get("zippy/" + path))) {
-            path = "zippy/" + path;
-        } else {
-            throw new RuntimeException("Unable to locate edu.uci.python.test/src/test");
-        }
-
+        Source source = getSource(getTestFile(scriptName));
         PythonContext context = getContext(printStream, System.err);
-        Source source;
-        try {
-            source = Source.fromFileName(path + File.separatorChar + scriptName.toString());
-        } catch (IOException e) {
-            throw new IllegalStateException("test couldn't be found: " + path + File.separatorChar + scriptName.toString());
-        }
-
         RunScript.runScript(new String[0], source, context);
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertEquals(expected, result);
     }
 
-    public static void assertBenchNoError(Path scriptName, String arg) {
+    public static void assertPrints(Path expected, Path scriptName) {
+        assertPrints(expected, scriptName, new String[0]);
+    }
+
+    public static void assertPrints(Path expected, Path scriptName, String[] args) {
+        final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+        final PrintStream printStream = new PrintStream(byteArray);
+
+        File scriptFile = getTestFile(scriptName);
+        Source source = getSource(scriptFile);
+        String output = getFileContent(getTestFile(expected));
+        PythonContext context = getContext(printStream, System.err);
+        RunScript.runScript(args, source, scriptFile.getParent(), context);
+        String result = byteArray.toString().replaceAll("\r\n", "\n");
+        assertEquals(output, result);
+    }
+
+    public static void assertNoError(Path scriptName) {
         final ByteArrayOutputStream byteArrayErr = new ByteArrayOutputStream();
         final ByteArrayOutputStream byteArrayOut = new ByteArrayOutputStream();
         final PrintStream printErrStream = new PrintStream(byteArrayErr);
         final PrintStream printOutStream = new PrintStream(byteArrayOut);
 
-        String path = "benchmarks/src";
-        // calling from eclipse unit test
-        if (Files.isDirectory(Paths.get("../" + path))) {
-            path = "../" + path;
-        }
-        // calling from mx unittest python.test
-        else if (Files.isDirectory(Paths.get("zippy/" + path))) {
-            path = "zippy/" + path;
-        } else {
-            throw new RuntimeException("Unable to locate benchmarks/src/");
-        }
-
+        Source source = getSource(getTestFile(scriptName));
         PythonContext context = getContext(printOutStream, printErrStream);
-        Source source;
-        try {
-            source = Source.fromFileName(path + File.separatorChar + scriptName.toString());
-        } catch (IOException e) {
-            try {
-                source = Source.fromFileName(path + File.separatorChar + "benchmarks" + File.separatorChar + scriptName.toString());
-            } catch (IOException ee) {
-                try {
-                    source = Source.fromFileName(path + File.separatorChar + "micro" + File.separatorChar + scriptName.toString());
-                } catch (IOException eee) {
-                    throw new IllegalStateException("Unable to locate " + path + " (benchmarks or micro) /" + scriptName.toString());
-                }
-            }
-        }
+        RunScript.runScript(new String[0], source, context);
+        String result = byteArrayErr.toString().replaceAll("\r\n", "\n");
+        assertEquals("", result);
+    }
 
-        String[] args = new String[]{scriptName.toString(), arg};
+    public static void assertBenchNoError(Path scriptName, String[] args) {
+        final ByteArrayOutputStream byteArrayErr = new ByteArrayOutputStream();
+        final ByteArrayOutputStream byteArrayOut = new ByteArrayOutputStream();
+        final PrintStream printErrStream = new PrintStream(byteArrayErr);
+        final PrintStream printOutStream = new PrintStream(byteArrayOut);
 
-        RunScript.runScript(args, source, context);
+        Source source = getSource(getBenchFile(scriptName));
+        PythonContext context = getContext(printOutStream, printErrStream);
+
+        if (args == null)
+            RunScript.runScript(new String[]{scriptName.toString()}, source, context);
+        else
+            RunScript.runScript(args, source, context);
 
         String err = byteArrayErr.toString().replaceAll("\r\n", "\n");
         String result = byteArrayOut.toString().replaceAll("\r\n", "\n");
+        System.out.println(source.getName() + "\n" + result + "\n");
         assertEquals("", err);
         assertNotEquals("", result);
     }
@@ -174,30 +166,109 @@ public class PythonTests {
         final ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         final PrintStream printStream = new PrintStream(byteArray);
 
-        String path = "edu.uci.python.test/src/tests";
-        // calling from eclipse unit test
-        if (Files.isDirectory(Paths.get("../" + path))) {
-            path = "../" + path;
-        }
-        // calling from mx unittest python.test
-        else if (Files.isDirectory(Paths.get("zippy/" + path))) {
-            path = "zippy/" + path;
-        } else {
-            throw new RuntimeException("Unable to locate edu.uci.python.test/src/test");
-        }
-
+        Source source = getSource(getTestFile(scriptName));
         PythonContext context = getContext(printStream, System.err);
-        Source source;
-        try {
-            source = Source.fromFileName(path + File.separatorChar + scriptName.toString());
-        } catch (IOException e) {
-            throw new IllegalStateException();
-        }
-
         PythonParseResult ast = RunScript.runScript(new String[0], source, context);
         String result = byteArray.toString().replaceAll("\r\n", "\n");
         assertTrue(result.contains(expected));
         return ast;
+    }
+
+    private static Source getTestCode(String code) {
+        Builder<RuntimeException, MissingMIMETypeException, MissingNameException> builder = Source.newBuilder(code);
+        builder.name("(test)");
+        builder.mimeType(PythonLanguage.MIME_TYPE);
+        Source source = null;
+        try {
+            source = builder.build();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return source;
+    }
+
+    public static File getTestFile(Path filename) {
+        String path = "src/tests";
+        // calling from eclipse unit test
+        if (Files.isDirectory(Paths.get(path))) {
+        }
+        // calling from mx unittest python.test
+        else if (Files.isDirectory(Paths.get("zippy/edu.uci.python.test/" + path))) {
+            path = "zippy/edu.uci.python.test/" + path;
+        } else {
+            throw new RuntimeException("Unable to locate edu.uci.python.test/src/test");
+        }
+
+        File file = new File(System.getProperty("user.dir") + File.separatorChar + path + File.separatorChar + filename.toString());
+        return file;
+    }
+
+    public static File getBenchFile(Path filename) {
+        String path = "benchmarks/src";
+        // calling from eclipse unit test
+        if (Files.isDirectory(Paths.get("../" + path))) {
+            path = Paths.get("../" + path).toAbsolutePath().toString();
+        }
+        // calling from mx unittest python.test
+        else if (Files.isDirectory(Paths.get("zippy/" + path))) {
+            path = Paths.get("zippy/" + path).toAbsolutePath().toString();
+        } else {
+            throw new RuntimeException("Unable to locate benchmarks/src/");
+        }
+
+        Path fullPath = Paths.get(path, filename.toString());
+        if (!Files.isReadable(fullPath)) {
+            fullPath = Paths.get(path, "benchmarks", filename.toString());
+            if (!Files.isReadable(fullPath)) {
+                fullPath = Paths.get(path, "micro", filename.toString());
+                if (!Files.isReadable(fullPath))
+                    throw new IllegalStateException("Unable to locate " + path + " (benchmarks or micro) " + filename.toString());
+            }
+        }
+
+        File file = new File(fullPath.toString());
+        return file;
+    }
+
+    private static Source getSource(File file) {
+        Source source = null;
+
+        try {
+            Builder<IOException, RuntimeException, RuntimeException> builder = Source.newBuilder(file);
+            builder.mimeType(PythonLanguage.MIME_TYPE);
+            source = builder.build();
+        } catch (IOException e) {
+            throw new IllegalStateException();
+        }
+
+        return source;
+    }
+
+    private static String getFileContent(File file) {
+        String ret = null;
+        Reader reader;
+        try {
+            reader = new InputStreamReader(new FileInputStream(file), "UTF-8");
+            final BufferedReader bufferedReader = new BufferedReader(reader);
+            final StringBuilder content = new StringBuilder();
+            final char[] buffer = new char[1024];
+
+            try {
+                int n = 0;
+                while (n != -1) {
+                    n = bufferedReader.read(buffer);
+                    if (n != -1)
+                        content.append(buffer, 0, n);
+                }
+            } finally {
+                bufferedReader.close();
+            }
+            ret = content.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ret;
     }
 
     public static PythonContext getContext() {

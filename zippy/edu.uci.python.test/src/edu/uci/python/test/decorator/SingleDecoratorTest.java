@@ -4,6 +4,8 @@ import static edu.uci.python.test.PythonTests.assertPrints;
 
 import org.junit.Test;
 
+import edu.uci.python.runtime.PythonOptions;
+
 public class SingleDecoratorTest {
 
     @Test
@@ -34,6 +36,22 @@ public class SingleDecoratorTest {
                         "  print(y)\n" + //
                         "b(\"b\")\n";
         assertPrints("a\nb\n", source);
+    }
+
+    @Test
+    public void decorator_test_wrapper_arg2() {
+        String source = "\n" + //
+                        "def a(x):\n" + //
+                        "  def c(*args):\n" + //
+                        "    print(\"a\")\n" + //
+                        "    x(*args)\n" + //
+                        "  return c\n" + //
+                        "@a\n" + //
+                        "def b(y):\n" + //
+                        "  print(y)\n" + //
+                        "b(\"b\")\n" + //
+                        "b(\"c\")\n";
+        assertPrints("a\nb\na\nc\n", source);
     }
 
     @Test

@@ -21,15 +21,16 @@ X = [[476, 95, 637, 471, 964], [614, 209, 585, 522, 496], [453, 203, 895, 240, 8
 Y = [[666, 824, 682, 342, 709], [924, 366, 365, 151, 613], [588, 13, 556, 666, 303], [354, 377, 806, 832, 438], [458, 266, 128, 377, 328]]
 result = [[0 for i in range(N)] for j in range(N)]
 
-# iterate through rows of X
-for i in range(len(X)):
-   # iterate through columns of Y
-   for j in range(len(Y[0])):
-       # iterate through rows of Y
-       for k in range(len(Y)):
-           result[i][j] += X[i][k] * Y[k][j]
+def mm():
+    # iterate through rows of X
+    for i in range(len(X)):
+       # iterate through columns of Y
+       for j in range(len(Y[0])):
+           # iterate through rows of Y
+           for k in range(len(Y)):
+               result[i][j] += X[i][k] * Y[k][j]
 
-
+mm()
 print("result = ", result)
 
 

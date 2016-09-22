@@ -26,6 +26,9 @@ package edu.uci.python.test;
 
 import static edu.uci.python.test.PythonTests.*;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import org.junit.*;
 
 public class RegularExpressionTests {
@@ -37,6 +40,12 @@ public class RegularExpressionTests {
                         "words = re.findall(\"[A-Za-z]+\", s)\n" + //
                         "print(words)";
         assertPrints("['SIX', 'NINE']\n", source);
+    }
+
+    @Test
+    public void escape() {
+        Path source = Paths.get("regex1.py");
+        assertPrints("", source);
     }
 
 }
