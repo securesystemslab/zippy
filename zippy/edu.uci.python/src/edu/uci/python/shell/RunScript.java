@@ -24,20 +24,50 @@
  */
 package edu.uci.python.shell;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 
-import org.python.core.*;
-import org.python.core.util.*;
-import org.python.modules.*;
-import org.python.modules.posix.*;
-import org.python.modules.thread.*;
-import org.python.util.*;
+import org.python.core.Py;
+import org.python.core.PyException;
+import org.python.core.PyFile;
+import org.python.core.PyList;
+import org.python.core.PyString;
+import org.python.core.PySystemState;
+import org.python.core.imp;
+import org.python.core.util.RelativeFile;
+import org.python.modules._systemrestart;
+import org.python.modules.posix.PosixModule;
+import org.python.modules.thread.thread;
+import org.python.util.InteractiveConsole;
+import org.python.util.JLineConsole;
 
-import com.oracle.truffle.api.source.*;
+import com.oracle.truffle.api.source.Source;
 
-import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.PythonContext;
+import edu.uci.python.runtime.PythonParseResult;
 
 public class RunScript {
+
+    private static PySystemState getPySystemState(String[] args) {
+
+        // Setup the basic python system state from these options
+        PySystemState systemState;
+        if (args.length > 0) {
+            Py.setSystemState(new PySystemState()).argv = passArgs(args);
+            Py.getSystemState().argv = passArgs(args);
+            systemState = Py.getSystemState();
+        } else {
+            PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
+            systemState = Py.getSystemState();
+        }
+        // Modify verion info in Jython runtime
+// PySystemState.version_info = new PyTuple(Py.newInteger(3), Py.newInteger(3), Py.newInteger(0),
+// Py.newString("zippy"), Py.newInteger(0));
+
+        return systemState;
+    }
 
     public static void main(String[] args) {
         if (args.length < 1 || args[0].equals("-h") || args[0].equals("--help")) {
@@ -45,13 +75,7 @@ public class RunScript {
         } else {
             String scriptName = args[0];
 
-            // Setup the basic python system state from these options
-            PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
-            PySystemState systemState = Py.getSystemState();
-
-            // Modify verion info in Jython runtime
-// PySystemState.version_info = new PyTuple(Py.newInteger(3), Py.newInteger(3), Py.newInteger(0),
-// Py.newString("zippy"), Py.newInteger(0));
+            PySystemState systemState = getPySystemState(args);
 
             // Now create an interpreter
             InteractiveConsole interp = newInterpreter(true);
@@ -110,9 +134,7 @@ public class RunScript {
     }
 
     public static void runThrowableScript(String[] args, Source source, PythonContext context) {
-        // Setup the basic python system state from these options
-        PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
-        PySystemState systemState = Py.getSystemState();
+        PySystemState systemState = getPySystemState(args);
 
         // Now create an interpreter
         ZipPyConsole interp = new ZipPyConsole();
@@ -125,27 +147,28 @@ public class RunScript {
     }
 
     public static PythonParseResult runScript(String[] args, Source source, PythonContext context) {
-        // Setup the basic python system state from these options
-        PySystemState systemState;
-        if (args.length > 0) {
-            Py.setSystemState(new PySystemState()).argv = passArgs(args);
-            Py.getSystemState().argv = passArgs(args);
-            systemState = Py.getSystemState();
-        } else {
-            PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
-            systemState = Py.getSystemState();
-        }
+        return runScript(args, source, null, context);
+    }
+
+    public static PythonParseResult runScript(String[] args, Source source, String workingDir, PythonContext context) {
+        PySystemState systemState = getPySystemState(args);
 
         // Now create an interpreter
         ZipPyConsole interp = new ZipPyConsole();
+        String workingPath = System.getProperty("user.dir");
+        if (workingDir != null)
+            workingPath = workingDir;
+        PyString path = new PyString(workingPath);
         systemState.__setattr__("_jy_interpreter", Py.java2py(interp));
+        systemState.path.insert(0, path);
+        systemState.setCurrentWorkingDir(workingPath);
+        Py.getSystemState().path.insert(0, path);
+        Py.getSystemState().setCurrentWorkingDir(workingPath);
+
         PythonParseResult result = null;
 
         if (source != null) {
             try {
-                PyString path = new PyString(System.getProperty("user.dir"));
-                Py.getSystemState().path.insert(0, path);
-
                 result = interp.execfile(context, source);
             } catch (Throwable t) {
                 if (t instanceof PyException && ((PyException) t).match(_systemrestart.SystemRestart)) {

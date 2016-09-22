@@ -24,17 +24,21 @@
  */
 package edu.uci.python.shell;
 
-import edu.uci.python.runtime.*;
+import java.util.ArrayList;
+
+import edu.uci.python.runtime.PythonOptions;
 
 public class CommandLineParser {
 
-    public static void parse(String[] args) {
+    public static String[] parse(String[] args) {
         int index = 0;
+        ArrayList<String> pythonArgs = new ArrayList<>();
 
         while (index < args.length) {
             String arg = args[index++];
 
             if (!arg.startsWith("-")) {
+                pythonArgs.add(arg);
                 continue;
             }
 
@@ -127,8 +131,10 @@ public class CommandLineParser {
                 continue;
             }
 
-            throw new IllegalStateException("Unknown options " + arg);
+
+            pythonArgs.add(arg);
         }
 
+        return pythonArgs.toArray(new String[pythonArgs.size()]);
     }
 }

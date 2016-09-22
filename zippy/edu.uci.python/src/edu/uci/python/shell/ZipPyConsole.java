@@ -24,22 +24,28 @@
  */
 package edu.uci.python.shell;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 
-import org.python.core.*;
-import org.python.util.*;
+import org.python.core.Py;
+import org.python.util.InteractiveConsole;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.source.*;
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.source.Source.Builder;
 
-import edu.uci.python.builtins.*;
-import edu.uci.python.nodes.*;
-import edu.uci.python.parser.*;
-//import edu.uci.python.profiler.*;
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.object.*;
-import edu.uci.python.runtime.standardtype.*;
+import edu.uci.python.PythonLanguage;
+import edu.uci.python.builtins.PythonDefaultBuiltinsLookup;
+import edu.uci.python.nodes.ModuleNode;
+import edu.uci.python.parser.PythonParserImpl;
+import edu.uci.python.runtime.PythonContext;
+import edu.uci.python.runtime.PythonOptions;
+import edu.uci.python.runtime.PythonParseResult;
+import edu.uci.python.runtime.PythonParser;
+import edu.uci.python.runtime.function.PArguments;
+import edu.uci.python.runtime.object.PythonObjectAllocationInstrumentor;
+import edu.uci.python.runtime.standardtype.PythonModule;
 
 public class ZipPyConsole extends InteractiveConsole {
 
@@ -49,7 +55,9 @@ public class ZipPyConsole extends InteractiveConsole {
         PythonContext context = null;
 
         try {
-            Source source = Source.fromFileName(name);
+            Builder<IOException, RuntimeException, RuntimeException> builder = Source.newBuilder(new File(name));
+            builder.mimeType(PythonLanguage.MIME_TYPE);
+            Source source = builder.build();
             context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), parser);
             execfile(context, source);
         } catch (IOException e) {
@@ -82,12 +90,7 @@ public class ZipPyConsole extends InteractiveConsole {
          * child parent relationship
          */
 
-// ProfilerTranslator profilerTranslator = null;
-
         if (PythonOptions.ProfileCalls || PythonOptions.ProfileControlFlow || PythonOptions.ProfileVariableAccesses || PythonOptions.ProfileOperations || PythonOptions.ProfileCollectionOperations) {
-// profilerTranslator = new ProfilerTranslator(result, result.getContext());
-//
-// profilerTranslator.translate();
 
             if (PythonOptions.PrintAST) {
                 // CheckStyle: stop system..print check
@@ -110,34 +113,6 @@ public class ZipPyConsole extends InteractiveConsole {
 
         if (PythonOptions.InstrumentObjectStorageAllocation) {
             PythonObjectAllocationInstrumentor.getInstance().printAllocations();
-        }
-
-        if (PythonOptions.ProfileCalls) {
-// profilerTranslator.getProfilerResultPrinter().printCallProfilerResults();
-        }
-
-        if (PythonOptions.ProfileControlFlow) {
-// profilerTranslator.getProfilerResultPrinter().printControlFlowProfilerResults();
-        }
-
-        if (PythonOptions.ProfileVariableAccesses) {
-// profilerTranslator.getProfilerResultPrinter().printVariableAccessProfilerResults();
-        }
-
-        if (PythonOptions.ProfileOperations) {
-// profilerTranslator.getProfilerResultPrinter().printOperationProfilerResults();
-        }
-
-        if (PythonOptions.ProfileCollectionOperations) {
-// profilerTranslator.getProfilerResultPrinter().printCollectionOperationsProfilerResults();
-        }
-
-        if (PythonOptions.TraceNodesWithoutSourceSection) {
-// profilerTranslator.getProfilerResultPrinter().printNodesEmptySourceSections();
-        }
-
-        if (PythonOptions.TraceNodesUsingExistingProbe) {
-// profilerTranslator.getProfilerResultPrinter().printNodesUsingExistingProbes();
         }
 
         Py.flushLine();

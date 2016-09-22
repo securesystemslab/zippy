@@ -31,7 +31,9 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.source.*;
+import com.oracle.truffle.api.source.Source.Builder;
 
+import edu.uci.python.PythonLanguage;
 import edu.uci.python.nodes.function.*;
 import edu.uci.python.nodes.optimize.*;
 import edu.uci.python.runtime.*;
@@ -74,7 +76,16 @@ public class PythonParserImpl implements PythonParser {
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
 
-        Source source = Source.fromText(expression, "(test)");
+        Builder<RuntimeException, MissingMIMETypeException, MissingNameException> builder = Source.newBuilder(expression);
+        builder.name("(test)");
+        builder.mimeType(PythonLanguage.MIME_TYPE);
+        Source source = null;
+        try {
+            source = builder.build();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         PythonTreeTranslator ptt = new PythonTreeTranslator(context, environment, module, source);
         return ptt.translate(node);
     }

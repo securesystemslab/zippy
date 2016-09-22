@@ -24,7 +24,9 @@
  */
 package edu.uci.python.runtime;
 
-import java.io.*;
+import java.io.PrintStream;
+
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 
 public class PythonOptions {
 
@@ -41,7 +43,7 @@ public class PythonOptions {
 
     public static final boolean TraceSequenceStorageGeneralization = false;
 
-    public static boolean TraceObjectLayoutCreation = true;
+    public static boolean TraceObjectLayoutCreation = false;
 
     // Object storage allocation
     public static final boolean InstrumentObjectStorageAllocation = false;
@@ -91,6 +93,8 @@ public class PythonOptions {
     public static boolean TraceNodesUsingExistingProbe = false;
 
     public static final boolean CatchZippyExceptionForUnitTesting = false;
+
+    @CompilationFinal public static boolean forceLongType = false;
 
     private PrintStream standardOut = System.out;
 

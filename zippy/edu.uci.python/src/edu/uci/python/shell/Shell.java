@@ -24,7 +24,7 @@
  */
 package edu.uci.python.shell;
 
-import static java.lang.System.*;
+import static java.lang.System.out;
 
 public class Shell {
 
@@ -38,9 +38,9 @@ public class Shell {
     }
 
     public static void main(String[] args) {
-        if (args.length >= 1) {
-            CommandLineParser.parse(args);
-            RunScript.main(args);
+        String[] pythonargs = CommandLineParser.parse(args);
+        if (pythonargs.length >= 1) {
+            RunScript.main(pythonargs);
         } else {
             // nothing yet
             out.println("ZipPy");
