@@ -29,6 +29,8 @@ import java.math.BigInteger;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
+
 @GenerateNodeFactory
 public abstract class UnaryArithmeticNode extends UnaryOpNode {
 
@@ -86,4 +88,8 @@ public abstract class UnaryArithmeticNode extends UnaryOpNode {
         }
     }
 
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitUnaryArithmeticNode(this);
+    }
 }

@@ -29,6 +29,8 @@ import java.math.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
+
 @NodeInfo(shortName = "object")
 public final class ObjectLiteralNode extends LiteralNode {
 
@@ -45,6 +47,11 @@ public final class ObjectLiteralNode extends LiteralNode {
     @Override
     public Object execute(VirtualFrame frame) {
         return object;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitObjectLiteralNode(this);
     }
 
 }

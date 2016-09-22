@@ -33,6 +33,7 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.truffle.*;
@@ -373,6 +374,11 @@ public abstract class GetAttributeNode extends PNode implements ReadNode, HasPri
         public Object executeWithPrimary(VirtualFrame frame, Object primary) {
             return specializeAndExecute(frame, primary);
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitGetAttributeNode(this);
     }
 
 }

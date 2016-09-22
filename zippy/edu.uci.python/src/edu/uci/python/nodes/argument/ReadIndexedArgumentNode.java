@@ -27,6 +27,7 @@ package edu.uci.python.nodes.argument;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.datatype.*;
@@ -108,6 +109,11 @@ public abstract class ReadIndexedArgumentNode extends PNode {
                 return PArguments.getArgumentAt(frame, index);
             }
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitReadIndexedArgumentNode(this);
     }
 
 }

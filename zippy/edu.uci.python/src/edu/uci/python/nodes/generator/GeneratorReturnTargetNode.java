@@ -26,6 +26,7 @@ package edu.uci.python.nodes.generator;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.runtime.exception.*;
@@ -70,6 +71,11 @@ public final class GeneratorReturnTargetNode extends ReturnTargetNode implements
         }
 
         throw StopIterationException.INSTANCE;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitGeneratorReturnTargetNode(this);
     }
 
 }

@@ -26,6 +26,8 @@ package edu.uci.python.nodes.literal;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
+
 public final class IntegerLiteralNode extends LiteralNode {
 
     private final int value;
@@ -44,4 +46,8 @@ public final class IntegerLiteralNode extends LiteralNode {
         return executeInt(frame);
     }
 
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitIntegerLiteralNode(this);
+    }
 }

@@ -24,10 +24,13 @@
  */
 package edu.uci.python.nodes.subscript;
 
+import java.math.BigInteger;
+
 import org.python.core.*;
 
 import com.oracle.truffle.api.dsl.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.object.*;
@@ -38,6 +41,11 @@ public abstract class IndexNode extends UnaryOpNode {
     @Specialization
     public int doInteger(int index) {
         return index;
+    }
+
+    @Specialization
+    public int doInteger(BigInteger index) {
+        return index.intValue();
     }
 
     @SuppressWarnings("unused")
@@ -59,6 +67,11 @@ public abstract class IndexNode extends UnaryOpNode {
     @Specialization
     public Object doObject(Object index) {
         throw Py.TypeError("list indices must be integers, not " + PythonTypesUtil.getPythonTypeName(index));
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitIndexNode(this);
     }
 
 }

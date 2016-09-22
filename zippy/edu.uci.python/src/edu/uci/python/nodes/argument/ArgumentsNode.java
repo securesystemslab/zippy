@@ -24,17 +24,16 @@
  */
 package edu.uci.python.nodes.argument;
 
-import static edu.uci.python.runtime.function.PArguments.USER_ARGUMENTS_OFFSET;
-import static edu.uci.python.runtime.function.PArguments.create;
+import static edu.uci.python.runtime.function.PArguments.*;
 
 import java.util.ArrayList;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.nodes.EmptyNode;
-import edu.uci.python.nodes.PNode;
+import edu.uci.python.ast.VisitorIF;
+import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.literal.KeywordLiteralNode;
-import edu.uci.python.runtime.function.PKeyword;
+import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.sequence.PTuple;
 
 public class ArgumentsNode extends PNode {
@@ -75,7 +74,6 @@ public class ArgumentsNode extends PNode {
         return arguments;
     }
 
-// @ExplodeLoop
     public String[] getArgKeywordNames() {
         ArrayList<String> names = new ArrayList<>();
         for (PNode arg : arguments)
@@ -95,7 +93,6 @@ public class ArgumentsNode extends PNode {
         return executeArguments(frame);
     }
 
-// @ExplodeLoop
     public final Object[] executeArguments(VirtualFrame frame) {
 
         final Object[] values = create(length());
@@ -115,7 +112,6 @@ public class ArgumentsNode extends PNode {
     /**
      * Pack primary into the evaluated arguments array if passPrimary is true.
      */
-// @ExplodeLoop
     public final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary) {
         final int length = passPrimary ? length() + 1 : length();
         final Object[] values = create(length);
@@ -139,7 +135,6 @@ public class ArgumentsNode extends PNode {
         return values;
     }
 
-// @ExplodeLoop
     public final Object[] executeArgumentsForJython(VirtualFrame frame) {
         final int length = length();
         final Object[] values = length == 0 ? EMPTY_ARGUMENTS : new Object[length];
@@ -155,7 +150,6 @@ public class ArgumentsNode extends PNode {
         return values;
     }
 
-// @ExplodeLoop
     public final PKeyword[] executeKeywordArguments(VirtualFrame frame) {
         PKeyword[] keywords = length() == 0 ? PKeyword.EMPTY_KEYWORDS : new PKeyword[length()];
         frame.materialize();
@@ -168,6 +162,11 @@ public class ArgumentsNode extends PNode {
         }
 
         return keywords;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitArgumentsNode(this);
     }
 
 }

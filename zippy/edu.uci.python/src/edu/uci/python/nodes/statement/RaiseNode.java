@@ -30,6 +30,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
@@ -71,6 +72,19 @@ public class RaiseNode extends StatementNode {
     @TruffleBoundary
     private static void doRaise(Object t, Object i) {
         throw PyException.doRaise((PyObject) t, (PyObject) i, null);
+    }
+
+    public PNode getType() {
+        return type;
+    }
+
+    public PNode getInst() {
+        return inst;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitRaiseNode(this);
     }
 
 }

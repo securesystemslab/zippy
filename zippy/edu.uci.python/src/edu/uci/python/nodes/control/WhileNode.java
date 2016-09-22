@@ -28,6 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.datatype.*;
@@ -48,7 +49,6 @@ public class WhileNode extends LoopNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
-        @SuppressWarnings("unused")
         int count = 0;
 
         try {
@@ -61,10 +61,16 @@ public class WhileNode extends LoopNode {
             }
         } finally {
             if (CompilerDirectives.inInterpreter()) {
+                reportLoopCount(count);
             }
         }
 
         return PNone.NONE;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitWhileNode(this);
     }
 
 }

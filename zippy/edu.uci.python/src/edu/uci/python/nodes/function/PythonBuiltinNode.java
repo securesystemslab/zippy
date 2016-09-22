@@ -28,6 +28,7 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.PNode;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.*;
@@ -58,6 +59,11 @@ public abstract class PythonBuiltinNode extends PNode {
         }
 
         return callable.call(PArguments.createWithUserArguments(obj)).toString();
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitPythonBuiltinNode(this);
     }
 
 }

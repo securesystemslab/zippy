@@ -27,6 +27,7 @@ package edu.uci.python.nodes.generator;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.PNode;
 import edu.uci.python.nodes.control.WhileNode;
 import edu.uci.python.nodes.expression.CastToBooleanNode;
@@ -40,7 +41,7 @@ import edu.uci.python.runtime.function.PArguments;
 public final class GeneratorWhileNode extends WhileNode implements GeneratorControlNode {
 
     private final int flagSlot;
-    @SuppressWarnings("unused") private int count;
+    private int count;
 
     public GeneratorWhileNode(CastToBooleanNode condition, PNode body, int flagSlot) {
         super(condition, body);
@@ -62,6 +63,11 @@ public final class GeneratorWhileNode extends WhileNode implements GeneratorCont
     }
 
     private Object doReturn(VirtualFrame frame) {
+        if (CompilerDirectives.inInterpreter()) {
+            reportLoopCount(count);
+            count = 0;
+        }
+
         assert !isActive(frame);
         return PNone.NONE;
     }
@@ -80,6 +86,11 @@ public final class GeneratorWhileNode extends WhileNode implements GeneratorCont
         }
 
         return doReturn(frame);
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitGeneratorWhileNode(this);
     }
 
 }

@@ -28,6 +28,7 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.runtime.function.*;
@@ -74,6 +75,18 @@ public class WithNode extends StatementNode {
             WriteNode targetNode = (WriteNode) targetNodes[i];
             targetNode.executeWrite(frame, asNameValues[i]);
         }
+    }
+
+    public PNode getWithContext() {
+        return withContext;
+    }
+
+    public PNode getBody() {
+        return body;
+    }
+
+    public PNode[] getTargetNodes() {
+        return targetNodes;
     }
 
     @Override
@@ -124,6 +137,11 @@ public class WithNode extends StatementNode {
 
         }
         return null;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitWithNode(this);
     }
 
 }

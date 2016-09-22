@@ -26,6 +26,7 @@ package edu.uci.python.nodes.argument;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
@@ -34,7 +35,7 @@ import edu.uci.python.runtime.function.*;
  * Only used in the builtin functions because only certain arguments can be keywords arguments in
  * the builtin functions. You can't use a keyword argument for each parameter as in regular
  * functions.
- * 
+ *
  * @author Gulfem
  *
  */
@@ -55,6 +56,11 @@ public class ReadKeywordNode extends PNode {
         }
 
         return keyword;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitReadKeywordNode(this);
     }
 
 }

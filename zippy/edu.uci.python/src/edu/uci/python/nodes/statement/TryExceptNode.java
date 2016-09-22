@@ -27,6 +27,7 @@ package edu.uci.python.nodes.statement;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ControlFlowException;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.PNode;
 
 public class TryExceptNode extends StatementNode {
@@ -65,6 +66,23 @@ public class TryExceptNode extends StatementNode {
         }
 
         throw exception;
+    }
+
+    public PNode getBody() {
+        return body;
+    }
+
+    public ExceptNode[] getExceptNodes() {
+        return exceptNodes;
+    }
+
+    public PNode getOrelse() {
+        return orelse;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitTryExceptNode(this);
     }
 
 }

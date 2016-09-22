@@ -27,6 +27,7 @@ package edu.uci.python.nodes.generator;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.function.*;
 
@@ -36,6 +37,10 @@ public class FrameSwappingNode extends PNode {
 
     public FrameSwappingNode(PNode child) {
         this.child = child;
+    }
+
+    public PNode getChild() {
+        return child;
     }
 
     @Override
@@ -60,6 +65,11 @@ public class FrameSwappingNode extends PNode {
     public double executeDouble(VirtualFrame frame) throws UnexpectedResultException {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
         return child.executeDouble(cargoFrame);
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitFrameSwappingNode(this);
     }
 
 }

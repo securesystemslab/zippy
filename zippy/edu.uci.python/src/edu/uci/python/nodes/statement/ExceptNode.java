@@ -29,6 +29,7 @@ import org.python.core.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.runtime.*;
@@ -96,6 +97,23 @@ public class ExceptNode extends StatementNode {
     public Object execute(VirtualFrame frame) {
         // TODO Auto-generated method stub
         return null;
+    }
+
+    public PNode getBody() {
+        return body;
+    }
+
+    public PNode[] getExceptType() {
+        return exceptType;
+    }
+
+    public PNode getExceptName() {
+        return exceptName;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitExceptNode(this);
     }
 
 }

@@ -24,10 +24,11 @@
  */
 package edu.uci.python.nodes.argument;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
 
-import edu.uci.python.runtime.function.PArguments;
-import edu.uci.python.runtime.sequence.PTuple;
+import edu.uci.python.ast.VisitorIF;
+import edu.uci.python.runtime.function.*;
+import edu.uci.python.runtime.sequence.*;
 
 /**
  * @author Gulfem
@@ -60,6 +61,11 @@ public final class ReadVarArgsNode extends ReadIndexedArgumentNode {
 
             return new PTuple(varArgs);
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitReadVarArgsNode(this);
     }
 
 }

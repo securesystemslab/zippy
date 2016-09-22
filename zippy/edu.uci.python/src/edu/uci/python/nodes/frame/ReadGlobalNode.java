@@ -31,6 +31,7 @@ import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.literal.*;
 import edu.uci.python.nodes.object.*;
@@ -228,6 +229,11 @@ public abstract class ReadGlobalNode extends PNode implements ReadNode, HasPrima
             throw new UnsupportedOperationException();
         }
 
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitReadGlobalNode(this);
     }
 
 }

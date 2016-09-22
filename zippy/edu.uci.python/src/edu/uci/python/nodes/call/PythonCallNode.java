@@ -34,6 +34,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.utilities.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
@@ -224,7 +225,8 @@ public abstract class PythonCallNode extends PNode {
 
         @Child protected CallDispatchBoxedNode dispatchNode;
 
-        public BoxedCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch, boolean passPrimary) {
+        public BoxedCallNode(PythonContext context, String calleeName, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch,
+                        boolean passPrimary) {
             super(context, calleeName, primary, callee, arguments, keywords, passPrimary);
             dispatchNode = dispatch;
         }
@@ -243,6 +245,8 @@ public abstract class PythonCallNode extends PNode {
                 return rewriteAndExecuteCall(frame, e.getResult(), calleeNode.execute(frame));
             }
 
+            argumentsNode.executeStarargs(frame);
+            keywordsNode.executeStarargs(frame);
             Object[] arguments = argumentsNode.executeArguments(frame, passPrimaryAsTheFirstArgument, primary);
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             return dispatchNode.executeCall(frame, primary, arguments, keywords);
@@ -280,6 +284,8 @@ public abstract class PythonCallNode extends PNode {
                 return rewriteAndExecuteCall(frame, e.getResult(), calleeNode.execute(frame));
             }
 
+            argumentsNode.executeStarargs(frame);
+            keywordsNode.executeStarargs(frame);
             Object[] arguments = argumentsNode.executeArguments(frame, true, primary);
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             return dispatchNode.executeCall(frame, primary, arguments, keywords);
@@ -308,6 +314,9 @@ public abstract class PythonCallNode extends PNode {
         @Override
         public Object execute(VirtualFrame frame) {
             Object primary = primaryNode.execute(frame);
+
+            argumentsNode.executeStarargs(frame);
+            keywordsNode.executeStarargs(frame);
             Object[] arguments = argumentsNode.executeArguments(frame, passPrimaryAsTheFirstArgument, primary);
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             return dispatchNode.executeCall(frame, primary, arguments, keywords);
@@ -342,6 +351,8 @@ public abstract class PythonCallNode extends PNode {
                 return rewriteAndExecuteCall(frame, PNone.NONE, e.getResult());
             }
 
+            argumentsNode.executeStarargs(frame);
+            keywordsNode.executeStarargs(frame);
             Object[] arguments = argumentsNode.executeArguments(frame);
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             return dispatchNode.executeCall(frame, callee, arguments, keywords);
@@ -418,6 +429,9 @@ public abstract class PythonCallNode extends PNode {
             assert !(clazz.getInstanceObjectLayout() instanceof FlexibleObjectLayout);
 
             PythonObject bootstrapObject = instanceNode.createNewInstance(clazz);
+
+            argumentsNode.executeStarargs(frame);
+            keywordsNode.executeStarargs(frame);
             Object[] arguments = argumentsNode.executeArguments(frame, true, bootstrapObject);
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
@@ -445,7 +459,8 @@ public abstract class PythonCallNode extends PNode {
 
         private final Assumption isLayoutOptimal;
 
-        public CallConstructorFlexibleNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords, CallDispatchBoxedNode dispatch) {
+        public CallConstructorFlexibleNode(PythonContext context, PythonClass pythonClass, PNode primary, PNode callee, ArgumentsNode arguments, ArgumentsNode keywords,
+                        CallDispatchBoxedNode dispatch) {
             super(context, pythonClass, primary, callee, arguments, keywords, dispatch);
             this.isLayoutOptimal = ((FlexibleObjectLayout) pythonClass.getInstanceObjectLayout()).getIsOptimalAssumption();
         }
@@ -473,6 +488,9 @@ public abstract class PythonCallNode extends PNode {
             }
 
             assert newInstance.verifyLayout();
+
+            argumentsNode.executeStarargs(frame);
+            keywordsNode.executeStarargs(frame);
             Object[] arguments = argumentsNode.executeArguments(frame, true, newInstance);
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
@@ -490,6 +508,9 @@ public abstract class PythonCallNode extends PNode {
         @Override
         protected Object executeCall(VirtualFrame frame, PythonObject primary, PythonClass clazz) {
             PythonObject newInstance = instanceNode.createNewInstance(clazz);
+
+            argumentsNode.executeStarargs(frame);
+            keywordsNode.executeStarargs(frame);
             Object[] arguments = argumentsNode.executeArguments(frame, true, newInstance);
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             dispatchNode.executeCall(frame, primary, arguments, keywords);
@@ -521,6 +542,8 @@ public abstract class PythonCallNode extends PNode {
                 return rewriteAndExecuteCall(frame, primaryNode.execute(frame), e.getResult());
             }
 
+            argumentsNode.executeStarargs(frame);
+            keywordsNode.executeStarargs(frame);
             Object[] arguments = argumentsNode.executeArguments(frame, passPrimaryAsTheFirstArgument, primary);
             PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame);
             return dispatchNode.executeCall(frame, primary, arguments, keywords);
@@ -552,9 +575,10 @@ public abstract class PythonCallNode extends PNode {
         }
 
         private Object executeCall(VirtualFrame frame, PyObject callee) {
+            argumentsNode.executeStarargs(frame);
+            keywordsNode.executeStarargs(frame);
             Object[] arguments = argumentsNode.executeArgumentsForJython(frame);
-            PyObject[] pyargs = adaptToPyObjects(arguments);
-            return unboxPyObject(callee.__call__(pyargs));
+            return unboxPyObject(jythonCall(callee, arguments));
         }
     }
 
@@ -586,6 +610,11 @@ public abstract class PythonCallNode extends PNode {
 
         RootNode getInlinedCalleeRoot();
 
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitPythonCallNode(this);
     }
 
 }

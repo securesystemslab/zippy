@@ -26,6 +26,7 @@ package edu.uci.python.nodes.statement;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 
 public class TryFinallyNode extends StatementNode {
@@ -47,6 +48,19 @@ public class TryFinallyNode extends StatementNode {
             result = finalbody.execute(frame);
         }
         return result;
+    }
+
+    public PNode getBody() {
+        return body;
+    }
+
+    public PNode getFinalbody() {
+        return finalbody;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitTryFinallyNode(this);
     }
 
 }

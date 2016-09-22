@@ -29,6 +29,7 @@ import org.python.core.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.datatype.*;
@@ -53,6 +54,19 @@ public class AssertNode extends StatementNode {
         }
 
         return PNone.NONE;
+    }
+
+    public CastToBooleanNode getCondition() {
+        return condition;
+    }
+
+    public PNode getMessage() {
+        return message;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitAssertNode(this);
     }
 
 }

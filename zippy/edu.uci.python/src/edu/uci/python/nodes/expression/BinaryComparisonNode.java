@@ -30,6 +30,7 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.object.*;
 import edu.uci.python.runtime.sequence.*;
@@ -525,6 +526,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         public boolean doPDictionary(Object left, PDict right) {
             return !right.hasKey(left);
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitBinaryComparisonNode(this);
     }
 
 }

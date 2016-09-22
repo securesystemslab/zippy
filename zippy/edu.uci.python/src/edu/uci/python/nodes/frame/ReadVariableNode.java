@@ -30,6 +30,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
 
@@ -146,6 +147,11 @@ public abstract class ReadVariableNode extends FrameSlotNode implements ReadNode
         } else {
             return executeNext(frame);
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitReadVariableNode(this);
     }
 
 }

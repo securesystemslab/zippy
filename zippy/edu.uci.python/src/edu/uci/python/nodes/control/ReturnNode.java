@@ -26,6 +26,7 @@ package edu.uci.python.nodes.control;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
@@ -45,11 +46,21 @@ public class ReturnNode extends StatementNode {
             this.right = right;
         }
 
+        public PNode getRight() {
+            return right;
+        }
+
         @Override
         public Object execute(VirtualFrame frame) {
             right.execute(frame);
             throw ReturnException.INSTANCE;
         }
+
+        @Override
+        public <R> R accept(VisitorIF<R> visitor) throws Exception {
+            return visitor.visitFrameReturnNode(this);
+        }
+
     }
 
 }

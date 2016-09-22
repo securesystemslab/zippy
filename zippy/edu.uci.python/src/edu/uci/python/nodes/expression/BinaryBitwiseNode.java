@@ -29,6 +29,7 @@ import java.math.BigInteger;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -128,6 +129,11 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.or(right);
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitBinaryBitwiseNode(this);
     }
 
 }

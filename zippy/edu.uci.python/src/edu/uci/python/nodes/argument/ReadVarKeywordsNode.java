@@ -26,6 +26,7 @@ package edu.uci.python.nodes.argument;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.function.*;
 
@@ -49,6 +50,11 @@ public class ReadVarKeywordsNode extends PNode {
     @Override
     public final PKeyword[] executeObjectArray(VirtualFrame frame) {
         return PArguments.getKeywordArguments(frame);
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitReadVarKeywordsNode(this);
     }
 
 }

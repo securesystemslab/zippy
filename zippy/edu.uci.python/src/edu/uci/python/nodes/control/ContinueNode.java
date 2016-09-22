@@ -27,6 +27,7 @@ package edu.uci.python.nodes.control;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
 
@@ -36,6 +37,11 @@ public class ContinueNode extends StatementNode {
     @Override
     public Object execute(VirtualFrame frame) {
         throw ContinueException.INSTANCE;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitContinueNode(this);
     }
 
 }

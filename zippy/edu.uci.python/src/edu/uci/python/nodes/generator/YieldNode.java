@@ -26,6 +26,7 @@ package edu.uci.python.nodes.generator;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
@@ -61,6 +62,11 @@ public class YieldNode extends StatementNode {
         final int index = getIndex(frame, parentBlockIndexSlot);
         setIndex(frame, parentBlockIndexSlot, index + 1);
         throw YieldException.INSTANCE;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitYieldNode(this);
     }
 
 }

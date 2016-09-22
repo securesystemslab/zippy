@@ -28,9 +28,11 @@ import java.math.BigInteger;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.function.*;
 import edu.uci.python.runtime.object.*;
@@ -82,6 +84,7 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
             return false;
         }
 
+        @TruffleBoundary
         @Specialization()
         boolean doPythonObject(PythonObject object) {
             Object boolAttribute = object.getAttribute("__bool__");
@@ -228,6 +231,11 @@ public abstract class CastToBooleanNode extends UnaryOpNode {
 
             return false;
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitCastToBooleanNode(this);
     }
 
 }

@@ -26,6 +26,7 @@ package edu.uci.python.nodes.control;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.EmptyNode;
 import edu.uci.python.nodes.PNode;
 import edu.uci.python.nodes.expression.CastToBooleanNode;
@@ -89,4 +90,8 @@ public class IfNode extends StatementNode {
         }
     }
 
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitIfNode(this);
+    }
 }

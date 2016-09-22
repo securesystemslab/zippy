@@ -29,6 +29,7 @@ import java.math.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.runtime.datatype.*;
@@ -106,6 +107,11 @@ public abstract class WriteGeneratorFrameVariableNode extends FrameSlotNode impl
         MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
         setObject(mframe, right);
         return right;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitWriteGeneratorFrameVariableNode(this);
     }
 
 }

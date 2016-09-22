@@ -26,7 +26,7 @@ package edu.uci.python.nodes;
 
 import java.math.BigInteger;
 
-import org.python.core.*;
+import org.python.core.PyObject;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.*;
@@ -34,6 +34,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 import com.oracle.truffle.api.source.SourceSection;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.builtin.*;
@@ -52,6 +53,11 @@ public abstract class PNode extends Node {
 
     @CompilationFinal private SourceSection sourceSection;
 
+    @Override
+    public SourceSection getSourceSection() {
+        return this.sourceSection;
+    }
+
     public abstract Object execute(VirtualFrame frame);
 
     public int executeInt(VirtualFrame frame) throws UnexpectedResultException {
@@ -60,6 +66,17 @@ public abstract class PNode extends Node {
             return (int) o;
         } else {
             throw new UnexpectedResultException(o);
+        }
+    }
+
+    public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
+        Object val = execute(frame);
+        Object value = (val instanceof Integer) ? BigInteger.valueOf((int) val).longValue() : val;
+
+        if (value instanceof Long) {
+            return (long) value;
+        } else {
+            throw new UnexpectedResultException(val);
         }
     }
 
@@ -149,6 +166,10 @@ public abstract class PNode extends Node {
 
     public PIntArray executePIntArray(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.expectPIntArray(execute(frame));
+    }
+
+    public PLongArray executePLongArray(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.expectPLongArray(execute(frame));
     }
 
     public PDoubleArray executePDoubleArray(VirtualFrame frame) throws UnexpectedResultException {
@@ -243,6 +264,10 @@ public abstract class PNode extends Node {
         return PythonTypesGen.expectPIntegerSequenceIterator(execute(frame));
     }
 
+    public PLongSequenceIterator executePLongSequenceIterator(VirtualFrame frame) throws UnexpectedResultException {
+        return PythonTypesGen.expectPLongSequenceIterator(execute(frame));
+    }
+
     public PSequenceIterator executePSequenceIterator(VirtualFrame frame) throws UnexpectedResultException {
         return PythonTypesGen.expectPSequenceIterator(execute(frame));
     }
@@ -259,13 +284,22 @@ public abstract class PNode extends Node {
         return false;
     }
 
-    public void clearSourceSection()
-    {
+    public void clearSourceSection() {
         this.sourceSection = null;
     }
 
-    public void assignSourceSection(SourceSection source)
-    {
+    public void assignSourceSection(SourceSection source) {
         this.sourceSection = source;
     }
+
+    @SuppressWarnings("unused")
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        throw new RuntimeException("Unexpected PNode: " + this);
+    }
+
+    @SuppressWarnings("unused")
+    public void traverse(VisitorIF<?> visitor) throws Exception {
+        throw new RuntimeException("No viable traversal node: " + this);
+    }
+
 }

@@ -29,6 +29,7 @@ import java.util.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -55,6 +56,11 @@ public final class SetLiteralNode extends LiteralNode {
     @Override
     public Object execute(VirtualFrame frame) {
         return executePSet(frame);
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitSetLiteralNode(this);
     }
 
 }

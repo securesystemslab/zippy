@@ -27,6 +27,7 @@ package edu.uci.python.nodes.frame;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 
 @NodeInfo(shortName = "read_level")
@@ -163,6 +164,11 @@ public abstract class ReadLevelVariableNode extends ReadVariableNode {
             MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
             return doObject(frame, parent);
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitReadLevelVariableNode(this);
     }
 
 }

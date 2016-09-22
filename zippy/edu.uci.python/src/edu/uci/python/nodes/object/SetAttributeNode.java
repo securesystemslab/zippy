@@ -28,6 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.truffle.*;
@@ -299,6 +300,11 @@ public abstract class SetAttributeNode extends PNode implements WriteNode {
                 return specialize(value).executeWithValue(frame, primary, result);
             }
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitSetAttributeNode(this);
     }
 
 }

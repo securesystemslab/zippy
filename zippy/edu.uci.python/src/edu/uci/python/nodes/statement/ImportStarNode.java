@@ -28,6 +28,7 @@ import org.python.core.*;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
@@ -53,9 +54,11 @@ public class ImportStarNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         Object importedModule = context.getImportManager().importModule(relativeto, moduleName);
-
         if (importedModule instanceof PythonModule) {
             for (String name : ((PythonModule) importedModule).getAttributeNames()) {
+                if (name.startsWith("__"))
+                    continue;
+
                 Object attr = ((PythonModule) importedModule).getAttribute(name);
                 relativeto.setAttribute(name, attr);
             }
@@ -77,6 +80,11 @@ public class ImportStarNode extends PNode {
         }
 
         return PNone.NONE;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitImportStarNode(this);
     }
 
 }

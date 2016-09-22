@@ -27,6 +27,7 @@ package edu.uci.python.nodes.control;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.statement.*;
 import edu.uci.python.runtime.exception.*;
@@ -39,4 +40,8 @@ public final class BreakNode extends StatementNode implements GeneratorControlNo
         throw BreakException.INSTANCE;
     }
 
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitBreakNode(this);
+    }
 }

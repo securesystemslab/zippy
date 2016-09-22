@@ -29,6 +29,7 @@ import java.util.*;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.generator.*;
 import edu.uci.python.nodes.statement.*;
@@ -94,6 +95,11 @@ public class BlockNode extends StatementNode {
         }
 
         return result;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitBlockNode(this);
     }
 
 }

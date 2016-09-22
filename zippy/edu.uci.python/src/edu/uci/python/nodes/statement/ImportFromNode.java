@@ -29,6 +29,7 @@ import org.python.core.*;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.datatype.*;
@@ -89,6 +90,11 @@ public class ImportFromNode extends PNode {
                 throw pye;
             }
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitImportFromNode(this);
     }
 
 }

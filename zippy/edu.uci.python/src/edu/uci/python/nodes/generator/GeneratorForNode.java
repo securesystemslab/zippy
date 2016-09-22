@@ -28,6 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.control.*;
 import edu.uci.python.nodes.control.LoopNode;
@@ -42,7 +43,7 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
     @Child protected GetIteratorNode getIterator;
 
     private final int iteratorSlot;
-    @SuppressWarnings("unused") private int count;
+    private int count;
 
     public GeneratorForNode(WriteGeneratorFrameVariableNode target, GetIteratorNode getIterator, PNode body, int iteratorSlot) {
         super(body);
@@ -68,6 +69,11 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
     }
 
     protected final Object doReturn(VirtualFrame frame) {
+        if (CompilerDirectives.inInterpreter()) {
+            reportLoopCount(count);
+            count = 0;
+        }
+
         setIterator(frame, null);
         return PNone.NONE;
     }
@@ -310,6 +316,19 @@ public abstract class GeneratorForNode extends LoopNode implements GeneratorCont
             target.executeWith(frame, getIterator(frame).__next__());
             incrementCounter();
         }
+    }
+
+    public WriteGeneratorFrameVariableNode getTarget() {
+        return target;
+    }
+
+    public GetIteratorNode getGetIterator() {
+        return getIterator;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitGeneratorForNode(this);
     }
 
 }

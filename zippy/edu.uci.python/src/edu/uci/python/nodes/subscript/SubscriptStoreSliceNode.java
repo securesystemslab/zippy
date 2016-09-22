@@ -27,6 +27,7 @@ package edu.uci.python.nodes.subscript;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
@@ -54,6 +55,11 @@ public abstract class SubscriptStoreSliceNode extends SubscriptStoreNode {
     public Object doPArray(PArray primary, PSlice slice, PArray value) {
         primary.setSlice(slice, value);
         return PNone.NONE;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitSubscriptStoreSliceNode(this);
     }
 
 }

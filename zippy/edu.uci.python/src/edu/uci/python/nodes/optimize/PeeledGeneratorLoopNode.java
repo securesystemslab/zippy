@@ -28,6 +28,7 @@ import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.nodes.function.*;
@@ -227,6 +228,11 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
             CompilerDirectives.transferToInterpreterAndInvalidate();
             return deoptAndExecute(frame);
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitPeeledGeneratorLoopNode(this);
     }
 
 }

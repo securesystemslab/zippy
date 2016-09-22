@@ -27,6 +27,7 @@ package edu.uci.python.nodes.frame;
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 
 public abstract class FrameSlotNode extends PNode {
@@ -48,6 +49,14 @@ public abstract class FrameSlotNode extends PNode {
     protected final int getInteger(Frame frame) {
         try {
             return frame.getInt(frameSlot);
+        } catch (FrameSlotTypeException ex) {
+            throw new IllegalStateException();
+        }
+    }
+
+    protected final long getLong(Frame frame) {
+        try {
+            return frame.getLong(frameSlot);
         } catch (FrameSlotTypeException ex) {
             throw new IllegalStateException();
         }
@@ -89,12 +98,20 @@ public abstract class FrameSlotNode extends PNode {
         return isKind(FrameSlotKind.Int);
     }
 
+    protected final boolean isLongKind(@SuppressWarnings("unused") Frame frame) {
+        return isKind(FrameSlotKind.Long);
+    }
+
     protected final boolean isDoubleKind(@SuppressWarnings("unused") Frame frame) {
         return isKind(FrameSlotKind.Double) || intToDouble();
     }
 
     protected final boolean isIntOrObjectKind(@SuppressWarnings("unused") Frame frame) {
         return isKind(FrameSlotKind.Int) || isKind(FrameSlotKind.Object);
+    }
+
+    protected final boolean isLongOrObjectKind(@SuppressWarnings("unused") Frame frame) {
+        return isKind(FrameSlotKind.Long) || isKind(FrameSlotKind.Object);
     }
 
     protected final boolean isObjectKind(@SuppressWarnings("unused") Frame frame) {
@@ -131,5 +148,10 @@ public abstract class FrameSlotNode extends PNode {
      * To be Overridden by {@link WriteNode}s. {@link ReadNode}s should throw Unsupported Error.
      */
     public abstract Object executeWrite(VirtualFrame frame, Object value);
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitFrameSlotNode(this);
+    }
 
 }

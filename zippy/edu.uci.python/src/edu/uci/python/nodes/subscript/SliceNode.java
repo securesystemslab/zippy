@@ -26,6 +26,7 @@ package edu.uci.python.nodes.subscript;
 
 import com.oracle.truffle.api.dsl.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.datatype.*;
 import static edu.uci.python.runtime.sequence.SequenceUtil.*;
@@ -78,6 +79,11 @@ public abstract class SliceNode extends TernaryOpNode {
     @Specialization
     public PSlice doSlice(PNone start, PNone stop, PNone step) {
         return new PSlice(MISSING_INDEX, MISSING_INDEX, 1);
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitSliceNode(this);
     }
 
 }

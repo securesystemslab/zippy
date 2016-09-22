@@ -26,6 +26,7 @@ package edu.uci.python.nodes.control;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.PNode;
 import edu.uci.python.nodes.statement.StatementNode;
 import edu.uci.python.runtime.exception.StopIterationException;
@@ -40,6 +41,14 @@ public final class StopIterationTargetNode extends StatementNode {
         this.catchPart = catchPart;
     }
 
+    public PNode getTryPart() {
+        return tryPart;
+    }
+
+    public PNode getCatchPart() {
+        return catchPart;
+    }
+
     @Override
     public Object execute(VirtualFrame frame) {
         try {
@@ -47,6 +56,11 @@ public final class StopIterationTargetNode extends StatementNode {
         } catch (StopIterationException ex) {
             return catchPart.execute(frame);
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitStopIterationTargetNode(this);
     }
 
 }

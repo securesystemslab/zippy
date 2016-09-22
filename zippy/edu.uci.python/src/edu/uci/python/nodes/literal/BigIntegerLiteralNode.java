@@ -28,6 +28,8 @@ import java.math.*;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
+
 public final class BigIntegerLiteralNode extends LiteralNode {
 
     private final BigInteger value;
@@ -48,6 +50,11 @@ public final class BigIntegerLiteralNode extends LiteralNode {
     @Override
     public Object execute(VirtualFrame frame) {
         return executeBigInteger(frame);
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitBigIntegerLiteralNode(this);
     }
 
 }

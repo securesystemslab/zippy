@@ -27,6 +27,7 @@ package edu.uci.python.nodes.statement;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.argument.*;
 import edu.uci.python.runtime.datatype.*;
@@ -57,6 +58,19 @@ public class DefaultParametersNode extends StatementNode {
         }
 
         return PNone.NONE;
+    }
+
+    public PNode[] getFunctionDefaults() {
+        return functionDefaults;
+    }
+
+    public ReadDefaultArgumentNode[] getDefaultReads() {
+        return defaultReads;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitDefaultParametersNode(this);
     }
 
 }

@@ -26,6 +26,7 @@ package edu.uci.python.nodes.control;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.statement.*;
 
@@ -53,4 +54,8 @@ public final class ElseNode extends StatementNode {
         return orelse.execute(frame);
     }
 
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitElseNode(this);
+    }
 }

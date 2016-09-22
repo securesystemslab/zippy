@@ -29,6 +29,7 @@ import java.util.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.datatype.*;
 
@@ -96,6 +97,11 @@ public final class DictLiteralNode extends LiteralNode {
             map.put(key.execute(frame), value.execute(frame));
             return new PDict(map);
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitDictLiteralNode(this);
     }
 
 }

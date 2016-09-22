@@ -28,6 +28,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 
 public class ReadDefaultArgumentNode extends PNode {
@@ -51,6 +52,11 @@ public class ReadDefaultArgumentNode extends PNode {
     @Override
     public Node copy() {
         return this;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitReadDefaultArgumentNode(this);
     }
 
 }

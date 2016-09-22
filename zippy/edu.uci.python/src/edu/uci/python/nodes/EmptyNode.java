@@ -26,6 +26,7 @@ package edu.uci.python.nodes;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.runtime.datatype.*;
 
 public final class EmptyNode extends PNode {
@@ -44,6 +45,11 @@ public final class EmptyNode extends PNode {
     @Override
     public Object execute(VirtualFrame frame) {
         return PNone.NONE;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitEmptyNode(this);
     }
 
 }

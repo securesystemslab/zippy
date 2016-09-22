@@ -27,6 +27,7 @@ package edu.uci.python.nodes.generator;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.nodes.truffle.*;
@@ -165,6 +166,11 @@ public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
 
             return null;
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitReadGeneratorFrameVariableNode(this);
     }
 
 }

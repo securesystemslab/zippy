@@ -36,6 +36,7 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.misc.*;
@@ -66,6 +67,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization
+        Long doLong(Long left, Long right) {
+            return left + right;
+        }
+
+        @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.add(right);
         }
@@ -80,6 +86,16 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         double doDoubleBoolean(boolean left, double right) {
             final double leftDouble = left ? 1.0 : 0.0;
             return leftDouble + right;
+        }
+
+        @Specialization
+        double doDoubleLong(double left, long right) {
+            return left + right;
+        }
+
+        @Specialization
+        double doDoubleLong(long left, double right) {
+            return left + right;
         }
 
         @Specialization
@@ -182,6 +198,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization
+        Long doLong(Long left, Long right) {
+            return left - right;
+        }
+
+        @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.subtract(right);
         }
@@ -226,6 +247,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization(rewriteOn = ArithmeticException.class)
         int doInteger(int left, int right) {
             return ExactMath.multiplyExact(left, right);
+        }
+
+        @Specialization
+        Long doLong(Long left, Long right) {
+            return left * right;
         }
 
         @Specialization
@@ -345,6 +371,26 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization
+        double doLong(Long left, Long right) {
+            if (right == 0) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
+                throw new ArithmeticException("divide by zero");
+            }
+
+            return (double) left / right;
+        }
+
+        @Specialization
+        double doLong(Long left, double right) {
+            return (double) left / right;
+        }
+
+        @Specialization
+        double doLong(double left, Long right) {
+            return left / right;
+        }
+
+        @Specialization
         double doBigInteger(BigInteger left, BigInteger right) {
             return FastMathUtil.slowPathDivide(left, right).doubleValue();
         }
@@ -397,6 +443,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization
+        long doLong(long left, long right) {
+            return left / right;
+        }
+
+        @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return FastMathUtil.slowPathDivide(left, right);
         }
@@ -421,7 +472,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
     @GenerateNodeFactory
     public abstract static class ModuloNode extends BinaryArithmeticNode {
 
-        @Specialization(guards = "isLeftPositive(left,right)")
+        @Specialization(guards = "isLeftPositive(left)")
         int doInteger(int left, int right) {
             return left % right;
         }
@@ -431,14 +482,36 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return (left + right) % right;
         }
 
-        @SuppressWarnings("unused")
-        protected static boolean isLeftPositive(int left, int right) {
+        protected static boolean isLeftPositive(int left) {
             return left >= 0;
         }
 
-        @SuppressWarnings("unused")
-        protected static boolean isLeftNegative(int left, int right) {
+        protected static boolean isLeftNegative(int left) {
             return left < 0;
+        }
+
+        @Specialization(guards = "isLeftPositive(left)")
+        long doLong(long left, int right) {
+            return left % right;
+        }
+
+        @Specialization
+        long doLongNegative(long left, int right) {
+            return (left + right) % right;
+        }
+
+        @Specialization(guards = "isLeftPositive(left)")
+        long doLong(long left, long right) {
+            return left % right;
+        }
+
+        @Specialization
+        long doLongNegative(long left, long right) {
+            return (left + right) % right;
+        }
+
+        protected static boolean isLeftPositive(long left) {
+            return left >= 0;
         }
 
         @TruffleBoundary
@@ -477,13 +550,28 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
     @GenerateNodeFactory
     public abstract static class PowerNode extends BinaryArithmeticNode {
 
+        @TruffleBoundary
         @Specialization
-        int doInteger(int left, int right) {
-            return (int) Math.pow(left, right);
+        Object doInteger(int left, int right) {
+            BigInteger val = BigInteger.valueOf(left).pow(right);
+            return (val.longValue() <= Integer.MAX_VALUE) ? val.intValue() : val;
         }
 
         @Specialization
+        long doLong(long left, int right) {
+            return BigInteger.valueOf(left).pow(right).longValue();
+        }
+
+        @Specialization
+        long doLong(long left, long right) {
+            return BigInteger.valueOf(left).pow(Math.toIntExact(right)).longValue();
+        }
+
+        @TruffleBoundary
+        @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
+            if (right.longValue() <= Integer.MAX_VALUE)
+                return left.pow(right.intValue());
             double value = Math.pow(left.doubleValue(), right.doubleValue());
             return BigInteger.valueOf((long) value);
         }
@@ -497,6 +585,11 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         Object doPythonObject(VirtualFrame frame, Object left, Object right) {
             return doSpecialMethodCall(frame, "__pow__", left, right);
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitBinaryArithmeticNode(this);
     }
 
 }

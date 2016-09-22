@@ -3,6 +3,7 @@ package edu.uci.python.nodes.expression;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.CastToBooleanNode.*;
 import edu.uci.python.nodes.expression.CastToBooleanNodeFactory.*;
@@ -36,6 +37,11 @@ public class OrNode extends BinaryOpNode {
     @Override
     public PNode getRightNode() {
         return rightNode;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitOrNode(this);
     }
 
 }

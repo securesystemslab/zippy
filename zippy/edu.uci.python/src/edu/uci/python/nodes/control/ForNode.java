@@ -24,19 +24,34 @@
  */
 package edu.uci.python.nodes.control;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.GenerateNodeFactory;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.frame.*;
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.sequence.storage.*;
+import edu.uci.python.ast.VisitorIF;
+import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.frame.WriteNode;
+import edu.uci.python.runtime.PythonOptions;
+import edu.uci.python.runtime.datatype.PGenerator;
+import edu.uci.python.runtime.datatype.PNone;
+import edu.uci.python.runtime.exception.StopIterationException;
+import edu.uci.python.runtime.iterator.PDoubleIterator;
+import edu.uci.python.runtime.iterator.PIntegerIterator;
+import edu.uci.python.runtime.iterator.PIntegerSequenceIterator;
+import edu.uci.python.runtime.iterator.PIterator;
+import edu.uci.python.runtime.iterator.PLongIterator;
+import edu.uci.python.runtime.iterator.PLongSequenceIterator;
+import edu.uci.python.runtime.iterator.PRangeIterator;
+import edu.uci.python.runtime.iterator.PSequenceIterator;
+import edu.uci.python.runtime.sequence.PList;
+import edu.uci.python.runtime.sequence.PSequence;
+import edu.uci.python.runtime.sequence.storage.IntSequenceStorage;
+import edu.uci.python.runtime.sequence.storage.LongSequenceStorage;
+import edu.uci.python.runtime.sequence.storage.ObjectSequenceStorage;
 
 @NodeInfo(shortName = "for")
 @NodeChild(value = "iterator", type = GetIteratorNode.class)
@@ -66,16 +81,10 @@ public abstract class ForNode extends LoopNode {
         final int start = range.getStart();
         final int stop = range.getStop();
         final int step = range.getStep();
-        @SuppressWarnings("unused")
-        int count = 0;
 
         for (int i = start; i < stop; i += step) {
             ((WriteNode) target).executeWrite(frame, i);
             body.executeVoid(frame);
-
-            if (CompilerDirectives.inInterpreter()) {
-                count++;
-            }
         }
 
         return PNone.NONE;
@@ -85,11 +94,10 @@ public abstract class ForNode extends LoopNode {
     public Object doIntegerSequenceIterator(VirtualFrame frame, PIntegerSequenceIterator iterator) {
         @SuppressWarnings("unused")
         int count = 0;
-        int index = 0;
         IntSequenceStorage store = iterator.getSequenceStorage();
 
-        while (index < store.length()) {
-            ((WriteNode) target).executeWrite(frame, store.getIntItemNormalized(index++));
+        for (int index = 0; index < store.length(); index++) {
+            ((WriteNode) target).executeWrite(frame, store.getIntItemNormalized(index));
             body.executeVoid(frame);
 
             if (CompilerDirectives.inInterpreter()) {
@@ -108,6 +116,45 @@ public abstract class ForNode extends LoopNode {
         try {
             while (true) {
                 ((WriteNode) target).executeWrite(frame, iterator.__nextInt__());
+                body.executeVoid(frame);
+
+                if (CompilerDirectives.inInterpreter()) {
+                    count++;
+                }
+            }
+        } catch (StopIterationException e) {
+
+        }
+
+        return PNone.NONE;
+    }
+
+    @Specialization
+    public Object doLongSequenceIterator(VirtualFrame frame, PLongSequenceIterator iterator) {
+        @SuppressWarnings("unused")
+        int count = 0;
+        LongSequenceStorage store = iterator.getSequenceStorage();
+
+        for (int index = 0; index < store.length(); index++) {
+            ((WriteNode) target).executeWrite(frame, store.getLongItemNormalized(index));
+            body.executeVoid(frame);
+
+            if (CompilerDirectives.inInterpreter()) {
+                count++;
+            }
+        }
+
+        return PNone.NONE;
+    }
+
+    @Specialization
+    public Object doLongIterator(VirtualFrame frame, PLongIterator iterator) {
+        @SuppressWarnings("unused")
+        int count = 0;
+
+        try {
+            while (true) {
+                ((WriteNode) target).executeWrite(frame, iterator.__nextLong__());
                 body.executeVoid(frame);
 
                 if (CompilerDirectives.inInterpreter()) {
@@ -146,19 +193,17 @@ public abstract class ForNode extends LoopNode {
     public Object doObjectStorageIterator(VirtualFrame frame, PSequenceIterator iterator) {
         @SuppressWarnings("unused")
         int count = 0;
-        int index = 0;
         PList list = (PList) iterator.getSeqence();
         ObjectSequenceStorage store = (ObjectSequenceStorage) list.getStorage();
 
-        while (index < store.length()) {
-            ((WriteNode) target).executeWrite(frame, store.getItemNormalized(index++));
+        for (int index = 0; index < store.length(); index++) {
+            ((WriteNode) target).executeWrite(frame, store.getItemNormalized(index));
             body.executeVoid(frame);
 
             if (CompilerDirectives.inInterpreter()) {
                 count++;
             }
         }
-
         return PNone.NONE;
     }
 
@@ -166,11 +211,10 @@ public abstract class ForNode extends LoopNode {
     public Object doIterator(VirtualFrame frame, PSequenceIterator iterator) {
         @SuppressWarnings("unused")
         int count = 0;
-        int index = 0;
         PSequence sequence = iterator.getSeqence();
 
-        while (index < sequence.len()) {
-            ((WriteNode) target).executeWrite(frame, sequence.getItem(index++));
+        for (int index = 0; index < sequence.len(); index++) {
+            ((WriteNode) target).executeWrite(frame, sequence.getItem(index));
             body.executeVoid(frame);
 
             if (CompilerDirectives.inInterpreter()) {
@@ -229,6 +273,11 @@ public abstract class ForNode extends LoopNode {
         }
 
         return PNone.NONE;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitForNode(this);
     }
 
 }

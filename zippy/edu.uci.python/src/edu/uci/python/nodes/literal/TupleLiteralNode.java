@@ -27,6 +27,7 @@ package edu.uci.python.nodes.literal;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -50,4 +51,8 @@ public final class TupleLiteralNode extends LiteralNode {
         return new PTuple(elements);
     }
 
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitTupleLiteralNode(this);
+    }
 }

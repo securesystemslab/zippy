@@ -26,6 +26,8 @@ package edu.uci.python.nodes.literal;
 
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
+
 public final class DoubleLiteralNode extends LiteralNode {
 
     private final double value;
@@ -42,6 +44,11 @@ public final class DoubleLiteralNode extends LiteralNode {
     @Override
     public Object execute(VirtualFrame frame) {
         return executeDouble(frame);
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitDoubleLiteralNode(this);
     }
 
 }

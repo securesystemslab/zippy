@@ -27,6 +27,7 @@ package edu.uci.python.nodes.subscript;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.runtime.array.*;
 import edu.uci.python.runtime.datatype.*;
@@ -136,6 +137,11 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
     public char doPArrayCharNegative(PCharArray primary, int index, char value) {
         primary.setCharItemNormalized(index + primary.len(), value);
         return 0;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitSubscriptStoreIndexNode(this);
     }
 
 }
