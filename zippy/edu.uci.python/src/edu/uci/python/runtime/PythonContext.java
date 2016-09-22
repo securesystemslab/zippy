@@ -26,6 +26,7 @@ package edu.uci.python.runtime;
 
 import java.io.*;
 import java.lang.invoke.*;
+import java.math.BigInteger;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.nodes.*;
@@ -126,8 +127,12 @@ public class PythonContext extends ExecutionContext {
         /**
          * TODO: missing int, double, boolean... and maybe more.
          */
-        if (obj instanceof Integer) {
+        if (obj instanceof Integer || obj instanceof BigInteger || obj instanceof Long) {
             return new PInt((int) obj);
+        } else if (obj instanceof BigInteger) {
+            return new PInt((BigInteger) obj);
+        } else if (obj instanceof Long) {
+            return new PInt((long) obj);
         } else if (obj instanceof Double) {
             return new PFloat((double) obj);
         } else if (obj instanceof String) {

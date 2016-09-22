@@ -24,6 +24,8 @@
  */
 package edu.uci.python.runtime.sequence.storage;
 
+import java.math.BigInteger;
+
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.sequence.*;
 
@@ -46,9 +48,16 @@ public class SequenceStorageFactory {
         }
 
         if (canSpecializeToInt(values)) {
-            return new IntSequenceStorage(specializeToInt(values));
+            if (!PythonOptions.forceLongType)
+                return new IntSequenceStorage(specializeToInt(values));
+            else
+                return new LongSequenceStorage(specializeToLong(values));
         } else if (canSpecializeToDouble(values)) {
             return new DoubleSequenceStorage(specializeToDouble(values));
+        } else if (canSpecializeToLong(values)) {
+            return new LongSequenceStorage(specializeToLong(values));
+        } else if (canSpecializeToBool(values)) {
+            return new BoolSequenceStorage(specializeToBool(values));
         } else if (canSpecializeToList(values)) {
             return new ListSequenceStorage(specializeToList(values));
         } else if (canSpecializeToTuple(values)) {
@@ -82,6 +91,34 @@ public class SequenceStorageFactory {
         return intVals;
     }
 
+    public static boolean canSpecializeToLong(Object[] values) {
+        Object val = values[0];
+        val = (val instanceof Integer) ? BigInteger.valueOf((int) val).longValue() : val;
+        if (!(values[0] instanceof Long)) {
+            return false;
+        }
+
+        for (Object item : values) {
+            val = item;
+            val = (val instanceof Integer) ? BigInteger.valueOf((int) val).longValue() : val;
+            if (!(item instanceof Long)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static long[] specializeToLong(Object[] values) {
+        final long[] intVals = new long[values.length];
+        for (int i = 0; i < values.length; i++) {
+            long value = (values[i] instanceof Integer) ? BigInteger.valueOf((int) values[i]).longValue() : (long) values[i];
+            intVals[i] = value;
+        }
+
+        return intVals;
+    }
+
     public static boolean canSpecializeToDouble(Object[] values) {
         if (!(values[0] instanceof Double)) {
             return false;
@@ -104,6 +141,30 @@ public class SequenceStorageFactory {
         }
 
         return doubles;
+    }
+
+    public static boolean canSpecializeToBool(Object[] values) {
+        if (!(values[0] instanceof Boolean)) {
+            return false;
+        }
+
+        for (Object item : values) {
+            if (!(item instanceof Boolean)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static boolean[] specializeToBool(Object[] values) {
+        final boolean[] bools = new boolean[values.length];
+
+        for (int i = 0; i < values.length; i++) {
+            bools[i] = (boolean) values[i];
+        }
+
+        return bools;
     }
 
     public static boolean canSpecializeToList(Object[] values) {

@@ -25,6 +25,7 @@
 package edu.uci.python.runtime.sequence.storage;
 
 import java.io.*;
+import java.math.BigInteger;
 import java.util.*;
 
 import org.python.core.*;
@@ -35,39 +36,18 @@ import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.runtime.*;
 import edu.uci.python.runtime.sequence.*;
 
-public final class ListSequenceStorage extends BasicSequenceStorage {
+public final class LongSequenceStorage extends BasicSequenceStorage {
 
-    private PList[] values;
-    private Class<?> kind;
-    private int dim;
+    private long[] values;
 
-    public ListSequenceStorage(SequenceStorage elementSample) {
-        values = new PList[]{};
-        if (elementSample instanceof ListSequenceStorage) {
-            ListSequenceStorage list = (ListSequenceStorage) elementSample;
-            this.kind = list.getKind();
-            this.dim = list.dim + 1;
-        } else {
-            this.kind = elementSample.getClass();
-            this.dim = 2;
-        }
+    public LongSequenceStorage() {
+        values = new long[]{};
     }
 
-    public ListSequenceStorage(PList[] elements) {
-        this(elements, elements[0].getStorage().getClass());
-        if (kind == ListSequenceStorage.class)
-            this.kind = ((ListSequenceStorage) elements[0].getStorage()).getKind();
-    }
-
-    public ListSequenceStorage(PList[] elements, Class<?> kind) {
+    public LongSequenceStorage(long[] elements) {
         this.values = elements;
         capacity = values.length;
         length = elements.length;
-        this.kind = kind;
-        if (elements[0].getStorage() instanceof ListSequenceStorage)
-            this.dim = ((ListSequenceStorage) elements[0].getStorage()).dim + 1;
-        else
-            this.dim = 2;
     }
 
     @Override
@@ -78,27 +58,13 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     @Override
     protected void increaseCapacityExact(int newCapacity) {
-        values = new PList[newCapacity];
+        values = new long[newCapacity];
         capacity = values.length;
     }
 
     @Override
     public SequenceStorage copy() {
-        return new ListSequenceStorage(Arrays.copyOf(values, length), this.kind);
-    }
-
-    public Class<?> getKind() {
-        return kind;
-    }
-
-    public int getDim() {
-        if (dim == 0) {
-            if (values[0].getStorage() instanceof ListSequenceStorage)
-                this.dim = ((ListSequenceStorage) values[0].getStorage()).dim + 1;
-            else
-                this.dim = 2;
-        }
-        return dim;
+        return new LongSequenceStorage(Arrays.copyOf(values, length));
     }
 
     @Override
@@ -115,7 +81,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
         return boxed;
     }
 
-    public PList[] getInternalListArray() {
+    public long[] getInternalLongArray() {
         return values;
     }
 
@@ -126,10 +92,10 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public Object getItemNormalized(int idx) {
-        return getListItemNormalized(idx);
+        return getLongItemNormalized(idx);
     }
 
-    public PList getListItemNormalized(int idx) {
+    public long getLongItemNormalized(int idx) {
         try {
             return values[idx];
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -139,15 +105,17 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public void setItemNormalized(int idx, Object value) throws SequenceStoreException {
-        if (value instanceof PList) {
-            setListItemNormalized(idx, (PList) value);
+    public void setItemNormalized(int idx, Object val) throws SequenceStoreException {
+        Object value = (val instanceof Integer) ? BigInteger.valueOf((int) val).longValue() : val;
+        value = (val instanceof BigInteger) ? ((BigInteger) val).longValue() : value;
+        if (value instanceof Long) {
+            setLongItemNormalized(idx, (long) value);
         } else {
             throw SequenceStoreException.INSTANCE;
         }
     }
 
-    public void setListItemNormalized(int idx, PList value) {
+    public void setLongItemNormalized(int idx, long value) {
         try {
             values[idx] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -157,15 +125,17 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public void insertItem(int idx, Object value) throws SequenceStoreException {
-        if (value instanceof PList) {
-            insertListItem(idx, (PList) value);
+    public void insertItem(int idx, Object val) throws SequenceStoreException {
+        Object value = (val instanceof Integer) ? BigInteger.valueOf((int) val).longValue() : val;
+        value = (val instanceof BigInteger) ? ((BigInteger) val).longValue() : value;
+        if (value instanceof Long) {
+            insertLongItem(idx, (long) value);
         } else {
             throw SequenceStoreException.INSTANCE;
         }
     }
 
-    public void insertListItem(int idx, PList value) {
+    public void insertLongItem(int idx, long value) {
         ensureCapacity(length + 1);
 
         // shifting tail to the right by one slot
@@ -179,30 +149,30 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public SequenceStorage getSliceInBound(int start, int stop, int step, int sliceLength) {
-        PList[] newArray = new PList[sliceLength];
+        long[] newArray = new long[sliceLength];
 
         if (step == 1) {
             System.arraycopy(values, start, newArray, 0, sliceLength);
-            return new ListSequenceStorage(newArray, this.kind);
+            return new LongSequenceStorage(newArray);
         }
 
         for (int i = start, j = 0; j < sliceLength; i += step, j++) {
             newArray[j] = values[i];
         }
 
-        return new ListSequenceStorage(newArray, this.kind);
+        return new LongSequenceStorage(newArray);
     }
 
     @Override
     public void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) throws SequenceStoreException {
-        if (sequence instanceof ListSequenceStorage) {
-            setListSliceInBound(start, stop, step, (ListSequenceStorage) sequence);
+        if (sequence instanceof LongSequenceStorage) {
+            setLongSliceInBound(start, stop, step, (LongSequenceStorage) sequence);
         } else {
             throw new SequenceStoreException();
         }
     }
 
-    public void setListSliceInBound(int start, int stop, int step, ListSequenceStorage sequence) {
+    public void setLongSliceInBound(int start, int stop, int step, LongSequenceStorage sequence) {
         int otherLength = sequence.length();
 
         // range is the whole sequence?
@@ -232,7 +202,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
     @Override
     public void delItemInBound(int idx) {
         if (values.length - 1 == idx) {
-            popList();
+            popLong();
         } else {
             popInBound(idx);
         }
@@ -240,7 +210,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public Object popInBound(int idx) {
-        PList pop = values[idx];
+        long pop = values[idx];
 
         for (int i = idx; i < values.length - 1; i++) {
             values[i] = values[i + 1];
@@ -250,16 +220,19 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
         return pop;
     }
 
-    public PList popList() {
-        PList pop = values[capacity - 1];
+    public long popLong() {
+        long pop = values[capacity - 1];
         length--;
         return pop;
     }
 
     @Override
-    public int index(Object value) {
-        if (value instanceof PList) {
-            return indexOfList((PList) value);
+    public int index(Object val) {
+        Object value = (val instanceof Integer) ? BigInteger.valueOf((int) val).longValue() : val;
+        value = (val instanceof BigInteger) ? ((BigInteger) val).longValue() : value;
+
+        if (value instanceof Long) {
+            return indexOfLong((long) value);
         } else {
             return super.index(value);
         }
@@ -267,7 +240,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
     }
 
     @ExplodeLoop
-    public int indexOfList(PList value) {
+    public int indexOfLong(long value) {
         for (int i = 0; i < length; i++) {
             if (values[i] == value) {
                 return i;
@@ -278,21 +251,18 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
     }
 
     @Override
-    public void append(Object value) throws SequenceStoreException {
-        if (value instanceof PList) {
-            SequenceStorage list = ((PList) value).getStorage();
-            if (list instanceof ListSequenceStorage && ((ListSequenceStorage) list).getKind() == kind)
-                appendList((PList) value);
-            else if (list.getClass() == kind)
-                appendList((PList) value);
-            else
-                throw SequenceStoreException.INSTANCE;
-        } else
-            throw SequenceStoreException.INSTANCE;
+    public void append(Object val) throws SequenceStoreException {
+        Object value = (val instanceof Integer) ? BigInteger.valueOf((int) val).longValue() : val;
+        value = (val instanceof BigInteger) ? ((BigInteger) val).longValue() : value;
 
+        if (value instanceof Long) {
+            appendLong((long) value);
+        } else {
+            throw SequenceStoreException.INSTANCE;
+        }
     }
 
-    public void appendList(PList value) {
+    public void appendLong(long value) {
         ensureCapacity(length + 1);
         values[length] = value;
         length++;
@@ -300,18 +270,17 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void extend(SequenceStorage other) throws SequenceStoreException {
-        if (other instanceof ListSequenceStorage) {
-            extendWithListStorage((ListSequenceStorage) other);
+        if (other instanceof LongSequenceStorage) {
+            extendWithLongStorage((LongSequenceStorage) other);
         } else {
             throw SequenceStoreException.INSTANCE;
         }
     }
 
-    @ExplodeLoop
-    public void extendWithListStorage(ListSequenceStorage other) {
+    public void extendWithLongStorage(LongSequenceStorage other) {
         int extendedLength = length + other.length();
         ensureCapacity(extendedLength);
-        PList[] otherValues = other.values;
+        long[] otherValues = other.values;
 
         for (int i = length, j = 0; i < extendedLength; i++, j++) {
             values[i] = otherValues[j];
@@ -328,7 +297,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
         int middle = (length - 1) / 2;
 
         for (; head <= middle; head++, tail--) {
-            PList temp = values[head];
+            long temp = values[head];
             values[head] = values[tail];
             values[tail] = temp;
         }
@@ -337,10 +306,9 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
     @ExplodeLoop
     @Override
     public void sort() {
-        // TODO: need to be tested
-        Object[] copy = Arrays.copyOf(values, length);
+        long[] copy = Arrays.copyOf(values, length);
         Arrays.sort(copy);
-        values = (PList[]) copy;
+        values = copy;
         minimizeCapacity();
     }
 
@@ -362,12 +330,11 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
     @ExplodeLoop
     @Override
     public boolean equals(SequenceStorage other) {
-        // TODO: equal algorithm might need more tests
-        if (other.length() != length() || !(other instanceof ListSequenceStorage)) {
+        if (other.length() != length() || !(other instanceof LongSequenceStorage)) {
             return false;
         }
 
-        PList[] otherArray = ((ListSequenceStorage) other).getInternalListArray();
+        long[] otherArray = ((LongSequenceStorage) other).getInternalLongArray();
         for (int i = 0; i < length(); i++) {
             if (values[i] != otherArray[i]) {
                 return false;

@@ -22,39 +22,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatype;
+package edu.uci.python.runtime.iterator;
 
-import java.math.*;
+public interface PLongIterator {
 
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtin.*;
-import edu.uci.python.runtime.standardtype.*;
-
-public final class PInt extends PythonBuiltinObject {
-
-    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PInt.class);
-
-    private final BigInteger value;
-
-    public PInt(int value) {
-        this.value = BigInteger.valueOf(value);
-    }
-
-    public PInt(BigInteger value) {
-        this.value = value;
-    }
-
-    public PInt(long value) {
-        this.value = BigInteger.valueOf(value);
-    }
-
-    @Override
-    public PythonBuiltinClass __class__() {
-        return __class__;
-    }
-
-    public BigInteger getValue() {
-        return value;
-    }
+    long __nextLong__();
 
 }

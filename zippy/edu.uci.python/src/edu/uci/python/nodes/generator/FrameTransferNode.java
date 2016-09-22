@@ -29,6 +29,7 @@ import java.math.*;
 import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.frame.*;
 import edu.uci.python.runtime.function.*;
@@ -72,6 +73,14 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         return value;
     }
 
+    @Specialization(guards = "isLongKind(frame)")
+    public long doLong(VirtualFrame frame, long value) {
+        VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
+        assert frameSlot.getFrameDescriptor() == cargoFrame.getFrameDescriptor();
+        cargoFrame.setLong(frameSlot, value);
+        return value;
+    }
+
     @Specialization(guards = "isDoubleKind(frame)")
     public double doDouble(VirtualFrame frame, double right) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
@@ -86,6 +95,11 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         assert frameSlot.getFrameDescriptor() == cargoFrame.getFrameDescriptor();
         setObject(cargoFrame, right);
         return right;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitFrameTransferNode(this);
     }
 
 }

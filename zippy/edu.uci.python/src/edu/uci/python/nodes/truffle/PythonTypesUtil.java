@@ -24,19 +24,41 @@
  */
 package edu.uci.python.nodes.truffle;
 
-import java.math.*;
-import java.util.*;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.python.core.*;
+import org.python.core.Py;
+import org.python.core.PyArray;
+import org.python.core.PyComplex;
+import org.python.core.PyDictionary;
+import org.python.core.PyFloat;
+import org.python.core.PyInteger;
+import org.python.core.PyList;
+import org.python.core.PyLong;
+import org.python.core.PyObject;
+import org.python.core.PySet;
+import org.python.core.PyString;
+import org.python.core.PyTuple;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 
-import edu.uci.python.runtime.array.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.array.PArray;
+import edu.uci.python.runtime.array.PCharArray;
+import edu.uci.python.runtime.array.PDoubleArray;
+import edu.uci.python.runtime.array.PIntArray;
+import edu.uci.python.runtime.datatype.PComplex;
+import edu.uci.python.runtime.datatype.PDict;
+import edu.uci.python.runtime.datatype.PFrozenSet;
+import edu.uci.python.runtime.datatype.PNone;
+import edu.uci.python.runtime.datatype.PRange;
+import edu.uci.python.runtime.function.PFunction;
+import edu.uci.python.runtime.object.PythonObject;
+import edu.uci.python.runtime.sequence.PList;
+import edu.uci.python.runtime.sequence.PSet;
+import edu.uci.python.runtime.sequence.PTuple;
 
 public class PythonTypesUtil {
 
@@ -62,6 +84,8 @@ public class PythonTypesUtil {
             return Py.newBoolean((boolean) value);
         } else if (value instanceof Integer) {
             return Py.newInteger((int) value);
+        } else if (value instanceof Long) {
+            return Py.newLong((long) value);
         } else if (value instanceof BigInteger) {
             return Py.newLong((BigInteger) value);
         } else if (value instanceof Double) {
@@ -71,7 +95,11 @@ public class PythonTypesUtil {
             PyComplex pyComplex = new PyComplex(complex.getReal(), complex.getImag());
             return pyComplex;
         } else if (value instanceof String) {
-            return Py.newString((String) value);
+            try {
+                return Py.newString((String) value);
+            } catch (Exception e) {
+                return Py.newUnicode((String) value);
+            }
         } else if (value instanceof PNone) {
             return Py.None;
         } else if (value instanceof PTuple) {
@@ -105,6 +133,8 @@ public class PythonTypesUtil {
             return new PyArray(double.class, ((PDoubleArray) value).getSequence());
         } else if (value instanceof PCharArray) {
             return new PyArray(char.class, ((PCharArray) value).getSequence());
+        } else if (value instanceof PythonObject) {
+            return adoptToPyClass((PythonObject) value);
         } else if (value instanceof PFunction) {
             /**
              * zwei: This is a fix to deal with string modulo operation. It only works if this
@@ -114,6 +144,11 @@ public class PythonTypesUtil {
         }
 
         throw new RuntimeException("unexpected type! " + value.getClass());
+    }
+
+    // TODO: Future support
+    public static PyObject adoptToPyClass(PythonObject object) {
+        throw new RuntimeException("type not supported to adopt to Jython! " + object.toString() + "  class:" + object.getClass());
     }
 
     @TruffleBoundary
@@ -131,6 +166,11 @@ public class PythonTypesUtil {
         }
 
         return converted.toArray(new PyObject[values.length]);
+    }
+
+    @TruffleBoundary
+    public static PyObject jythonCall(PyObject callee, Object[] pyargs) {
+        return callee.__call__(adaptToPyObjects(pyargs));
     }
 
     @TruffleBoundary

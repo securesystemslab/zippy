@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, Regents of the University of California
+ * Copyright (c) 2014, Regents of the University of California
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,39 +22,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatype;
+package edu.uci.python.runtime.iterator;
 
-import java.math.*;
+import edu.uci.python.runtime.array.*;
+import edu.uci.python.runtime.exception.*;
 
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtin.*;
-import edu.uci.python.runtime.standardtype.*;
+public final class PLongArrayIterator implements PIterator, PLongIterator {
 
-public final class PInt extends PythonBuiltinObject {
+    private final PLongArray array;
+    private int index;
 
-    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PInt.class);
-
-    private final BigInteger value;
-
-    public PInt(int value) {
-        this.value = BigInteger.valueOf(value);
-    }
-
-    public PInt(BigInteger value) {
-        this.value = value;
-    }
-
-    public PInt(long value) {
-        this.value = BigInteger.valueOf(value);
+    public PLongArrayIterator(PLongArray array) {
+        this.array = array;
     }
 
     @Override
-    public PythonBuiltinClass __class__() {
-        return __class__;
+    public long __nextLong__() {
+        if (index < array.len()) {
+            return array.getLongItemNormalized(index++);
+        }
+
+        throw StopIterationException.INSTANCE;
     }
 
-    public BigInteger getValue() {
-        return value;
+    public Object __next__() throws StopIterationException {
+        return __nextLong__();
     }
 
 }

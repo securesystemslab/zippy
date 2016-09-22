@@ -45,11 +45,16 @@ public final class EmptySequenceStorage extends SequenceStorage {
         final SequenceStorage generalized;
 
         if (value instanceof Integer) {
-            generalized = new IntSequenceStorage();
+            if (!PythonOptions.forceLongType)
+                generalized = new IntSequenceStorage();
+            else
+                generalized = new LongSequenceStorage();
+        } else if (value instanceof Long) {
+            generalized = new LongSequenceStorage();
         } else if (value instanceof Double) {
             generalized = new DoubleSequenceStorage();
         } else if (value instanceof PList) {
-            generalized = new ListSequenceStorage(((PList) value).getStorage().getClass());
+            generalized = new ListSequenceStorage(((PList) value).getStorage());
         } else if (value instanceof PTuple) {
             generalized = new TupleSequenceStorage();
         } else {

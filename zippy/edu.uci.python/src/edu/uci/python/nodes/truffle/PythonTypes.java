@@ -43,6 +43,7 @@ import edu.uci.python.runtime.standardtype.*;
 
 @TypeSystem({boolean.class, //
                 int.class, //
+                long.class, //
                 BigInteger.class, //
                 double.class, //
                 PComplex.class, //
@@ -58,6 +59,7 @@ import edu.uci.python.runtime.standardtype.*;
                 PTuple.class, //
                 PRange.class, //
                 PIntArray.class, //
+                PLongArray.class, //
                 PDoubleArray.class, //
                 PCharArray.class, //
                 PArray.class, //
@@ -73,9 +75,11 @@ import edu.uci.python.runtime.standardtype.*;
                 PGenerator.class, //
                 PRangeIterator.class, //
                 PIntegerSequenceIterator.class, //
+                PLongSequenceIterator.class, //
                 PSequenceIterator.class, //
-                PDoubleIterator.class, //
                 PIntegerIterator.class, //
+                PLongIterator.class, //
+                PDoubleIterator.class, //
                 PIterator.class, //
                 PIterable.class, //
                 PythonModule.class, //
@@ -96,6 +100,11 @@ public class PythonTypes {
 
     @ImplicitCast
     public static BigInteger intToBigInteger(int value) {
+        return BigInteger.valueOf(value);
+    }
+
+    @ImplicitCast
+    public static BigInteger longToBigInteger(long value) {
         return BigInteger.valueOf(value);
     }
 

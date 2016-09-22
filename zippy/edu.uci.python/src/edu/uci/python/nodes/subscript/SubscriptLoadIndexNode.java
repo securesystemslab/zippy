@@ -31,6 +31,7 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.truffle.*;
 import edu.uci.python.runtime.array.*;
@@ -73,6 +74,18 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     public int doPListIntNegative(PList primary, int idx) {
         final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
         return store.getIntItemNormalized(idx + store.length());
+    }
+
+    @Specialization(guards = {"isLongStorage(primary)", "isIndexPositive(primary,idx)"})
+    public long doPListLong(PList primary, int idx) {
+        final LongSequenceStorage store = (LongSequenceStorage) primary.getStorage();
+        return store.getLongItemNormalized(idx);
+    }
+
+    @Specialization(guards = {"isLongStorage(primary)", "isIndexNegative(primary,idx)"})
+    public long doPListLongNegative(PList primary, int idx) {
+        final LongSequenceStorage store = (LongSequenceStorage) primary.getStorage();
+        return store.getLongItemNormalized(idx + store.length());
     }
 
     @Specialization(guards = {"isDoubleStorage(primary)", "isIndexPositive(primary,idx)"})
@@ -134,6 +147,89 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         return primary.getItem(idx);
     }
 
+    @Specialization(guards = {"isIntStorage(primary)", "isIndexPositive(primary,idx)"})
+    public int doPListInt(PList primary, long idx) {
+        final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
+        return store.getIntItemNormalized(Math.toIntExact(idx));
+    }
+
+    @Specialization(guards = {"isIntStorage(primary)", "isIndexNegative(primary,idx)"})
+    public int doPListIntNegative(PList primary, long idx) {
+        final IntSequenceStorage store = (IntSequenceStorage) primary.getStorage();
+        return store.getIntItemNormalized(Math.toIntExact(idx) + store.length());
+    }
+
+    @Specialization(guards = {"isLongStorage(primary)", "isIndexPositive(primary,idx)"})
+    public long doPListLong(PList primary, long idx) {
+        final LongSequenceStorage store = (LongSequenceStorage) primary.getStorage();
+        return store.getLongItemNormalized(Math.toIntExact(idx));
+    }
+
+    @Specialization(guards = {"isLongStorage(primary)", "isIndexNegative(primary,idx)"})
+    public long doPListLongNegative(PList primary, long idx) {
+        final LongSequenceStorage store = (LongSequenceStorage) primary.getStorage();
+        return store.getLongItemNormalized(Math.toIntExact(idx) + store.length());
+    }
+
+    @Specialization(guards = {"isDoubleStorage(primary)", "isIndexPositive(primary,idx)"})
+    public double doPListDouble(PList primary, long idx) {
+        final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
+        return store.getDoubleItemNormalized(Math.toIntExact(idx));
+    }
+
+    @Specialization(guards = {"isDoubleStorage(primary)", "isIndexNegative(primary,idx)"})
+    public double doPListDoubleNegative(PList primary, long idx) {
+        final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();
+        return store.getDoubleItemNormalized(Math.toIntExact(idx) + store.length());
+    }
+
+    @Specialization(guards = {"isObjectStorage(primary)", "isIndexPositive(primary,idx)"})
+    public Object doPListObject(PList primary, long idx) {
+        final ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
+        return store.getItemNormalized(Math.toIntExact(idx));
+    }
+
+    @Specialization(guards = {"isObjectStorage(primary)", "isIndexNegative(primary,idx)"})
+    public Object doPListObjectNegative(PList primary, long idx) {
+        final ObjectSequenceStorage store = (ObjectSequenceStorage) primary.getStorage();
+        return store.getItemNormalized(Math.toIntExact(idx) + store.length());
+    }
+
+    @Specialization
+    public Object doPList(PList list, long idx) {
+        return list.getItem(Math.toIntExact(idx));
+    }
+
+    @Specialization(guards = "isIndexPositive(tuple,idx)")
+    public Object doPTuplePositive(PTuple tuple, long idx) {
+        return tuple.getItemNormalized(Math.toIntExact(idx));
+    }
+
+    @Specialization(guards = "isIndexNegative(tuple,idx)")
+    public Object doPTupleNegative(PTuple tuple, long idx) {
+        return tuple.getItemNormalized(Math.toIntExact(idx) + tuple.len());
+    }
+
+    @Specialization
+    public Object doPTuple(PTuple tuple, long idx) {
+        return tuple.getItem(Math.toIntExact(idx));
+    }
+
+    @Specialization(guards = "isIndexPositive(primary,idx)")
+    public Object doPRangePositive(PRange primary, long idx) {
+        return primary.getItemNormalized(Math.toIntExact(idx));
+    }
+
+    @Specialization(guards = "isIndexNegative(primary,idx)")
+    public Object doPRangeNegative(PRange primary, long idx) {
+        return primary.getItemNormalized(Math.toIntExact(idx) + primary.len());
+    }
+
+    @Specialization
+    public Object doPRange(PRange primary, long idx) {
+        return primary.getItem(Math.toIntExact(idx));
+    }
+
     /**
      * PDict lookup using key.
      */
@@ -155,6 +251,16 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     @Specialization(guards = "isIndexNegative(primary,idx)")
     public int doPIntArrayNegative(PIntArray primary, int idx) {
         return primary.getIntItemNormalized(idx + primary.len());
+    }
+
+    @Specialization(guards = "isIndexPositive(primary,idx)")
+    public long doPIntArray(PLongArray primary, int idx) {
+        return primary.getLongItemNormalized(idx);
+    }
+
+    @Specialization(guards = "isIndexNegative(primary,idx)")
+    public long doPIntArrayNegative(PLongArray primary, int idx) {
+        return primary.getLongItemNormalized(idx + primary.len());
     }
 
     @Specialization(guards = "isIndexPositive(primary,idx)")
@@ -182,6 +288,51 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
         return primary.getItem(idx);
     }
 
+    @Specialization(guards = "isIndexPositive(primary,idx)")
+    public int doPIntArray(PIntArray primary, long idx) {
+        return primary.getIntItemNormalized(Math.toIntExact(idx));
+    }
+
+    @Specialization(guards = "isIndexNegative(primary,idx)")
+    public int doPIntArrayNegative(PIntArray primary, long idx) {
+        return primary.getIntItemNormalized(Math.toIntExact(idx) + primary.len());
+    }
+
+    @Specialization(guards = "isIndexPositive(primary,idx)")
+    public long doPIntArray(PLongArray primary, long idx) {
+        return primary.getLongItemNormalized(Math.toIntExact(idx));
+    }
+
+    @Specialization(guards = "isIndexNegative(primary,idx)")
+    public long doPIntArrayNegative(PLongArray primary, long idx) {
+        return primary.getLongItemNormalized(Math.toIntExact(idx) + primary.len());
+    }
+
+    @Specialization(guards = "isIndexPositive(primary,idx)")
+    public double doPDoubleArray(PDoubleArray primary, long idx) {
+        return primary.getDoubleItemNormalized(Math.toIntExact(idx));
+    }
+
+    @Specialization(guards = "isIndexNegative(primary,idx)")
+    public double doPDoubleArrayNegative(PDoubleArray primary, long idx) {
+        return primary.getDoubleItemNormalized(Math.toIntExact(idx) + primary.len());
+    }
+
+    @Specialization(guards = "isIndexPositive(primary,idx)")
+    public char doPCharArray(PCharArray primary, long idx) {
+        return primary.getCharItemNormalized(Math.toIntExact(idx));
+    }
+
+    @Specialization(guards = "isIndexNegative(primary,idx)")
+    public char doPCharArrayNegative(PCharArray primary, long idx) {
+        return primary.getCharItemNormalized(Math.toIntExact(idx) + primary.len());
+    }
+
+    @Specialization
+    public Object doPArray(PArray primary, long idx) {
+        return primary.getItem(Math.toIntExact(idx));
+    }
+
     /**
      * zwei: PythonTypesUtil does not unbox PyList. Instead we perform inplace update on PyList.
      * This avoid unwated data strcture duplication and actually updates a PyList imported from
@@ -202,13 +353,32 @@ public abstract class SubscriptLoadIndexNode extends SubscriptLoadNode {
     }
 
     @Specialization
-    public Object doSpecialInt(VirtualFrame frame, PythonObject primary, int index) {
+    public Object doPyList(PyObject primary, long index) {
+        CompilerAsserts.neverPartOfCompilation();
+
+        PyList list = (PyList) primary;
+        Object value = list.get(Math.toIntExact(index));
+
+        if (value instanceof PyObject) {
+            return PythonTypesUtil.unboxPyObject((PyObject) value);
+        }
+
+        return value;
+    }
+
+    @Specialization
+    public Object doSpecialInt(VirtualFrame frame, PythonObject primary, long index) {
         return doSpecialMethodCall(frame, "__getitem__", primary, index);
     }
 
     @Specialization
     public Object doSpecialObject(VirtualFrame frame, PythonObject primary, Object index) {
         return doSpecialMethodCall(frame, "__getitem__", primary, index);
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitSubscriptLoadIndexNode(this);
     }
 
 }

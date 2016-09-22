@@ -24,8 +24,11 @@
  */
 package edu.uci.python.runtime.sequence;
 
+import edu.uci.python.nodes.function.PythonBuiltinNode;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.iterator.*;
+import edu.uci.python.runtime.misc.JavaTypeConversions;
+import edu.uci.python.runtime.object.PythonObject;
 import edu.uci.python.runtime.sequence.storage.*;
 import edu.uci.python.runtime.standardtype.*;
 
@@ -58,9 +61,16 @@ public abstract class PSequence extends PythonBuiltinObject implements PIterable
     public static String toString(Object item) {
         if (item instanceof String) {
             return "'" + item.toString() + "'";
+        } else if (item instanceof Boolean) {
+            return ((boolean) item ? "True" : "False");
+        } else if (item instanceof PythonObject) {
+            return PythonBuiltinNode.callAttributeSlowPath((PythonObject) item, "__repr__");
+        } else if (item instanceof Double) {
+            return JavaTypeConversions.doubleToString((double) item);
         } else {
             return item.toString();
         }
+
     }
 
 }

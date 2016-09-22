@@ -29,6 +29,7 @@ import com.oracle.truffle.api.dsl.*;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.*;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.nodes.truffle.*;
@@ -47,6 +48,11 @@ public abstract class GetIteratorNode extends UnaryOpNode {
     @Specialization(guards = "isIntStorage(primary)")
     public Object doPListInt(PList primary) {
         return new PIntegerSequenceIterator((IntSequenceStorage) primary.getStorage());
+    }
+
+    @Specialization(guards = "isLongStorage(primary)")
+    public Object doPListLong(PList primary) {
+        return new PLongSequenceIterator((LongSequenceStorage) primary.getStorage());
     }
 
     @Specialization(guards = "isDoubleStorage(primary)")
@@ -185,6 +191,11 @@ public abstract class GetIteratorNode extends UnaryOpNode {
         public Object execute(VirtualFrame frame) {
             return executeWith(frame, operandNode.execute(frame));
         }
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitGetIteratorNode(this);
     }
 
 }

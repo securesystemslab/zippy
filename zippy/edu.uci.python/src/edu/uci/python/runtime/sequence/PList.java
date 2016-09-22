@@ -74,6 +74,8 @@ public class PList extends PSequence {
         if (PythonOptions.UnboxSequenceIteration) {
             if (store instanceof IntSequenceStorage) {
                 return new PIntegerSequenceIterator((IntSequenceStorage) store);
+            } else if (store instanceof LongSequenceStorage) {
+                return new PLongSequenceIterator((LongSequenceStorage) store);
             } else if (store instanceof DoubleSequenceStorage) {
                 return new PDoubleSequenceIterator((DoubleSequenceStorage) store);
             }
@@ -170,12 +172,7 @@ public class PList extends PSequence {
 
         for (int i = 0; i < store.length(); i++) {
             Object item = store.getItemNormalized(i);
-
-            if (item instanceof String) {
-                buf.append("'" + item.toString() + "'");
-            } else {
-                buf.append(item.toString());
-            }
+            buf.append(toString(item));
 
             if (i < store.length() - 1) {
                 buf.append(", ");

@@ -22,39 +22,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.runtime.datatype;
+package edu.uci.python.runtime.iterator;
 
-import java.math.*;
+import edu.uci.python.runtime.exception.*;
+import edu.uci.python.runtime.sequence.storage.*;
 
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.builtin.*;
-import edu.uci.python.runtime.standardtype.*;
+public final class PLongSequenceIterator implements PIterator, PLongIterator {
 
-public final class PInt extends PythonBuiltinObject {
+    private final LongSequenceStorage sequence;
+    private int index;
 
-    public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PInt.class);
-
-    private final BigInteger value;
-
-    public PInt(int value) {
-        this.value = BigInteger.valueOf(value);
+    public PLongSequenceIterator(LongSequenceStorage sequence) {
+        this.sequence = sequence;
     }
 
-    public PInt(BigInteger value) {
-        this.value = value;
-    }
-
-    public PInt(long value) {
-        this.value = BigInteger.valueOf(value);
+    public LongSequenceStorage getSequenceStorage() {
+        return sequence;
     }
 
     @Override
-    public PythonBuiltinClass __class__() {
-        return __class__;
+    public long __nextLong__() {
+        if (index < sequence.length()) {
+            return sequence.getLongItemNormalized(index++);
+        }
+
+        throw StopIterationException.INSTANCE;
     }
 
-    public BigInteger getValue() {
-        return value;
+    public Object __next__() throws StopIterationException {
+        return __nextLong__();
     }
 
 }

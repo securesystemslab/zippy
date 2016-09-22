@@ -26,6 +26,7 @@ package edu.uci.python.nodes.generator;
 
 import com.oracle.truffle.api.dsl.*;
 
+import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.expression.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
@@ -48,6 +49,18 @@ public abstract class ListAppendNode extends BinaryOpNode {
         return right;
     }
 
+    @Specialization(guards = "isEmptyStorage(list)")
+    public long doEmptyStorage(PList list, long right) {
+        list.append(right);
+        return right;
+    }
+
+    @Specialization(guards = "isEmptyStorage(list)")
+    public double doEmptyStorage(PList list, double right) {
+        list.append(right);
+        return right;
+    }
+
     @Specialization(guards = "isIntStorage(list)")
     public int doIntStorage(PList list, int right) {
         IntSequenceStorage store = (IntSequenceStorage) list.getStorage();
@@ -61,6 +74,26 @@ public abstract class ListAppendNode extends BinaryOpNode {
 
         if (store instanceof IntSequenceStorage) {
             ((IntSequenceStorage) store).appendInt(right);
+        } else {
+            list.append(right);
+        }
+
+        return right;
+    }
+
+    @Specialization(guards = "isLongStorage(list)")
+    public long doLongStorage(PList list, long right) {
+        LongSequenceStorage store = (LongSequenceStorage) list.getStorage();
+        store.appendLong(right);
+        return right;
+    }
+
+    @Specialization
+    public long doLong(PList list, long right) {
+        SequenceStorage store = list.getStorage();
+
+        if (store instanceof LongSequenceStorage) {
+            ((LongSequenceStorage) store).appendLong(right);
         } else {
             list.append(right);
         }
@@ -92,6 +125,11 @@ public abstract class ListAppendNode extends BinaryOpNode {
     public Object doObject(PList list, Object right) {
         list.append(right);
         return right;
+    }
+
+    @Override
+    public <R> R accept(VisitorIF<R> visitor) throws Exception {
+        return visitor.visitListAppendNode(this);
     }
 
 }
