@@ -1,12 +1,12 @@
 suite = {
-  "mxversion" : "5.19.4",
+  "mxversion" : "5.34.3",
   "name" : "zippy",
   "versionConflictResolution" : "latest",
   "imports" : {
     "suites" : [
             {
                "name" : "graal-core",
-               "version" : "1129cd0eb1d76209ca6744c97b31b18fd301ac97",
+               "version" : "e8656a2a6674f662ba2568e10327c55153d61f12",
                "urls" : [
                     {"url" : "https://github.com/graalvm/graal-core", "kind" : "git"},
                     {"url" : "https://curio.ssw.jku.at/nexus/content/repositories/snapshots", "kind" : "binary"},
@@ -23,7 +23,7 @@ suite = {
 
     "JLINE09" : {
       "urls" : [
-        "http://central.maven.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar",
+        "http://mirrors.ibiblio.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar",
       ],
       "sha1" : "99a18e9a44834afdebc467294e1138364c207402",
     },

@@ -1,16 +1,20 @@
 from argparse import ArgumentParser
-import mx
-import pymarks
-import json
+import re
 import os
 import sys
 import urllib2
+import mx
+import mx_graal_core
+import mx_gate
+from mx_gate import Task
+import mx_zippy_benchmark
 
 _suite = mx.suite('zippy')
-_mx_jvmci = mx.suite("jvmci", fatalIfMissing=False)
+_mx_graal = mx.suite("graal-core", fatalIfMissing=False)
+
 
 def check_vm(vm_warning=True, must_be_jvmci=False):
-    if not _mx_jvmci:
+    if not _mx_graal:
         if must_be_jvmci:
             print '** Error ** : JVMCI was not found!!'
             sys.exit(1)
@@ -18,19 +22,21 @@ def check_vm(vm_warning=True, must_be_jvmci=False):
         if vm_warning:
             print '** warning ** : JVMCI was not found!! Executing using standard VM..'
 
-def get_jdk(vm_warning=True, must_be_jvmci=False):
-    if not _mx_jvmci:
-        check_vm(vm_warning=True, must_be_jvmci=False)
-        return mx.get_jdk()
+
+def get_jdk():
+    if _mx_graal:
+        tag = 'jvmci'
     else:
-        return _mx_jvmci.extensions.get_jvmci_jdk()
+        tag = None
+    return mx.get_jdk(tag=tag)
+
 
 def python(args):
     """run a Python program or shell"""
     do_run_python(args)
 
 
-def do_run_python(args, extraVmArgs=None, jdk=None, nonZeroIsFatal=True):
+def do_run_python(args, extraVmArgs=None, jdk=None, **kwargs):
 
     vmArgs, zippyArgs = mx.extract_VM_args(args)
     vmArgs = ['-cp', mx.classpath(["edu.uci.python"])]
@@ -47,18 +53,46 @@ def do_run_python(args, extraVmArgs=None, jdk=None, nonZeroIsFatal=True):
     if extraVmArgs:
         vmArgs += extraVmArgs
 
+    # vmArgs = _sanitize_vmArgs(jdk, vmArgs)
+    # if len(zippyArgs) > 0:
     vmArgs.append("edu.uci.python.shell.Shell")
+    # else:
+    #     print 'Interactive shell is not implemented yet..'
+    #     sys.exit(1)
 
-    return mx.run_java(vmArgs + args, nonZeroIsFatal=nonZeroIsFatal, jdk=jdk)
+    return mx.run_java(vmArgs + args, jdk=jdk, **kwargs)
+
+def _sanitize_vmArgs(jdk, vmArgs):
+    '''
+    jdk dependent analysis of vmArgs to remove those that are not appropriate for the
+    chosen jdk. It is easier to allow clients to set anything they want and filter them
+    out here.
+    '''
+    jvmci_jdk = jdk.tag == 'jvmci'
+    jvmci_disabled = '-XX:-EnableJVMCI' in vmArgs
+
+    xargs = []
+    i = 0
+    while i < len(vmArgs):
+        vmArg = vmArgs[i]
+        if vmArg != '-XX:-EnableJVMCI':
+            if vmArg.startswith("-") and '-Dgraal' in vmArg or 'JVMCI' in vmArg:
+                if not jvmci_jdk or jvmci_disabled:
+                    i = i + 1
+                    continue
+        xargs.append(vmArg)
+        i = i + 1
+    return xargs
 
 # Graal/Truffle heuristics parameters
 def _graal_heuristics_options():
     result = []
-    if _mx_jvmci:
+    if _mx_graal:
         # result += ['-Dgraal.InliningDepthError=500']
         # result += ['-Dgraal.EscapeAnalysisIterations=3']
         # result += ['-XX:JVMCINMethodSizeLimit=1000000']
-        result += ['-Xms2g', '-Xmx2g']
+        result += ['-XX:+UseJVMCICompiler', '-Djvmci.Compiler=graal']
+        result += ['-Xms10g', '-Xmx16g']
         # result += ['-Dgraal.TraceTruffleCompilation=true']
         # result += ['-Dgraal.TruffleInliningMaxCallerSize=150']
         # result += ['-Dgraal.InliningDepthError=10']
@@ -67,121 +101,53 @@ def _graal_heuristics_options():
     return result
 
 
-def bench(args):
-    parser = ArgumentParser(prog='mx bench')
-    parser.add_argument('-resultfile', action='store', help='result file')
+#mx gate --tags pythonbenchmarktest
+#mx gate --tags pythontest
+#mx gate --tags fulltest
 
-    mx.bench(args, harness=_bench_harness_body, parser=parser)
+class ZippyTags:
+    test = ['pythontest', 'fulltest']
+    benchmarktest = ['pythonbenchmarktest', 'fulltest']
 
+def _gate_python_benchmarks_tests(name, iterations, extraVMarguments=None):
+    vmargs = ['-Xms2g', '-Xmx2g', '-Dgraal.TraceTruffleCompilation=true'] + mx_graal_core._noneAsEmptyList(extraVMarguments)
+    mx_graal_core._gate_java_benchmark(vmargs + ['-cp', mx.classpath(["edu.uci.python"]), "edu.uci.python.shell.Shell", name, str(iterations)], r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<score>[0-9]+(\.[0-9]+)?$)")
 
-def _bench_harness_body(args, vmArgs):
-    # args is from ArgumentParser.parseArgs
-    resultFile = args.resultfile
-    check_vm(must_be_jvmci=True)
-    vm = _mx_jvmci.extensions.get_vm()
-    results = {}
-    benchmarks = []
-    bmargs = args.remainder
+def zippy_gate_runner(suites, unit_test_runs, tasks, extraVMarguments=None):
 
-    if 'pythontest' in bmargs:
-        benchmarks += pymarks.getPythonTestBenchmarks(vm)
+    # Run unit tests
+    for r in unit_test_runs:
+        r.run(suites, tasks, mx_graal_core._noneAsEmptyList(extraVMarguments))
 
-    if 'python' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarks(vm)
+    pythonTestBenchmarks = {
+        'binarytrees3'  : '12',
+        'fannkuchredux3': '9',
+        'fasta3'        : '250000',
+        'mandelbrot3'   : '600',
+        'meteor3'       : '2098',
+        'nbody3'        : '100000',
+        'spectralnorm3' : '500',
+        'richards3'     : '3',
+        'bm-ai'         : '0',
+        'pidigits'      : '0',
+        'pypy-go'       : '1',
+    }
+    for name, iterations in sorted(pythonTestBenchmarks.iteritems()):
+        with Task('PythonBenchmarksTest:' + name, tasks, tags=ZippyTags.benchmarktest) as t:
+            if t: _gate_python_benchmarks_tests("zippy/benchmarks/src/benchmarks/" + name + ".py", iterations, mx_graal_core._noneAsEmptyList(extraVMarguments) + ['-XX:+UseJVMCICompiler'])
 
-    if 'python-nopeeling' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarksNoPeeling(vm)
+zippy_unit_test_runs = [
+    mx_graal_core.UnitTestRun('UnitTests', ['-XX:-UseJVMCICompiler'], tags=ZippyTags.test),
+]
 
-    if 'python-flex' in bmargs:
-        benchmarks += pymarks.getPythonObjectBenchmarksFlex(vm)
+def _zippy_gate_runner(args, tasks):
+    zippy_gate_runner(['zippy'], zippy_unit_test_runs, tasks, args.extra_vm_argument)
 
-    if 'python-flex-evol' in bmargs:
-        benchmarks += pymarks.getPythonObjectBenchmarksFlexStorageEvolution(vm)
-
-    if 'python-profile' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarksProfiling(vm)
-
-    if 'python-profile-calls' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarksProfiling(vm, "-profile-calls")
-
-    if 'python-profile-control-flow' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarksProfiling(vm, "-profile-control-flow")
-
-    if 'python-profile-variable-accesses' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarksProfiling(vm, "-profile-variable-accesses")
-
-    if 'python-profile-operations' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarksProfiling(vm, "-profile-operations")
-
-    if 'python-profile-collection-operations' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarksProfiling(vm, "-profile-collection-operations")
-
-    if 'python-profile-type-distribution' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarksProfiling(vm, "-profile-type-distribution")
-
-    if 'cpython2' in bmargs:
-        benchmarks += pymarks.getPython2Benchmarks(vm)
-        vm = 'cpython2'
-
-    if 'cpython' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarks(vm)
-        vm = 'cpython'
-
-    if 'cpython-profile' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarksProfiling(vm)
-        vm = 'cpython-profile'
-
-    if 'jython' in bmargs:
-        benchmarks += pymarks.getPython2Benchmarks(vm)
-        vm = 'jython'
-
-    if 'pypy' in bmargs:
-        benchmarks += pymarks.getPython2Benchmarks(vm)
-        vm = 'pypy'
-
-    if 'pypy3' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarks(vm)
-        vm = 'pypy3'
-
-    if 'pypy-profile' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarksProfiling(vm)
-        vm = 'pypy-profile'
-
-    if 'pypy3-profile' in bmargs:
-        benchmarks += pymarks.getPythonBenchmarksProfiling(vm)
-        vm = 'pypy3-profile'
-
-    if 'python-micro' in bmargs:
-        benchmarks += pymarks.getPythonMicroBenchmarks(vm)
-
-    if 'cpython-micro' in bmargs:
-        benchmarks += pymarks.getPython2MicroBenchmarks(vm)
-        vm = 'cpython'
-
-    if 'jython-micro' in bmargs:
-        benchmarks += pymarks.getPython2MicroBenchmarks(vm)
-        vm = 'jython'
-
-    if 'pypy-micro' in bmargs:
-        benchmarks += pymarks.getPythonMicroBenchmarks(vm)
-        vm = 'pypy'
-
-    if 'pypy3-micro' in bmargs:
-        benchmarks += pymarks.getPythonMicroBenchmarks(vm)
-        vm = 'pypy3'
-
-    for test in benchmarks:
-        for (groupName, res) in test.bench(vm, extraVmOpts=vmArgs).items():
-            group = results.setdefault(groupName, {})
-            group.update(res)
-    mx.log(json.dumps(results))
-    if resultFile:
-        with open(resultFile, 'w') as f:
-            f.write(json.dumps(results))
-
+mx_gate.add_gate_runner(_suite, _zippy_gate_runner)
 
 
 mx.update_commands(_suite, {
-    'bench' : [bench, ''],
+    # core overrides
+    # new commands
     'python' : [python, '[Python args|@VM options]'],
 })
