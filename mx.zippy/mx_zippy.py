@@ -2,25 +2,26 @@ from argparse import ArgumentParser
 import re
 import os
 import sys
+import subprocess
 import urllib2
 import mx
-import mx_graal_core
+import mx_benchmark
 import mx_gate
 from mx_gate import Task
 import mx_zippy_benchmark
+from mx_unittest import unittest
 
 _suite = mx.suite('zippy')
 _mx_graal = mx.suite("graal-core", fatalIfMissing=False)
 
-
 def check_vm(vm_warning=True, must_be_jvmci=False):
     if not _mx_graal:
         if must_be_jvmci:
-            print '** Error ** : JVMCI was not found!!'
+            print '** Error ** : graal-core project was not found!'
             sys.exit(1)
 
         if vm_warning:
-            print '** warning ** : JVMCI was not found!! Executing using standard VM..'
+            print '** warning ** : graal-core project was not found!! Executing using standard VM..'
 
 
 def get_jdk():
@@ -37,8 +38,15 @@ def python(args):
 
 
 def do_run_python(args, extraVmArgs=None, jdk=None, **kwargs):
+    check_vm_env = os.environ.get('ZIPPY_MUST_USE_GRAAL')
+    if check_vm_env:
+        if check_vm_env == '1':
+            check_vm(must_be_jvmci=True)
+        elif check_vm_env == '0':
+            check_vm()
 
     vmArgs, zippyArgs = mx.extract_VM_args(args)
+
     vmArgs = ['-cp', mx.classpath(["edu.uci.python"])]
 
     if not jdk:
@@ -109,15 +117,31 @@ class ZippyTags:
     test = ['pythontest', 'fulltest']
     benchmarktest = ['pythonbenchmarktest', 'fulltest']
 
-def _gate_python_benchmarks_tests(name, iterations, extraVMarguments=None):
-    vmargs = ['-Xms2g', '-Xmx2g', '-Dgraal.TraceTruffleCompilation=true'] + mx_graal_core._noneAsEmptyList(extraVMarguments)
-    mx_graal_core._gate_java_benchmark(vmargs + ['-cp', mx.classpath(["edu.uci.python"]), "edu.uci.python.shell.Shell", name, str(iterations)], r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<score>[0-9]+(\.[0-9]+)?$)")
+def _gate_python_benchmarks_tests(name, iterations, extra_vmargs=[]):
+    vmargs = extra_vmargs + ['-Xms2g', '-Xmx2g']
+    run_java = mx.run_java
 
-def zippy_gate_runner(suites, unit_test_runs, tasks, extraVMarguments=None):
+    if _mx_graal:
+        vmargs += ['-Dgraal.TraceTruffleCompilation=true']
+        run_java = mx_benchmark.get_java_vm('server', 'graal-core').run_java
+
+    vmargs += ['-cp', mx.classpath(["edu.uci.python"]), "edu.uci.python.shell.Shell", name, str(iterations)]
+    successRe = r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<score>[0-9]+(\.[0-9]+)?$)"
+    out = mx.OutputCapture()
+    run_java(vmargs, out=mx.TeeOutputCapture(out), err=subprocess.STDOUT)
+
+    if not re.search(successRe, out.data, re.MULTILINE):
+        mx.abort('Benchmark "'+ name +'" doesn\'t match success pattern: ' + successRe)
+
+
+def zippy_gate_runner(suites, tasks, extraVMarguments=None):
+    vmargs = extraVMarguments
+    if not vmargs or not any(vmargs):
+        vmargs = []
 
     # Run unit tests
-    for r in unit_test_runs:
-        r.run(suites, tasks, mx_graal_core._noneAsEmptyList(extraVMarguments))
+    with Task('ZipPy UnitTests', tasks, tags=ZippyTags.test) as t:
+        if t: unittest(['--suite', 'zippy', '--fail-fast'] + vmargs + ['-XX:-UseJVMCICompiler'])
 
     pythonTestBenchmarks = {
         'binarytrees3'  : '12',
@@ -134,14 +158,12 @@ def zippy_gate_runner(suites, unit_test_runs, tasks, extraVMarguments=None):
     }
     for name, iterations in sorted(pythonTestBenchmarks.iteritems()):
         with Task('PythonBenchmarksTest:' + name, tasks, tags=ZippyTags.benchmarktest) as t:
-            if t: _gate_python_benchmarks_tests("zippy/benchmarks/src/benchmarks/" + name + ".py", iterations, mx_graal_core._noneAsEmptyList(extraVMarguments) + ['-XX:+UseJVMCICompiler'])
+            if t: _gate_python_benchmarks_tests("zippy/benchmarks/src/benchmarks/" + name + ".py", iterations, vmargs)
 
-zippy_unit_test_runs = [
-    mx_graal_core.UnitTestRun('UnitTests', ['-XX:-UseJVMCICompiler'], tags=ZippyTags.test),
-]
 
 def _zippy_gate_runner(args, tasks):
-    zippy_gate_runner(['zippy'], zippy_unit_test_runs, tasks, args.extra_vm_argument)
+    extra_args = None if not _mx_graal else args.extra_vm_argument
+    zippy_gate_runner(['zippy'], tasks, extra_args)
 
 mx_gate.add_gate_runner(_suite, _zippy_gate_runner)
 

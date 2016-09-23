@@ -5,14 +5,14 @@ suite = {
   "imports" : {
     "suites" : [
             {
-               "name" : "graal-core",
-               "version" : "e8656a2a6674f662ba2568e10327c55153d61f12",
+               "name" : "truffle",
+               "version" : "bd163128ec958b97ebc68b33ac5b4fae376a37b5",
                "urls" : [
-                    {"url" : "https://github.com/graalvm/graal-core", "kind" : "git"},
-                    {"url" : "https://curio.ssw.jku.at/nexus/content/repositories/snapshots", "kind" : "binary"},
+                    {"url" : "https://github.com/graalvm/truffle", "kind" : "git"},
                 ]
             },
-    ]
+
+        ],
    },
 
   "defaultLicense" : "BSD-2-Clause",
@@ -69,9 +69,7 @@ suite = {
       "dependencies" : [
                 "truffle:TRUFFLE_API",
                 "truffle:TRUFFLE_DSL_PROCESSOR",
-                # "graal:GRAAL_TRUFFLE",
                 "JYTHON",
-                # "graal:JAVA_ALLOCATION_INSTRUMENTER",
                 "ASM",
                 "JAMM",
                 "JLINE09",

@@ -5,12 +5,12 @@ ZipPy is a fast and lightweight [Python 3](https://www.python.org/) implementati
 
 ZipPy is currently maintained by [Secure Systems and Software Laboratory](https://ssllab.org) at the ​[University of California, Irvine](http://www.uci.edu/).
 
-## Short instructions:
+### Short instructions (Using Standard JDK):
 
-#### Prerequisites:
+##### Prerequisites:
 
-1. Install the most recent [labsJDK 8](http://www.oracle.com/technetwork/oracle-labs/program-languages/downloads/index.html)
- 
+1. Install the most recent [JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html)
+
 #### Getting ZipPy:
 
 1. Create a working directory ($ZIPPY_HOME)
@@ -34,20 +34,24 @@ ZipPy is currently maintained by [Secure Systems and Software Laboratory](https:
 
 6. Create a file `$ZIPPY_HOME/zippy/mx.zippy/env` and add JDK path
 
-        JAVA_HOME=<path to labsjdk>
-        DEFAULT_VM=jvmci
+        JAVA_HOME=/path/to/jdk8
+        DEFAULT_VM=server
 
-#### Build:
+
+> For instructions on using **Graal JVM**: please visit the [ZipPy Wiki](https://github.com/securesystemslab/zippy/wiki).
+
+
+### Build:
 
     $ cd $ZIPPY_HOME/zippy
     $ mx build
 
-#### Run:
+### Run:
 
     $ cd $ZIPPY_HOME/zippy
     $ mx python <file.py>
 
-#### Test:
+### Test:
 
     $ cd $ZIPPY_HOME/zippy
     $ mx unittest python.test

@@ -1,78 +1,76 @@
-
 import argparse
 import re
 from os.path import join, exists
-
 import mx
 import mx_benchmark
-import mx_graal_core
-import mx_graal_benchmark
 
 # mx benchmark 'python:*' --results-file ./python.json
 # mx benchmark 'python-nopeeling:*' --results-file ./python-nopeeling.json
 # mx benchmark 'python-flex:*' --results-file ./python-flex.json
 # mx benchmark 'python-flex-evol:*' --results-file ./python-flex-evol.json
 # ...
+_mx_graal = mx.suite("graal-core", fatalIfMissing=False)
+
 mx.update_commands(mx.suite('zippy'), {
     'python': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("python", args),
+      lambda args: bench_shortcut("python", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'python-nopeeling': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("python-nopeeling", args),
+      lambda args: bench_shortcut("python-nopeeling", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'python-flex': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("python-flex", args),
+      lambda args: bench_shortcut("python-flex", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'python-flex-evol': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("python-flex-evol", args),
+      lambda args: bench_shortcut("python-flex-evol", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'cpython2': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("cpython2", args),
+      lambda args: bench_shortcut("cpython2", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'cpython': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("cpython", args),
+      lambda args: bench_shortcut("cpython", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'jython': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("jython", args),
+      lambda args: bench_shortcut("jython", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'pypy': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("pypy", args),
+      lambda args: bench_shortcut("pypy", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'pypy3': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("pypy3", args),
+      lambda args: bench_shortcut("pypy3", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'python-micro': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("python-micro", args),
+      lambda args: bench_shortcut("python-micro", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'cpython-micro': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("cpython-micro", args),
+      lambda args: bench_shortcut("cpython-micro", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'cpython2-micro': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("cpython2-micro", args),
+      lambda args: bench_shortcut("cpython2-micro", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'jython-micro': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("jython-micro", args),
+      lambda args: bench_shortcut("jython-micro", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'pypy-micro': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("pypy-micro", args),
+      lambda args: bench_shortcut("pypy-micro", args),
       '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
     ],
     'pypy3-micro': [
-      lambda args: mx_graal_benchmark.createBenchmarkShortcut("pypy3-micro", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
+      lambda args: bench_shortcut("pypy3-micro", args),
+      '[<benchmarks>|*] [-- [ options] [-- [Python options]]]'
     ],
 
 })
@@ -84,6 +82,17 @@ pathMicro = "zippy/benchmarks/src/micro/"
 
 extraVmOpts = ['-Dgraal.TraceTruffleCompilation=true']
 
+def bench_shortcut(benchSuite, args):
+    benchname = "*"
+    if not args:
+        vm_py_args = []
+    elif args[0] == "--":
+        vm_py_args = args # VM or Python options
+    else:
+        benchname = args[0]
+        vm_py_args = args[1:]
+
+    return mx_benchmark.benchmark([bench_suite + ":" + benchname] + vm_py_args)
 
 class BasePythonBenchmarkSuite(mx_benchmark.JavaBenchmarkSuite):
 
@@ -156,7 +165,11 @@ class BaseZippyBenchmarkSuite(BasePythonBenchmarkSuite):
         }
 
     def getJavaVm(self, bmSuiteArgs):
-        return mx_benchmark.get_java_vm('server', 'graal-core') # mx benchmark '<Benchmark>' -- --jvm-config graal-core
+        if _mx_graal:
+            # mx benchmark '<Benchmark>' -- --jvm-config graal-core
+            return mx_benchmark.get_java_vm('server', 'graal-core')
+        else:
+            return mx_benchmark.DefaultJavaVm('server', 'default')
 
 
 pythonBenchmarks = {
