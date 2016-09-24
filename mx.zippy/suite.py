@@ -23,7 +23,7 @@ suite = {
 
     "JLINE09" : {
       "urls" : [
-        "http://mirrors.ibiblio.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar",
+        "http://central.maven.org/maven2/jline/jline/0.9.94/jline-0.9.94.jar",
       ],
       "sha1" : "99a18e9a44834afdebc467294e1138364c207402",
     },
