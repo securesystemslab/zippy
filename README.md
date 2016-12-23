@@ -56,6 +56,31 @@ ZipPy is currently maintained by [Secure Systems and Software Laboratory](https:
     $ cd $ZIPPY_HOME/zippy
     $ mx python <file.py>
 
+### Dump IGV:
+
+1. Download the Ideal Graph Visualizer (IGV) from https://lafo.ssw.uni-linz.ac.at/pub/idealgraphvisualizer/
+
+2. Unpack the downloaded .zip file
+
+3. Execute bin/idealgraphvsiualizer to start IGV
+
+4. Add the `-dump` option to dump graphs to IGV:
+
+        $ cd $ZIPPY_HOME/zippy
+        $ mx python -dump <file.py>
+
+### Disassemble:
+
+    $ cd $ZIPPY_HOME/zippy
+    $ mx python -disassemble <file.py>
+
+### Debug:
+
+    $ cd $ZIPPY_HOME/zippy
+    $ mx -d python <file.py>
+    
+> For detailed debugging environment setup, please refer to [Graal-core debugging](https://github.com/graalvm/graal-core/blob/master/docs/Debugging.md). 
+
 ### Test:
 
     $ cd $ZIPPY_HOME/zippy
