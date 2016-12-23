@@ -36,6 +36,39 @@ def python(args):
     """run a Python program or shell"""
     do_run_python(args)
 
+def extract_VM_args(args):
+  vmArgs = []
+  zippyArgs = []
+
+  for i in range(len(args)):
+    print args[i]
+    if args[i] in ['-dump']:
+      vmArgs += ['-Dgraal.Dump']
+      vmArgs += ['-Dgraal.TruffleBackgroundCompilation=false'] 
+      vmArgs += ['-Dgraal.TraceTruffleCompilation=true'] 
+      vmArgs += ['-Dgraal.TraceTruffleCompilationDetails=true']
+
+    elif args[i] in ['-disassemble']:
+      #vmArgs += ['-Dgraal.TruffleBackgroundCompilation=false']
+      #vmArgs += ['-Dgraal.TraceTruffleCompilation=true']
+      vmArgs += ['-Dgraal.TraceTruffleCompilation=true']
+      #vmArgs += ['-Dgraal.TraceTruffleCompilationDetails=true']
+      #vmArgs += ['-XX:+BootstrapJVMCI']
+      #vmArgs += ['-XX:-TieredCompilation'] 
+      vmArgs += ['-XX:CompileCommand=print,*Node.updateUsages']
+      #vmArgs += ['-XX:CompileCommand=print,*OptimizedCallTarget.CallRoot']
+      #vmArgs += ['-XX:+UnlockDiagnosticVMOptions']
+      #vmArgs += ['-XX:+PrintAssembly']
+
+    else:
+      zippyArgs.append(args[i])
+
+  print vmArgs
+  print zippyArgs
+
+  vmArgsAdd, zippyArgs = mx.extract_VM_args(zippyArgs)
+  vmArgs += vmArgsAdd
+  return vmArgs, zippyArgs
 
 def do_run_python(args, extraVmArgs=None, jdk=None, **kwargs):
     check_vm_env = os.environ.get('ZIPPY_MUST_USE_GRAAL')
@@ -45,9 +78,9 @@ def do_run_python(args, extraVmArgs=None, jdk=None, **kwargs):
         elif check_vm_env == '0':
             check_vm()
 
-    vmArgs, zippyArgs = mx.extract_VM_args(args)
+    vmArgs, zippyArgs = extract_VM_args(args)
 
-    vmArgs = ['-cp', mx.classpath(["edu.uci.python"])]
+    vmArgs += ['-cp', mx.classpath(["edu.uci.python"])]
 
     if not jdk:
         jdk = get_jdk()
@@ -68,7 +101,7 @@ def do_run_python(args, extraVmArgs=None, jdk=None, **kwargs):
     #     print 'Interactive shell is not implemented yet..'
     #     sys.exit(1)
 
-    return mx.run_java(vmArgs + args, jdk=jdk, **kwargs)
+    return mx.run_java(vmArgs + zippyArgs, jdk=jdk, **kwargs)
 
 def _sanitize_vmArgs(jdk, vmArgs):
     '''
