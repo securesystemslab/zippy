@@ -41,7 +41,6 @@ def extract_VM_args(args):
   zippyArgs = []
 
   for i in range(len(args)):
-    print args[i]
     if args[i] in ['-dump']:
       vmArgs += ['-Dgraal.Dump']
       vmArgs += ['-Dgraal.TruffleBackgroundCompilation=false'] 
@@ -62,9 +61,6 @@ def extract_VM_args(args):
 
     else:
       zippyArgs.append(args[i])
-
-  print vmArgs
-  print zippyArgs
 
   vmArgsAdd, zippyArgs = mx.extract_VM_args(zippyArgs)
   vmArgs += vmArgsAdd
