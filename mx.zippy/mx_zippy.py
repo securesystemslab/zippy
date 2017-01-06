@@ -62,8 +62,6 @@ def extract_VM_args(args):
     else:
       zippyArgs.append(args[i])
 
-  vmArgsAdd, zippyArgs = mx.extract_VM_args(zippyArgs)
-  vmArgs += vmArgsAdd
   return vmArgs, zippyArgs
 
 def do_run_python(args, extraVmArgs=None, jdk=None, **kwargs):
