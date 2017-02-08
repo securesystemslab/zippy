@@ -31,6 +31,7 @@ import sun.misc.*;
 import com.oracle.truffle.api.nodes.*;
 import edu.uci.python.runtime.object.location.*;
 
+@SuppressWarnings("deprecation")
 public class ObjectLayoutUtil {
 
     public static long getFieldOffset(NodeFieldAccessor field) {

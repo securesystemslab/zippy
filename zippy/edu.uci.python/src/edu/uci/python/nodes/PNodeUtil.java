@@ -29,14 +29,13 @@ import java.util.List;
 
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeClass;
-import com.oracle.truffle.api.nodes.NodeFieldAccessor;
-import com.oracle.truffle.api.nodes.NodeFieldAccessor.NodeFieldKind;
 import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.nodes.NodeVisitor;
 import com.oracle.truffle.api.nodes.RootNode;
 
 import edu.uci.python.runtime.object.ObjectLayoutUtil;
 
+@SuppressWarnings("deprecation")
 public class PNodeUtil {
 
     @SuppressWarnings("unchecked")
@@ -106,8 +105,8 @@ public class PNodeUtil {
             return false;
         }
 
-        for (NodeFieldAccessor nfield : nodeClass.getFields()) {
-            if (nfield.getKind() != NodeFieldKind.DATA) {
+        for (com.oracle.truffle.api.nodes.NodeFieldAccessor nfield : nodeClass.getFields()) {
+            if (nfield.getKind() != com.oracle.truffle.api.nodes.NodeFieldAccessor.NodeFieldKind.DATA) {
                 continue;
             }
 
