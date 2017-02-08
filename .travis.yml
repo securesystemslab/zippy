@@ -24,7 +24,7 @@ before_install:
   - git clone https://github.com/graalvm/mx.git ../mx
   - export PATH=$PWD/../mx:$PATH
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then export JAVA_HOME=/usr/lib/jvm/java-8-oracle; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_92.jdk/Contents/Home; fi
+  # - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_111.jdk/Contents/Home; fi
   - export DEFAULT_VM=server
   - mx spull
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository -y ppa:mercurial-ppa/releases; fi
@@ -42,7 +42,7 @@ install:
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd ..; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then git clone https://github.com/graalvm/graal-core.git; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd graal-core; fi
-  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then git checkout tags/graal-vm-0.15; fi
+  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then git checkout tags/graal-vm-0.20; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then mx build; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd ../zippy; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then export DEFAULT_DYNAMIC_IMPORTS=graal-core; fi

@@ -24,6 +24,7 @@
  */
 package edu.uci.python.nodes.argument;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.*;
 
@@ -101,6 +102,7 @@ public abstract class ReadIndexedArgumentNode extends PNode {
 
         @Override
         public Object execute(VirtualFrame frame) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
             if (index >= PArguments.getUserArgumentLength(frame)) {
                 replace(new OffBoundReadArgumentNode(index));
                 return PNone.NONE;

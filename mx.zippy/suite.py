@@ -6,7 +6,7 @@ suite = {
     "suites" : [
             {
                "name" : "truffle",
-               "version" : "bd163128ec958b97ebc68b33ac5b4fae376a37b5",
+               "version" : "4417deabe3c5e0b8b5bb593b4db7419d48f2fe03",
                "urls" : [
                     {"url" : "https://github.com/graalvm/truffle", "kind" : "git"},
                 ]
