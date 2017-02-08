@@ -24,25 +24,15 @@
  */
 package edu.uci.python;
 
-import java.io.IOException;
-
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.source.Source;
 
 import edu.uci.python.builtins.PythonDefaultBuiltinsLookup;
-import edu.uci.python.nodes.ModuleNode;
 import edu.uci.python.nodes.PNode;
 import edu.uci.python.parser.PythonParserImpl;
 import edu.uci.python.runtime.PythonContext;
 import edu.uci.python.runtime.PythonOptions;
-import edu.uci.python.runtime.PythonParseResult;
 import edu.uci.python.runtime.function.PFunction;
-import edu.uci.python.runtime.standardtype.PythonModule;
 
 @TruffleLanguage.Registration(name = "Python", version = "3.3", mimeType = PythonLanguage.MIME_TYPE)
 public class PythonLanguage extends TruffleLanguage<PythonContext> {
@@ -55,16 +45,6 @@ public class PythonLanguage extends TruffleLanguage<PythonContext> {
     @Override
     protected PythonContext createContext(Env env) {
         return new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
-    }
-
-    @Override
-    protected CallTarget parse(Source code, Node node, String... argumentNames) throws IOException {
-        PythonContext context = new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
-        PythonModule module = context.createMainModule(code.getPath());
-        PythonParseResult result = context.getParser().parse(context, module, code);
-        ModuleNode root = (ModuleNode) result.getModuleRoot();
-        RootCallTarget moduleCallTarget = Truffle.getRuntime().createCallTarget(root);
-        return moduleCallTarget;
     }
 
     @Override
@@ -85,11 +65,6 @@ public class PythonLanguage extends TruffleLanguage<PythonContext> {
     @Override
     protected boolean isObjectOfLanguage(Object object) {
         return object instanceof PNode;
-    }
-
-    @Override
-    protected Object evalInContext(Source source, Node node, MaterializedFrame mFrame) throws IOException {
-        throw new IllegalStateException("evalInContext not supported in this language: Python");
     }
 
     public Node unprotectedCreateFindContextNode() {
