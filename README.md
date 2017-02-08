@@ -3,8 +3,8 @@
 
 |                 | Standard JVM  | Graal JVM   |
 | :------------------: |:-------------:| :----------:|
-| Linux Ubuntu 14.04.4  | [![Build Status](https://badges.herokuapp.com/travis/securesystemslab/zippy?env=ZIPPY_JDK_TYPE=STANDARD_LINUX&label=Standard%20JVM)](https://travis-ci.org/securesystemslab/zippy)  | [![Build Status](https://badges.herokuapp.com/travis/securesystemslab/zippy?env=ZIPPY_JDK_TYPE=GRAALJVM_LINUX&label=Graal%20JVM)](https://travis-ci.org/securesystemslab/zippy) |
-| Mac OSX 10.11 | [![Build Status](https://badges.herokuapp.com/travis/securesystemslab/zippy?env=ZIPPY_JDK_TYPE=STANDARD_OSX&label=Standard%20JVM)](https://travis-ci.org/securesystemslab/zippy)  | [![Build Status](https://badges.herokuapp.com/travis/securesystemslab/zippy?env=ZIPPY_JDK_TYPE=GRAALJVM_OSX&label=Graal%20JVM)](https://travis-ci.org/securesystemslab/zippy) |
+| Linux Ubuntu 14.04.5  | [![Build Status](https://badges.herokuapp.com/travis/securesystemslab/zippy?env=ZIPPY_JDK_TYPE=STANDARD_LINUX&label=Standard%20JVM)](https://travis-ci.org/securesystemslab/zippy)  | [![Build Status](https://badges.herokuapp.com/travis/securesystemslab/zippy?env=ZIPPY_JDK_TYPE=GRAALJVM_LINUX&label=Graal%20JVM)](https://travis-ci.org/securesystemslab/zippy) |
+| Mac OSX 10.12 | [![Build Status](https://badges.herokuapp.com/travis/securesystemslab/zippy?env=ZIPPY_JDK_TYPE=STANDARD_OSX&label=Standard%20JVM)](https://travis-ci.org/securesystemslab/zippy)  | [![Build Status](https://badges.herokuapp.com/travis/securesystemslab/zippy?env=ZIPPY_JDK_TYPE=GRAALJVM_OSX&label=Graal%20JVM)](https://travis-ci.org/securesystemslab/zippy) |
 
 ZipPy is a fast and lightweight [Python 3](https://www.python.org/) implementation built using the [Truffle](http://openjdk.java.net/projects/graal/) framework. ZipPy leverages the underlying Java JIT compiler and compiles Python programs to highly optimized machine code at runtime.
 
