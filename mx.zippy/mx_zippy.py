@@ -37,8 +37,14 @@ def python(args):
     do_run_python(args)
 
 
-def do_run_python(args, extraVmArgs=None, jdk=None, **kwargs):
-    check_vm_env = os.environ.get('ZIPPY_MUST_USE_GRAAL')
+def do_run_python(args, extraVmArgs=None, env=None, jdk=None, **kwargs):
+    if not env:
+        env = os.environ
+
+    if not 'ZIPPY_HOME' in env:
+        env['ZIPPY_HOME'] = _suite.dir
+
+    check_vm_env = env['ZIPPY_MUST_USE_GRAAL']
     if check_vm_env:
         if check_vm_env == '1':
             check_vm(must_be_jvmci=True)

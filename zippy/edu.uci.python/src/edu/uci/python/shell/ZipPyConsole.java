@@ -83,23 +83,6 @@ public class ZipPyConsole extends InteractiveConsole {
         ModuleNode root = (ModuleNode) result.getModuleRoot();
         RootCallTarget moduleCallTarget = Truffle.getRuntime().createCallTarget(root);
 
-        /**
-         * Profiler translation, i.e. generating wrapper nodes happens after creating call target
-         * because createCallTarget adopts all children, i.e. adds all parent relationships. In
-         * order to be able create wrapper nodes, and replace nodes with wrapper nodes, we need
-         * child parent relationship
-         */
-
-        if (PythonOptions.ProfileCalls || PythonOptions.ProfileControlFlow || PythonOptions.ProfileVariableAccesses || PythonOptions.ProfileOperations || PythonOptions.ProfileCollectionOperations) {
-
-            if (PythonOptions.PrintAST) {
-                // CheckStyle: stop system..print check
-                System.out.println("============= " + "After Adding Wrapper Nodes" + " ============= ");
-                result.printAST();
-                // CheckStyle: resume system..print check
-            }
-        }
-
         moduleCallTarget.call(PArguments.empty());
 
         if (PythonOptions.PrintAST) {

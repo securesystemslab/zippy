@@ -24,62 +24,76 @@
  */
 package edu.uci.python.test.generator;
 
-import static edu.uci.python.test.PythonTests.*;
-import static org.junit.Assert.*;
+import static edu.uci.python.test.PythonTests.assertPrintContains;
+import static edu.uci.python.test.PythonTests.assertPrints;
+import static org.junit.Assert.assertTrue;
 
-import java.nio.file.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-import org.junit.*;
+import org.junit.Test;
 
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeUtil;
 
-import edu.uci.python.nodes.generator.ComprehensionNode.*;
-import edu.uci.python.runtime.*;
+import edu.uci.python.nodes.generator.ComprehensionNode.ListComprehensionNode;
+import edu.uci.python.runtime.PythonOptions;
+import edu.uci.python.runtime.PythonParseResult;
 
 public class GeneratorOptimizationTests {
 
     @Test
     public void euler11() {
-        PythonOptions.OptimizeGeneratorExpressions = false;
+        String[] options = {"OptimizeGeneratorExpressions"};
+        boolean[] values = {false};
+        PythonOptions.setOptions(options, values);
         Path script = Paths.get("euler11-test.py");
         assertPrints("9507960\n9507960\n", script);
     }
 
     @Test
     public void inline() {
-        PythonOptions.InlineGeneratorCalls = true;
+        String[] options = {"InlineGeneratorCalls"};
+        boolean[] values = {true};
+        PythonOptions.setOptions(options, values);
         Path script = Paths.get("generator-inline-test.py");
         assertPrints("99\n99\n99\n99\n99\n", script);
     }
 
     @Test
     public void inlineNone() {
-        PythonOptions.InlineGeneratorCalls = true;
+        String[] options = {"InlineGeneratorCalls"};
+        boolean[] values = {true};
+        PythonOptions.setOptions(options, values);
         Path script = Paths.get("generator-inline-none-test.py");
         assertPrints("99\n99\n99\n99\n99\n", script);
     }
 
     @Test
     public void inlineGenexp() {
-        PythonOptions.InlineGeneratorCalls = true;
-        PythonOptions.OptimizeGeneratorExpressions = true;
+        String[] options = {"InlineGeneratorCalls", "OptimizeGeneratorExpressions"};
+        boolean[] values = {true, true};
+        PythonOptions.setOptions(options, values);
         Path script = Paths.get("generator-inline-genexp-test.py");
         assertPrintContains("420\n", script);
     }
 
     @Test
     public void inlineGenexpLocalVar() {
-        PythonOptions.InlineGeneratorCalls = true;
-        PythonOptions.OptimizeGeneratorExpressions = true;
+        String[] options = {"InlineGeneratorCalls", "OptimizeGeneratorExpressions"};
+        boolean[] values = {true, true};
+        PythonOptions.setOptions(options, values);
         Path script = Paths.get("generator-inline-genexp-localvar-test.py");
         assertPrintContains("420\n", script);
     }
 
     @Test
     public void inlineGenexpBuiltinCall() {
+        String[] options = {"IntrinsifyBuiltinCalls", "InlineGeneratorCalls", "OptimizeGeneratorExpressions"};
+        boolean[] values = {true, true, true};
+        PythonOptions.setOptions(options, values);
+
         assertTrue(PythonOptions.IntrinsifyBuiltinCalls);
-        PythonOptions.InlineGeneratorCalls = true;
-        PythonOptions.OptimizeGeneratorExpressions = true;
         Path script = Paths.get("generator-inline-genexp-builtin-test.py");
         PythonParseResult ast = assertPrintContains("420\n", script);
 // Node listComp = NodeUtil.findFirstNodeInstance(ast.getFunctionRoot("call_generator_builtin"),

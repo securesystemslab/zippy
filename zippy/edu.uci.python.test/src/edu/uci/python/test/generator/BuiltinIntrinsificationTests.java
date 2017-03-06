@@ -24,17 +24,20 @@
  */
 package edu.uci.python.test.generator;
 
-import static edu.uci.python.test.PythonTests.*;
-import static org.junit.Assert.*;
+import static edu.uci.python.test.PythonTests.assertPrints;
+import static org.junit.Assert.assertTrue;
 
-import java.nio.file.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-import org.junit.*;
+import org.junit.Test;
 
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeUtil;
 
-import edu.uci.python.nodes.generator.ComprehensionNode.*;
-import edu.uci.python.runtime.*;
+import edu.uci.python.nodes.generator.ComprehensionNode.ListComprehensionNode;
+import edu.uci.python.runtime.PythonOptions;
+import edu.uci.python.runtime.PythonParseResult;
 
 public class BuiltinIntrinsificationTests {
 
@@ -52,7 +55,9 @@ public class BuiltinIntrinsificationTests {
     @Test
     public void listComp() {
         assertTrue(PythonOptions.IntrinsifyBuiltinCalls);
-        PythonOptions.OptimizeGeneratorExpressions = false;
+        String[] options = {"OptimizeGeneratorExpressions"};
+        boolean[] values = {true};
+        PythonOptions.setOptions(options, values);
         Path script = Paths.get("builtin-list-intrinsification-test.py");
         assertPrints("9\n", script);
     }

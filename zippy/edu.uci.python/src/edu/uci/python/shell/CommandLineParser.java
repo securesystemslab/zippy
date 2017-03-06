@@ -43,94 +43,52 @@ public class CommandLineParser {
             }
 
             if (arg.equals("-print-ast")) {
-                PythonOptions.PrintAST = true;
+                PythonOptions.setOptions(new String[]{"PrintAST"}, new boolean[]{true});
+
                 continue;
             }
 
             if (arg.equals("-visualize-ast")) {
-                PythonOptions.VisualizedAST = true;
+                PythonOptions.setOptions(new String[]{"VisualizedAST"}, new boolean[]{true});
+
                 continue;
             }
 
             if (arg.equals("-print-function")) {
-                PythonOptions.UsePrintFunction = true;
+                PythonOptions.setOptions(new String[]{"UsePrintFunction"}, new boolean[]{true});
+
                 continue;
             }
 
             if (arg.equals("-flexible-object-storage")) {
-                PythonOptions.FlexibleObjectStorage = true;
+                PythonOptions.setOptions(new String[]{"FlexibleObjectStorage"}, new boolean[]{true});
+
                 continue;
             }
 
             if (arg.equals("-flexible-storage-evolution")) {
-                PythonOptions.FlexibleObjectStorage = true;
-                PythonOptions.FlexibleObjectStorageEvolution = true;
+                PythonOptions.setOptions(new String[]{"FlexibleObjectStorage", "FlexibleObjectStorageEvolution"}, new boolean[]{true, true});
+
                 continue;
             }
 
             if (arg.equals("-inline-generator")) {
-                PythonOptions.InlineGeneratorCalls = true;
+                PythonOptions.setOptions(new String[]{"InlineGeneratorCalls"}, new boolean[]{true});
+
                 continue;
             }
 
             if (arg.equals("-optimize-genexp")) {
-                PythonOptions.OptimizeGeneratorExpressions = true;
+                PythonOptions.setOptions(new String[]{"OptimizeGeneratorExpressions"}, new boolean[]{true});
+
                 continue;
             }
 
             if (arg.equals("-no-generator-peeling")) {
-                PythonOptions.InlineGeneratorCalls = false;
-                PythonOptions.OptimizeGeneratorExpressions = false;
+                PythonOptions.setOptions(new String[]{"InlineGeneratorCalls", "OptimizeGeneratorExpressions"}, new boolean[]{false, false});
+
                 continue;
             }
-
-            if (arg.equals("-profile")) {
-                PythonOptions.ProfileCalls = true;
-                PythonOptions.ProfileControlFlow = true;
-                PythonOptions.ProfileVariableAccesses = true;
-                PythonOptions.ProfileOperations = true;
-                PythonOptions.ProfileCollectionOperations = true;
-                PythonOptions.SortProfilerResults = true;
-                continue;
-            }
-
-            if (arg.equals("-profile-calls")) {
-                PythonOptions.ProfileCalls = true;
-                continue;
-            }
-
-            if (arg.equals("-profile-control-flow")) {
-                PythonOptions.ProfileControlFlow = true;
-                continue;
-            }
-
-            if (arg.equals("-profile-variable-accesses")) {
-                PythonOptions.ProfileVariableAccesses = true;
-                continue;
-            }
-
-            if (arg.equals("-profile-operations")) {
-                PythonOptions.ProfileOperations = true;
-                continue;
-            }
-
-            if (arg.equals("-profile-collection-operations")) {
-                PythonOptions.ProfileCollectionOperations = true;
-                continue;
-            }
-
-            if (arg.equals("-profile-type-distribution")) {
-                PythonOptions.ProfileTypeDistribution = true;
-                PythonOptions.ProfileVariableAccesses = true;
-                PythonOptions.ProfileOperations = true;
-                continue;
-            }
-
-            if (arg.equals("-sort")) {
-                PythonOptions.SortProfilerResults = true;
-                continue;
-            }
-
 
             pythonArgs.add(arg);
         }

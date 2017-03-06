@@ -24,19 +24,26 @@
  */
 package edu.uci.python.test;
 
-import static edu.uci.python.test.PythonTests.*;
+import static edu.uci.python.test.PythonTests.assertBenchNoError;
+import static edu.uci.python.test.PythonTests.assertPrints;
+import static org.junit.Assert.assertTrue;
 
-import java.nio.file.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-import org.junit.*;
+import org.junit.Ignore;
+import org.junit.Test;
 
-import edu.uci.python.runtime.*;
+import edu.uci.python.runtime.PythonOptions;
 
 public class BenchmarkTests {
 
     @Test
     public void euler31() {
-        PythonOptions.OptimizeGeneratorExpressions = false;
+        String[] options = {"OptimizeGeneratorExpressions"};
+        boolean[] values = {false};
+        PythonOptions.setOptions(options, values);
+        assertTrue(!PythonOptions.OptimizeGeneratorExpressions);
         Path script = Paths.get("euler31-test.py");
         assertPrints("41\n", script);
     }

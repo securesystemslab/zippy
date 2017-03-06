@@ -24,21 +24,39 @@
  */
 package edu.uci.python.test;
 
-import java.io.*;
-import java.nio.file.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.source.*;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.Reader;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.source.MissingMIMETypeException;
+import com.oracle.truffle.api.source.MissingNameException;
+import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.Source.Builder;
 
-import static org.junit.Assert.*;
-
 import edu.uci.python.PythonLanguage;
-import edu.uci.python.builtins.*;
-import edu.uci.python.parser.*;
-import edu.uci.python.runtime.*;
-import edu.uci.python.shell.*;
+import edu.uci.python.builtins.PythonDefaultBuiltinsLookup;
+import edu.uci.python.parser.PythonParserImpl;
+import edu.uci.python.runtime.PythonContext;
+import edu.uci.python.runtime.PythonOptions;
+import edu.uci.python.runtime.PythonParseResult;
+import edu.uci.python.runtime.ZippyEnvVars;
+import edu.uci.python.shell.RunScript;
+import edu.uci.python.shell.ZipPyConsole;
 
 public class PythonTests {
 
@@ -189,39 +207,23 @@ public class PythonTests {
     }
 
     public static File getTestFile(Path filename) {
-        String path = "src/tests";
-        // calling from eclipse unit test
-        if (Files.isDirectory(Paths.get(path))) {
-        }
-        // calling from mx unittest python.test
-        else if (Files.isDirectory(Paths.get("zippy/edu.uci.python.test/" + path))) {
-            path = "zippy/edu.uci.python.test/" + path;
-        } else {
-            throw new RuntimeException("Unable to locate edu.uci.python.test/src/test");
-        }
-
-        File file = new File(System.getProperty("user.dir") + File.separatorChar + path + File.separatorChar + filename.toString());
-        return file;
+        Path path = Paths.get(ZippyEnvVars.zippyHome(), "zippy", "edu.uci.python.test", "src", "tests", filename.toString());
+        if (Files.isReadable(path)) {
+            return new File(path.toString());
+        } else
+            throw new RuntimeException("Unable to locate " + path);
     }
 
     public static File getBenchFile(Path filename) {
-        String path = "benchmarks/src";
-        // calling from eclipse unit test
-        if (Files.isDirectory(Paths.get("../" + path))) {
-            path = Paths.get("../" + path).toAbsolutePath().toString();
-        }
-        // calling from mx unittest python.test
-        else if (Files.isDirectory(Paths.get("zippy/" + path))) {
-            path = Paths.get("zippy/" + path).toAbsolutePath().toString();
-        } else {
+        Path path = Paths.get(ZippyEnvVars.zippyHome(), "zippy", "benchmarks", "src");
+        if (!Files.isDirectory(path))
             throw new RuntimeException("Unable to locate benchmarks/src/");
-        }
 
-        Path fullPath = Paths.get(path, filename.toString());
+        Path fullPath = Paths.get(path.toString(), filename.toString());
         if (!Files.isReadable(fullPath)) {
-            fullPath = Paths.get(path, "benchmarks", filename.toString());
+            fullPath = Paths.get(path.toString(), "benchmarks", filename.toString());
             if (!Files.isReadable(fullPath)) {
-                fullPath = Paths.get(path, "micro", filename.toString());
+                fullPath = Paths.get(path.toString(), "micro", filename.toString());
                 if (!Files.isReadable(fullPath))
                     throw new IllegalStateException("Unable to locate " + path + " (benchmarks or micro) " + filename.toString());
             }

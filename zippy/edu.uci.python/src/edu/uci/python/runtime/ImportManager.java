@@ -58,26 +58,12 @@ public class ImportManager {
     private final Map<String, Map<String, PyObject>> jythonImports;
 
     private static String getPythonLibraryPath() {
-        String workingDir = System.getProperty("user.dir");
-
-        // TODO: Fix this hack that supports proper standard lib import in unittest.
-        if (workingDir.endsWith("/zippy/edu.uci.python.test")) {
-            workingDir = workingDir.replaceAll("/zippy/edu.uci.python.test", "");
-        }
-
-        String librayPath = workingDir + File.separatorChar + "zippy" + File.separatorChar + "lib-python" + File.separatorChar + "3";
+        String librayPath = ZippyEnvVars.zippyHome() + File.separatorChar + "zippy" + File.separatorChar + "lib-python" + File.separatorChar + "3";
         return librayPath;
     }
 
     private static String getPythonLibraryExtrasPath() {
-        String workingDir = System.getProperty("user.dir");
-
-        // TODO: Fix this hack that supports proper standard lib import in unittest.
-        if (workingDir.endsWith("/zippy/edu.uci.python.test")) {
-            workingDir = workingDir.replaceAll("/zippy/edu.uci.python.test", "");
-        }
-
-        String librayPath = workingDir + File.separatorChar + "zippy" + File.separatorChar + "lib-python-extras";
+        String librayPath = ZippyEnvVars.zippyHome() + File.separatorChar + "zippy" + File.separatorChar + "lib-python-extras";
         return librayPath;
     }
 

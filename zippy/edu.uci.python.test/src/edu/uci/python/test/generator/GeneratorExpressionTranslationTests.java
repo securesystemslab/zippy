@@ -24,20 +24,25 @@
  */
 package edu.uci.python.test.generator;
 
-import org.junit.*;
+import static edu.uci.python.test.PythonTests.getParseResult;
+import static org.junit.Assert.assertTrue;
 
-import com.oracle.truffle.api.nodes.*;
+import org.junit.Test;
 
-import edu.uci.python.nodes.function.*;
-import edu.uci.python.runtime.*;
-import static edu.uci.python.test.PythonTests.*;
-import static org.junit.Assert.*;
+import com.oracle.truffle.api.nodes.NodeUtil;
+import com.oracle.truffle.api.nodes.RootNode;
+
+import edu.uci.python.nodes.function.GeneratorExpressionNode;
+import edu.uci.python.runtime.PythonOptions;
+import edu.uci.python.runtime.PythonParseResult;
 
 public class GeneratorExpressionTranslationTests {
 
     @Test
     public void generatorExpressionAsIterator() {
-        PythonOptions.OptimizeGeneratorExpressions = true;
+        String[] options = {"OptimizeGeneratorExpressions"};
+        boolean[] values = {true};
+        PythonOptions.setOptions(options, values);
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -52,7 +57,9 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void generatorExpressionAsArgumentToConstructor() {
-        PythonOptions.OptimizeGeneratorExpressions = true;
+        String[] options = {"OptimizeGeneratorExpressions"};
+        boolean[] values = {true};
+        PythonOptions.setOptions(options, values);
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -66,7 +73,9 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void assignedToLocalVar() {
-        PythonOptions.OptimizeGeneratorExpressions = true;
+        String[] options = {"OptimizeGeneratorExpressions"};
+        boolean[] values = {true};
+        PythonOptions.setOptions(options, values);
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -81,7 +90,9 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByReturn() {
-        PythonOptions.OptimizeGeneratorExpressions = true;
+        String[] options = {"OptimizeGeneratorExpressions"};
+        boolean[] values = {true};
+        PythonOptions.setOptions(options, values);
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -96,7 +107,9 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByStore() {
-        PythonOptions.OptimizeGeneratorExpressions = true;
+        String[] options = {"OptimizeGeneratorExpressions"};
+        boolean[] values = {true};
+        PythonOptions.setOptions(options, values);
 
         String source = "LIST = []\n" + //
                         "def foo():\n" + //
@@ -112,7 +125,9 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByCall() {
-        PythonOptions.OptimizeGeneratorExpressions = true;
+        String[] options = {"OptimizeGeneratorExpressions"};
+        boolean[] values = {true};
+        PythonOptions.setOptions(options, values);
         String source = "LIST = []\n" + //
                         "def foo():\n" + //
                         "    n = 5\n" + //

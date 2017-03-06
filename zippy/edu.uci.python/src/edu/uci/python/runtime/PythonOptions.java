@@ -25,76 +25,66 @@
 package edu.uci.python.runtime;
 
 import java.io.PrintStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
+
+import edu.uci.python.PythonLanguage;
 
 public class PythonOptions {
 
+    protected static final String propPkgName = PythonLanguage.class.getPackage().getName();
     // Debug flags
-    public static boolean PrintAST = false;
+    public static final boolean PrintAST = Boolean.getBoolean(propPkgName + ".PrintAST"); // false
 
-    public static boolean VisualizedAST = false;
+    public static final boolean VisualizedAST = Boolean.getBoolean(propPkgName + ".VisualizedAST"); // false
 
-    public static String PrintASTFilter = null;
+    public static final String PrintASTFilter = System.getProperty(propPkgName + ".PrintASTFilter"); // null
 
-    public static boolean TraceJythonRuntime = false;
+    public static final boolean TraceJythonRuntime = Boolean.getBoolean(propPkgName + ".TraceJythonRuntime"); // false
 
-    public static boolean TraceImports = false;
+    public static final boolean TraceImports = Boolean.getBoolean(propPkgName + ".TraceImports"); // false
 
-    public static final boolean TraceSequenceStorageGeneralization = false;
+    public static final boolean TraceSequenceStorageGeneralization = Boolean.getBoolean(propPkgName + ".TraceSequenceStorageGeneralization"); // false
 
-    public static boolean TraceObjectLayoutCreation = false;
+    public static final boolean TraceObjectLayoutCreation = Boolean.getBoolean(propPkgName + ".TraceObjectLayoutCreation"); // false
 
     // Object storage allocation
-    public static final boolean InstrumentObjectStorageAllocation = false;
+    public static final boolean InstrumentObjectStorageAllocation = Boolean.getBoolean(propPkgName + ".InstrumentObjectStorageAllocation"); // false
 
     // Translation flags
-    public static boolean UsePrintFunction = false;
+    public static final boolean UsePrintFunction = Boolean.getBoolean(propPkgName + ".UsePrintFunction"); // false
 
     // Runtime flags
-    public static final boolean UnboxSequenceStorage = true;
+    public static final boolean UnboxSequenceStorage = !Boolean.getBoolean(propPkgName + ".disableUnboxSequenceStorage"); // true
 
-    public static final boolean UnboxSequenceIteration = true;
+    public static final boolean UnboxSequenceIteration = !Boolean.getBoolean(propPkgName + ".disableUnboxSequenceIteration"); // true
 
-    public static final boolean IntrinsifyBuiltinCalls = true;
+    public static final boolean IntrinsifyBuiltinCalls = !Boolean.getBoolean(propPkgName + ".disableIntrinsifyBuiltinCalls"); // true
 
     public static final int AttributeAccessInlineCacheMaxDepth = 20;
 
     public static final int CallSiteInlineCacheMaxDepth = 20;
 
-    public static boolean FlexibleObjectStorageEvolution = false;
+    public static final boolean FlexibleObjectStorageEvolution = Boolean.getBoolean(propPkgName + ".FlexibleObjectStorageEvolution"); // false
 
-    public static boolean FlexibleObjectStorage = false;
+    public static final boolean FlexibleObjectStorage = Boolean.getBoolean(propPkgName + ".FlexibleObjectStorage"); // false
 
     // Generators
-    public static boolean InlineGeneratorCalls = true;
+    public static final boolean InlineGeneratorCalls = !Boolean.getBoolean(propPkgName + ".disableInlineGeneratorCalls"); // true
 
-    public static boolean OptimizeGeneratorExpressions = true;
+    public static final boolean OptimizeGeneratorExpressions = !Boolean.getBoolean(propPkgName + ".disableOptimizeGeneratorExpressions"); // true
 
-    public static boolean TraceGeneratorInlining = false;
+    public static final boolean TraceGeneratorInlining = Boolean.getBoolean(propPkgName + ".TraceGeneratorInlining"); // false
 
-    // Profiling
-    public static boolean ProfileCalls = false;
+    public static final boolean TraceNodesWithoutSourceSection = Boolean.getBoolean(propPkgName + ".TraceNodesWithoutSourceSection"); // false
 
-    public static boolean ProfileControlFlow = false;
+    public static final boolean TraceNodesUsingExistingProbe = Boolean.getBoolean(propPkgName + ".TraceNodesUsingExistingProbe"); // false
 
-    public static boolean ProfileVariableAccesses = false;
+    public static final boolean CatchZippyExceptionForUnitTesting = Boolean.getBoolean(propPkgName + ".CatchZippyExceptionForUnitTesting"); // false
 
-    public static boolean ProfileOperations = false;
-
-    public static boolean ProfileCollectionOperations = false;
-
-    public static boolean ProfileTypeDistribution = false;
-
-    public static boolean SortProfilerResults = false;
-
-    public static boolean TraceNodesWithoutSourceSection = false;
-
-    public static boolean TraceNodesUsingExistingProbe = false;
-
-    public static final boolean CatchZippyExceptionForUnitTesting = false;
-
-    @CompilationFinal public static boolean forceLongType = false;
+    public static final boolean forceLongType = Boolean.getBoolean(propPkgName + ".forceLongType"); // false
 
     private PrintStream standardOut = System.out;
 
@@ -114,6 +104,27 @@ public class PythonOptions {
 
     public PrintStream getStandardErr() {
         return standardErr;
+    }
+
+    @TruffleBoundary
+    public static void setOptions(String[] options, boolean[] newValue) {
+        for (int i = 0; i < options.length && i < newValue.length; i++) {
+            Field field;
+            try {
+                field = PythonOptions.class.getField(options[i]);
+                field.setAccessible(true);
+
+                Field modifiersField = Field.class.getDeclaredField("modifiers");
+                modifiersField.setAccessible(true);
+                modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+
+                field.set(null, newValue[i]);
+                modifiersField.setInt(field, field.getModifiers() & Modifier.FINAL);
+            } catch (Exception e) {
+                System.err.println("Unable to set option " + options[i]);
+                e.printStackTrace();
+            }
+        }
     }
 
 }
