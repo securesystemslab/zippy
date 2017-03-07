@@ -41,7 +41,7 @@ before_install:
 install:
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd ..; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then hg clone http://hg.openjdk.java.net/graal/graal-jvmci-8; fi
-  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd graal-jvmci-8 && hg update jvmci-0.25; fi
+  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd graal-jvmci-8 && hg update jvmci-0.23; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then mx build && export JAVA_HOME=$(mx jdkhome); fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then echo $JAVA_HOME && mx jdkhome; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd ..; fi
