@@ -9,6 +9,7 @@ import mx_benchmark
 import mx_gate
 from mx_gate import Task
 import mx_zippy_benchmark
+import mx_zippy_benchmark_asv
 from mx_unittest import unittest
 
 _suite = mx.suite('zippy')

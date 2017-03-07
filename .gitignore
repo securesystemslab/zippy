@@ -1,6 +1,7 @@
 build.xml
 .classpath
 .factorypath
+.project
 edu.uci.python.iml
 edu.uci.python.test.iml
 *.settings
@@ -17,3 +18,5 @@ workingsets.xml
 .idea
 ZIPPY.dist
 mx.zippy/eclipse-launches
+asv
+*.json
