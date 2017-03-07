@@ -46,7 +46,7 @@ install:
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then echo $JAVA_HOME && mx jdkhome; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd ..; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then git clone https://github.com/graalvm/graal-core.git; fi
-  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd graal-core && git checkout tags/graal-vm-0.21; fi
+  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd graal-core && git checkout tags/graal-vm-0.20; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then mx build; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd ../zippy; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then export DEFAULT_DYNAMIC_IMPORTS=graal-core; fi
