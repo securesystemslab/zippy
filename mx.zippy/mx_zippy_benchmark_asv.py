@@ -382,6 +382,7 @@ class BaseExternalBenchmarkSuite(BaseASVBenchmarkSuite):
         mx.run([self.externalInterpreter(), "--version"])
 
     def runAndReturnStdOut(self, benchmarks, bmSuiteArgs):
+        print(self.externalInterpreter() + " (version: " + self.ext_version() + ")")
         args = self.createCommandLineArgs(benchmarks, bmSuiteArgs)
         cwd = self.workingDirectory(benchmarks, bmSuiteArgs)
         if args is None:
@@ -412,11 +413,17 @@ class ASVPyPy3BenchmarkSuite(BaseExternalBenchmarkSuite):
         return "pypy3"
 
     def ext_version(self):
-        out = mx.OutputCapture()
-        mx.run([self.externalInterpreter(), "--version"], err=mx.TeeOutputCapture(out))
-        out = out.data.split("\n")
-        out = out[1].split(" ")
-        return out[out.index("[PyPy") + 1]
+        out1 = mx.OutputCapture()
+        out2 = mx.OutputCapture()
+        mx.run([self.externalInterpreter(), "--version"], err=mx.TeeOutputCapture(out2), out=mx.TeeOutputCapture(out1))
+        out1 = [] if not out1 or len(out1.data) <= 1 else out1.data.split("\n")
+        out1 = [] if not out1 or len(out1) <= 1 else out1[1].split(" ")
+        out2 = [] if not out2 or len(out2.data) <= 1 else out2.data.split("\n")
+        out2 = [] if not out2 or len(out2) <= 1 else out2[1].split(" ")
+        if len(out1) > 1:
+            return out1[out1.index("[PyPy") + 1]
+        else:
+            return out2[out2.index("[PyPy") + 1]
 
 
     def benchmarksIterations(self):
@@ -466,10 +473,17 @@ class ASVCPython3BenchmarkSuite(BaseExternalBenchmarkSuite):
         return pythonBenchmarks
 
     def ext_version(self):
-        out = mx.OutputCapture()
-        mx.run([self.externalInterpreter(), "--version"], err=mx.TeeOutputCapture(out))
-        out = out.data.split(" ")
-        return out[out.index("Python") + 1]
+        out1 = mx.OutputCapture()
+        out2 = mx.OutputCapture()
+        mx.run([self.externalInterpreter(), "--version"], err=mx.TeeOutputCapture(out2), out=mx.TeeOutputCapture(out1))
+        out1 = [] if not out1 or len(out1.data) <= 1 else out1.data.split("\n")
+        out1 = [] if not out1 or len(out1) <= 1 else out1[0].split(" ")
+        out2 = [] if not out2 or len(out2.data) <= 1 else out2.data.split("\n")
+        out2 = [] if not out2 or len(out2) <= 1 else out2[0].split(" ")
+        if len(out1) > 1:
+            return out1[out1.index("Python") + 1]
+        else:
+            return out2[out2.index("Python") + 1]
 
 
 mx_benchmark.add_bm_suite(ASVCPython3BenchmarkSuite())
