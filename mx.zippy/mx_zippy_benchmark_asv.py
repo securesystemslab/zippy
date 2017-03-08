@@ -5,33 +5,47 @@ import json
 import time
 import re
 import os
+import copy
+import platform, subprocess
+from psutil import virtual_memory
+import math
 from os.path import join, exists
 import mx
 import mx_benchmark
 
-# mx benchmark 'python:*' --results-file ./python.json
-# mx benchmark 'python-nopeeling:*' --results-file ./python-nopeeling.json
-# mx benchmark 'python-flex:*' --results-file ./python-flex.json
-# mx benchmark 'python-flex-evol:*' --results-file ./python-flex-evol.json
+# mx asv-benchmark "asv-zippy-normal:*"
+# mx asv-benchmark "asv-pypy3-normal:*"
+# mx asv-benchmark "asv-cpython3.5-micro:*"
+# mx asv-benchmark --list
+# mx asv-benchmark --generate-asv-conf
 # ...
+
+
 _mx_graal = mx.suite("graal-core", fatalIfMissing=False)
 _suite = mx.suite('zippy')
-asv_results_dir = _suite.dir + '/asv/results/'
+asv_env = os.environ.get("ZIPPY_ASV_PATH")
+if not asv_env:
+    asv_env = _suite.dir
+
+url = _suite.vc.default_pull(_suite.vc_dir).replace('.git','')
+url = url if 'html' not in url else "https://github.com/securesystemslab/zippy"
+html_dir = asv_env + '/html'
+asv_dir = asv_env + '/asv/'
+asv_results_dir = asv_dir + '/results/'
 machine_name = os.environ.get("MACHINE_NAME")
 if not machine_name:
-    machine_name = os.uname()[1]
-machine_results_dir = asv_results_dir + machine_name
+    machine_name = platform.node()
 
-def generate_asv():
-    # TODO
-    print("Not implemented yet!")
+machine_name += '-no-graal' if not _mx_graal else '-graal'
+
+machine_results_dir = asv_results_dir + machine_name
 
 
 py = ".py"
 pathBench = "zippy/benchmarks/src/benchmarks/"
 pathMicro = "zippy/benchmarks/src/micro/"
 
-extraVmOpts = ['-Dgraal.TraceTruffleCompilation=true']
+extraGraalVmOpts = ['-Dgraal.TraceTruffleCompilation=true']
 
 pythonBenchmarks = {
     'binarytrees3t'   : '18',
@@ -91,9 +105,131 @@ pythonMicroBenchmarks = {
 
 # XXX: testing
 # pythonBenchmarks = {
-#     'binarytrees3t'   : '12',
-#     'mandelbrot3t'    : '300',
+#     'binarytrees3t'   : '18',
+#     'mandelbrot3t'    : '4000',
 # }
+
+
+
+def write_to_json(content, filename):
+    dump = json.dumps(content, sort_keys = True, indent = 4)
+    with open(filename, "w") as txtfile:
+        txtfile.write(dump)
+
+def prompt(default, msg):
+    py3 = int(platform.python_version_tuple()[0]) > 2
+    value = ''
+    if py3:
+        value = input(msg + " ['" + default + "']: ")
+    else:
+        value = raw_input(msg + " [" + default + "]: ")
+    return value if value != '' else default
+
+def get_processor_brand():
+    if platform.system() == "Darwin":
+        return subprocess.check_output(['/usr/sbin/sysctl', "-n", "machdep.cpu.brand_string"]).strip()
+    elif platform.system() == "Linux":
+        command = "cat /proc/cpuinfo"
+        all_info = subprocess.check_output(command, shell=True).strip()
+        for line in all_info.split("\n"):
+            if "model name" in line:
+                return re.sub( ".*model name.*:", "", line,1)
+    return ""
+
+def generate_asv_machine(machine_name, force=False):
+    """machine.json"""
+    path = machine_results_dir + "/machine.json"
+    if not exists(machine_results_dir):
+        os.mkdir(machine_results_dir)
+
+    if not force and exists(path):
+        return
+
+    arch = prompt(platform.machine(), "CPU Architecture")
+    os_name = platform.platform() if platform.system() != "Darwin" else "MacOS " + platform.mac_ver()[0]
+    os_name = prompt(os_name, "Operating System")
+    processor_brand = prompt(str(get_processor_brand()), "CPU Model")
+    ram = prompt(str(math.ceil(virtual_memory().total/(1024.**3))) + "GB", "System Memory (RAM)")
+    gpu_cmd = "$ clinfo | grep 'Device Name'"
+    gpu_brand = prompt("Unknown", "GPU Model (run: "+gpu_cmd+")")
+    gpu_ram_cmd = "$ clinfo | grep 'Global memory size'"
+    gpu_ram = prompt("Unknown", "GPU Memory (run: "+gpu_ram_cmd+")")
+    machine_json = {
+        "arch": arch,
+        "cpu": processor_brand,
+        "ram": ram,
+        "gpu": gpu_brand,
+        "gpu-ram": gpu_ram,
+        "machine": machine_name,
+        "os": os_name,
+        "version": 1
+    }
+
+    write_to_json(machine_json, path)
+
+
+def generate_asv_benchmarks(force=False):
+    """benchmarks.json"""
+    path = asv_results_dir + "benchmarks.json"
+    if not exists(asv_results_dir):
+        os.mkdir(asv_results_dir)
+
+    if not force and exists(path):
+        return
+
+    benchmarks_json = {}
+    single_benchmark_template = {
+        "code": "",
+        "goal_time": 2.0,
+        "name": "",
+        "number": 0,
+        "param_names": [],
+        "params": [],
+        "repeat": 0,
+        "timeout": 60.0,
+        "type": "time",
+        "unit": "seconds"
+    }
+
+    for bench in pythonBenchmarks:
+        bench_json = copy.deepcopy(single_benchmark_template)
+        bench_json['name'] = "normal." + bench + "." + pythonBenchmarks[bench]
+        bench_json['code'] = "mx python " + pathMicro + bench + ".py " + pythonBenchmarks[bench]
+        benchmarks_json[bench] = bench_json
+
+    for bench in pythonMicroBenchmarks:
+        bench_json = copy.deepcopy(single_benchmark_template)
+        bench_json['name'] = "micro." + bench + "." + pythonMicroBenchmarks[bench]
+        bench_json['code'] = "mx python " + pathMicro + bench + ".py " + pythonMicroBenchmarks[bench]
+        benchmarks_json[bench] = bench_json
+
+    benchmarks_json["version"] = 1
+    write_to_json(benchmarks_json, path)
+
+def generate_asv_conf(force=False):
+    """asv.conf.json"""
+    path = asv_dir + "asv.conf.json"
+    if not exists(asv_dir):
+        os.mkdir(asv_dir)
+
+    if not force and exists(path):
+        return
+
+    asv_conf_json = {
+        "version": 1,
+        "project": _suite.name,
+        "project_url": url,
+        "repo": url + ".git",
+        "branches": ["master"],
+        "environment_type": "conda",
+        "show_commit_url": url + "/commit/",
+        "pythons": ["3.4"],
+        "matrix": {},
+        "html_dir": html_dir,
+        "hash_length": 8
+    }
+
+    write_to_json(asv_conf_json, path)
 
 
 def athean_bench_shortcut(benchSuite, args):
@@ -182,8 +318,12 @@ class ASVZipPyBenchmarkSuite(BaseASVBenchmarkSuite):
         return []
 
     def getArgs(self, benchmarks, bmSuiteArgs):
+        extra_vmargs = []
+        if _mx_graal:
+            extra_vmargs = extraGraalVmOpts
+
         return (
-            self.vmArgs(bmSuiteArgs + extraVmOpts) + ['-cp', mx.classpath(["edu.uci.python"]), "edu.uci.python.shell.Shell"] +
+            self.vmArgs(bmSuiteArgs + extra_vmargs) + ['-cp', mx.classpath(["edu.uci.python"]), "edu.uci.python.shell.Shell"] +
             [self.getPath() + benchmarks[0] + py, self.benchmarksIterations()[benchmarks[0]]] + self.getZippyOpts())
 
     def dimensions(self):
@@ -350,6 +490,31 @@ class ASVMicroCPython3BenchmarkSuite(ASVCPython3BenchmarkSuite):
 
 mx_benchmark.add_bm_suite(ASVMicroCPython3BenchmarkSuite())
 
+""" result.json:
+{
+    "commit_hash": "fb16abd9a84c90cefa48411d2ad7728b5430d39f",
+    "date": 1445617605000,
+    "params": {
+        "cpu": "Intel(R) 2.40GHz x8",
+        "gpu": "AMD(R) R390 1000MHz x2560",
+        "gpu-ram": "8GB"
+        "machine": "maxine",
+        "os": "Linux Ubuntu",
+        "ram": "32GB",
+        "interpreter": "zippy",              // zippy, cpython3.5, pypy3
+        "timing": "peak"
+    },
+    "profiles": {},
+    "python": "3.5",
+    "requirements": {
+    },
+    "results": {
+        "normal.mandelbrot3t.400": 1.1540190579999998e-05,
+        "normal.mandelbrot3t.4000": 1.1621265679999997e-05
+    },
+    "version": 1
+}
+"""
 
 class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
     def dimensions(self, suite, mxBenchmarkArgs, bmSuiteArgs):
@@ -410,12 +575,6 @@ class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
 
         return str(latest_run + 1)
 
-    def write_to_json(self, content, filename):
-        filename_path = machine_results_dir + "/" + filename
-        dump = json.dumps(content, sort_keys = True, indent = 4)
-        with open(filename_path + ".json", "w") as txtfile:
-            txtfile.write(dump)
-
     def write_asv_results(self, suite, results):
         template = self.prepare_asv_dict(suite)
         if "zippy" in suite.name():
@@ -430,7 +589,7 @@ class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
             _timing = dict(template)
             _timing['params']['timing'] = t
             _timing['results'].update(results[t])
-            self.write_to_json(_timing, file_tag + t + run_num)
+            write_to_json(_timing, machine_results_dir + "/" + file_tag + t + run_num + ".json")
 
 
 
@@ -451,12 +610,30 @@ class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
             "-h", "--help", action="store_true", default=None,
             help="Show usage information.")
         parser.add_argument(
-            "--generate-asv", action="store_true", default=None,
+            "--generate-asv-benchmarks", action="store_true", default=None,
             help="Generate benchmarks.json file for all available benchmarks.")
+        parser.add_argument(
+            "--generate-asv-conf", action="store_true", default=None,
+            help="Generate asv.conf.json file for all available benchmarks.")
+        parser.add_argument(
+            "--generate-asv-machine", action="store_true", default=None,
+            help="Generate machine.json file for all available benchmarks.")
         mxZipPyBenchmarkArgs = parser.parse_args(mxZipPyBenchmarkArgs)
 
-        if mxZipPyBenchmarkArgs.generate_asv != None:
-            generate_asv()
+        generate_asv_conf()
+        generate_asv_benchmarks()
+        generate_asv_machine(machine_name)
+
+        if mxZipPyBenchmarkArgs.generate_asv_conf != None:
+            generate_asv_conf(force=True)
+            mx.abort("")
+
+        if mxZipPyBenchmarkArgs.generate_asv_benchmarks != None:
+            generate_asv_benchmarks(force=True)
+            mx.abort("")
+
+        if mxZipPyBenchmarkArgs.generate_asv_machine != None:
+            generate_asv_machine(machine_name, force=True)
             mx.abort("")
 
         if mxZipPyBenchmarkArgs.list:
@@ -509,32 +686,6 @@ class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
             return 1
         return 0
 
-"""
-result.json:
-{
-    "commit_hash": "fb16abd9a84c90cefa48411d2ad7728b5430d39f",
-    "date": 1445617605000,
-    "params": {
-        "cpu": "Intel(R) 2.40GHz x8",
-        "gpu": "AMD(R) R390 1000MHz x2560",
-        "gpu-ram": "8GB"
-        "machine": "maxine",
-        "os": "Linux Ubuntu",
-        "ram": "32GB",
-        "interpreter": "zippy",              // zippy, cpython3.5, pypy3
-        "timing": "peak"
-    },
-    "profiles": {},
-    "python": "3.5",
-    "requirements": {
-    },
-    "results": {
-        "zippy.mandelbrot3t.nn": 1.1540190579999998e-05,
-        "pypy.mandelbrot3t.nn": 1.1621265679999997e-05
-    },
-    "version": 1
-}
-"""
 
 _zippy_benchmark_executor = ZipPyBenchmarkExecutor()
 
