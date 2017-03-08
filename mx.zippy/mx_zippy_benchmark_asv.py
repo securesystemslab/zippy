@@ -7,7 +7,6 @@ import re
 import os
 import copy
 import platform, subprocess
-from psutil import virtual_memory
 import math
 from os.path import join, exists
 import mx
@@ -149,7 +148,11 @@ def generate_asv_machine(machine_name, force=False):
     os_name = platform.platform() if platform.system() != "Darwin" else "MacOS " + platform.mac_ver()[0]
     os_name = prompt(os_name, "Operating System")
     processor_brand = prompt(str(get_processor_brand()), "CPU Model")
-    ram = prompt(str(math.ceil(virtual_memory().total/(1024.**3))) + "GB", "System Memory (RAM)")
+    try:
+        from psutil import virtual_memory
+        ram = prompt(str(math.ceil(virtual_memory().total/(1024.**3))) + "GB", "System Memory (RAM)")
+    except:
+        ram = prompt("??GB", "System Memory (RAM)")
     gpu_cmd = "$ clinfo | grep 'Device Name'"
     gpu_brand = prompt("Unknown", "GPU Model (run: "+gpu_cmd+")")
     gpu_ram_cmd = "$ clinfo | grep 'Global memory size'"
