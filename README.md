@@ -42,8 +42,9 @@ ZipPy is currently maintained by [Secure Systems and Software Laboratory](https:
         JAVA_HOME=/path/to/jdk8
         DEFAULT_VM=server
 
+> For instructions on [using Graal JVM (recommended)](https://github.com/securesystemslab/zippy/tree/master/doc/graal.md).
 
-> For instructions on using **Graal JVM**: please visit the [ZipPy Wiki](https://github.com/securesystemslab/zippy/wiki).
+> For more information please visit the [ZipPy Wiki](https://github.com/securesystemslab/zippy/wiki).
 
 
 ### Build:
