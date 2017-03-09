@@ -724,7 +724,8 @@ _zippy_benchmark_executor = ZipPyBenchmarkExecutor()
 
 def zippy_benchmark(args):
     """Run zippy asv benchmark suite."""
-    mx_benchmark.init_benchmark_suites()
+    if not _mx_graal:
+        mx_benchmark.init_benchmark_suites()
     mxZipPyBenchmarkArgs, bmSuiteArgs = mx_benchmark.splitArgs(args, "--")
     return _zippy_benchmark_executor.asv_benchmark(mxZipPyBenchmarkArgs, bmSuiteArgs)
 
