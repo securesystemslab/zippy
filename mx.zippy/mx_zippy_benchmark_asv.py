@@ -258,6 +258,9 @@ class BaseASVBenchmarkSuite(mx_benchmark.JavaBenchmarkSuite):
     def benchmarksType(self):
         raise NotImplementedError()
 
+    def interpreterName(self):
+        raise NotImplementedError()
+
     def validateReturnCode(self, retcode):
         return retcode == 0
 
@@ -301,6 +304,9 @@ class BaseASVBenchmarkSuite(mx_benchmark.JavaBenchmarkSuite):
 
 
 class ASVZipPyBenchmarkSuite(BaseASVBenchmarkSuite):
+
+    def interpreterName(self):
+        return "ZipPy"
 
     def name(self):
         return "asv-zippy-normal"
@@ -397,6 +403,9 @@ class BaseExternalBenchmarkSuite(BaseASVBenchmarkSuite):
 
 class ASVPyPy3BenchmarkSuite(BaseExternalBenchmarkSuite):
 
+    def interpreterName(self):
+        return "PyPy3"
+
     def name(self):
         return "asv-pypy3-normal"
 
@@ -422,8 +431,10 @@ class ASVPyPy3BenchmarkSuite(BaseExternalBenchmarkSuite):
         out2 = [] if not out2 or len(out2) <= 1 else out2[1].split(" ")
         if len(out1) > 1:
             return out1[out1.index("[PyPy") + 1]
-        else:
+        elif len(out2) > 1:
             return out2[out2.index("[PyPy") + 1]
+        else:
+            return "unknown"
 
 
     def benchmarksIterations(self):
@@ -454,6 +465,9 @@ mx_benchmark.add_bm_suite(ASVMicroPyPy3BenchmarkSuite())
 
 class ASVCPython3BenchmarkSuite(BaseExternalBenchmarkSuite):
 
+    def interpreterName(self):
+        return "CPython"
+
     def name(self):
         return "asv-cpython3.5-normal"
 
@@ -482,8 +496,10 @@ class ASVCPython3BenchmarkSuite(BaseExternalBenchmarkSuite):
         out2 = [] if not out2 or len(out2) <= 1 else out2[0].split(" ")
         if len(out1) > 1:
             return out1[out1.index("Python") + 1]
-        else:
+        elif len(out2) > 1:
             return out2[out2.index("Python") + 1]
+        else:
+            return "unknown"
 
 
 mx_benchmark.add_bm_suite(ASVCPython3BenchmarkSuite())
@@ -564,7 +580,7 @@ class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
             "commit_hash": _suite.vc.parent(_suite.dir),
             "date": int(_suite.vc.parent_info(_suite.dir)["committer-ts"]) * 1000,
             "params": {
-                "interpreter": suite.name(),
+                "interpreter": suite.interpreterName(),
                 "timing": ""
                 # from machine.json
             },
