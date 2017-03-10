@@ -44,7 +44,7 @@ py = ".py"
 pathBench = "zippy/benchmarks/src/benchmarks/"
 pathMicro = "zippy/benchmarks/src/micro/"
 
-extraGraalVmOpts = ['-Dgraal.TraceTruffleCompilation=true']
+extraGraalVmOpts = ['-Dgraal.TraceTruffleCompilation=true', '-Dgraal.TruffleCompileImmediately=true']
 
 pythonBenchmarks = {
     'binarytrees3t'             : ['18',        ['18']],
@@ -200,7 +200,7 @@ def generate_asv_benchmarks(force=False):
     for bench in pythonBenchmarks:
         bench_json = copy.deepcopy(single_benchmark_template)
         bench_json['name'] = "normal." + bench + "." + pythonBenchmarks[bench][0]
-        bench_json['code'] = "mx python " + pathMicro + bench + ".py " + " ".join(pythonBenchmarks[bench][1])
+        bench_json['code'] = "mx python " + pathBench + bench + ".py " + " ".join(pythonBenchmarks[bench][1])
         benchmarks_json[bench] = bench_json
 
     for bench in pythonMicroBenchmarks:
