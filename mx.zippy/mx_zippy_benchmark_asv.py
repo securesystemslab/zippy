@@ -27,7 +27,7 @@ if not asv_env:
     asv_env = _suite.dir
 
 url = _suite.vc.default_pull(_suite.vc_dir).replace('.git','')
-url = url if 'html' not in url else "https://github.com/securesystemslab/zippy"
+url = url if 'html' in url else "https://github.com/securesystemslab/zippy"
 html_dir = asv_env + '/html'
 asv_dir = asv_env + '/asv/'
 asv_results_dir = asv_dir + '/results/'
@@ -47,27 +47,27 @@ pathMicro = "zippy/benchmarks/src/micro/"
 extraGraalVmOpts = ['-Dgraal.TraceTruffleCompilation=true']
 
 pythonBenchmarks = {
-    'binarytrees3t'   : '18',
-    'fannkuchredux3t' : '11',
-    'fasta3t'         : '25000000',
-    'mandelbrot3t'    : '4000',
-    'meteor3t'        : '2098',
-    'nbody3t'         : '5000000',
-    'spectralnorm3t'  : '3000',
-    'pidigits-timed'  : '0',
-    'euler31-timed'   : '200',
-    'euler11-timed'   : '10000',
-    'ai-nqueen-timed' : '10',
-    'pads-eratosthenes-timed' : '100000',
-    'pads-integerpartitions' : '700',
-    'pads-lyndon'     : '100000000',
-    'richards3-timed' : '200',
-    'bm-float-timed'  : '1000',
-    'pypy-chaos-timed': '1000',
-    'pypy-go-timed'   : '50',
-    'pypy-deltablue'  : '2000',
-    'python-graph-bench': '200',
-    'simplejson-bench': '10000',
+    'binarytrees3t'             : ['18',        ['18']],
+    'fannkuchredux3t'           : ['11',        ['11']],
+    'fasta3t'                   : ['25000000',  ['25000000']],
+    'mandelbrot3t'              : ['4000',      ['4000']],
+    'meteor3t'                  : ['2098',      ['2098']],
+    'nbody3t'                   : ['5000000',   ['5000000']],
+    'spectralnorm3t'            : ['3000',      ['3000']],
+    'pidigits-timed'            : ['0',         ['0']],
+    'euler31-timed'             : ['200',       ['200']],
+    'euler11-timed'             : ['10000',     ['10000']],
+    'ai-nqueen-timed'           : ['10',        ['10']],
+    'pads-eratosthenes-timed'   : ['100000',    ['100000']],
+    'pads-integerpartitions'    : ['700',       ['700']],
+    'pads-lyndon'               : ['100000000', ['100000000']],
+    'richards3-timed'           : ['200',       ['200']],
+    'bm-float-timed'            : ['1000',      ['1000']],
+    'pypy-chaos-timed'          : ['1000',      ['1000']],
+    'pypy-go-timed'             : ['50',        ['50']],
+    'pypy-deltablue'            : ['2000',      ['2000']],
+    'python-graph-bench'        : ['200',       ['200']],
+    'simplejson-bench'          : ['10000',     ['10000']],
     # 'whoosh-bench'    : '5000',
     # type not supported to adopt to Jython! <scoring.WeightScorer...
     # 'pymaging-bench'  : '5000',
@@ -77,37 +77,40 @@ pythonBenchmarks = {
 }
 
 pythonMicroBenchmarks = {
-    'arith-binop'           : '0',
-    'for-range'             : '0',
-    'function-call'         : '0',
-    'list-comp'             : '0',
-    'list-indexing'         : '0',
-    'list-iterating'        : '0',
-    'builtin-len'           : '0',
-    'builtin-len-tuple'     : '0',
-    'math-sqrt'             : '0',
-    'generator'             : '0',
-    'generator-notaligned'  : '0',
-    'generator-expression'  : '0',
-    'genexp-builtin-call'   : '0',
-    'attribute-access'      : '0',
-    'attribute-access-polymorphic' : '0',
-    'attribute-bool'        : '0',
-    'call-method-polymorphic': '0',
-    'boolean-logic'         : '0',
-    'object-allocate'       : '0',
-    'special-add'           : '0',
-    'special-add-int'       : '0',
-    'special-len'           : '0',
-    'object-layout-change'  : '0',
+    'arith-binop'                   : ['', ['0']],
+    'for-range'                     : ['', ['0']],
+    'function-call'                 : ['', ['0']],
+    'list-comp'                     : ['', ['0']],
+    'list-indexing'                 : ['', ['0']],
+    'list-iterating'                : ['', ['0']],
+    'builtin-len'                   : ['', ['0']],
+    'builtin-len-tuple'             : ['', ['0']],
+    'math-sqrt'                     : ['', ['0']],
+    'generator'                     : ['', ['0']],
+    'generator-notaligned'          : ['', ['0']],
+    'generator-expression'          : ['', ['0']],
+    'genexp-builtin-call'           : ['', ['0']],
+    'attribute-access'              : ['', ['0']],
+    'attribute-access-polymorphic'  : ['', ['0']],
+    'attribute-bool'                : ['', ['0']],
+    'call-method-polymorphic'       : ['', ['0']],
+    'boolean-logic'                 : ['', ['0']],
+    'object-allocate'               : ['', ['0']],
+    'special-add'                   : ['', ['0']],
+    'special-add-int'               : ['', ['0']],
+    'special-len'                   : ['', ['0']],
+    'object-layout-change'          : ['', ['0']],
 }
 
 # XXX: testing
 # pythonBenchmarks = {
-#     'binarytrees3t'   : '18',
-#     'mandelbrot3t'    : '4000',
+#     'binarytrees3t'             : ['18',        ['18']],
+#     'mandelbrot3t'              : ['4000',      ['4000']],
 # }
-
+# pythonMicroBenchmarks = {
+#     'arith-binop'                   : ['', ['0']],
+#     'for-range'                     : ['', ['0']],
+# }
 
 
 def write_to_json(content, filename):
@@ -196,14 +199,14 @@ def generate_asv_benchmarks(force=False):
 
     for bench in pythonBenchmarks:
         bench_json = copy.deepcopy(single_benchmark_template)
-        bench_json['name'] = "normal." + bench + "." + pythonBenchmarks[bench]
-        bench_json['code'] = "mx python " + pathMicro + bench + ".py " + pythonBenchmarks[bench]
+        bench_json['name'] = "normal." + bench + "." + pythonBenchmarks[bench][0]
+        bench_json['code'] = "mx python " + pathMicro + bench + ".py " + " ".join(pythonBenchmarks[bench][1])
         benchmarks_json[bench] = bench_json
 
     for bench in pythonMicroBenchmarks:
         bench_json = copy.deepcopy(single_benchmark_template)
-        bench_json['name'] = "micro." + bench + "." + pythonMicroBenchmarks[bench]
-        bench_json['code'] = "mx python " + pathMicro + bench + ".py " + pythonMicroBenchmarks[bench]
+        bench_json['name'] = "micro." + bench
+        bench_json['code'] = "mx python " + pathMicro + bench + ".py " + " ".join(pythonMicroBenchmarks[bench][1])
         benchmarks_json[bench] = bench_json
 
     benchmarks_json["version"] = 1
@@ -234,18 +237,6 @@ def generate_asv_conf(force=False):
 
     write_to_json(asv_conf_json, path)
 
-
-def athean_bench_shortcut(benchSuite, args):
-    benchname = "*"
-    if not args:
-        vm_py_args = []
-    elif args[0] == "--":
-        vm_py_args = args # VM or Python options
-    else:
-        benchname = args[0]
-        vm_py_args = args[1:]
-
-    return zippy_benchmark([bench_suite + ":" + benchname] + vm_py_args)
 
 class BaseASVBenchmarkSuite(mx_benchmark.JavaBenchmarkSuite):
 
@@ -285,11 +276,13 @@ class BaseASVBenchmarkSuite(mx_benchmark.JavaBenchmarkSuite):
 
     def rules(self, out, benchmarks, bmSuiteArgs):
         iterations = self.benchmarksIterations()[benchmarks[0]]
+        arg = '' if iterations[0] == '' else ("." + iterations[0])
+        benchmark = self.benchmarksType() + "." + benchmarks[0] + arg
         return [
           mx_benchmark.StdOutRule(
             r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<time>[0-9]+(\.[0-9]+)?$)", # pylint: disable=line-too-long
             {
-              "benchmark": "".join(self.benchmarksType() + "." + benchmarks[0] + "." + iterations),
+              "benchmark": "".join(benchmark),
               "metric.name": "time",
               "peak": ("<time>", float),
               "metric.value": ("<time>", float),
@@ -297,7 +290,7 @@ class BaseASVBenchmarkSuite(mx_benchmark.JavaBenchmarkSuite):
               "metric.type": "numeric",
               "metric.score-function": "id",
               "metric.better": "lower",
-              "metric.arg": " ".join(iterations),
+              "metric.arg": " ".join(iterations[1]),
             }
           ),
         ]
@@ -333,19 +326,13 @@ class ASVZipPyBenchmarkSuite(BaseASVBenchmarkSuite):
 
         return (
             self.vmArgs(bmSuiteArgs + extra_vmargs) + ['-cp', mx.classpath(["edu.uci.python"]), "edu.uci.python.shell.Shell"] +
-            [self.getPath() + benchmarks[0] + py, self.benchmarksIterations()[benchmarks[0]]] + self.getZippyOpts())
+            [self.getPath() + benchmarks[0] + py ] + self.benchmarksIterations()[benchmarks[0]][1] + self.getZippyOpts())
 
     def dimensions(self):
         return {
             "interpreter": "ZipPy",
         }
 
-    def getJavaVm(self, bmSuiteArgs):
-        if _mx_graal:
-            # mx benchmark '<Benchmark>' -- --jvm-config graal-core
-            return mx_benchmark.get_java_vm('server', 'graal-core')
-        else:
-            return mx_benchmark.DefaultJavaVm('server', 'default')
 
 mx_benchmark.add_bm_suite(ASVZipPyBenchmarkSuite())
 
@@ -377,7 +364,7 @@ class BaseExternalBenchmarkSuite(BaseASVBenchmarkSuite):
         raise NotImplementedError()
 
     def getArgs(self, benchmarks, bmSuiteArgs):
-        return ([self.getPath() + benchmarks[0] + py, self.benchmarksIterations()[benchmarks[0]]])
+        return ([self.getPath() + benchmarks[0] + py ] + self.benchmarksIterations()[benchmarks[0]][1])
 
     def dimensions(self):
         return {
@@ -545,6 +532,8 @@ mx_benchmark.add_bm_suite(ASVMicroCPython3BenchmarkSuite())
 """
 
 class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
+    timing = ['peak']
+
     def dimensions(self, suite, mxBenchmarkArgs, bmSuiteArgs):
         standard = {
           "subgroup": suite.subgroup(),
@@ -591,7 +580,7 @@ class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
                 t = t[-1].split(".")[0]
                 latest_run = max(latest_run, int(t))
 
-        return str(latest_run + 1)
+        return latest_run
 
     def write_asv_results(self, suite, results):
         template = self.prepare_asv_dict(suite)
@@ -600,16 +589,42 @@ class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
         else:
             file_tag = "version_" + suite.ext_version() + "-" + suite.name() + "-"
 
-        run_num = "-run-" + self.get_latest_run(file_tag)
+        run_num = "-run-" + str( 1 + self.get_latest_run(file_tag))
 
-        timing = ['peak']
-        for t in timing:
+        for t in self.timing:
             _timing = dict(template)
             _timing['params']['timing'] = t
             _timing['results'].update(results[t])
             write_to_json(_timing, machine_results_dir + "/" + file_tag + t + run_num + ".json")
 
 
+    def copy_previews_as_new(self, suite, benchNamesList):
+        if "zippy" in suite.name():
+            file_tag = _suite.vc.parent(_suite.dir)[:8] + "-" + suite.name() + "-"
+        else:
+            file_tag = "version_" + suite.ext_version() + "-" + suite.name() + "-"
+        last_run = self.get_latest_run(file_tag)
+        run_num = "-run-" + str(last_run)
+        for t in self.timing:
+            try:
+                with open(machine_results_dir + "/" + file_tag + t + run_num + ".json") as last_result:
+                    last_result = json.load(last_result)
+                    last_result['commit_hash'] = _suite.vc.parent(_suite.dir)
+                    last_result['date'] = int(_suite.vc.parent_info(_suite.dir)["committer-ts"]) * 1000
+                    for bench in benchNamesList:
+                        iterations = suite.benchmarksIterations()[bench[0]]
+                        arg = '' if iterations[0] == '' else ("." + iterations[0])
+                        formated_bench = suite.benchmarksType() + "." + bench[0] + arg
+                        if formated_bench not in last_result['results']:
+                            return 1
+
+                    run_num = "-run-" + str(1 + last_run)
+                    write_to_json(last_result, machine_results_dir + "/" + file_tag + t + run_num + ".json")
+            except:
+                return 1
+
+            return 0
+        return 1
 
     def asv_benchmark(self, mxZipPyBenchmarkArgs, bmSuiteArgs):
         """Run ZipPy ASV benchmark suite."""
@@ -625,9 +640,6 @@ class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
             "--list", default=None, action="store_true",
             help="Prints the list of all available benchmark suites.")
         parser.add_argument(
-            "-h", "--help", action="store_true", default=None,
-            help="Show usage information.")
-        parser.add_argument(
             "--generate-asv-benchmarks", action="store_true", default=None,
             help="Generate benchmarks.json file for all available benchmarks.")
         parser.add_argument(
@@ -636,12 +648,21 @@ class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
         parser.add_argument(
             "--generate-asv-machine", action="store_true", default=None,
             help="Generate machine.json file for all available benchmarks.")
+        parser.add_argument(
+            "--copy-last", action="store_true", default=None,
+            help="Copy last run and use the current revision information")
+        parser.add_argument(
+            "-h", "--help", action="store_true", default=None,
+            help="Show usage information.")
         mxZipPyBenchmarkArgs = parser.parse_args(mxZipPyBenchmarkArgs)
 
         generate_asv_conf()
         generate_asv_benchmarks()
         generate_asv_machine(machine_name)
 
+        copy_previews = False
+        if mxZipPyBenchmarkArgs.copy_last:
+            copy_previews = True
         if mxZipPyBenchmarkArgs.generate_asv_conf != None:
             generate_asv_conf(force=True)
             mx.abort("")
@@ -675,6 +696,13 @@ class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
         self.checkEnvironmentVars()
 
         results = []
+
+        if copy_previews:
+            if self.copy_previews_as_new(suite, benchNamesList) == 0:
+                mx.warn("copied successfully for suite: " + suite.name())
+                return 0
+            else:
+                mx.warn("No matching available to copy from for suite: " + suite.name())
 
         failures_seen = False
         suite.before(bmSuiteArgs)
