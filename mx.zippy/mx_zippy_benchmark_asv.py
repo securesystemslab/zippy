@@ -528,13 +528,8 @@ mx_benchmark.add_bm_suite(ASVMicroCPython3BenchmarkSuite())
     "commit_hash": "fb16abd9a84c90cefa48411d2ad7728b5430d39f",
     "date": 1445617605000,
     "params": {
-        "cpu": "Intel(R) 2.40GHz x8",
-        "gpu": "AMD(R) R390 1000MHz x2560",
-        "gpu-ram": "8GB"
         "machine": "maxine",
-        "os": "Linux Ubuntu",
-        "ram": "32GB",
-        "interpreter": "zippy",              // zippy, cpython3.5, pypy3
+        "interpreter": "zippy",              // zippy, CPython, PyPy3
         "timing": "peak"
     },
     "profiles": {},
@@ -567,22 +562,14 @@ class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
         self.asv_pre_results["other"][result['benchmark'] + ".args"] = "arg"
 
     def prepare_asv_dict(self, suite):
-        with open(machine_results_dir + '/machine.json') as machine_info:
-            info = json.load(machine_info)
 
         asv_dict = {
-            # "commit_hash": "471d65a3f2f65a20d5b231d0d27220fbc2871e43",
-            # "date": (1474711889 * 1000),
-            # "commit_hash": "6c8a7ec21f7386b82643c0a7598834fb513bbd90",
-            # "date": (1474626233 * 1000),
-            # "commit_hash": "323e23c95468a379bce2b4ec9cec4f987c3bba98",
-            # "date": (1476247753 * 1000),
             "commit_hash": _suite.vc.parent(_suite.dir),
             "date": int(_suite.vc.parent_info(_suite.dir)["committer-ts"]) * 1000,
             "params": {
+                "machine": machine_name,
                 "interpreter": suite.interpreterName(),
                 "timing": ""
-                # from machine.json
             },
             "profiles": {},
             "python": "3.5",
@@ -593,8 +580,6 @@ class ZipPyBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
             "version": 1
         }
 
-        asv_dict['params'].update(info)
-        asv_dict['params'].pop('version', None)
         return asv_dict
 
     def get_latest_run(self, file_tag):
@@ -724,9 +709,17 @@ _zippy_benchmark_executor = ZipPyBenchmarkExecutor()
 
 def zippy_benchmark(args):
     """Run zippy asv benchmark suite."""
-    if not _mx_graal:
-        mx_benchmark.init_benchmark_suites()
+
     mxZipPyBenchmarkArgs, bmSuiteArgs = mx_benchmark.splitArgs(args, "--")
+    if not _mx_graal and not mx_benchmark.java_vm_registry._vms:
+        mx_benchmark.add_java_vm(mx_benchmark.DefaultJavaVm("server", "default"))
+
+    if not bmSuiteArgs:
+        if _mx_graal:
+            bmSuiteArgs = ['--jvm-config', 'graal-core', '--jvm', 'server']
+        else:
+            bmSuiteArgs = ['--jvm-config', 'default', '--jvm', 'server']
+
     return _zippy_benchmark_executor.asv_benchmark(mxZipPyBenchmarkArgs, bmSuiteArgs)
 
 mx.update_commands(_suite, {
