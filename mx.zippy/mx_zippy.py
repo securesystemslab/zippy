@@ -8,9 +8,11 @@ import mx
 import mx_benchmark
 import mx_gate
 from mx_gate import Task
+from mx_unittest import unittest
+
 import mx_zippy_benchmark
 import mx_zippy_benchmark_asv
-from mx_unittest import unittest
+import mx_zippy_asv_chart
 
 _suite = mx.suite('zippy')
 _mx_graal = mx.suite("graal-core", fatalIfMissing=False)
@@ -109,6 +111,9 @@ def _graal_heuristics_options():
         result += ['-XX:+UseJVMCICompiler', '-Djvmci.Compiler=graal']
         result += ['-Xms10g', '-Xmx16g']
         # result += ['-Dgraal.TraceTruffleCompilation=true']
+        # result += ['-Dgraal.TruffleCompileImmediately=true']
+        # result += ['-Dgraal.TraceTrufflePerformanceWarnings=true']
+        # result += ['-Dgraal.TruffleCompilationExceptionsArePrinted=true']
         # result += ['-Dgraal.TruffleInliningMaxCallerSize=150']
         # result += ['-Dgraal.InliningDepthError=10']
         # result += ['-Dgraal.MaximumLoopExplosionCount=1000']

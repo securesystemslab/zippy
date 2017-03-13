@@ -525,7 +525,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
                 if (start instanceof Integer)
                     intStart = (int) start;
                 else if (start instanceof Long)
-                    intStart = BigInteger.valueOf((long) (start)).intValue();
+                    intStart = ((Long) (start)).intValue();
                 else
                     intStart = ((BigInteger) start).intValue();
 
@@ -537,7 +537,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
                     if (stop instanceof Integer)
                         intStop = (int) stop;
                     else if (stop instanceof Long)
-                        intStop = BigInteger.valueOf((long) (stop)).intValue();
+                        intStop = ((Long) (stop)).intValue();
                     else
                         intStop = ((BigInteger) stop).intValue();
 
@@ -549,7 +549,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
                         if (step instanceof Integer)
                             intStep = (int) step;
                         else if (step instanceof Long)
-                            intStep = BigInteger.valueOf((long) (step)).intValue();
+                            intStep = ((Long) (step)).intValue();
                         else
                             intStep = ((BigInteger) step).intValue();
 

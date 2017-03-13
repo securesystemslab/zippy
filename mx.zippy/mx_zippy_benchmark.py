@@ -4,6 +4,8 @@ from os.path import join, exists
 import mx
 import mx_benchmark
 
+from mx_zippy_bench_param import *
+
 # mx benchmark 'python:*' --results-file ./python.json
 # mx benchmark 'python-nopeeling:*' --results-file ./python-nopeeling.json
 # mx benchmark 'python-flex:*' --results-file ./python-flex.json
@@ -11,95 +13,20 @@ import mx_benchmark
 # ...
 _mx_graal = mx.suite("graal-core", fatalIfMissing=False)
 
-mx.update_commands(mx.suite('zippy'), {
-    'python': [
-      lambda args: bench_shortcut("python", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'python-nopeeling': [
-      lambda args: bench_shortcut("python-nopeeling", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'python-flex': [
-      lambda args: bench_shortcut("python-flex", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'python-flex-evol': [
-      lambda args: bench_shortcut("python-flex-evol", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'cpython2': [
-      lambda args: bench_shortcut("cpython2", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'cpython': [
-      lambda args: bench_shortcut("cpython", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'jython': [
-      lambda args: bench_shortcut("jython", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'pypy': [
-      lambda args: bench_shortcut("pypy", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'pypy3': [
-      lambda args: bench_shortcut("pypy3", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'python-micro': [
-      lambda args: bench_shortcut("python-micro", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'cpython-micro': [
-      lambda args: bench_shortcut("cpython-micro", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'cpython2-micro': [
-      lambda args: bench_shortcut("cpython2-micro", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'jython-micro': [
-      lambda args: bench_shortcut("jython-micro", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'pypy-micro': [
-      lambda args: bench_shortcut("pypy-micro", args),
-      '[<benchmarks>|*] [-- [VM options] [-- [Python options]]]'
-    ],
-    'pypy3-micro': [
-      lambda args: bench_shortcut("pypy3-micro", args),
-      '[<benchmarks>|*] [-- [ options] [-- [Python options]]]'
-    ],
-
-})
-
-
-py = ".py"
-pathBench = "zippy/benchmarks/src/benchmarks/"
-pathMicro = "zippy/benchmarks/src/micro/"
-
-extraVmOpts = ['-Dgraal.TraceTruffleCompilation=true']
-
-def bench_shortcut(benchSuite, args):
-    benchname = "*"
-    if not args:
-        vm_py_args = []
-    elif args[0] == "--":
-        vm_py_args = args # VM or Python options
-    else:
-        benchname = args[0]
-        vm_py_args = args[1:]
-
-    return mx_benchmark.benchmark([bench_suite + ":" + benchname] + vm_py_args)
+extraGraalVmOpts = ['-Dgraal.TraceTruffleCompilation=true', '-Dgraal.TruffleCompileImmediately=true']
 
 class BasePythonBenchmarkSuite(mx_benchmark.JavaBenchmarkSuite):
 
     def group(self):
-        return "Python"
+        return "zippy"
 
     def benchmarksIterations(self):
+        raise NotImplementedError()
+
+    def benchmarksType(self):
+        raise NotImplementedError()
+
+    def interpreterName(self):
         raise NotImplementedError()
 
     def validateReturnCode(self, retcode):
@@ -116,7 +43,12 @@ class BasePythonBenchmarkSuite(mx_benchmark.JavaBenchmarkSuite):
         raise NotImplementedError()
 
     def benchmarkList(self, bmSuiteArgs):
-        return [key for key, value in self.benchmarksIterations().iteritems()]
+        _list = []
+        for bench in sorted(self.benchmarksIterations().keys()):
+            for i in range(0, len(self.benchmarksIterations()[bench]), 2):
+                _list += [[bench, self.benchmarksIterations()[bench][i], self.benchmarksIterations()[bench][i + 1]]]
+
+        return _list
 
     def successPatterns(self):
         return [ re.compile(r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<score>[0-9]+(\.[0-9]+)?$)", re.MULTILINE) ]
@@ -124,20 +56,26 @@ class BasePythonBenchmarkSuite(mx_benchmark.JavaBenchmarkSuite):
     def failurePatterns(self):
         return [ re.compile(r"Exception") ]
 
+    def get_timing(self):
+        return ['peak']
+
     def rules(self, out, benchmarks, bmSuiteArgs):
-        arg = int(self.benchmarksIterations()[benchmarks[0]])
+        benchmark  = self.benchmarksType() + "." + benchmarks[0][0]
+        arg        = benchmarks[0][1]
         return [
           mx_benchmark.StdOutRule(
             r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<time>[0-9]+(\.[0-9]+)?$)", # pylint: disable=line-too-long
             {
-              "benchmark": ("<benchmark>", str),
+              "benchmark": "".join(benchmark),
               "metric.name": "time",
+              "peak": ("<time>", float),
+              "python.params": "".join(arg),
               "metric.value": ("<time>", float),
               "metric.unit": "s",
               "metric.type": "numeric",
               "metric.score-function": "id",
               "metric.better": "lower",
-              "metric.arg": arg,
+              "metric.arg": " ".join(arg),
             }
           ),
         ]
@@ -151,86 +89,59 @@ class BaseZippyBenchmarkSuite(BasePythonBenchmarkSuite):
     def getPath(self):
         raise NotImplementedError()
 
+    def interpreterName(self):
+        return "ZipPy"
+
     def getZippyOpts(self):
         return []
 
     def getArgs(self, benchmarks, bmSuiteArgs):
+        extra_vmargs = []
+        if _mx_graal:
+            extra_vmargs = extraGraalVmOpts
+
         return (
-            self.vmArgs(bmSuiteArgs + extraVmOpts) + ['-cp', mx.classpath(["edu.uci.python"]), "edu.uci.python.shell.Shell"] +
-            [self.getPath() + benchmarks[0] + py, self.benchmarksIterations()[benchmarks[0]]] + self.getZippyOpts())
+            self.vmArgs(bmSuiteArgs + extra_vmargs) + ['-cp', mx.classpath(["edu.uci.python"]), "edu.uci.python.shell.Shell"] +
+            [self.getPath() + benchmarks[0][0] + py ] + benchmarks[0][2] + self.getZippyOpts())
 
     def dimensions(self):
         return {
             "interpreter": "ZipPy",
         }
 
-    def getJavaVm(self, bmSuiteArgs):
-        if _mx_graal:
-            # mx benchmark '<Benchmark>' -- --jvm-config graal-core
-            return mx_benchmark.get_java_vm('server', 'graal-core')
-        else:
-            return mx_benchmark.DefaultJavaVm('server', 'default')
-
-
-pythonBenchmarks = {
-    'binarytrees3t'   : '18',
-    'fannkuchredux3t' : '11',
-    'fasta3t'         : '25000000',
-    'mandelbrot3t'    : '4000',
-    'meteor3t'        : '2098',
-    'nbody3t'         : '5000000',
-    'spectralnorm3t'  : '3000',
-    'pidigits-timed'  : '0',
-    'euler31-timed'   : '200',
-    'euler11-timed'   : '10000',
-    'ai-nqueen-timed' : '10',
-    'pads-eratosthenes-timed' : '100000',
-    'pads-integerpartitions' : '700',
-    'pads-lyndon'     : '100000000',
-    'richards3-timed' : '200',
-    'bm-float-timed'  : '1000',
-    'pypy-chaos-timed': '1000',
-    'pypy-go-timed'   : '50',
-    'pypy-deltablue'  : '2000',
-    'python-graph-bench': '200',
-    'simplejson-bench': '10000',
-    # 'whoosh-bench'    : '5000',
-    # type not supported to adopt to Jython! <scoring.WeightScorer...
-    # 'pymaging-bench'  : '5000',
-    # Multiple super class is not supported yet! + File "JYTHON.jar/Lib/abc.py", line 32, in abstractmethod AttributeError: 'str' object has no attribute '__isabstractmethod__'
-    # 'sympy-bench'     : '20000',
-    # ImportError: No module named core
-}
-
-
 
 class ZipPyBenchmarkSuite(BaseZippyBenchmarkSuite):
 
     def name(self):
-        return "python"
+        return "zippy-normal"
 
     def getPath(self):
         return pathBench
+
+    def benchmarksType(self):
+        return "normal"
 
     def benchmarksIterations(self):
         return pythonBenchmarks
 
 mx_benchmark.add_bm_suite(ZipPyBenchmarkSuite())
 
+class ZipPyMicroBenchmarkSuite(BaseZippyBenchmarkSuite):
 
-pythonGeneratorBenchmarks = {
-    'euler31-timed'   : '200',
-    'euler11-timed'   : '10000',
-    'ai-nqueen-timed' : '10',
-    'pads-eratosthenes-timed' : '100000',
-    'pads-integerpartitions' : '700',
-    'pads-lyndon'     : '100000000',
-    'python-graph-bench': '200',
-    'simplejson-bench': '10000',
-    # 'whoosh-bench'    : '5000',
-    # 'pymaging-bench'  : '5000',
-    # 'sympy-bench'     : '20000',
-}
+    def name(self):
+        return "zippy-micro"
+
+    def getPath(self):
+        return pathMicro
+
+    def benchmarksType(self):
+        return "micro"
+
+    def benchmarksIterations(self):
+        return pythonMicroBenchmarks
+
+mx_benchmark.add_bm_suite(ZipPyMicroBenchmarkSuite())
+
 
 class ZipPyNoPeelingBenchmarkSuite(BaseZippyBenchmarkSuite):
 
@@ -243,18 +154,13 @@ class ZipPyNoPeelingBenchmarkSuite(BaseZippyBenchmarkSuite):
     def getZippyOpts(self):
         return ["-no-generator-peeling"]
 
+    def benchmarksType(self):
+        return "generator"
+
     def benchmarksIterations(self):
         return pythonGeneratorBenchmarks
 
 mx_benchmark.add_bm_suite(ZipPyNoPeelingBenchmarkSuite())
-
-pythonObjectBenchmarks = {
-    'richards3-timed' : '200',
-    'bm-float-timed'  : '1000',
-    'pypy-chaos-timed': '1000',
-    'pypy-go-timed'   : '50',
-    'pypy-deltablue'  : '2000',
-}
 
 class ZipPyFlexBenchmarkSuite(BaseZippyBenchmarkSuite):
 
@@ -266,6 +172,9 @@ class ZipPyFlexBenchmarkSuite(BaseZippyBenchmarkSuite):
 
     def getZippyOpts(self):
         return ["-flexible-object-storage"]
+
+    def benchmarksType(self):
+        return "object"
 
     def benchmarksIterations(self):
         return pythonObjectBenchmarks
@@ -284,50 +193,14 @@ class ZipPyFlexEvolBenchmarkSuite(BaseZippyBenchmarkSuite):
     def getZippyOpts(self):
         return ["-flexible-storage-evolution"]
 
+    def benchmarksType(self):
+        return "object"
+
     def benchmarksIterations(self):
         return pythonObjectBenchmarks
 
 mx_benchmark.add_bm_suite(ZipPyFlexEvolBenchmarkSuite())
 
-
-pythonMicroBenchmarks = {
-    'arith-binop'           : '0',
-    'for-range'             : '0',
-    'function-call'         : '0',
-    'list-comp'             : '0',
-    'list-indexing'         : '0',
-    'list-iterating'        : '0',
-    'builtin-len'           : '0',
-    'builtin-len-tuple'     : '0',
-    'math-sqrt'             : '0',
-    'generator'             : '0',
-    'generator-notaligned'  : '0',
-    'generator-expression'  : '0',
-    'genexp-builtin-call'   : '0',
-    'attribute-access'      : '0',
-    'attribute-access-polymorphic' : '0',
-    'attribute-bool'        : '0',
-    'call-method-polymorphic': '0',
-    'boolean-logic'         : '0',
-    'object-allocate'       : '0',
-    'special-add'           : '0',
-    'special-add-int'       : '0',
-    'special-len'           : '0',
-    'object-layout-change'  : '0',
-}
-
-class ZipPyMicroBenchmarkSuite(BaseZippyBenchmarkSuite):
-
-    def name(self):
-        return "python-micro"
-
-    def getPath(self):
-        return pathMicro
-
-    def benchmarksIterations(self):
-        return pythonMicroBenchmarks
-
-mx_benchmark.add_bm_suite(ZipPyMicroBenchmarkSuite())
 
 
 class BaseExternalBenchmarkSuite(BasePythonBenchmarkSuite):
@@ -335,11 +208,14 @@ class BaseExternalBenchmarkSuite(BasePythonBenchmarkSuite):
     def subgroup(self):
         return self.externalInterpreter()
 
+    def ext_version(self):
+        raise NotImplementedError()
+
     def externalInterpreter(self):
         raise NotImplementedError()
 
     def getArgs(self, benchmarks, bmSuiteArgs):
-        return ([self.getPath() + benchmarks[0] + py, self.benchmarksIterations()[benchmarks[0]]])
+        return ([self.getPath() + benchmarks[0][0] + py ] + benchmarks[0][2])
 
     def dimensions(self):
         return {
@@ -361,17 +237,38 @@ class BaseExternalBenchmarkSuite(BasePythonBenchmarkSuite):
         dims = self.dimensions()
         return code, out, dims
 
-
 class PyPy3BenchmarkSuite(BaseExternalBenchmarkSuite):
 
+    def interpreterName(self):
+        return "PyPy3"
+
     def name(self):
-        return "pypy3"
+        return "pypy3-normal"
 
     def getPath(self):
         return pathBench
 
+    def benchmarksType(self):
+        return "normal"
+
     def externalInterpreter(self):
         return "pypy3"
+
+    def ext_version(self):
+        out1 = mx.OutputCapture()
+        out2 = mx.OutputCapture()
+        mx.run([self.externalInterpreter(), "--version"], err=mx.TeeOutputCapture(out2), out=mx.TeeOutputCapture(out1))
+        out1 = [] if not out1 or len(out1.data) <= 1 else out1.data.split("\n")
+        out1 = [] if not out1 or len(out1) <= 1 else out1[1].split(" ")
+        out2 = [] if not out2 or len(out2.data) <= 1 else out2.data.split("\n")
+        out2 = [] if not out2 or len(out2) <= 1 else out2[1].split(" ")
+        if len(out1) > 1:
+            return out1[out1.index("[PyPy") + 1].replace('-','_')
+        elif len(out2) > 1:
+            return out2[out2.index("[PyPy") + 1].replace('-','_')
+        else:
+            return "unknown"
+
 
     def benchmarksIterations(self):
         return pythonBenchmarks
@@ -380,16 +277,16 @@ class PyPy3BenchmarkSuite(BaseExternalBenchmarkSuite):
 mx_benchmark.add_bm_suite(PyPy3BenchmarkSuite())
 
 
-class PyPy3MicroBenchmarkSuite(BaseExternalBenchmarkSuite):
+class PyPy3MicroBenchmarkSuite(PyPy3BenchmarkSuite):
 
     def name(self):
         return "pypy3-micro"
 
     def getPath(self):
-        return pathBench
+        return pathMicro
 
-    def externalInterpreter(self):
-        return "pypy3"
+    def benchmarksType(self):
+        return "micro"
 
     def benchmarksIterations(self):
         return pythonMicroBenchmarks
@@ -397,101 +294,21 @@ class PyPy3MicroBenchmarkSuite(BaseExternalBenchmarkSuite):
 
 mx_benchmark.add_bm_suite(PyPy3MicroBenchmarkSuite())
 
-python2Benchmarks = {
-    'binarytrees2t'   : '18',
-    'fannkuchredux2t' : '11',
-    'fasta3t'         : '25000000',
-    'mandelbrot2t'    : '4000',
-    'meteor3t'        : '2098',
-    'nbody2t'         : '5000000',
-    'spectralnorm2t'  : '3000',
-    'pidigits-timed'  : '0',
-    'euler31-timed'   : '200',
-    'euler11-timed'   : '10000',
-    'ai-nqueen-timed' : '10',
-    'pads-eratosthenes-timed' : '100000',
-    'pads-integerpartitions' : '700',
-    'pads-lyndon'     : '100000000',
-    'richards3-timed' : '200',
-    'bm-float-timed'  : '1000',
-    'pypy-chaos-timed': '1000',
-    'pypy-go-timed'   : '50',
-    'pypy-deltablue'  : '2000',
-    'python-graph-bench': '200',
-    'simplejson-bench': '10000',
-    # 'whoosh-bench'    : '5000',
-    # 'pymaging-bench'  : '5000',
-    # 'sympy-bench'     : '20000',
-}
-
-class PyPyBenchmarkSuite(BaseExternalBenchmarkSuite):
-
-    def name(self):
-        return "pypy"
-
-    def getPath(self):
-        return pathBench
-
-    def externalInterpreter(self):
-        return "pypy"
-
-    def benchmarksIterations(self):
-        return python2Benchmarks
-
-
-mx_benchmark.add_bm_suite(PyPyBenchmarkSuite())
-
-
-python2MicroBenchmarks = {
-    'arith-binop'           : '0',
-    'for-range'             : '0',
-    #'function-call'         : '0',
-    'list-comp'             : '0',
-    'list-indexing'         : '0',
-    'list-iterating'        : '0',
-    #'builtin-len'          : '0',
-    #'builtin-len-tuple'    : '0',
-    #'math-sqrt'            : '0',
-    'generator'             : '0',
-    'generator-notaligned'  : '0',
-    'generator-expression'  : '0',
-    'genexp-builtin-call'   : '0',
-    'attribute-access'      : '0',
-    'attribute-access-polymorphic' : '0',
-    #'attribute-bool'        : '0',
-    'call-method-polymorphic': '0',
-    #'boolean-logic'         : '0',
-    #'object-allocate'       : '0',
-    'special-add'           : '0',
-    'special-add-int'       : '0',
-    #'special-len'           : '0',
-}
-
-class PyPyMicroBenchmarkSuite(BaseExternalBenchmarkSuite):
-
-    def name(self):
-        return "pypy-micro"
-
-    def getPath(self):
-        return pathBench
-
-    def externalInterpreter(self):
-        return "pypy"
-
-    def benchmarksIterations(self):
-        return python2MicroBenchmarks
-
-
-mx_benchmark.add_bm_suite(PyPyMicroBenchmarkSuite())
 
 
 class CPython3BenchmarkSuite(BaseExternalBenchmarkSuite):
 
+    def interpreterName(self):
+        return "CPython"
+
     def name(self):
-        return "cpython"
+        return "cpython3.5-normal"
 
     def getPath(self):
         return pathBench
+
+    def benchmarksType(self):
+        return "normal"
 
     def externalInterpreter(self):
         return "python3.5"
@@ -499,114 +316,37 @@ class CPython3BenchmarkSuite(BaseExternalBenchmarkSuite):
     def benchmarksIterations(self):
         return pythonBenchmarks
 
+    def ext_version(self):
+        out1 = mx.OutputCapture()
+        out2 = mx.OutputCapture()
+        mx.run([self.externalInterpreter(), "--version"], err=mx.TeeOutputCapture(out2), out=mx.TeeOutputCapture(out1))
+        out1 = [] if not out1 or len(out1.data) <= 1 else out1.data.split("\n")
+        out1 = [] if not out1 or len(out1) <= 1 else out1[0].split(" ")
+        out2 = [] if not out2 or len(out2.data) <= 1 else out2.data.split("\n")
+        out2 = [] if not out2 or len(out2) <= 1 else out2[0].split(" ")
+        if len(out1) > 1:
+            return out1[out1.index("Python") + 1].replace('-','_')
+        elif len(out2) > 1:
+            return out2[out2.index("Python") + 1].replace('-','_')
+        else:
+            return "unknown"
+
 
 mx_benchmark.add_bm_suite(CPython3BenchmarkSuite())
 
 
-class CPython3MicroBenchmarkSuite(BaseExternalBenchmarkSuite):
+class CPython3MicroBenchmarkSuite(CPython3BenchmarkSuite):
 
     def name(self):
-        return "cpython-micro"
+        return "cpython3.5-micro"
 
     def getPath(self):
-        return pathBench
-
-    def externalInterpreter(self):
-        return "pypy3"
+        return pathMicro
 
     def benchmarksIterations(self):
         return pythonMicroBenchmarks
 
+    def benchmarksType(self):
+        return "micro"
 
 mx_benchmark.add_bm_suite(CPython3MicroBenchmarkSuite())
-
-
-class CPythonBenchmarkSuite(BaseExternalBenchmarkSuite):
-
-    def name(self):
-        return "cpython2"
-
-    def getPath(self):
-        return pathBench
-
-    def externalInterpreter(self):
-        return "python"
-
-    def benchmarksIterations(self):
-        return python2Benchmarks
-
-
-mx_benchmark.add_bm_suite(CPythonBenchmarkSuite())
-
-
-class CPythonMicroBenchmarkSuite(BaseExternalBenchmarkSuite):
-
-    def name(self):
-        return "cpython2-micro"
-
-    def getPath(self):
-        return pathBench
-
-    def externalInterpreter(self):
-        return "python"
-
-    def benchmarksIterations(self):
-        return python2MicroBenchmarks
-
-
-mx_benchmark.add_bm_suite(CPythonMicroBenchmarkSuite())
-
-
-class BaseJythonBenchmarkSuite(BasePythonBenchmarkSuite):
-
-    def subgroup(self):
-        return self.externalInterpreter()
-
-    def externalInterpreter(self):
-        raise NotImplementedError()
-
-    def dimensions(self):
-        return {
-            "interpreter": self.externalInterpreter(),
-        }
-
-    def getArgs(self, benchmarks, bmSuiteArgs):
-        return (
-            ['-jar', mx.library('JYTHON').path] +
-            [self.getPath() + benchmarks[0] + py, self.benchmarksIterations()[benchmarks[0]]])
-
-
-class JythonBenchmarkSuite(BaseJythonBenchmarkSuite):
-
-    def name(self):
-        return "jython"
-
-    def getPath(self):
-        return pathBench
-
-    def externalInterpreter(self):
-        return "jython"
-
-    def benchmarksIterations(self):
-        return python2Benchmarks
-
-
-mx_benchmark.add_bm_suite(JythonBenchmarkSuite())
-
-
-class JythonMicroBenchmarkSuite(BaseJythonBenchmarkSuite):
-
-    def name(self):
-        return "jython-micro"
-
-    def getPath(self):
-        return pathBench
-
-    def externalInterpreter(self):
-        return "jython"
-
-    def benchmarksIterations(self):
-        return python2MicroBenchmarks
-
-
-mx_benchmark.add_bm_suite(JythonMicroBenchmarkSuite())
