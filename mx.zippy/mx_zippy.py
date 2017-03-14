@@ -152,7 +152,7 @@ def zippy_gate_runner(suites, tasks, extraVMarguments=None):
         vmargs = []
 
     if _mx_graal:
-        vmargs += ['-XX:-UseJVMCICompiler']
+        vmargs += ['-XX:-UseJVMCICompiler', '-Djvmci.Compiler=graal']
     # Run unit tests
     with Task('ZipPy UnitTests', tasks, tags=ZippyTags.test) as t:
         if t: unittest(['--suite', 'zippy', '--fail-fast'] + vmargs)

@@ -547,6 +547,8 @@ def _asv_chart(args):
         os.mkdir(chart_dir)
 
     interpreter_list, color_hatch_marker, benchmarks, all_benchmarks_list = _read_results()
+    if base not in interpreter_list:
+        mx.abort("Base interpreter {0} has no benchmark results.".format(base))
     interpreter_list.remove(base)
     do_geomean(benchmarks)
     do_speedups(benchmarks)
