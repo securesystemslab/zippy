@@ -72,7 +72,7 @@ public class BuiltinIntrinsifier {
         assert PythonOptions.IntrinsifyBuiltinCalls;
     }
 
-    public void synthesize() {
+    public void synthesize(int starargslen) {
         CompilerAsserts.neverPartOfCompilation();
 
         if (isCallerGenerator()) {
@@ -82,7 +82,7 @@ public class BuiltinIntrinsifier {
         IntrinsifiableBuiltin target = IntrinsifiableBuiltin.findIntrinsifiable(callNode.getCalleeName());
         assert target != null;
 
-        if (isArgumentGeneratorExpression()) {
+        if (isArgumentGeneratorExpression(starargslen)) {
             transformToComprehension(target);
         }
     }
@@ -100,8 +100,8 @@ public class BuiltinIntrinsifier {
         return false;
     }
 
-    private boolean isArgumentGeneratorExpression() {
-        if (callNode.getArgumentsNode().length() != 1) {
+    private boolean isArgumentGeneratorExpression(int starargslen) {
+        if (callNode.getArgumentsNode().length() + starargslen != 1) {
             return false;
         }
 

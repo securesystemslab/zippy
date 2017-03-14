@@ -80,11 +80,6 @@ public class PythonCallUtil {
                         isClassMethodCall(primary, callee);
     }
 
-    @ExplodeLoop
-    protected static String[] getKeywordNames(PythonCallNode node) {
-        return node.keywordsNode.getArgKeywordNames();
-    }
-
     protected static PythonCallable resolveSpecialMethod(Object operand, String specialMethodId) {
         PythonObject primary;
         try {

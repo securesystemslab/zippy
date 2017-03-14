@@ -467,37 +467,37 @@ public final class BuiltinConstructors extends PythonBuiltins {
     public abstract static class RangeNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "caseStop(stop,start,step)")
+        @Specialization(guards = "caseStop(start,step)")
         public PSequence rangeStop(int stop, Object start, Object step) {
             return new PRange(stop);
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "caseStop(stop,start,step)")
+        @Specialization(guards = "caseStop(start,step)")
         public PSequence rangeStop(long stop, Object start, Object step) {
             return new PRange(BigInteger.valueOf(stop).intValue());
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "caseStop(stop,start,step)")
+        @Specialization(guards = "caseStop(start,step)")
         public PSequence rangeStop(BigInteger stop, Object start, Object step) {
             return new PRange(stop.intValue());
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "caseStartStop(stop,start,step)")
+        @Specialization(guards = "caseStartStop(step)")
         public PSequence rangeStartStop(int start, int stop, Object step) {
             return new PRange(start, stop);
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "caseStartStop(stop,start,step)")
+        @Specialization(guards = "caseStartStop(step)")
         public PSequence rangeStartStop(int start, long stop, Object step) {
             return new PRange(start, BigInteger.valueOf(stop).intValue());
         }
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "caseStartStop(stop,start,step)")
+        @Specialization(guards = "caseStartStop(step)")
         public PSequence rangeStartStop(long start, int stop, Object step) {
             return new PRange(BigInteger.valueOf(start).intValue(), stop);
         }
@@ -518,31 +518,31 @@ public final class BuiltinConstructors extends PythonBuiltins {
             return new PRange((int) start, BigInteger.valueOf(stop).intValue(), BigInteger.valueOf(step).intValue());
         }
 
-        @Specialization
+        @Specialization(guards = "isNumber(stop)")
         public PSequence rangeStartStopStep(Object start, Object stop, Object step) {
-            if (isNumber(start)) {
-                int intStart = 0;
-                if (start instanceof Integer)
-                    intStart = (int) start;
-                else if (start instanceof Long)
-                    intStart = ((Long) (start)).intValue();
+            if (isNumber(stop)) {
+                int intStop = 0;
+                if (stop instanceof Integer)
+                    intStop = (int) stop;
+                else if (stop instanceof Long)
+                    intStop = ((Long) (stop)).intValue();
                 else
-                    intStart = ((BigInteger) start).intValue();
+                    intStop = ((BigInteger) stop).intValue();
 
-                if (stop instanceof PNone)
-                    return new PRange(intStart);
+                if (start instanceof PNone)
+                    return new PRange(intStop);
 
-                if (isNumber(stop)) {
-                    int intStop = 0;
-                    if (stop instanceof Integer)
-                        intStop = (int) stop;
-                    else if (stop instanceof Long)
-                        intStop = ((Long) (stop)).intValue();
+                if (isNumber(start)) {
+                    int intStart = 0;
+                    if (start instanceof Integer)
+                        intStart = (int) start;
+                    else if (start instanceof Long)
+                        intStart = ((Long) (start)).intValue();
                     else
-                        intStop = ((BigInteger) stop).intValue();
+                        intStart = ((BigInteger) start).intValue();
 
                     if (step instanceof PNone)
-                        return new PRange(intStart, intStop);
+                        return new PRange(intStart, intStart);
 
                     if (isNumber(step)) {
                         int intStep = 0;
@@ -561,27 +561,21 @@ public final class BuiltinConstructors extends PythonBuiltins {
             throw Py.TypeError("range does not support " + start + ", " + stop + ", " + step);
         }
 
+        @Specialization(guards = "!isNumber(stop)")
+        public PSequence rangeError(Object start, Object stop, Object step) {
+            CompilerDirectives.transferToInterpreterAndInvalidate();
+            throw Py.TypeError("range does not support " + start + ", " + stop + ", " + step);
+        }
+
         public static boolean isNumber(Object value) {
             return value instanceof Integer || value instanceof Long || value instanceof BigInteger;
         }
 
-        @SuppressWarnings("unused")
-        public static boolean caseStop(int stop, Object start, Object step) {
+        public static boolean caseStop(Object start, Object step) {
             return start == PNone.NONE && step == PNone.NONE;
         }
 
-        @SuppressWarnings("unused")
-        public static boolean caseStop(long stop, Object start, Object step) {
-            return start == PNone.NONE && step == PNone.NONE;
-        }
-
-        @SuppressWarnings("unused")
-        public static boolean caseStop(BigInteger stop, Object start, Object step) {
-            return start == PNone.NONE && step == PNone.NONE;
-        }
-
-        @SuppressWarnings("unused")
-        public static boolean caseStartStop(int start, int stop, Object step) {
+        public static boolean caseStartStop(Object step) {
             return step == PNone.NONE;
         }
 

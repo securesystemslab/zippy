@@ -105,7 +105,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
 
             try {
                 if (checkNode.accept(primary)) {
-                    final Object[] arguments = argumentsNode.executeArguments(frame, passPrimaryAsTheFirstArgument, primary);
+                    final Object[] arguments = argumentsNode.executeArguments(frame, passPrimaryAsTheFirstArgument, primary, argumentsNode.executeStarargs(frame));
                     PArguments.setVirtualFrameCargoArguments(arguments, frame);
                     VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
                     return inlinedRootNode.execute(generatorFrame);
@@ -149,7 +149,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
 
             try {
                 if (checkNode.accept(primary)) {
-                    final Object[] arguments = argumentsNode.executeArguments(frame, true, primary);
+                    final Object[] arguments = argumentsNode.executeArguments(frame, true, primary, argumentsNode.executeStarargs(frame));
                     PArguments.setVirtualFrameCargoArguments(arguments, frame);
                     VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
                     return inlinedRootNode.execute(generatorFrame);
@@ -185,7 +185,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
             }
 
             if (cachedCallee == callee) {
-                final Object[] arguments = argumentsNode.executeArguments(frame);
+                final Object[] arguments = argumentsNode.executeArguments(frame, argumentsNode.executeStarargs(frame));
                 PArguments.setVirtualFrameCargoArguments(arguments, frame);
                 VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);
                 return inlinedRootNode.execute(generatorFrame);
@@ -219,6 +219,7 @@ public abstract class PeeledGeneratorLoopNode extends PNode {
             }
 
             if (cachedCallTarget == callee.getCallTarget()) {
+                CompilerDirectives.transferToInterpreterAndInvalidate();
                 final Object[] arguments = callee.getArguments();
                 PArguments.setVirtualFrameCargoArguments(arguments, frame);
                 VirtualFrame generatorFrame = Truffle.getRuntime().createVirtualFrame(arguments, frameDescriptor);

@@ -54,6 +54,14 @@ public abstract class PNode extends Node {
     @CompilationFinal private SourceSection sourceSection;
 
     @Override
+    public String toString() {
+        if (getSourceSection() != null)
+            return getSourceSection().getSource().getName() + ":" + getSourceSection().getStartLine();
+        else
+            return super.toString();
+    }
+
+    @Override
     public SourceSection getSourceSection() {
         return this.sourceSection;
     }

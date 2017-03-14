@@ -52,6 +52,7 @@ public class ImportFromNode extends PNode {
 
     @Override
     public Object execute(VirtualFrame frame) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
         CompilerAsserts.neverPartOfCompilation();
 
         Object current = relativeto;

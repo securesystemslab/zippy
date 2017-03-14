@@ -43,30 +43,31 @@ public class ArgumentsNode extends PNode {
     @Children private final PNode[] arguments;
     @Child private PNode starargs;
 
-    private int stararglen;
-    private Object starargsValue;
-
     public ArgumentsNode(PNode[] arguments) {
         this.arguments = arguments;
         this.starargs = EmptyNode.create();
-        this.stararglen = 0;
-        this.starargsValue = null;
     }
 
     public ArgumentsNode(PNode[] arguments, PNode starargs) {
         this.arguments = arguments;
         this.starargs = (starargs == null) ? EmptyNode.create() : starargs;
-        this.stararglen = 0;
-        this.starargsValue = null;
     }
 
-    public void executeStarargs(VirtualFrame frame) {
-        if (!(starargs instanceof EmptyNode)) {
-            this.starargsValue = starargs.execute(frame);
-            if (starargsValue instanceof PTuple)
-                this.stararglen = ((PTuple) this.starargsValue).len();
-            if (starargsValue instanceof PKeyword[])
-                this.stararglen = ((PKeyword[]) this.starargsValue).length;
+    public Object[] executeStarargs(VirtualFrame frame) {
+        final Object starargsVal = starargs.execute(frame);
+        if (starargsVal instanceof PTuple) {
+            return ((PTuple) starargsVal).getArray();
+        } else {
+            return new Object[0];
+        }
+    }
+
+    public PKeyword[] executeKeywordStarargs(VirtualFrame frame) {
+        final Object starargsVal = starargs.execute(frame);
+        if (starargsVal instanceof PKeyword[]) {
+            return ((PKeyword[]) starargsVal);
+        } else {
+            return new PKeyword[0];
         }
     }
 
@@ -74,36 +75,35 @@ public class ArgumentsNode extends PNode {
         return arguments;
     }
 
-    public String[] getArgKeywordNames() {
+    public String[] getArgKeywordNames(PKeyword[] keystarags) {
         ArrayList<String> names = new ArrayList<>();
         for (PNode arg : arguments)
             names.add(((KeywordLiteralNode) arg).getName());
-        if (stararglen > 0)
-            for (PKeyword arg : ((PKeyword[]) starargsValue))
-                names.add(arg.getName());
-        return names.toArray(new String[length()]);
+        for (PKeyword arg : keystarags)
+            names.add(arg.getName());
+        return names.toArray(new String[length() + keystarags.length]);
     }
 
     public int length() {
-        return arguments.length + stararglen;
+        return arguments.length;
     }
 
     @Override
     public Object execute(VirtualFrame frame) {
-        return executeArguments(frame);
+        return executeArguments(frame, executeStarargs(frame));
     }
 
-    public final Object[] executeArguments(VirtualFrame frame) {
-
-        final Object[] values = create(length());
+    public final Object[] executeArguments(VirtualFrame frame, Object[] starValues) {
+        final int length = length() + starValues.length;
+        final Object[] values = create(length);
         frame.materialize();
 
         for (int i = 0; i < arguments.length; i++) {
             values[USER_ARGUMENTS_OFFSET + i] = arguments[i].execute(frame);
         }
 
-        for (int i = 0; i < stararglen; i++) {
-            values[USER_ARGUMENTS_OFFSET + arguments.length + i] = ((PTuple) starargsValue).getArray()[i];
+        for (int i = 0; i < starValues.length; i++) {
+            values[USER_ARGUMENTS_OFFSET + arguments.length + i] = starValues[i];
         }
 
         return values;
@@ -112,8 +112,8 @@ public class ArgumentsNode extends PNode {
     /**
      * Pack primary into the evaluated arguments array if passPrimary is true.
      */
-    public final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary) {
-        final int length = passPrimary ? length() + 1 : length();
+    public final Object[] executeArguments(VirtualFrame frame, boolean passPrimary, Object primary, Object[] starValues) {
+        final int length = (passPrimary ? length() + 1 : length()) + starValues.length;
         final Object[] values = create(length);
         final int offset;
         frame.materialize();
@@ -128,38 +128,60 @@ public class ArgumentsNode extends PNode {
             values[USER_ARGUMENTS_OFFSET + offset + i] = arguments[i].execute(frame);
         }
 
-        for (int i = 0; i < stararglen; i++) {
-            values[USER_ARGUMENTS_OFFSET + offset + arguments.length + i] = ((PTuple) starargsValue).getArray()[i];
+        for (int i = 0; i < starValues.length; i++) {
+            values[USER_ARGUMENTS_OFFSET + offset + arguments.length + i] = starValues[i];
         }
 
         return values;
     }
 
-    public final Object[] executeArgumentsForJython(VirtualFrame frame) {
-        final int length = length();
+    public final Object[] executeArgumentsForJython(VirtualFrame frame, Object[] starValues) {
+        final int length = length() + starValues.length;
         final Object[] values = length == 0 ? EMPTY_ARGUMENTS : new Object[length];
         frame.materialize();
         for (int i = 0; i < arguments.length; i++) {
             values[i] = arguments[i].execute(frame);
         }
 
-        for (int i = 0; i < stararglen; i++) {
-            values[USER_ARGUMENTS_OFFSET + arguments.length + i] = ((PTuple) starargsValue).getArray()[i];
+        for (int i = 0; i < starValues.length; i++) {
+            values[USER_ARGUMENTS_OFFSET + arguments.length + i] = starValues[i];
         }
 
         return values;
     }
 
-    public final PKeyword[] executeKeywordArguments(VirtualFrame frame) {
-        PKeyword[] keywords = length() == 0 ? PKeyword.EMPTY_KEYWORDS : new PKeyword[length()];
-        frame.materialize();
-        for (int i = 0; i < arguments.length; i++) {
-            keywords[i] = (PKeyword) arguments[i].execute(frame);
+    private static PKeyword[] reshape(PKeyword[] keys, int reshape) {
+        PKeyword[] keywords = new PKeyword[keys.length - reshape];
+        int i = 0;
+        for (PKeyword k : keys) {
+            if (k != null) {
+                keywords[i++] = k;
+            }
         }
 
-        for (int i = 0; i < stararglen; i++) {
-            keywords[arguments.length + i] = ((PKeyword[]) starargsValue)[i];
+        return keywords;
+    }
+
+    public final PKeyword[] executeKeywordArguments(VirtualFrame frame, PKeyword[] starValues) {
+        final int length = length() + starValues.length;
+        PKeyword[] keywords = length == 0 ? PKeyword.EMPTY_KEYWORDS : new PKeyword[length];
+        frame.materialize();
+        int reshape = 0;
+        for (int i = 0; i < arguments.length; i++) {
+            Object o = arguments[i].execute(frame);
+            if (o instanceof PKeyword) {
+                keywords[i] = (PKeyword) o;
+            } else {
+                reshape++;
+            }
         }
+
+        for (int i = 0; i < starValues.length; i++) {
+            keywords[arguments.length + i] = starValues[i];
+        }
+
+        if (reshape > 0)
+            return reshape(keywords, reshape);
 
         return keywords;
     }
