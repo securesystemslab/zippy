@@ -19,8 +19,8 @@ except:
 
 debug = False
 
-_mx_graal = mx.suite("graal-core", fatalIfMissing=False)
 _suite = mx.suite('zippy')
+commit_hash = _suite.vc.parent(_suite.dir)
 
 asv_env = os.environ.get("ZIPPY_ASV_PATH")
 if not asv_env:
@@ -33,15 +33,146 @@ machine_name = os.environ.get("MACHINE_NAME")
 if not machine_name:
     machine_name = platform.node()
 
+_mx_graal = mx.suite("graal-core", fatalIfMissing=False)
 machine_name += '-no-graal' if not _mx_graal else '-graal'
 machine_results_dir = asv_results_dir + machine_name
 
 chart_dir = asv_env + '/graphs/' + machine_name + '/'
 
-commit_hash = _suite.vc.parent(_suite.dir)
 
 if not importerror:
     geomean = lambda s: reduce(lambda x,y: x*y, s) ** (1.0 / len(s))
+
+
+signed_date                 = ''
+interpreters_versions       = {}
+benchmarks_images           = {}
+benchmarks_stats_each       = {}
+benchmarks_stats_types      = {}
+benchmarks_stats_overall    = {}
+
+def markdown_readme(base):
+    with open(chart_dir + 'README.md', "w") as readme:
+        dump = '# Benchmark result for machine (' + machine_name + '):\n\n'
+        readme.write(dump)
+
+        dump = '\nResults are as of ' + signed_date + '\n'
+        readme.write(dump)
+
+        dump = '\nList of interpreters:\n'
+        readme.write(dump)
+        for _interp in interpreters_versions:
+            dump = '* ' + _interp + ': `' + interpreters_versions[_interp] + '`\n'
+            readme.write(dump)
+
+        dump = '\n\n> Normalized to: ' + base + '\n\n'
+        readme.write(dump)
+
+        dump = '\n# Graphs:\n'
+        readme.write(dump)
+
+        for title in sorted(benchmarks_images):
+            dump  = '\n## ' + title + '\n\n'
+            dump += '\n' + '![image](' + benchmarks_images[title] + '.png' + ')\n\n'
+            readme.write(dump)
+
+
+        dump = '\n# Statistics:\n'
+        readme.write(dump)
+
+
+        dump = '\n## Overall performance:\n'
+        readme.write(dump)
+        for _interp in benchmarks_stats_overall:
+            for _timing in benchmarks_stats_overall[_interp]:
+                dump = _interp + ': Overall `' + _timing + '` performance :: '
+                dump += 'Geometeric mean: `' + ("%.3f" % geomean(benchmarks_stats_overall[_interp][_timing])    )  + 'x`, '
+                dump += 'Average: `'         + ("%.3f" % np.average(benchmarks_stats_overall[_interp][_timing]) )  + 'x`, '
+                dump += 'Maximum: `'         + ("%.3f" % max(benchmarks_stats_overall[_interp][_timing])        )  + 'x`\n\n'
+                readme.write(dump)
+
+        dump = '\n## Benchmarks performance:\n'
+        readme.write(dump)
+        for _type in benchmarks_stats_types:
+            dump = '\n### `' + _type + '` performance:\n'
+            readme.write(dump)
+            for _timing in benchmarks_stats_types[_type]:
+                dump = '\n##### `' + _timing + '` measurement:\n'
+                readme.write(dump)
+                for _measurement in benchmarks_stats_types[_type][_timing]:
+                    dump = _measurement
+                    readme.write(dump)
+
+        dump = '\n## Each Benchmark performance:\n'
+        readme.write(dump)
+
+        for _type in benchmarks_stats_each:
+            dump = '\n### `' + _type + '` performance:\n'
+            readme.write(dump)
+            for _timing in benchmarks_stats_each[_type]:
+                dump = '\n##### `' + _timing + '` measurement:\n'
+                readme.write(dump)
+                for _bench in benchmarks_stats_each[_type][_timing]:
+                    _bench_txt = '`' + _bench + '` '
+                    if isinstance(benchmarks_stats_each[_type][_timing][_bench], dict):
+                        for _param in benchmarks_stats_each[_type][_timing][_bench]:
+                            dump = _bench_txt + '`' + _param + '`: ' + benchmarks_stats_each[_type][_timing][_bench][_param] + '\n\n'
+                            readme.write(dump)
+                    else:
+                        dump = _bench_txt + ': ' + benchmarks_stats_each[_type][_timing][_bench] + '\n\n'
+                        readme.write(dump)
+
+        dump = '# Done'
+        readme.write(dump)
+
+def markdown_overall_speedups(_type, _timing, r_benchmarks):
+    txt_geomean = ' Geometeric mean :: '
+    txt_avg     = ' Average         :: '
+    txt_max     = ' Maximum         :: '
+    for _interp in r_benchmarks:
+        txt_geomean += _interp + ': `' + ("%.3f" % geomean(r_benchmarks[_interp])   ) + 'x`, '
+        txt_avg     += _interp + ': `' + ("%.3f" % np.average(r_benchmarks[_interp])) + 'x`, '
+        txt_max     += _interp + ': `' + ("%.3f" % max(r_benchmarks[_interp])       ) + 'x`, '
+        if _interp not in benchmarks_stats_overall:
+            benchmarks_stats_overall[_interp] = {}
+        if _timing not in benchmarks_stats_overall[_interp]:
+            benchmarks_stats_overall[_interp][_timing] = []
+        benchmarks_stats_overall[_interp][_timing] += r_benchmarks[_interp]
+
+    txt_geomean += '\n\n'
+    txt_avg     += '\n\n'
+    txt_max     += '\n\n'
+    if _type not in benchmarks_stats_types:
+        benchmarks_stats_types[_type] = {}
+    benchmarks_stats_types[_type][_timing] = [txt_geomean, txt_avg, txt_max]
+
+def markdown_each(benchmarks, base):
+    for _type in benchmarks:
+        if _type not in benchmarks_stats_each:
+            benchmarks_stats_each[_type] = {}
+
+        for _timing in benchmarks[_type]:
+            if _timing not in benchmarks_stats_each[_type]:
+                benchmarks_stats_each[_type][_timing] = {}
+
+            for _interp in benchmarks[_type][_timing]:
+                for _bench in benchmarks[_type][_timing][_interp]:
+                    if isinstance(benchmarks[_type][_timing][_interp][_bench], dict):
+                        if _bench not in benchmarks_stats_each[_type][_timing]:
+                            benchmarks_stats_each[_type][_timing][_bench] = {}
+
+                        for _param in benchmarks[_type][_timing][_interp][_bench]:
+                            if _param not in benchmarks_stats_each[_type][_timing][_bench]:
+                                benchmarks_stats_each[_type][_timing][_bench][_param] = base + ': `1.00x`, '
+
+                            s = benchmarks[_type][_timing][_interp][_bench][_param]
+                            benchmarks_stats_each[_type][_timing][_bench][_param] += _interp + ': `' + ("%.3f" % s) + '`, '
+                    else:
+                        if _bench not in benchmarks_stats_each[_type][_timing]:
+                            benchmarks_stats_each[_type][_timing][_bench] = base + ': `1.00x`, '
+
+                        s = benchmarks[_type][_timing][_interp][_bench]
+                        benchmarks_stats_each[_type][_timing][_bench] += _interp + ': `' + ("%.3f" % s) + '`, '
 
 
 def plot_scales_sub(_params, _bench_params):
@@ -85,8 +216,10 @@ def plot_scales(benchmarks, all_benchmarks_list, color_hatch_marker):
                 ax.set_title(_bench)
                 ax.grid(True)
 
-            fig.savefig(chart_dir + 'benchmarks_scales_' + _type + '_' + _timing + '.png', bbox_inches='tight')
-            fig.savefig(chart_dir + 'benchmarks_scales_' + _type + '_' + _timing + '.pdf', format='pdf', bbox_inches='tight')
+            filename = 'benchmarks_scales_' + _type + '_' + _timing
+            benchmarks_images['Scale `' + _type + '` benchmarks chart measuring `' + _timing + '` timing:'] = filename
+            fig.savefig(chart_dir + filename + '.png', bbox_inches='tight')
+            fig.savefig(chart_dir + filename + '.pdf', format='pdf', bbox_inches='tight')
 
 
 
@@ -214,6 +347,7 @@ def process_plot(benchmarks, all_benchmarks_list, interpreter_list, color_hatch_
     for _type in benchmarks:
         for _timing in benchmarks[_type]:
             r_benchmarks, r_bench_list = pre_process_plot(benchmarks[_type][_timing], all_benchmarks_list[_type][_timing])
+            markdown_overall_speedups(_type, _timing, r_benchmarks)
             size = len(r_bench_list)
             size = (max(size * 2, 8), max(size, 4))
             fig = plt.figure(figsize=size) #, dpi=80)
@@ -222,8 +356,10 @@ def process_plot(benchmarks, all_benchmarks_list, interpreter_list, color_hatch_
             plot_bar_speedups(ax, r_benchmarks, r_bench_list, interpreter_list, color_hatch_marker, width)
             ax.set_xlabel("Benchmarks (" + _type + ") (normalized to " + base + ")")
             fig.subplots_adjust(left=0.03)
-            fig.savefig(chart_dir + 'benchmarks_' + _type + '_' + _timing + '.png', bbox_inches='tight')
-            fig.savefig(chart_dir + 'benchmarks_' + _type + '_' + _timing + '.pdf', format='pdf', bbox_inches='tight')
+            filename = 'benchmarks_bar_' + _type + '_' + _timing
+            benchmarks_images['Bar `' + _type + '` benchmarks measuring `' + _timing + '` timing:'] = filename
+            fig.savefig(chart_dir + filename + '.png', bbox_inches='tight')
+            fig.savefig(chart_dir + filename + '.pdf', format='pdf', bbox_inches='tight')
 
 
 def do_speedups(benchmarks, base='CPython'):
@@ -269,6 +405,7 @@ def do_geomean(benchmarks):
 
 
 def _read_results():
+    global signed_date
     list_color_hatch_marker =  [
                             ['k' ,        '' ,  's-'],
                             ['#3f3f3f',   '*',  'o-'],
@@ -301,6 +438,13 @@ def _read_results():
             if 'commit_hash' not in bench_json or bench_json['commit_hash'] != commit_hash:
                 continue
 
+            if signed_date == '':
+                signed_date = ' (revision ' + commit_hash + ')'
+                date = bench_json['date']
+                import datetime
+                date = datetime.datetime.fromtimestamp(int(date) / 1e3)
+                signed_date = date.strftime("%Y-%d-%m %H:%M:%S") + signed_date
+
             if _type not in benchmarks:
                 benchmarks[_type] = {}
                 all_benchmarks_list[_type] = {}
@@ -311,6 +455,9 @@ def _read_results():
 
             _commit = bench_json['commit_hash']
             _interp = str(bench_json['params']['interpreter'])
+
+            if _interp not in interpreters_versions:
+                interpreters_versions[_interp] = _ver
 
             if _interp not in benchmarks[_type][_timing]:
                 benchmarks[_type][_timing][_interp] = {}
@@ -393,6 +540,9 @@ def _asv_chart(args):
     if args.base:
         base = args.base
 
+    if not exists(asv_env + '/graphs'):
+        os.mkdir(asv_env + '/graphs')
+
     if not exists(chart_dir):
         os.mkdir(chart_dir)
 
@@ -400,9 +550,12 @@ def _asv_chart(args):
     interpreter_list.remove(base)
     do_geomean(benchmarks)
     do_speedups(benchmarks)
+    markdown_each(benchmarks, base)
     process_plot(benchmarks, all_benchmarks_list, interpreter_list, color_hatch_marker, base)
     if args.scales:
         plot_scales(benchmarks, all_benchmarks_list, color_hatch_marker)
+
+    markdown_readme(base)
 
 mx.update_commands(_suite, {
     'asv-chart' : [_asv_chart, 'Generate chart for benchmarked results.'],

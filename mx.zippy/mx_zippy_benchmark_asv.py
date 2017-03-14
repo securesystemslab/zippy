@@ -127,14 +127,14 @@ def generate_asv_benchmarks(user_benchmarks_list, force=False):
     }
 
     for bench_list in user_benchmarks_list:
-        if bench_list in benchmarks_list:
+        if bench_list in sorted(benchmarks_list):
             path = benchmarks_list[bench_list][0]
             bms = benchmarks_list[bench_list][1]
             for bench in bms:
                 bench_json = copy.deepcopy(single_benchmark_template)
                 bench_json['name'] = bench_list + "." + bench
                 bench_json['code'] = "mx python " + path + bench + ".py " + " ".join(bms[bench][1])
-                if len(bms[bench]) > 2:
+                if len(bms[bench]) > 0 and bms[bench][0] != '':
                     params = []
                     for i in range(0, len(bms[bench]), 2):
                         params += [bms[bench][i]]
@@ -194,6 +194,7 @@ def generate_asv_conf(force=False):
 class ASVBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
 
     asv_pre_results = {}
+    repeat_count = 1
 
     def dimensions(self, suite, mxBenchmarkArgs, bmSuiteArgs):
         standard = {
@@ -269,10 +270,10 @@ class ASVBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
             write_to_json(_timing, machine_results_dir + "/" + file_tag + t + run_num + ".json")
 
 
-    def copy_previous_as_new(self, suite, benchNamesList, count):
+    def copy_previous_as_new(self, suite, benchNamesList):
         file_tag = self.get_file_tag(suite)
         last_run = self.get_latest_run(file_tag)
-        count    = min(last_run, count)
+        count = self.repeat_count
 
         for t in suite.get_timing():
             try:
@@ -283,18 +284,20 @@ class ASVBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
                         last_result['commit_hash'] = _suite.vc.parent(_suite.dir)
                         last_result['date'] = int(_suite.vc.parent_info(_suite.dir)["committer-ts"]) * 1000
                         for bench in benchNamesList:
-                            iterations = suite.benchmarksIterations()[bench[0]]
-                            formated_bench = suite.benchmarksType() + "." + bench[0]
+                            iterations = suite.benchmarksIterations()[bench[0][0]]
+                            formated_bench = suite.benchmarksType() + "." + bench[0][0]
                             if formated_bench not in last_result['results']:
                                 return 1
 
-                        run_num = "-run-" + str(1 + last_run)
+                        run_num = "-run-" + str(1 + last_run + c)
                         write_to_json(last_result, machine_results_dir + "/" + file_tag + t + run_num + ".json")
+                        self.repeat_count -= 1
+
+                    mx.warn("Copied {0}/{1}".format(c, count))
             except:
                 return 1
 
-            return 0
-        return 1
+        return 0
 
     def asv_benchmark(self, mxASVBenchmarkArgs, bmSuiteArgs):
         """Run ASV benchmark suite."""
@@ -319,8 +322,11 @@ class ASVBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
             "--generate-asv-machine", action="store_true", default=None,
             help="Generate machine.json file for all available benchmarks.")
         parser.add_argument(
-            "--copy-last", nargs="?", default=None,
+            "--copy-last", action="store_true", default=None,
             help="Copy last run and use the current revision information")
+        parser.add_argument(
+            "--repeat", nargs="?", default=None,
+            help="Repeat action <number> of times")
         parser.add_argument(
             "-h", "--help", action="store_true", default=None,
             help="Show usage information.")
@@ -328,6 +334,9 @@ class ASVBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
 
         generate_asv_conf()
         generate_asv_machine(machine_name)
+
+        if mxASVBenchmarkArgs.repeat:
+            self.repeat_count = int(mxASVBenchmarkArgs.repeat)
 
         copy_previous = False
         if mxASVBenchmarkArgs.copy_last:
@@ -368,33 +377,35 @@ class ASVBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
         results = []
 
         if copy_previous:
-            if self.copy_previous_as_new(suite, benchNamesList, mxASVBenchmarkArgs.copy_last) == 0:
+            if self.copy_previous_as_new(suite, benchNamesList) == 0:
                 mx.warn("copied successfully for suite: " + suite.name())
                 return 0
             else:
-                mx.warn("No matching available to copy from for suite: " + suite.name())
+                mx.warn("No matching (no more matching) available to copy from for suite: " + suite.name())
 
         failures_seen = False
-        suite.before(bmSuiteArgs)
-        for benchnames in sorted(benchNamesList):
-            suite.validateEnvironment()
-            try:
-                partialResults = self.execute(suite, benchnames, mxASVBenchmarkArgs, bmSuiteArgs)
-                self.process_result(suite, partialResults[0])
-                results.extend(partialResults)
-            except RuntimeError:
-                failures_seen = True
-                failedResults = {
-                    "benchmark": "".join(suite.benchmarksType() + "." + benchnames[0][0]),
-                    "python.params": "".join(benchnames[0][1]),
-                }
-                for t in suite.get_timing():
-                    failedResults[t] = None
-                self.process_result(suite, failedResults)
-                mx.log(traceback.format_exc())
-        suite.after(bmSuiteArgs)
+        for c in range(self.repeat_count):
+            mx.warn("Run {0}/{1}".format(c, self.repeat_count))
+            suite.before(bmSuiteArgs)
+            for benchnames in sorted(benchNamesList):
+                suite.validateEnvironment()
+                try:
+                    partialResults = self.execute(suite, benchnames, mxASVBenchmarkArgs, bmSuiteArgs)
+                    self.process_result(suite, partialResults[0])
+                    results.extend(partialResults)
+                except RuntimeError:
+                    failures_seen = True
+                    failedResults = {
+                        "benchmark": "".join(suite.benchmarksType() + "." + benchnames[0][0]),
+                        "python.params": "".join(benchnames[0][1]),
+                    }
+                    for t in suite.get_timing():
+                        failedResults[t] = None
+                    self.process_result(suite, failedResults)
+                    mx.log(traceback.format_exc())
+            suite.after(bmSuiteArgs)
 
-        self.write_asv_results(suite, self.asv_pre_results)
+            self.write_asv_results(suite, self.asv_pre_results)
 
         if failures_seen:
             return 1
