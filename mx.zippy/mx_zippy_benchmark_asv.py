@@ -234,6 +234,7 @@ class ASVBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
             "python"        : "3.5",
             "requirements"  : {},
             "results"       : {},
+            "profiling"     : {},
             "version"       : 1
         }
 
@@ -260,14 +261,24 @@ class ASVBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
     def write_asv_results(self, suite, results):
         template = self.prepare_asv_dict(suite)
         file_tag = self.get_file_tag(suite)
+        is_run   = "profile" not in suite.name()
+
+        if not is_run:
+            _profile = dict(template)
+            _data    = suite.get_profile_info()
+            _profile['params']['timing'] = "profile"
+            _profile['profiling'].update(_data)
+            write_to_json(_profile, machine_results_dir + "/" + file_tag + "-profile" + ".json")
+            return
+
         last_run = self.get_latest_run(file_tag)
-        run_num = "-run-" + str( 1 + last_run)
+        run      = "-run-" + str( 1 + last_run)
 
         for t in suite.get_timing():
             _timing = dict(template)
             _timing['params']['timing'] = t
             _timing['results'].update(results[t])
-            write_to_json(_timing, machine_results_dir + "/" + file_tag + t + run_num + ".json")
+            write_to_json(_timing, machine_results_dir + "/" + file_tag + t + run + ".json")
 
 
     def copy_previous_as_new(self, suite, benchNamesList):
