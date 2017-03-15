@@ -37,6 +37,12 @@ if not machine_name:
 
 _mx_graal = mx.suite("graal-core", fatalIfMissing=False)
 machine_name += '-no-graal' if not _mx_graal else '-graal'
+
+
+# testing
+# machine_name = ''
+# commit_hash  = ''
+
 machine_results_dir = asv_results_dir + machine_name
 
 chart_dir = asv_env + '/graphs/' + machine_name + '/'
@@ -250,9 +256,9 @@ def plot_bar_speedups(ax, benchmarks, all_benchmarks_list, interpreter_list, col
     ax.set_xticks(xticks + c_witdh/2.3)
 
     if small:
-        ax.set_xticklabels(all_benchmarks_list, fontsize=14)
+        ax.set_xticklabels(all_benchmarks_list, fontsize=14, rotation=45)
     else:
-        ax.set_xticklabels(all_benchmarks_list, fontsize=17)
+        ax.set_xticklabels(all_benchmarks_list, fontsize=17, rotation=45)
 
     ax.set_yscale('log', basey=2)
     (y_bottom, y_top) = ax.get_ylim()
@@ -292,7 +298,7 @@ def plot_bar_speedups(ax, benchmarks, all_benchmarks_list, interpreter_list, col
         ax.legend(rects, rects_s, fontsize='large', ncol=3,
                   bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand")
     else:
-        ax.legend(rects, rects_s, fontsize='large')
+        ax.legend(rects, rects_s, fontsize='large', ncol=5, mode="expand")
 
     ax.set_xlim(.7, ly + 1)
     ax.yaxis.grid(True)
