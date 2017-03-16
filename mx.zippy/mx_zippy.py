@@ -55,8 +55,9 @@ def do_run_python(args, extraVmArgs=None, env=None, jdk=None, **kwargs):
             check_vm()
 
     vmArgs, zippyArgs = mx.extract_VM_args(args)
+    print(zippyArgs)
 
-    vmArgs = ['-cp', mx.classpath(["edu.uci.python"])]
+    vmArgs = _zippy_internal_options() + ['-cp', mx.classpath(["edu.uci.python"])]
 
     if not jdk:
         jdk = get_jdk()
@@ -100,6 +101,43 @@ def _sanitize_vmArgs(jdk, vmArgs):
         xargs.append(vmArg)
         i = i + 1
     return xargs
+
+def _zippy_internal_options():
+    result = []
+    """ Debug flags """
+    # result += ["-Dedu.uci.python.PrintAST=true"                             ] # false
+    # result += ["-Dedu.uci.python.VisualizedAST=true"                        ] # false
+    # result += ["-Dedu.uci.python.PrintASTFilter="                           ] # null
+    # result += ["-Dedu.uci.python.TraceJythonRuntime=true"                   ] # false
+    # result += ["-Dedu.uci.python.TraceImports=true"                         ] # false
+    # result += ["-Dedu.uci.python.TraceSequenceStorageGeneralization=true"   ] # false
+    # result += ["-Dedu.uci.python.TraceObjectLayoutCreation=true"            ] # false
+
+    """ Object storage allocation """
+    # result += ["-Dedu.uci.python.InstrumentObjectStorageAllocation=true"    ] # false
+
+    """ Translation flags """
+    # result += ["-Dedu.uci.python.UsePrintFunction=true"                     ] # false
+
+    """ Runtime flags """
+    # result += ["-Dedu.uci.python.disableUnboxSequenceStorage=true"          ] # true
+    # result += ["-Dedu.uci.python.disableUnboxSequenceIteration=true"        ] # true
+    # result += ["-Dedu.uci.python.disableIntrinsifyBuiltinCalls=true"        ] # true
+    # result += ["-Dedu.uci.python.FlexibleObjectStorageEvolution=true"       ] # false
+    # result += ["-Dedu.uci.python.FlexibleObjectStorage=true"                ] # false
+
+    """ Generators """
+    # result += ["-Dedu.uci.python.disableInlineGeneratorCalls=true"          ] # true
+    # result += ["-Dedu.uci.python.disableOptimizeGeneratorExpressions=true"  ] # true
+    # result += ["-Dedu.uci.python.TraceGeneratorInlining=true"               ] # false
+    # result += ["-Dedu.uci.python.TraceNodesWithoutSourceSection=true"       ] # false
+    # result += ["-Dedu.uci.python.TraceNodesUsingExistingProbe=true"         ] # false
+    # result += ["-Dedu.uci.python.CatchZippyExceptionForUnitTesting=true"    ] # false
+
+    """ Other """
+    # result += ["-Dedu.uci.python.forceLongType=true"                        ] # false
+    return result
+
 
 # Graal/Truffle heuristics parameters
 def _graal_heuristics_options():

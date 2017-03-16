@@ -268,7 +268,7 @@ class ASVBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
             _data    = suite.get_profile_info()
             _profile['params']['timing'] = "profile"
             _profile['profiling'].update(_data)
-            write_to_json(_profile, machine_results_dir + "/" + file_tag + "-profile" + ".json")
+            write_to_json(_profile, machine_results_dir + "/" + file_tag[:-1] + ".json")
             return
 
         last_run = self.get_latest_run(file_tag)
