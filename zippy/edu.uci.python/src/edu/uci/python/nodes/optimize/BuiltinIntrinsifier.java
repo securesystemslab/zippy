@@ -45,11 +45,10 @@ import edu.uci.python.nodes.function.GeneratorExpressionNode;
 import edu.uci.python.nodes.generator.GeneratorReturnTargetNode;
 import edu.uci.python.nodes.generator.YieldNode;
 import edu.uci.python.runtime.PythonContext;
-import edu.uci.python.runtime.PythonOptions;
 
 public class BuiltinIntrinsifier {
 
-    @SuppressWarnings("unused") private final PythonContext context;
+    private final PythonContext context;
     @SuppressWarnings("unused") private final Assumption globalScopeUnchanged;
     @SuppressWarnings("unused") private final Assumption builtinModuleUnchanged;
 
@@ -61,7 +60,7 @@ public class BuiltinIntrinsifier {
         this.globalScopeUnchanged = globalScopeUnchanged;
         this.builtinModuleUnchanged = builtinModuleUnchanged;
         this.callNode = null;
-        assert PythonOptions.IntrinsifyBuiltinCalls;
+        assert context.getPythonOptions().IntrinsifyBuiltinCalls;
     }
 
     public BuiltinIntrinsifier(PythonContext context, Assumption globalScopeUnchanged, Assumption builtinModuleUnchanged, PythonCallNode callNode) {
@@ -69,7 +68,7 @@ public class BuiltinIntrinsifier {
         this.globalScopeUnchanged = globalScopeUnchanged;
         this.builtinModuleUnchanged = builtinModuleUnchanged;
         this.callNode = callNode;
-        assert PythonOptions.IntrinsifyBuiltinCalls;
+        assert context.getPythonOptions().IntrinsifyBuiltinCalls;
     }
 
     public void synthesize(int starargslen) {
@@ -142,7 +141,7 @@ public class BuiltinIntrinsifier {
         callNode.replace(target.createComprehensionNode(listCompSlot, genexpBody));
 
         genexp.setAsOptimized();
-        if (PythonOptions.TraceGeneratorInlining)
+        if (context.getPythonOptions().TraceGeneratorInlining)
             System.out.println("[ZipPy] builtin intrinsifier: transform " + genexp + " with call to '" + target.getName() + "' to " + target.getName() + " comprehension");
     }
 

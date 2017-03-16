@@ -43,7 +43,7 @@ public class BuiltinIntrinsificationTests {
 
     @Test
     public void simpleListComp() {
-        assertTrue(PythonOptions.IntrinsifyBuiltinCalls);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableIntrinsifyBuiltinCalls"));
         String source = "for x in range(2):\n" + //
                         "    ll = list(i for i in range(5))\n" + //
                         "print(ll)";
@@ -54,12 +54,12 @@ public class BuiltinIntrinsificationTests {
 
     @Test
     public void listComp() {
-        assertTrue(PythonOptions.IntrinsifyBuiltinCalls);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableIntrinsifyBuiltinCalls"));
         String[] options = {"OptimizeGeneratorExpressions"};
-        boolean[] values = {true};
-        PythonOptions.setOptions(options, values);
+        PythonOptions.setEnvOptions(options);
         Path script = Paths.get("builtin-list-intrinsification-test.py");
         assertPrints("9\n", script);
+        PythonOptions.unsetEnvOptions(options);
     }
 
 }

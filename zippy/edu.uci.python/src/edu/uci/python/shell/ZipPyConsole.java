@@ -71,12 +71,12 @@ public class ZipPyConsole extends InteractiveConsole {
         PythonModule module = context.createMainModule(source.getPath());
         PythonParseResult result = context.getParser().parse(context, module, source);
 
-        if (PythonOptions.PrintAST) {
+        if (context.getPythonOptions().PrintAST) {
             printBanner("Before Specialization");
             result.printAST();
         }
 
-        if (PythonOptions.VisualizedAST) {
+        if (context.getPythonOptions().VisualizedAST) {
             result.visualizeToNetwork();
         }
 
@@ -85,16 +85,16 @@ public class ZipPyConsole extends InteractiveConsole {
 
         moduleCallTarget.call(PArguments.empty());
 
-        if (PythonOptions.PrintAST) {
+        if (context.getPythonOptions().PrintAST) {
             printBanner("After Specialization");
             result.printAST();
         }
 
-        if (PythonOptions.VisualizedAST) {
+        if (context.getPythonOptions().VisualizedAST) {
             result.visualizeToNetwork();
         }
 
-        if (PythonOptions.InstrumentObjectStorageAllocation) {
+        if (context.getPythonOptions().InstrumentObjectStorageAllocation) {
             PythonObjectAllocationInstrumentor.getInstance().printAllocations();
         }
 
@@ -106,7 +106,7 @@ public class ZipPyConsole extends InteractiveConsole {
         PythonModule module = context.createMainModule(source.getPath());
         PythonParseResult result = context.getParser().parse(context, module, source);
 
-        if (PythonOptions.PrintAST) {
+        if (context.getPythonOptions().PrintAST) {
             printBanner("After Parsing");
             result.printAST();
         }

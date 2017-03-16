@@ -156,8 +156,7 @@ public class FlexibleStorageClassGeneratorTests {
     @Test
     public void constructorNode() {
         String[] options = {"FlexibleObjectStorage"};
-        boolean[] values = {true};
-        PythonOptions.setOptions(options, values);
+        PythonOptions.setEnvOptions(options);
 
         String source = "class Foo:\n" + //
                         "    def __init__(self, n):\n" + //
@@ -168,37 +167,29 @@ public class FlexibleStorageClassGeneratorTests {
                         "\n";
         PythonTests.assertPrints("0\n1\n2\n", source);
 
-        options[0] = "FlexibleObjectStorage";
-        values[0] = false;
-        PythonOptions.setOptions(options, values);
+        PythonOptions.unsetEnvOptions(options);
     }
 
     @Test
     public void layoutChange() {
         String[] options = {"FlexibleObjectStorage"};
-        boolean[] values = {true};
-        PythonOptions.setOptions(options, values);
-        assertTrue(PythonOptions.FlexibleObjectStorage);
+        PythonOptions.setEnvOptions(options);
+        assertTrue(PythonOptions.isEnvOptionSet("FlexibleObjectStorage"));
 
         Path script = Paths.get("object-layout-change-after-ctor-test.py");
         PythonTests.assertPrints("42\n43\n", script);
 
-        options[0] = "FlexibleObjectStorage";
-        values[0] = false;
-        PythonOptions.setOptions(options, values);
+        PythonOptions.unsetEnvOptions(options);
     }
 
     @Test
     public void layoutChangeInLoop() {
         String[] options = {"FlexibleObjectStorage"};
-        boolean[] values = {true};
-        PythonOptions.setOptions(options, values);
+        PythonOptions.setEnvOptions(options);
 
         Path script = Paths.get("object-layout-change-in-loop-test.py");
         PythonTests.assertPrints("1013\n", script);
 
-        options[0] = "FlexibleObjectStorage";
-        values[0] = false;
-        PythonOptions.setOptions(options, values);
+        PythonOptions.unsetEnvOptions(options);
     }
 }

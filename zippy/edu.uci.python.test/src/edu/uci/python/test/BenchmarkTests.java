@@ -40,12 +40,12 @@ public class BenchmarkTests {
 
     @Test
     public void euler31() {
-        String[] options = {"OptimizeGeneratorExpressions"};
-        boolean[] values = {false};
-        PythonOptions.setOptions(options, values);
-        assertTrue(!PythonOptions.OptimizeGeneratorExpressions);
+        String[] options = {"disableOptimizeGeneratorExpressions"};
+        PythonOptions.setEnvOptions(options);
+        assertTrue(PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
         Path script = Paths.get("euler31-test.py");
         assertPrints("41\n", script);
+        PythonOptions.unsetEnvOptions(options);
     }
 
     @Test

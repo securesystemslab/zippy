@@ -28,18 +28,22 @@ import java.util.*;
 
 import com.oracle.truffle.api.nodes.*;
 
+import edu.uci.python.nodes.ModuleNode;
 import edu.uci.python.runtime.standardtype.*;
 
 public class PythonParseResult {
 
     private final PythonModule module;
-    private RootNode rootNode;
-    private PythonContext context;
+    private final RootNode rootNode;
+    private final PythonContext context;
 
-    private final Map<String, RootNode> functions = new HashMap<>();
+    private final Map<String, RootNode> functions;
 
-    public PythonParseResult(PythonModule module) {
+    public PythonParseResult(PythonModule module, ModuleNode moduleNode, PythonContext context, Map<String, RootNode> functions) {
         this.module = module;
+        this.rootNode = moduleNode;
+        this.context = context;
+        this.functions = functions;
     }
 
     public PythonModule getModule() {
@@ -50,24 +54,8 @@ public class PythonParseResult {
         return rootNode;
     }
 
-    public void setModule(RootNode root) {
-        this.rootNode = root;
-    }
-
     public PythonContext getContext() {
         return context;
-    }
-
-    public void setContext(PythonContext context) {
-        this.context = context;
-    }
-
-    public void addParsedFunction(String name, RootNode function) {
-        if (functions.containsKey(name)) {
-            functions.put(name + function.hashCode(), function);
-        } else {
-            functions.put(name, function);
-        }
     }
 
     public RootNode getFunctionRoot(String functionName) {
@@ -81,13 +69,13 @@ public class PythonParseResult {
     }
 
     public void printAST() {
-        if (PythonOptions.PrintASTFilter == null || "module".contains(PythonOptions.PrintASTFilter)) {
+        if (context.getPythonOptions().PrintASTFilter == null || "module".contains(context.getPythonOptions().PrintASTFilter)) {
             printSeparationLine("module");
             NodeUtil.printCompactTree(System.out, rootNode);
         }
 
         for (String functionName : functions.keySet()) {
-            if (PythonOptions.PrintASTFilter != null && !functionName.contains(PythonOptions.PrintASTFilter)) {
+            if (context.getPythonOptions().PrintASTFilter != null && !functionName.contains(context.getPythonOptions().PrintASTFilter)) {
                 continue;
             }
 

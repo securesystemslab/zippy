@@ -40,9 +40,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void generatorExpressionAsIterator() {
-        String[] options = {"OptimizeGeneratorExpressions"};
-        boolean[] values = {true};
-        PythonOptions.setOptions(options, values);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -57,9 +55,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void generatorExpressionAsArgumentToConstructor() {
-        String[] options = {"OptimizeGeneratorExpressions"};
-        boolean[] values = {true};
-        PythonOptions.setOptions(options, values);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -73,9 +69,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void assignedToLocalVar() {
-        String[] options = {"OptimizeGeneratorExpressions"};
-        boolean[] values = {true};
-        PythonOptions.setOptions(options, values);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -90,9 +84,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByReturn() {
-        String[] options = {"OptimizeGeneratorExpressions"};
-        boolean[] values = {true};
-        PythonOptions.setOptions(options, values);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -107,9 +99,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByStore() {
-        String[] options = {"OptimizeGeneratorExpressions"};
-        boolean[] values = {true};
-        PythonOptions.setOptions(options, values);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
 
         String source = "LIST = []\n" + //
                         "def foo():\n" + //
@@ -125,9 +115,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByCall() {
-        String[] options = {"OptimizeGeneratorExpressions"};
-        boolean[] values = {true};
-        PythonOptions.setOptions(options, values);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
         String source = "LIST = []\n" + //
                         "def foo():\n" + //
                         "    n = 5\n" + //

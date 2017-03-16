@@ -61,7 +61,6 @@ import edu.uci.python.nodes.generator.ReadGeneratorFrameVariableNode;
 import edu.uci.python.nodes.generator.WriteGeneratorFrameVariableNodeFactory;
 import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.PeeledGeneratorLoopBoxedNode;
 import edu.uci.python.runtime.PythonContext;
-import edu.uci.python.runtime.PythonOptions;
 import edu.uci.python.runtime.function.PGeneratorFunction;
 
 public class GeneratorExpressionOptimizer {
@@ -88,7 +87,7 @@ public class GeneratorExpressionOptimizer {
             EscapeAnalyzer escapeAnalyzer = new EscapeAnalyzer(functionRoot, genExp);
 
             if (!escapeAnalyzer.escapes()) {
-                if (PythonOptions.TraceGeneratorInlining)
+                if (context.getPythonOptions().TraceGeneratorInlining)
                     System.out.println("[ZipPy] escapse analysis: " + genExp + " does not escape current frame");
 
                 transform(genExp, escapeAnalyzer);
@@ -171,7 +170,7 @@ public class GeneratorExpressionOptimizer {
         }
 
         genexp.setAsOptimized();
-        if (PythonOptions.TraceGeneratorInlining)
+        if (context.getPythonOptions().TraceGeneratorInlining)
             System.out.println("[ZipPy] genexp optimizer: transform " + genexp + " to inlineable generator call");
     }
 

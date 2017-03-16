@@ -37,11 +37,13 @@ public final class PMethod extends PythonBuiltinObject implements PythonCallable
     private final PFunction function;
     private final PythonObject self;
     private final RootCallTarget callTarget;
+    private final PythonOptions options;
 
     public PMethod(PythonObject self, PFunction function) {
         this.self = function.isClassMethod() ? self.asPythonClass() : self;
         this.function = function;
         this.callTarget = function.getCallTarget();
+        this.options = new PythonOptions();
     }
 
     public PFunction __func__() {
@@ -69,7 +71,7 @@ public final class PMethod extends PythonBuiltinObject implements PythonCallable
      *
      */
     public Object call(Object[] arguments, PKeyword[] keywords) {
-        if (PythonOptions.CatchZippyExceptionForUnitTesting) {
+        if (options.CatchZippyExceptionForUnitTesting) {
             return slowPathCallForUnitTest(arguments, keywords);
         }
 

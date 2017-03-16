@@ -28,12 +28,11 @@ import java.io.PrintStream;
 
 import org.python.core.PyObject;
 
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 
 import edu.uci.python.nodes.EmptyNode;
 import edu.uci.python.nodes.truffle.PythonTypesGen;
-import edu.uci.python.runtime.PythonOptions;
+import edu.uci.python.runtime.PythonContext;
 import edu.uci.python.runtime.builtin.PythonBuiltinClass;
 import edu.uci.python.runtime.datatype.PNone;
 import edu.uci.python.runtime.function.PythonCallable;
@@ -43,8 +42,8 @@ import edu.uci.python.runtime.standardtype.PythonModule;
 
 public class PythonCallUtil {
 
-    protected static void logJythonRuntime(PyObject callee) {
-        if (PythonOptions.TraceJythonRuntime) {
+    protected static void logJythonRuntime(PyObject callee, PythonContext context) {
+        if (context.getPythonOptions().TraceJythonRuntime) {
             PrintStream ps = System.out;
             ps.println("[ZipPy]: calling jython runtime function " + callee);
         }

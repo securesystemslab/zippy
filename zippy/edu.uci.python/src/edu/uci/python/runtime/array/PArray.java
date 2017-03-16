@@ -24,11 +24,18 @@
  */
 package edu.uci.python.runtime.array;
 
+import edu.uci.python.runtime.PythonOptions;
 import edu.uci.python.runtime.datatype.*;
 import edu.uci.python.runtime.sequence.*;
 import edu.uci.python.runtime.sequence.storage.*;
 
 public abstract class PArray extends PSequence {
+
+    protected final PythonOptions options;
+
+    protected PArray() {
+        this.options = new PythonOptions();
+    }
 
     @Override
     public void setSlice(int start, int stop, int step, PSequence value) {

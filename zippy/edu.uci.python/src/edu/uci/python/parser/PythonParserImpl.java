@@ -54,10 +54,10 @@ public class PythonParserImpl implements PythonParser {
         TranslationEnvironment environment = new TranslationEnvironment(context, module);
         ScopeTranslator ptp = new ScopeTranslator(environment);
         node = ptp.process(node);
-        PythonTreeTranslator ptt = new PythonTreeTranslator(context, environment, module, source);
-        PythonParseResult result = ptt.translate(node);
+        PythonTreeTranslator ptt = new PythonTreeTranslator(context, node, environment, module, source);
+        PythonParseResult result = ptt.getTranslationResult();
 
-        if (PythonOptions.OptimizeGeneratorExpressions) {
+        if (context.getPythonOptions().OptimizeGeneratorExpressions) {
             for (RootNode functionRoot : result.getFunctionRoots()) {
                 if (functionRoot instanceof FunctionRootNode) {
                     new GeneratorExpressionOptimizer((FunctionRootNode) functionRoot).optimize();
@@ -86,8 +86,8 @@ public class PythonParserImpl implements PythonParser {
             e.printStackTrace();
         }
 
-        PythonTreeTranslator ptt = new PythonTreeTranslator(context, environment, module, source);
-        return ptt.translate(node);
+        PythonTreeTranslator ptt = new PythonTreeTranslator(context, node, environment, module, source);
+        return ptt.getTranslationResult();
     }
 
     private static CompilerFlags cookCompilerFlags() {

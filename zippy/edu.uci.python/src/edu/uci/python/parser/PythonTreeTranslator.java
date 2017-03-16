@@ -68,18 +68,16 @@ public class PythonTreeTranslator extends Visitor {
     private final PythonModule module;
     private final Source source;
 
-    public PythonTreeTranslator(PythonContext context, TranslationEnvironment environment, PythonModule module, Source source) {
+    private final Map<String, RootNode> functions = new HashMap<>();
+
+    public PythonTreeTranslator(PythonContext context, mod root, TranslationEnvironment environment, PythonModule module, Source source) {
         this.context = context;
+        this.source = source;
+        this.module = module;
         this.factory = new NodeFactory();
         this.environment = environment.reset();
         this.loops = new LoopsBookKeeper();
         this.assigns = new AssignmentTranslator(environment, this);
-        this.result = new PythonParseResult(environment.getModule());
-        this.module = module;
-        this.source = source;
-    }
-
-    public PythonParseResult translate(PythonTree root) {
         ModuleNode moduleNode;
 
         try {
@@ -88,9 +86,18 @@ public class PythonTreeTranslator extends Visitor {
             t.printStackTrace();
             throw new RuntimeException("Failed in " + this + " with error " + t);
         }
+        this.result = new PythonParseResult(environment.getModule(), moduleNode, context, functions);
+    }
 
-        result.setModule(moduleNode);
-        result.setContext(context);
+    public void addParsedFunction(String name, RootNode function) {
+        if (functions.containsKey(name)) {
+            functions.put(name + function.hashCode(), function);
+        } else {
+            functions.put(name, function);
+        }
+    }
+
+    public PythonParseResult getTranslationResult() {
         return result;
     }
 
@@ -137,7 +144,7 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitFunctionDef(FunctionDef node) throws Exception {
         String name = node.getInternalName();
-        if (PythonOptions.CatchZippyExceptionForUnitTesting) {
+        if (context.getPythonOptions().CatchZippyExceptionForUnitTesting) {
             /**
              * Some unittest test functions might fail in the translation phase in ZipPy. Therefore,
              * NotCovered is caught here. The result of this test function will be a Fail, and the
@@ -204,7 +211,7 @@ public class PythonTreeTranslator extends Visitor {
         String fullName = enclosingClassName == null ? name : enclosingClassName + '.' + name;
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, getSourcePythonTree(node), fullName, environment.isInGeneratorScope(), fd, body);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
-        result.addParsedFunction(name, funcRoot);
+        addParsedFunction(name, funcRoot);
 
         /**
          * Definition
@@ -269,7 +276,7 @@ public class PythonTreeTranslator extends Visitor {
         FrameDescriptor fd = environment.getCurrentFrame();
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, getSourcePythonTree(node), name, environment.isInGeneratorScope(), fd, bodyNode);
         RootCallTarget ct = Truffle.getRuntime().createCallTarget(funcRoot);
-        result.addParsedFunction(name, funcRoot);
+        addParsedFunction(name, funcRoot);
 
         /**
          * Definition
@@ -301,7 +308,7 @@ public class PythonTreeTranslator extends Visitor {
         FrameDescriptor fd = environment.getCurrentFrame();
         String generatorName = "generator_exp:" + lineNum;
         FunctionRootNode funcRoot = factory.createFunctionRoot(context, body.getSourceSection(), generatorName, true, fd, body);
-        result.addParsedFunction(generatorName, funcRoot);
+        addParsedFunction(generatorName, funcRoot);
         GeneratorTranslator gtran = new GeneratorTranslator(context, funcRoot);
         return new GeneratorExpressionNode(generatorName, context, gtran.translate(), fd, environment.needsDeclarationFrame(), gtran.getNumOfActiveFlags(), gtran.getNumOfGeneratorBlockNode(),
                         gtran.getNumOfGeneratorForNode());
@@ -569,7 +576,7 @@ public class PythonTreeTranslator extends Visitor {
             baseNodes = bases.toArray(new PNode[bases.size()]);
         }
 
-        result.addParsedFunction("<class> " + name, funcRoot);
+        addParsedFunction("<class> " + name, funcRoot);
         PNode classDef = factory.createClassDef(context, this.module.getModuleName(), name, baseNodes, funcDef);
         ReadNode read = environment.findVariable(name);
         PNode writeNode = read.makeWriteNode(classDef);
@@ -1030,7 +1037,7 @@ public class PythonTreeTranslator extends Visitor {
          * However, we cannot distinguish between a real tuple parameter and an artificial one. The
          * real fix should be in the parser.
          */
-        if (!PythonOptions.UsePrintFunction) {
+        if (!context.getPythonOptions().UsePrintFunction) {
             Name print = new Name(node.getToken(), "print", expr_contextType.Load);
             List<expr> exprs = node.getInternalValues();
             if (exprs.size() == 1 && exprs.get(0) instanceof Tuple) {

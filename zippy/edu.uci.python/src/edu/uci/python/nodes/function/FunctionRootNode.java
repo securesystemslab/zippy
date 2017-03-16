@@ -132,11 +132,11 @@ public final class FunctionRootNode extends RootNode {
     private boolean optimizeHelper() {
         CompilerAsserts.neverPartOfCompilation();
 
-        if (CompilerDirectives.inCompiledCode() || !PythonOptions.InlineGeneratorCalls || isGenerator) {
+        if (CompilerDirectives.inCompiledCode() || !context.getPythonOptions().InlineGeneratorCalls || isGenerator) {
             return false;
         }
 
-        if (PythonOptions.OptimizeGeneratorExpressions) {
+        if (context.getPythonOptions().OptimizeGeneratorExpressions) {
             new GeneratorExpressionOptimizer(this).optimize();
         }
 
@@ -174,7 +174,7 @@ public final class FunctionRootNode extends RootNode {
     }
 
     private boolean isInlinable(Node dispatch, RootCallTarget generatorCallTarget) {
-        if (PythonOptions.TraceGeneratorInlining) {
+        if (context.getPythonOptions().TraceGeneratorInlining) {
             PrintStream ps = System.out;
             ps.println("[ZipPy] try to optimize " + generatorCallTarget + " in " + getRootNode());
         }
@@ -207,7 +207,7 @@ public final class FunctionRootNode extends RootNode {
             inlinable = true;
         }
 
-        if (PythonOptions.TraceGeneratorInlining) {
+        if (context.getPythonOptions().TraceGeneratorInlining) {
             PrintStream ps = System.out;
 
             if (inlinable) {
@@ -316,7 +316,7 @@ public final class FunctionRootNode extends RootNode {
         }
 
         optimizedGeneratorDispatches.add(dispatch);
-        if (PythonOptions.TraceGeneratorInlining)
+        if (context.getPythonOptions().TraceGeneratorInlining)
             System.out.println("[ZipPy] peeled generator " + genfun.getCallTarget() + " in " + getRootNode());
         return true;
     }
@@ -367,7 +367,7 @@ public final class FunctionRootNode extends RootNode {
             genexp.setEnclosingFrameGenerator(false);
         }
 
-        if (PythonOptions.TraceGeneratorInlining)
+        if (context.getPythonOptions().TraceGeneratorInlining)
             System.out.println("[ZipPy] peeled generator not aligned " + generator.getCallTarget() + " in " + getRootNode());
         return true;
     }

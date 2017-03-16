@@ -44,56 +44,50 @@ public class GeneratorOptimizationTests {
 
     @Test
     public void euler11() {
-        String[] options = {"OptimizeGeneratorExpressions"};
-        boolean[] values = {false};
-        PythonOptions.setOptions(options, values);
+        String[] options = {"disableOptimizeGeneratorExpressions"};
+        PythonOptions.setEnvOptions(options);
         Path script = Paths.get("euler11-test.py");
         assertPrints("9507960\n9507960\n", script);
+        PythonOptions.unsetEnvOptions(options);
     }
 
     @Test
     public void inline() {
-        String[] options = {"InlineGeneratorCalls"};
-        boolean[] values = {true};
-        PythonOptions.setOptions(options, values);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableInlineGeneratorCalls"));
         Path script = Paths.get("generator-inline-test.py");
         assertPrints("99\n99\n99\n99\n99\n", script);
     }
 
     @Test
     public void inlineNone() {
-        String[] options = {"InlineGeneratorCalls"};
-        boolean[] values = {true};
-        PythonOptions.setOptions(options, values);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableInlineGeneratorCalls"));
         Path script = Paths.get("generator-inline-none-test.py");
         assertPrints("99\n99\n99\n99\n99\n", script);
     }
 
     @Test
     public void inlineGenexp() {
-        String[] options = {"InlineGeneratorCalls", "OptimizeGeneratorExpressions"};
-        boolean[] values = {true, true};
-        PythonOptions.setOptions(options, values);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableInlineGeneratorCalls"));
+        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
         Path script = Paths.get("generator-inline-genexp-test.py");
         assertPrintContains("420\n", script);
     }
 
     @Test
     public void inlineGenexpLocalVar() {
-        String[] options = {"InlineGeneratorCalls", "OptimizeGeneratorExpressions"};
-        boolean[] values = {true, true};
-        PythonOptions.setOptions(options, values);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableInlineGeneratorCalls"));
+        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
         Path script = Paths.get("generator-inline-genexp-localvar-test.py");
         assertPrintContains("420\n", script);
     }
 
     @Test
     public void inlineGenexpBuiltinCall() {
-        String[] options = {"IntrinsifyBuiltinCalls", "InlineGeneratorCalls", "OptimizeGeneratorExpressions"};
-        boolean[] values = {true, true, true};
-        PythonOptions.setOptions(options, values);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableInlineGeneratorCalls"));
+        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
+        assertTrue(!PythonOptions.isEnvOptionSet("disableIntrinsifyBuiltinCalls"));
 
-        assertTrue(PythonOptions.IntrinsifyBuiltinCalls);
+        assertTrue(!PythonOptions.isEnvOptionSet("disableIntrinsifyBuiltinCalls"));
         Path script = Paths.get("generator-inline-genexp-builtin-test.py");
         PythonParseResult ast = assertPrintContains("420\n", script);
 // Node listComp = NodeUtil.findFirstNodeInstance(ast.getFunctionRoot("call_generator_builtin"),

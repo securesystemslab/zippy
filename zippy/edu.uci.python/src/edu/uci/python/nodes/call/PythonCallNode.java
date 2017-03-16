@@ -121,7 +121,7 @@ public abstract class PythonCallNode extends PNode {
          */
         if (callee instanceof PyObject) {
             PyObject pyobj = (PyObject) callee;
-            logJythonRuntime(pyobj);
+            logJythonRuntime(pyobj, context);
             return replace(new JythonCallNode(context, pyobj.toString(), primaryNode, calleeNode, argumentsNode, keywordsNode)).executeCall(frame, pyobj);
         }
 
@@ -168,7 +168,7 @@ public abstract class PythonCallNode extends PNode {
             return dispatch.executeCall(frame, (PythonObject) callee, arguments, PKeyword.EMPTY_KEYWORDS);
         }
 
-        if (PythonOptions.IntrinsifyBuiltinCalls && IntrinsifiableBuiltin.isIntrinsifiable(callable)) {
+        if (context.getPythonOptions().IntrinsifyBuiltinCalls && IntrinsifiableBuiltin.isIntrinsifiable(callable)) {
             BuiltinIntrinsifier intrinsifier = new BuiltinIntrinsifier(context, AlwaysValidAssumption.INSTANCE, AlwaysValidAssumption.INSTANCE, this);
             intrinsifier.synthesize(starargs.length);
         }
@@ -186,7 +186,7 @@ public abstract class PythonCallNode extends PNode {
              * If the callee class has switched to a flexible object storage then no need to
              * bootstrap the constructor call again.
              */
-            if (!PythonOptions.FlexibleObjectStorage) {
+            if (!context.getPythonOptions().FlexibleObjectStorage) {
                 specialized = new CallConstructorFixedNode(context, clazz, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
             } else if (clazz.getInstanceObjectLayout() instanceof FlexibleObjectLayout) {
                 specialized = new CallConstructorFlexibleNode(context, clazz, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
@@ -439,7 +439,7 @@ public abstract class PythonCallNode extends PNode {
 
             // Switch to generated object storage.
             clazz.switchToGeneratedStorageClass();
-            if (PythonOptions.FlexibleObjectStorageEvolution) {
+            if (context.getPythonOptions().FlexibleObjectStorageEvolution) {
                 this.replace(new CallConstructorFlexibleNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));
             } else {
                 this.replace(new CallConstructorFixedNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));

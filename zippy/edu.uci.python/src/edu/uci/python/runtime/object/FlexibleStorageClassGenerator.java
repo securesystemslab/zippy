@@ -64,11 +64,12 @@ public final class FlexibleStorageClassGenerator {
     }
 
     public FlexiblePythonObjectStorageFactory generate() {
+        final PythonOptions options = new PythonOptions();
         final Class<?> storageClass = BytecodeLoader.makeClass(getValidClassName(), generateClassData(), PythonObject.class);
         final MethodHandle ctor = lookupConstructor(storageClass);
         synchronizeObjectLayout(storageClass);
 
-        if (PythonOptions.TraceObjectLayoutCreation) {
+        if (options.TraceObjectLayoutCreation) {
             // CheckStyle: stop system..print check
             System.out.println("[ZipPy] generate " + storageClass.toString());
             // CheckStyle: resume system..print check

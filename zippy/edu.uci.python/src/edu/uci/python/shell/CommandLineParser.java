@@ -43,49 +43,49 @@ public class CommandLineParser {
             }
 
             if (arg.equals("-print-ast")) {
-                PythonOptions.setOptions(new String[]{"PrintAST"}, new boolean[]{true});
+                PythonOptions.setEnvOptions(new String[]{"PrintAST"});
 
                 continue;
             }
 
             if (arg.equals("-visualize-ast")) {
-                PythonOptions.setOptions(new String[]{"VisualizedAST"}, new boolean[]{true});
+                PythonOptions.setEnvOptions(new String[]{"VisualizedAST"});
 
                 continue;
             }
 
             if (arg.equals("-print-function")) {
-                PythonOptions.setOptions(new String[]{"UsePrintFunction"}, new boolean[]{true});
+                PythonOptions.setEnvOptions(new String[]{"UsePrintFunction"});
 
                 continue;
             }
 
             if (arg.equals("-flexible-object-storage")) {
-                PythonOptions.setOptions(new String[]{"FlexibleObjectStorage"}, new boolean[]{true});
+                PythonOptions.setEnvOptions(new String[]{"FlexibleObjectStorage"});
 
                 continue;
             }
 
             if (arg.equals("-flexible-storage-evolution")) {
-                PythonOptions.setOptions(new String[]{"FlexibleObjectStorage", "FlexibleObjectStorageEvolution"}, new boolean[]{true, true});
+                PythonOptions.setEnvOptions(new String[]{"FlexibleObjectStorage", "FlexibleObjectStorageEvolution"});
 
                 continue;
             }
 
             if (arg.equals("-inline-generator")) {
-                PythonOptions.setOptions(new String[]{"InlineGeneratorCalls"}, new boolean[]{true});
+                PythonOptions.setEnvOptions(new String[]{"InlineGeneratorCalls"});
 
                 continue;
             }
 
             if (arg.equals("-optimize-genexp")) {
-                PythonOptions.setOptions(new String[]{"OptimizeGeneratorExpressions"}, new boolean[]{true});
+                PythonOptions.setEnvOptions(new String[]{"OptimizeGeneratorExpressions"});
 
                 continue;
             }
 
             if (arg.equals("-no-generator-peeling")) {
-                PythonOptions.setOptions(new String[]{"InlineGeneratorCalls", "OptimizeGeneratorExpressions"}, new boolean[]{false, false});
+                PythonOptions.setEnvOptions(new String[]{"InlineGeneratorCalls", "OptimizeGeneratorExpressions"});
 
                 continue;
             }

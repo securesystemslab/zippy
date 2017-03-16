@@ -24,16 +24,17 @@
  */
 package edu.uci.python.runtime.array;
 
-import java.util.*;
+import java.util.Arrays;
 
-import org.python.core.*;
+import org.python.core.Py;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerDirectives;
 
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.sequence.*;
+import edu.uci.python.runtime.datatype.PSlice;
+import edu.uci.python.runtime.iterator.PIterator;
+import edu.uci.python.runtime.iterator.PLongArrayIterator;
+import edu.uci.python.runtime.iterator.PSequenceIterator;
+import edu.uci.python.runtime.sequence.SequenceUtil;
 
 public final class PLongArray extends PArray {
 
@@ -73,7 +74,7 @@ public final class PLongArray extends PArray {
 
     @Override
     public PIterator __iter__() {
-        if (PythonOptions.UnboxSequenceIteration) {
+        if (options.UnboxSequenceIteration) {
             return new PLongArrayIterator(this);
         } else {
             return new PSequenceIterator(this);

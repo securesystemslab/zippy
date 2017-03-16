@@ -59,10 +59,12 @@ import edu.uci.python.runtime.sequence.storage.ObjectSequenceStorage;
 public abstract class ForNode extends LoopNode {
 
     @Child protected PNode target;
+    private final PythonOptions options;
 
     public ForNode(PNode body, PNode target) {
         super(body);
         this.target = target;
+        this.options = new PythonOptions();
         assert target instanceof WriteNode;
     }
 
@@ -242,7 +244,7 @@ public abstract class ForNode extends LoopNode {
         }
 
         if (CompilerDirectives.inInterpreter()) {
-            if (count > 0 && PythonOptions.InlineGeneratorCalls) {
+            if (count > 0 && options.InlineGeneratorCalls) {
                 CompilerAsserts.neverPartOfCompilation();
                 /**
                  * TODO zwei: This is probably a better place to peel generators than the
