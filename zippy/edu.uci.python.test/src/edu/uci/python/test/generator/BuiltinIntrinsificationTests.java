@@ -55,7 +55,7 @@ public class BuiltinIntrinsificationTests {
     @Test
     public void listComp() {
         assertTrue(!PythonOptions.isEnvOptionSet("disableIntrinsifyBuiltinCalls"));
-        String[] options = {"OptimizeGeneratorExpressions"};
+        String[] options = {"disableOptimizeGeneratorExpressions"};
         PythonOptions.setEnvOptions(options);
         Path script = Paths.get("builtin-list-intrinsification-test.py");
         assertPrints("9\n", script);

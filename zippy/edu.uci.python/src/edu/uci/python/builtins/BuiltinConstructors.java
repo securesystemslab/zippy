@@ -542,7 +542,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
                         intStart = ((BigInteger) start).intValue();
 
                     if (step instanceof PNone)
-                        return new PRange(intStart, intStart);
+                        return new PRange(intStart, intStop);
 
                     if (isNumber(step)) {
                         int intStep = 0;
