@@ -475,7 +475,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
         @SuppressWarnings("unused")
         @Specialization(guards = "caseStop(start,step)")
         public PSequence rangeStop(long stop, Object start, Object step) {
-            return new PRange(BigInteger.valueOf(stop).intValue());
+            return new PRange(((Long) stop).intValue());
         }
 
         @SuppressWarnings("unused")
@@ -493,19 +493,19 @@ public final class BuiltinConstructors extends PythonBuiltins {
         @SuppressWarnings("unused")
         @Specialization(guards = "caseStartStop(step)")
         public PSequence rangeStartStop(int start, long stop, Object step) {
-            return new PRange(start, BigInteger.valueOf(stop).intValue());
+            return new PRange(start, ((Long) stop).intValue());
         }
 
         @SuppressWarnings("unused")
         @Specialization(guards = "caseStartStop(step)")
         public PSequence rangeStartStop(long start, int stop, Object step) {
-            return new PRange(BigInteger.valueOf(start).intValue(), stop);
+            return new PRange(((Long) start).intValue(), stop);
         }
 
         @SuppressWarnings("unused")
         @Specialization(guards = "caseStartStop(stop,start,step)")
         public PSequence rangeStartStop(long start, long stop, Object step) {
-            return new PRange(BigInteger.valueOf(start).intValue(), BigInteger.valueOf(stop).intValue());
+            return new PRange(((Long) start).intValue(), ((Long) stop).intValue());
         }
 
         @Specialization
@@ -515,9 +515,10 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         @Specialization
         public PSequence rangeStartStopStep(long start, long stop, long step) {
-            return new PRange((int) start, BigInteger.valueOf(stop).intValue(), BigInteger.valueOf(step).intValue());
+            return new PRange((int) start, ((Long) stop).intValue(), ((Long) step).intValue());
         }
 
+        @TruffleBoundary
         @Specialization(guards = "isNumber(stop)")
         public PSequence rangeStartStopStep(Object start, Object stop, Object step) {
             if (isNumber(stop)) {
@@ -561,6 +562,7 @@ public final class BuiltinConstructors extends PythonBuiltins {
             throw Py.TypeError("range does not support " + start + ", " + stop + ", " + step);
         }
 
+        @TruffleBoundary
         @Specialization(guards = "!isNumber(stop)")
         public PSequence rangeError(Object start, Object stop, Object step) {
             CompilerDirectives.transferToInterpreterAndInvalidate();

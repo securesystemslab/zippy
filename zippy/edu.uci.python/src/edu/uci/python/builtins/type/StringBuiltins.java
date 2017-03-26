@@ -318,6 +318,7 @@ public final class StringBuiltins extends PythonBuiltins {
     public abstract static class ReplaceNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
+        @TruffleBoundary
         @Specialization
         public String doReplace(String self, String old, String with, PNone maxsplit) {
             return self.replace(old, with);
