@@ -35,11 +35,8 @@ import org.python.core.PyFile;
 import org.python.core.PyList;
 import org.python.core.PyString;
 import org.python.core.PySystemState;
-import org.python.core.imp;
 import org.python.core.util.RelativeFile;
-import org.python.modules._systemrestart;
 import org.python.modules.posix.PosixModule;
-import org.python.modules.thread.thread;
 import org.python.util.InteractiveConsole;
 import org.python.util.JLineConsole;
 
@@ -115,7 +112,7 @@ public class RunScript {
                         file.close();
                     }
                 } catch (Throwable t) {
-                    if (t instanceof PyException && ((PyException) t).match(_systemrestart.SystemRestart)) {
+                    if (t instanceof PyException && ((PyException) t).match(org.python.modules._systemrestart.SystemRestart)) {
                         // Shutdown this instance...
                         shutdownInterpreter();
                         interp.cleanup();
@@ -171,7 +168,7 @@ public class RunScript {
             try {
                 result = interp.execfile(context, source);
             } catch (Throwable t) {
-                if (t instanceof PyException && ((PyException) t).match(_systemrestart.SystemRestart)) {
+                if (t instanceof PyException && ((PyException) t).match(org.python.modules._systemrestart.SystemRestart)) {
                     // Shutdown this instance...
                     shutdownInterpreter();
                     interp.cleanup();
@@ -219,12 +216,12 @@ public class RunScript {
      */
     public static void shutdownInterpreter() {
         // Stop all the active threads and signal the SystemRestart
-        thread.interruptAllThreads();
+        org.python.modules.thread.thread.interruptAllThreads();
         Py.getSystemState()._systemRestart = true;
         // Close all sockets -- not all of their operations are stopped by
         // Thread.interrupt (in particular pre-nio sockets)
         try {
-            imp.load("socket").__findattr__("_closeActiveSockets").__call__();
+            org.python.core.imp.load("socket").__findattr__("_closeActiveSockets").__call__();
         } catch (PyException pye) {
             // continue
         }
