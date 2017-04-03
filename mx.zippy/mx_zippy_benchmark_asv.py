@@ -398,12 +398,26 @@ class ASVBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
         for c in range(self.repeat_count):
             mx.warn("Run {0}/{1}".format(c, self.repeat_count))
             suite.before(bmSuiteArgs)
-            for benchnames in sorted(benchNamesList):
+            for benchnames in benchNamesList:
                 suite.validateEnvironment()
                 try:
-                    partialResults = self.execute(suite, benchnames, mxASVBenchmarkArgs, bmSuiteArgs)
-                    self.process_result(suite, partialResults[0])
-                    results.extend(partialResults)
+                    run = 5 # number of retries
+                    wait_time = 5 # seconds
+                    for i in range(run):
+                        try:
+                            partialResults = self.execute(suite, benchnames, mxASVBenchmarkArgs, bmSuiteArgs)
+                            self.process_result(suite, partialResults[0])
+                            results.extend(partialResults)
+                            break
+                        except RuntimeError:
+                            if i+1 == run:
+                                raise
+                            mx.warn("Benchmark '{0}' FAILED.. Retrying again {1}/{2}".format(benchnames[0][0], i+1, run))
+                            for i in range(wait_time,0,-1):
+                                mx.warn('Sleeping for {0} seconds\r'.format(i))
+                                time.sleep(1)
+
+
                 except RuntimeError:
                     failures_seen = True
                     failedResults = {
@@ -417,6 +431,7 @@ class ASVBenchmarkExecutor(mx_benchmark.BenchmarkExecutor):
             suite.after(bmSuiteArgs)
 
             self.write_asv_results(suite, self.asv_pre_results)
+            self.asv_pre_results = {} # clean up for the next round
 
         if failures_seen:
             return 1

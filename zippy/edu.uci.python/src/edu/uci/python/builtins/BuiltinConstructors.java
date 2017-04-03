@@ -299,6 +299,12 @@ public final class BuiltinConstructors extends PythonBuiltins {
 
         @SuppressWarnings("unused")
         @Specialization(guards = "noKeywordArg(arg,keywordArg)")
+        public int createInt(long arg, Object keywordArg) {
+            return Long.valueOf(arg).intValue();
+        }
+
+        @SuppressWarnings("unused")
+        @Specialization(guards = "noKeywordArg(arg,keywordArg)")
         public BigInteger createInt(BigInteger arg, Object keywordArg) {
             return arg;
         }
