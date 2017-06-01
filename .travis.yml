@@ -49,7 +49,7 @@ install:
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then mx build && export JAVA_HOME=$(mx jdkhome); fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then echo $JAVA_HOME && mx jdkhome; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd ../zippy; fi
-  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then export DEFAULT_DYNAMIC_IMPORTS=graal-core; fi
+  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then export DEFAULT_DYNAMIC_IMPORTS=truffle/compiler; fi
   - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then export ZIPPY_MUST_USE_GRAAL=1; fi
 
 
