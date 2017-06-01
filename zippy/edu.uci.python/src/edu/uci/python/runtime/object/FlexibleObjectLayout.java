@@ -48,7 +48,6 @@ public final class FlexibleObjectLayout extends ObjectLayout {
     private final Class<?> storageClass;
     private final FlexibleObjectLayout predecessor;
     private final Assumption isOptimalAssumption;
-    private final PythonOptions options;
 
     protected FlexibleObjectLayout(String originHint, Class<?> storageClass, FlexibleObjectLayout predecessor) {
         super(originHint);
@@ -60,8 +59,7 @@ public final class FlexibleObjectLayout extends ObjectLayout {
         assert FlexiblePythonObjectStorage.class.isAssignableFrom(storageClass);
         assert predecessor == null || getVersion() == predecessor.getVersion();
 
-        this.options = new PythonOptions();
-        if (options.TraceObjectLayoutCreation) {
+        if (PythonOptions.TraceObjectLayoutCreation) {
             // CheckStyle: stop system..print check
             System.out.println("[ZipPy] create " + this.toString());
             // CheckStyle: resume system..print check
@@ -70,7 +68,6 @@ public final class FlexibleObjectLayout extends ObjectLayout {
 
     protected FlexibleObjectLayout(String originHint, Map<String, Class<?>> storageTypes, Class<?> objectStorageClass, FlexibleObjectLayout predecessor) {
         super(originHint);
-        this.options = new PythonOptions();
         int primitiveIntStorageLocationIndex = 0;
         int primitiveDoubleStorageLocationIndex = 0;
         int fieldObjectStorageLocationIndex = 0;
@@ -108,14 +105,14 @@ public final class FlexibleObjectLayout extends ObjectLayout {
         this.predecessor = predecessor;
         this.isOptimalAssumption = Truffle.getRuntime().createAssumption();
 
-        if (options.FlexibleObjectStorageEvolution && this.getObjectStorageLocationsUsed() > 0) {
+        if (PythonOptions.FlexibleObjectStorageEvolution && this.getObjectStorageLocationsUsed() > 0) {
             this.isOptimalAssumption.invalidate();
         }
 
         assert FlexiblePythonObjectStorage.class.isAssignableFrom(storageClass);
         assert predecessor == null || getVersion() == predecessor.getVersion();
 
-        if (options.TraceObjectLayoutCreation) {
+        if (PythonOptions.TraceObjectLayoutCreation) {
             // CheckStyle: stop system..print check
             System.out.println("[ZipPy] create " + this.toString());
             // CheckStyle: resume system..print check

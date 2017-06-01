@@ -23,42 +23,91 @@ def _sanitize_vmArgs(jdk, vmArgs):
     return xargs
 
 
+usage_message = """
+usage: mx python [option] file [arg] ...
+Options and arguments
+    -h          : print this help message and exit (also --help)
+    arg ...     : arguments passed to program in sys.argv[1:]
 
-def _zippy_internal_options():
-    result = []
-    """ Debug flags """
-    # result += ["-Dedu.uci.python.PrintAST=true"                             ] # false
-    # result += ["-Dedu.uci.python.VisualizedAST=true"                        ] # false
-    # result += ["-Dedu.uci.python.PrintASTFilter="                           ] # null
-    # result += ["-Dedu.uci.python.TraceJythonRuntime=true"                   ] # false
-    # result += ["-Dedu.uci.python.TraceImports=true"                         ] # false
-    # result += ["-Dedu.uci.python.TraceSequenceStorageGeneralization=true"   ] # false
-    # result += ["-Dedu.uci.python.TraceObjectLayoutCreation=true"            ] # false
+ZipPy specific options:
+    -print-ast  : print ast before and after interpretation
+"""
+# TODO: add more options
 
-    """ Object storage allocation """
-    # result += ["-Dedu.uci.python.InstrumentObjectStorageAllocation=true"    ] # false
+def _zippy_help_options(args):
+    if len(args) == 0 or '-h' in args or '--help' in args:
+        print(usage_message)
+        return True
+    return False
 
-    """ Translation flags """
-    # result += ["-Dedu.uci.python.UsePrintFunction=true"                     ] # false
+def _extract_zippy_internal_options(args):
+    internal = []
+    noneInternal = []
+    for arg in args:
+        # Debug flags
+        if arg == '-print-ast':
+            internal += ["-Dedu.uci.python.PrintAST=true"                               ] # false
 
-    """ Runtime flags """
-    # result += ["-Dedu.uci.python.disableUnboxSequenceStorage=true"          ] # true
-    # result += ["-Dedu.uci.python.disableUnboxSequenceIteration=true"        ] # true
-    # result += ["-Dedu.uci.python.disableIntrinsifyBuiltinCalls=true"        ] # true
-    # result += ["-Dedu.uci.python.FlexibleObjectStorageEvolution=true"       ] # false
-    # result += ["-Dedu.uci.python.FlexibleObjectStorage=true"                ] # false
+        elif arg == '-visualize-ast':
+            internal += ["-Dedu.uci.python.VisualizedAST=true"                          ] # false
 
-    """ Generators """
-    # result += ["-Dedu.uci.python.disableInlineGeneratorCalls=true"          ] # true
-    # result += ["-Dedu.uci.python.disableOptimizeGeneratorExpressions=true"  ] # true
-    # result += ["-Dedu.uci.python.TraceGeneratorInlining=true"               ] # false
-    # result += ["-Dedu.uci.python.TraceNodesWithoutSourceSection=true"       ] # false
-    # result += ["-Dedu.uci.python.TraceNodesUsingExistingProbe=true"         ] # false
-    # result += ["-Dedu.uci.python.CatchZippyExceptionForUnitTesting=true"    ] # false
+        elif arg.startswith('-print-ast='):
+            internal += ["-Dedu.uci.python.PrintASTFilter="+ arg.replace('-print-ast=') ] # null
 
-    """ Other """
-    # result += ["-Dedu.uci.python.forceLongType=true"                        ] # false
-    return result
+        elif arg == '-debug-trace':
+            internal += ["-Dedu.uci.python.TraceJythonRuntime=true"                     ] # false
+            internal += ["-Dedu.uci.python.TraceImports=true"                           ] # false
+            internal += ["-Dedu.uci.python.TraceSequenceStorageGeneralization=true"     ] # false
+            internal += ["-Dedu.uci.python.TraceObjectLayoutCreation=true"              ] # false
+            internal += ["-Dedu.uci.python.TraceNodesWithoutSourceSection=true"         ] # false
+            internal += ["-Dedu.uci.python.TraceNodesUsingExistingProbe=true"           ] # false
+
+        elif arg == '-debug-junit':
+            internal += ["-Dedu.uci.python.CatchZippyExceptionForUnitTesting=true"      ] # false
+
+        # Object storage allocation """
+        elif arg == '-instrument-storageAlloc':
+            internal += ["-Dedu.uci.python.InstrumentObjectStorageAllocation=true"      ] # false
+
+        # Translation flags """
+        elif arg == '-print-function':
+            internal += ["-Dedu.uci.python.UsePrintFunction=true"                       ] # false
+
+        # Runtime flags
+        elif arg == '-no-sequence-unboxing':
+            internal += ["-Dedu.uci.python.disableUnboxSequenceStorage=true"          ] # true
+            internal += ["-Dedu.uci.python.disableUnboxSequenceIteration=true"        ] # true
+
+        elif arg == '-no-intrinsify-calls':
+            internal += ["-Dedu.uci.python.disableIntrinsifyBuiltinCalls=true"        ] # true
+
+        elif arg == '-flexible-object-storage':
+            internal += ["-Dedu.uci.python.FlexibleObjectStorage=true"                ] # false
+
+        elif arg == '-flexible-storage-evolution':
+            internal += ["-Dedu.uci.python.FlexibleObjectStorageEvolution=true"       ] # false
+            internal += ["-Dedu.uci.python.FlexibleObjectStorage=true"                ] # false
+
+        # Generators
+        elif arg == '-no-inline-generator':
+            internal += ["-Dedu.uci.python.disableInlineGeneratorCalls=true"          ] # true
+        elif arg == '-no-optimize-genexp':
+            internal += ["-Dedu.uci.python.disableOptimizeGeneratorExpressions=true"  ] # true
+        elif arg == '-no-generator-peeling':
+            internal += ["-Dedu.uci.python.disableInlineGeneratorCalls=true"          ] # true
+            internal += ["-Dedu.uci.python.disableOptimizeGeneratorExpressions=true"  ] # true
+
+        elif arg == '-trace-generator-peeling':
+            internal += ["-Dedu.uci.python.TraceGeneratorInlining=true"               ] # false
+
+        # Other
+        elif arg == '-force-long':
+                internal += ["-Dedu.uci.python.forceLongType=true"                        ] # false
+
+        else:
+            noneInternal += [arg]
+
+    return internal, noneInternal
 
 
 

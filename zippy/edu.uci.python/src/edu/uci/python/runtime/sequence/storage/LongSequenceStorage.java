@@ -33,6 +33,7 @@ import org.python.core.Py;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 
+import edu.uci.python.runtime.PythonOptions;
 import edu.uci.python.runtime.sequence.SequenceUtil;
 
 public final class LongSequenceStorage extends BasicSequenceStorage {
@@ -313,7 +314,7 @@ public final class LongSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public SequenceStorage generalizeFor(Object value) {
-        if (options.TraceSequenceStorageGeneralization) {
+        if (PythonOptions.TraceSequenceStorageGeneralization) {
             PrintStream ps = System.out;
             ps.println("[ZipPy]" + this + " generalizing to ObjectSequenceStorage");
         }

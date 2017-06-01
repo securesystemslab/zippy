@@ -25,6 +25,7 @@
 package edu.uci.python.test.generator;
 
 import static edu.uci.python.test.PythonTests.assertPrints;
+import static edu.uci.python.test.PythonTests.assertPrintsAndAST;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Path;
@@ -43,23 +44,21 @@ public class BuiltinIntrinsificationTests {
 
     @Test
     public void simpleListComp() {
-        assertTrue(!PythonOptions.isEnvOptionSet("disableIntrinsifyBuiltinCalls"));
+        assertTrue(PythonOptions.IntrinsifyBuiltinCalls);
         String source = "for x in range(2):\n" + //
                         "    ll = list(i for i in range(5))\n" + //
                         "print(ll)";
-        PythonParseResult ast = assertPrints("[0, 1, 2, 3, 4]\n", source);
+        PythonParseResult ast = assertPrintsAndAST("[0, 1, 2, 3, 4]\n", source);
         Node listComp = NodeUtil.findFirstNodeInstance(ast.getModuleRoot(), ListComprehensionNode.class);
         assertTrue(listComp != null);
     }
 
     @Test
     public void listComp() {
-        assertTrue(!PythonOptions.isEnvOptionSet("disableIntrinsifyBuiltinCalls"));
-        String[] options = {"disableOptimizeGeneratorExpressions"};
-        PythonOptions.setEnvOptions(options);
+        assertTrue(PythonOptions.IntrinsifyBuiltinCalls);
+        PythonOptions.OptimizeGeneratorExpressions = false;
         Path script = Paths.get("builtin-list-intrinsification-test.py");
         assertPrints("9\n", script);
-        PythonOptions.unsetEnvOptions(options);
     }
 
 }

@@ -24,11 +24,7 @@
  */
 package edu.uci.python.runtime.sequence.storage;
 
-import edu.uci.python.runtime.PythonOptions;
-
 public abstract class BasicSequenceStorage extends SequenceStorage {
-
-    protected final PythonOptions options;
 
     // nominated storage length
     protected int length;
@@ -39,10 +35,6 @@ public abstract class BasicSequenceStorage extends SequenceStorage {
     @Override
     public final int length() {
         return length;
-    }
-
-    protected BasicSequenceStorage() {
-        this.options = new PythonOptions();
     }
 
     /**

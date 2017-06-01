@@ -22,15 +22,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.builtin;
 
-import org.junit.*;
 import static edu.uci.python.test.PythonTests.*;
 
-public class HelloWorldTests {
+import java.nio.file.*;
+
+import org.junit.*;
+
+public class BasicObjectTests {
 
     @Test
-    public void helloworld() {
-        assertPrints("hello world\n", "print(\"hello world\")");
+    public void simple() {
+        Path script = Paths.get("basicobject_pressure_test.py");
+        assertPrints("1\n2\n3\n4\n5\n6\n", script);
     }
 }

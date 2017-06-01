@@ -33,17 +33,14 @@ import edu.uci.python.runtime.standardtype.*;
 
 public abstract class FlexiblePythonObjectStorage extends PythonObject {
 
-    private final PythonOptions options;
-
     public FlexiblePythonObjectStorage(PythonClass pythonClass) {
         super(pythonClass);
         assert pythonClass.getInstanceObjectLayout() instanceof FlexibleObjectLayout;
         objectLayout = pythonClass.getInstanceObjectLayout();
         setStorageClassObjectLayout((FlexibleObjectLayout) objectLayout);
         assert verifyLayout();
-        this.options = new PythonOptions();
 
-        if (options.InstrumentObjectStorageAllocation) {
+        if (PythonOptions.InstrumentObjectStorageAllocation) {
             PythonObjectAllocationInstrumentor.getInstance().instrumentFlexible(this);
         }
     }
@@ -83,11 +80,11 @@ public abstract class FlexiblePythonObjectStorage extends PythonObject {
         if (!usePrivateLayout) {
             setStorageClassObjectLayout((FlexibleObjectLayout) newLayout);
 
-            if (!options.FlexibleObjectStorageEvolution && !pythonClass.getInstanceObjectLayout().getValidAssumption().isValid()) {
+            if (!PythonOptions.FlexibleObjectStorageEvolution && !pythonClass.getInstanceObjectLayout().getValidAssumption().isValid()) {
                 pythonClass.updateInstanceObjectLayout(newLayout);
             }
 
-            if (options.FlexibleObjectStorageEvolution && !pythonClass.getInstanceObjectLayout().getValidAssumption().isValid()) {
+            if (PythonOptions.FlexibleObjectStorageEvolution && !pythonClass.getInstanceObjectLayout().getValidAssumption().isValid()) {
                 FlexibleObjectLayout nu = (FlexibleObjectLayout) newLayout;
                 FlexibleObjectLayout current = (FlexibleObjectLayout) pythonClass.getInstanceObjectLayout();
 

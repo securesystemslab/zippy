@@ -35,7 +35,7 @@ public class ModuleNode extends RootNode {
     @Child protected PNode body;
 
     public ModuleNode(String name, PNode body, FrameDescriptor descriptor) {
-        super(PythonLanguage.class, null, descriptor);
+        super(PythonLanguage.INSTANCE, descriptor);
         this.name = name;
         this.body = body;
     }

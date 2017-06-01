@@ -22,11 +22,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package edu.uci.python.test;
+package edu.uci.python.test.advance;
 
 import static edu.uci.python.test.PythonTests.assertBenchNoError;
 import static edu.uci.python.test.PythonTests.assertPrints;
-import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -40,12 +39,9 @@ public class BenchmarkTests {
 
     @Test
     public void euler31() {
-        String[] options = {"disableOptimizeGeneratorExpressions"};
-        PythonOptions.setEnvOptions(options);
-        assertTrue(PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
+        PythonOptions.OptimizeGeneratorExpressions = false;
         Path script = Paths.get("euler31-test.py");
         assertPrints("41\n", script);
-        PythonOptions.unsetEnvOptions(options);
     }
 
     @Test

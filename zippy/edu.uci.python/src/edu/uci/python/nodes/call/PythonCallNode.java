@@ -24,29 +24,49 @@
  */
 package edu.uci.python.nodes.call;
 
-import static edu.uci.python.nodes.truffle.PythonTypesUtil.*;
-import static edu.uci.python.nodes.call.PythonCallUtil.*;
+import static edu.uci.python.nodes.call.PythonCallUtil.isClassMethodCall;
+import static edu.uci.python.nodes.call.PythonCallUtil.isConstructorCall;
+import static edu.uci.python.nodes.call.PythonCallUtil.isPrimaryBoxed;
+import static edu.uci.python.nodes.call.PythonCallUtil.isPrimaryNone;
+import static edu.uci.python.nodes.call.PythonCallUtil.logJythonRuntime;
+import static edu.uci.python.nodes.call.PythonCallUtil.resolveSpecialMethod;
+import static edu.uci.python.nodes.truffle.PythonTypesUtil.getPythonTypeName;
+import static edu.uci.python.nodes.truffle.PythonTypesUtil.jythonCall;
+import static edu.uci.python.nodes.truffle.PythonTypesUtil.unboxPyObject;
 
-import org.python.core.*;
+import org.python.core.Py;
+import org.python.core.PyObject;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.utilities.*;
+import com.oracle.truffle.api.Assumption;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.DirectCallNode;
+import com.oracle.truffle.api.nodes.InvalidAssumptionException;
+import com.oracle.truffle.api.nodes.NodeUtil;
+import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import com.oracle.truffle.api.utilities.AlwaysValidAssumption;
 
 import edu.uci.python.ast.VisitorIF;
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.argument.*;
+import edu.uci.python.nodes.EmptyNode;
+import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.PNodeUtil;
+import edu.uci.python.nodes.argument.ArgumentsNode;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
 import edu.uci.python.nodes.call.CallDispatchNoneNode.LinkedDispatchNoneNode;
-import edu.uci.python.nodes.object.*;
-import edu.uci.python.nodes.optimize.*;
-import edu.uci.python.nodes.truffle.*;
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.object.*;
-import edu.uci.python.runtime.standardtype.*;
+import edu.uci.python.nodes.object.HasPrimaryNode;
+import edu.uci.python.nodes.optimize.BuiltinIntrinsifier;
+import edu.uci.python.nodes.optimize.IntrinsifiableBuiltin;
+import edu.uci.python.nodes.truffle.PythonTypesGen;
+import edu.uci.python.runtime.PythonContext;
+import edu.uci.python.runtime.PythonOptions;
+import edu.uci.python.runtime.datatype.PNone;
+import edu.uci.python.runtime.function.PArguments;
+import edu.uci.python.runtime.function.PKeyword;
+import edu.uci.python.runtime.function.PythonCallable;
+import edu.uci.python.runtime.object.FlexibleObjectLayout;
+import edu.uci.python.runtime.object.PythonObject;
+import edu.uci.python.runtime.standardtype.PythonClass;
 
 public abstract class PythonCallNode extends PNode {
 
@@ -121,7 +141,7 @@ public abstract class PythonCallNode extends PNode {
          */
         if (callee instanceof PyObject) {
             PyObject pyobj = (PyObject) callee;
-            logJythonRuntime(pyobj, context);
+            logJythonRuntime(pyobj);
             return replace(new JythonCallNode(context, pyobj.toString(), primaryNode, calleeNode, argumentsNode, keywordsNode)).executeCall(frame, pyobj);
         }
 
@@ -168,8 +188,8 @@ public abstract class PythonCallNode extends PNode {
             return dispatch.executeCall(frame, (PythonObject) callee, arguments, PKeyword.EMPTY_KEYWORDS);
         }
 
-        if (context.getPythonOptions().IntrinsifyBuiltinCalls && IntrinsifiableBuiltin.isIntrinsifiable(callable)) {
-            BuiltinIntrinsifier intrinsifier = new BuiltinIntrinsifier(context, AlwaysValidAssumption.INSTANCE, AlwaysValidAssumption.INSTANCE, this);
+        if (PythonOptions.IntrinsifyBuiltinCalls && IntrinsifiableBuiltin.isIntrinsifiable(callable)) {
+            BuiltinIntrinsifier intrinsifier = new BuiltinIntrinsifier(AlwaysValidAssumption.INSTANCE, AlwaysValidAssumption.INSTANCE, this);
             intrinsifier.synthesize(starargs.length);
         }
 
@@ -182,11 +202,12 @@ public abstract class PythonCallNode extends PNode {
             CallConstructorNode specialized = null;
             PythonClass clazz = (PythonClass) callable;
 
+            context.getPythonOptions();
             /**
              * If the callee class has switched to a flexible object storage then no need to
              * bootstrap the constructor call again.
              */
-            if (!context.getPythonOptions().FlexibleObjectStorage) {
+            if (!PythonOptions.FlexibleObjectStorage) {
                 specialized = new CallConstructorFixedNode(context, clazz, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
             } else if (clazz.getInstanceObjectLayout() instanceof FlexibleObjectLayout) {
                 specialized = new CallConstructorFlexibleNode(context, clazz, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatch);
@@ -439,7 +460,8 @@ public abstract class PythonCallNode extends PNode {
 
             // Switch to generated object storage.
             clazz.switchToGeneratedStorageClass();
-            if (context.getPythonOptions().FlexibleObjectStorageEvolution) {
+            context.getPythonOptions();
+            if (PythonOptions.FlexibleObjectStorageEvolution) {
                 this.replace(new CallConstructorFlexibleNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));
             } else {
                 this.replace(new CallConstructorFixedNode(context, pythonClass, primaryNode, calleeNode, argumentsNode, keywordsNode, dispatchNode));

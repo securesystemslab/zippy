@@ -40,7 +40,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void generatorExpressionAsIterator() {
-        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
+        PythonOptions.OptimizeGeneratorExpressions = true;
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -55,7 +55,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void generatorExpressionAsArgumentToConstructor() {
-        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
+        PythonOptions.OptimizeGeneratorExpressions = true;
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -69,7 +69,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void assignedToLocalVar() {
-        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
+        PythonOptions.OptimizeGeneratorExpressions = true;
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -84,7 +84,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByReturn() {
-        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
+        PythonOptions.OptimizeGeneratorExpressions = true;
 
         String source = "def foo():\n" + //
                         "    n = 5\n" + //
@@ -99,7 +99,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByStore() {
-        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
+        PythonOptions.OptimizeGeneratorExpressions = true;
 
         String source = "LIST = []\n" + //
                         "def foo():\n" + //
@@ -115,7 +115,7 @@ public class GeneratorExpressionTranslationTests {
 
     @Test
     public void escapeByCall() {
-        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
+        PythonOptions.OptimizeGeneratorExpressions = true;
         String source = "LIST = []\n" + //
                         "def foo():\n" + //
                         "    n = 5\n" + //

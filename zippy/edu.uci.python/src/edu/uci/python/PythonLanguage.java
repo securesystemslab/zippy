@@ -24,27 +24,92 @@
  */
 package edu.uci.python;
 
+import org.python.core.Py;
+
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.debug.DebuggerTags;
+import com.oracle.truffle.api.frame.Frame;
+import com.oracle.truffle.api.instrumentation.ProvidedTags;
+import com.oracle.truffle.api.instrumentation.StandardTags;
+import com.oracle.truffle.api.metadata.ScopeProvider;
 import com.oracle.truffle.api.nodes.Node;
 
 import edu.uci.python.builtins.PythonDefaultBuiltinsLookup;
+import edu.uci.python.nodes.ModuleNode;
 import edu.uci.python.nodes.PNode;
 import edu.uci.python.parser.PythonParserImpl;
 import edu.uci.python.runtime.PythonContext;
 import edu.uci.python.runtime.PythonOptions;
+import edu.uci.python.runtime.PythonParseResult;
 import edu.uci.python.runtime.function.PFunction;
+import edu.uci.python.runtime.object.PythonObjectAllocationInstrumentor;
+import edu.uci.python.runtime.standardtype.PythonModule;
 
-@TruffleLanguage.Registration(name = "Python", version = "3.3", mimeType = PythonLanguage.MIME_TYPE)
-public class PythonLanguage extends TruffleLanguage<PythonContext> {
+@TruffleLanguage.Registration(name = "Python", version = "3.3", mimeType = PythonLanguage.MIME_TYPE, interactive = false)
+@ProvidedTags({StandardTags.CallTag.class, StandardTags.StatementTag.class, StandardTags.RootTag.class, DebuggerTags.AlwaysHalt.class})
+public final class PythonLanguage extends TruffleLanguage<PythonContext> implements ScopeProvider<PythonContext> {
 
     public static final String MIME_TYPE = "application/x-python";
     public static final String EXTENSION = ".py";
 
-    public static final PythonLanguage INSTANCE = new PythonLanguage();
+    public static PythonLanguage INSTANCE;
+
+    private PythonParseResult parseResult;
+
+    public PythonLanguage() {
+        INSTANCE = this;
+        this.parseResult = null;
+    }
 
     @Override
     protected PythonContext createContext(Env env) {
-        return new PythonContext(new PythonOptions(), new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
+        PythonOptions opts = new PythonOptions();
+        opts.setStandardOut(env.out());
+        opts.setStandardErr(env.err());
+        return new PythonContext(opts, new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
+    }
+
+    @Override
+    protected CallTarget parse(ParsingRequest request) throws Exception {
+        PythonContext context = this.getContextReference().get();
+        PythonModule module = context.createMainModule(request.getSource().getPath());
+        parseResult = context.getParser().parse(context, module, request.getSource());
+
+        if (PythonOptions.PrintAST) {
+            System.out.println("============= " + "Before Specialization" + " ============= ");
+            parseResult.printAST();
+        }
+
+        if (PythonOptions.VisualizedAST) {
+            parseResult.visualizeToNetwork();
+        }
+
+        ModuleNode root = (ModuleNode) parseResult.getModuleRoot();
+        return Truffle.getRuntime().createCallTarget(root);
+    }
+
+    @Override
+    protected void disposeContext(PythonContext context) {
+        if (parseResult == null)
+            return;
+
+        if (PythonOptions.PrintAST) {
+            System.out.println("============= " + "After Specialization" + " ============= ");
+            parseResult.printAST();
+        }
+
+        if (PythonOptions.VisualizedAST) {
+            parseResult.visualizeToNetwork();
+        }
+
+        if (PythonOptions.InstrumentObjectStorageAllocation) {
+            PythonObjectAllocationInstrumentor.getInstance().printAllocations();
+        }
+
+        Py.flushLine();
+
     }
 
     @Override
@@ -67,12 +132,9 @@ public class PythonLanguage extends TruffleLanguage<PythonContext> {
         return object instanceof PNode;
     }
 
-    public Node unprotectedCreateFindContextNode() {
-        return super.createFindContextNode();
-    }
-
-    public PythonContext unprotectedFindContext(Node node) {
-        return super.findContext(node);
+    public AbstractScope findScope(PythonContext langContext, Node node, Frame frame) {
+        // TODO implement ZipPy Scope for debugging
+        return null;
     }
 
 }

@@ -24,6 +24,7 @@
  */
 package edu.uci.python.runtime;
 
+import java.io.OutputStream;
 import java.io.PrintStream;
 
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
@@ -34,93 +35,63 @@ public class PythonOptions {
 
     protected static final String propPkgName = PythonLanguage.class.getPackage().getName();
     // Debug flags
-    public final boolean PrintAST; // false
+    public static boolean PrintAST = Boolean.getBoolean(propPkgName + ".PrintAST"); // false
 
-    public final boolean VisualizedAST; // false
+    public static boolean VisualizedAST = Boolean.getBoolean(propPkgName + ".VisualizedAST"); // false
 
-    public final String PrintASTFilter; // null
+    public static String PrintASTFilter = System.getProperty(propPkgName + ".PrintASTFilter"); // null
 
-    public final boolean TraceJythonRuntime; // false
+    public static boolean TraceJythonRuntime = Boolean.getBoolean(propPkgName + ".TraceJythonRuntime"); // false
 
-    public final boolean TraceImports; // false
+    public static boolean TraceImports = Boolean.getBoolean(propPkgName + ".TraceImports"); // false
 
-    public final boolean TraceSequenceStorageGeneralization; // false
+    public static boolean TraceSequenceStorageGeneralization = Boolean.getBoolean(propPkgName + ".TraceSequenceStorageGeneralization"); // false
 
-    public final boolean TraceObjectLayoutCreation; // false
+    public static boolean TraceObjectLayoutCreation = Boolean.getBoolean(propPkgName + ".TraceObjectLayoutCreation"); // false
 
     // Object storage allocation
-    public final boolean InstrumentObjectStorageAllocation; // false
+    public static boolean InstrumentObjectStorageAllocation = Boolean.getBoolean(propPkgName + ".InstrumentObjectStorageAllocation"); // false
 
     // Translation flags
-    public final boolean UsePrintFunction; // false
+    public static boolean UsePrintFunction = Boolean.getBoolean(propPkgName + ".UsePrintFunction"); // false
 
     // Runtime flags
-    public final boolean UnboxSequenceStorage; // true
+    public static boolean UnboxSequenceStorage = !Boolean.getBoolean(propPkgName + ".disableUnboxSequenceStorage"); // true
 
-    public final boolean UnboxSequenceIteration; // true
+    public static boolean UnboxSequenceIteration = !Boolean.getBoolean(propPkgName + ".disableUnboxSequenceIteration"); // true
 
-    public final boolean IntrinsifyBuiltinCalls; // true
+    public static boolean IntrinsifyBuiltinCalls = !Boolean.getBoolean(propPkgName + ".disableIntrinsifyBuiltinCalls"); // true
 
     public static final int AttributeAccessInlineCacheMaxDepth = 20;
 
     public static final int CallSiteInlineCacheMaxDepth = 20;
 
-    public final boolean FlexibleObjectStorageEvolution; // false
+    public static boolean FlexibleObjectStorageEvolution = Boolean.getBoolean(propPkgName + ".FlexibleObjectStorageEvolution"); // false
 
-    public final boolean FlexibleObjectStorage; // false
+    public static boolean FlexibleObjectStorage = Boolean.getBoolean(propPkgName + ".FlexibleObjectStorage"); // false
 
     // Generators
-    public final boolean InlineGeneratorCalls; // true
+    public static boolean InlineGeneratorCalls = !Boolean.getBoolean(propPkgName + ".disableInlineGeneratorCalls"); // true
 
-    public final boolean OptimizeGeneratorExpressions; // true
+    public static boolean OptimizeGeneratorExpressions = !Boolean.getBoolean(propPkgName + ".disableOptimizeGeneratorExpressions"); // true
 
-    public final boolean TraceGeneratorInlining; // false
+    public static boolean TraceGeneratorInlining = Boolean.getBoolean(propPkgName + ".TraceGeneratorInlining"); // false
 
-    public final boolean TraceNodesWithoutSourceSection; // false
+    public static boolean TraceNodesWithoutSourceSection = Boolean.getBoolean(propPkgName + ".TraceNodesWithoutSourceSection"); // false
 
-    public final boolean TraceNodesUsingExistingProbe; // false
+    public static boolean TraceNodesUsingExistingProbe = Boolean.getBoolean(propPkgName + ".TraceNodesUsingExistingProbe"); // false
 
-    public final boolean CatchZippyExceptionForUnitTesting; // false
+    public static boolean CatchZippyExceptionForUnitTesting = Boolean.getBoolean(propPkgName + ".CatchZippyExceptionForUnitTesting"); // false
 
-    public final boolean forceLongType; // false
+    public static boolean forceLongType = Boolean.getBoolean(propPkgName + ".forceLongType"); // false
 
-    private PrintStream standardOut = System.out;
+    private OutputStream standardOut = System.out;
 
-    private PrintStream standardErr = System.err;
+    private OutputStream standardErr = System.err;
 
     public PythonOptions() {
         standardOut = System.out;
         standardErr = System.err;
-
-        this.PrintAST = Boolean.getBoolean(propPkgName + ".PrintAST"); // false
-        this.VisualizedAST = Boolean.getBoolean(propPkgName + ".VisualizedAST"); // false
-        this.PrintASTFilter = System.getProperty(propPkgName + ".PrintASTFilter"); // null
-        this.TraceJythonRuntime = Boolean.getBoolean(propPkgName + ".TraceJythonRuntime"); // false
-        this.TraceImports = Boolean.getBoolean(propPkgName + ".TraceImports"); // false
-        this.TraceSequenceStorageGeneralization = Boolean.getBoolean(propPkgName + ".TraceSequenceStorageGeneralization"); // false
-        this.TraceObjectLayoutCreation = Boolean.getBoolean(propPkgName + ".TraceObjectLayoutCreation"); // false
-
-        // Object storage allocation
-        this.InstrumentObjectStorageAllocation = Boolean.getBoolean(propPkgName + ".InstrumentObjectStorageAllocation"); // false
-
-        // Translation flags
-        this.UsePrintFunction = Boolean.getBoolean(propPkgName + ".UsePrintFunction"); // false
-
-        // Runtime flags
-        this.UnboxSequenceStorage = !Boolean.getBoolean(propPkgName + ".disableUnboxSequenceStorage"); // true
-        this.UnboxSequenceIteration = !Boolean.getBoolean(propPkgName + ".disableUnboxSequenceIteration"); // true
-        this.IntrinsifyBuiltinCalls = !Boolean.getBoolean(propPkgName + ".disableIntrinsifyBuiltinCalls"); // true
-        this.FlexibleObjectStorageEvolution = Boolean.getBoolean(propPkgName + ".FlexibleObjectStorageEvolution"); // false
-        this.FlexibleObjectStorage = Boolean.getBoolean(propPkgName + ".FlexibleObjectStorage"); // false
-
-        // Generators
-        this.InlineGeneratorCalls = !Boolean.getBoolean(propPkgName + ".disableInlineGeneratorCalls"); // true
-        this.OptimizeGeneratorExpressions = !Boolean.getBoolean(propPkgName + ".disableOptimizeGeneratorExpressions"); // true
-        this.TraceGeneratorInlining = Boolean.getBoolean(propPkgName + ".TraceGeneratorInlining"); // false
-        this.TraceNodesWithoutSourceSection = Boolean.getBoolean(propPkgName + ".TraceNodesWithoutSourceSection"); // false
-        this.TraceNodesUsingExistingProbe = Boolean.getBoolean(propPkgName + ".TraceNodesUsingExistingProbe"); // false
-        this.CatchZippyExceptionForUnitTesting = Boolean.getBoolean(propPkgName + ".CatchZippyExceptionForUnitTesting"); // false
-        this.forceLongType = Boolean.getBoolean(propPkgName + ".forceLongType"); // false
     }
 
     public PythonOptions(PrintStream standardOut, PrintStream standardErr) {
@@ -132,19 +103,19 @@ public class PythonOptions {
             this.standardErr = standardErr;
     }
 
-    public void setStandardOut(PrintStream stdout) {
+    public void setStandardOut(OutputStream stdout) {
         standardOut = stdout;
     }
 
-    public PrintStream getStandardOut() {
+    public OutputStream getStandardOut() {
         return standardOut;
     }
 
-    public void setStandardErr(PrintStream stderr) {
+    public void setStandardErr(OutputStream stderr) {
         standardErr = stderr;
     }
 
-    public PrintStream getStandardErr() {
+    public OutputStream getStandardErr() {
         return standardErr;
     }
 
@@ -153,17 +124,6 @@ public class PythonOptions {
         for (int i = 0; i < options.length; i++) {
             System.setProperty(propPkgName + "." + options[i], "true");
         }
-    }
-
-    @TruffleBoundary
-    public static void unsetEnvOptions(String[] options) {
-        for (int i = 0; i < options.length; i++) {
-            System.getProperties().remove(propPkgName + "." + options[i]);
-        }
-    }
-
-    public static boolean isEnvOptionSet(String option) {
-        return Boolean.getBoolean(propPkgName + "." + option);
     }
 
 }

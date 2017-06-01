@@ -24,19 +24,28 @@
  */
 package edu.uci.python.runtime;
 
-import java.io.*;
-import java.lang.invoke.*;
+import java.io.OutputStream;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.math.BigInteger;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.nodes.*;
-import edu.uci.python.runtime.builtin.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.object.*;
-import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtype.*;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
 
-public class PythonContext extends ExecutionContext {
+import edu.uci.python.runtime.builtin.PythonBuiltinClass;
+import edu.uci.python.runtime.builtin.PythonBuiltinsLookup;
+import edu.uci.python.runtime.datatype.PFloat;
+import edu.uci.python.runtime.datatype.PInt;
+import edu.uci.python.runtime.object.FixedPythonObjectStorage;
+import edu.uci.python.runtime.object.PythonObject;
+import edu.uci.python.runtime.sequence.PString;
+import edu.uci.python.runtime.standardtype.PythonBuiltinObject;
+import edu.uci.python.runtime.standardtype.PythonClass;
+import edu.uci.python.runtime.standardtype.PythonModule;
+import edu.uci.python.runtime.standardtype.PythonObjectClass;
+
+public class PythonContext {
 
     private PythonModule mainModule;
     private final PythonModule builtinsModule;
@@ -103,7 +112,7 @@ public class PythonContext extends ExecutionContext {
         return currentContext.lookup.lookupType(javaClass);
     }
 
-    public PrintStream getStandardOut() {
+    public OutputStream getStandardOut() {
         return options.getStandardOut();
     }
 
@@ -155,6 +164,7 @@ public class PythonContext extends ExecutionContext {
     }
 
     public static MethodHandle getDefaultPythonObjectConstructor() {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
         try {
             MethodType mt = MethodType.methodType(PythonObject.class, PythonClass.class);
             return MethodHandles.lookup().findStatic(PythonContext.class, "newPythonObjectInstance", mt);

@@ -10,23 +10,24 @@ import mx_gate
 from mx_gate import Task
 from mx_unittest import unittest
 
-from mx_zippy_tools import _zippy_internal_options
+from mx_zippy_tools import _extract_zippy_internal_options, _zippy_help_options
 from mx_zippy_tools import _graal_heuristics_options
 import mx_zippy_benchmark
 import mx_zippy_benchmark_asv
 import mx_zippy_asv_chart
+import mx_zippy_junit
 
 _suite = mx.suite('zippy')
-_mx_graal = mx.suite("graal-core", fatalIfMissing=False)
+_mx_graal = mx.suite("compiler", fatalIfMissing=False)
 
 def check_vm(vm_warning=True, must_be_jvmci=False):
     if not _mx_graal:
         if must_be_jvmci:
-            print '** Error ** : graal-core project was not found!'
+            print '** Error ** : graal compiler was not found!'
             sys.exit(1)
 
         if vm_warning:
-            print '** warning ** : graal-core project was not found!! Executing using standard VM..'
+            print '** warning ** : graal compiler was not found!! Executing using standard VM..'
 
 
 def get_jdk():
@@ -43,6 +44,9 @@ def python(args):
 
 
 def do_run_python(args, extraVmArgs=None, env=None, jdk=None, **kwargs):
+    if _zippy_help_options(args):
+        sys.exit(1)
+
     if not env:
         env = os.environ
 
@@ -57,8 +61,8 @@ def do_run_python(args, extraVmArgs=None, env=None, jdk=None, **kwargs):
             check_vm()
 
     vmArgs, zippyArgs = mx.extract_VM_args(args)
-
-    vmArgs = _zippy_internal_options() + ['-cp', mx.classpath(["edu.uci.python"])]
+    internalZippyArgs, zippyArgs = _extract_zippy_internal_options(zippyArgs)
+    vmArgs = internalZippyArgs + ['-cp', mx.classpath(["edu.uci.python"])]
 
     if not jdk:
         jdk = get_jdk()
@@ -74,17 +78,16 @@ def do_run_python(args, extraVmArgs=None, env=None, jdk=None, **kwargs):
 
     # vmArgs = _sanitize_vmArgs(jdk, vmArgs)
     # if len(zippyArgs) > 0:
-    vmArgs.append("edu.uci.python.shell.Shell")
+    vmArgs.append("edu.uci.python.shell.ZipPyMain")
     # else:
     #     print 'Interactive shell is not implemented yet..'
     #     sys.exit(1)
 
-    return mx.run_java(vmArgs + args, jdk=jdk, **kwargs)
+    return mx.run_java(vmArgs + zippyArgs, jdk=jdk, **kwargs)
 
-
-#mx gate --tags pythonbenchmarktest
-#mx gate --tags pythontest
-#mx gate --tags fulltest
+# mx gate --tags pythonbenchmarktest
+# mx gate --tags pythontest
+# mx gate --tags fulltest
 
 class ZippyTags:
     test = ['pythontest', 'fulltest']
@@ -98,7 +101,7 @@ def _gate_python_benchmarks_tests(name, iterations, extra_vmargs=[]):
         vmargs += ['-Dgraal.TraceTruffleCompilation=true']
         run_java = mx_benchmark.get_java_vm('server', 'graal-core').run_java
 
-    vmargs += ['-cp', mx.classpath(["edu.uci.python"]), "edu.uci.python.shell.Shell", name, str(iterations)]
+    vmargs += ['-cp', mx.classpath(["edu.uci.python"]), "edu.uci.python.shell.ZipPyMain", name, str(iterations)]
     successRe = r"^(?P<benchmark>[a-zA-Z0-9\.\-]+): (?P<score>[0-9]+(\.[0-9]+)?$)"
     out = mx.OutputCapture()
     run_java(vmargs, out=mx.TeeOutputCapture(out), err=subprocess.STDOUT)
@@ -112,8 +115,7 @@ def zippy_gate_runner(suites, tasks, extraVMarguments=None):
     if not vmargs or not any(vmargs):
         vmargs = []
 
-    if _mx_graal:
-        vmargs += ['-XX:-UseJVMCICompiler', '-Djvmci.Compiler=graal']
+    vmargs += _graal_heuristics_options(_mx_graal)
     # Run unit tests
     with Task('ZipPy UnitTests', tasks, tags=ZippyTags.test) as t:
         if t: unittest(['--suite', 'zippy', '--fail-fast'] + vmargs)
@@ -144,7 +146,6 @@ mx_gate.add_gate_runner(_suite, _zippy_gate_runner)
 
 
 mx.update_commands(_suite, {
-    # core overrides
     # new commands
     'python' : [python, '[Python args|@VM options]'],
 })

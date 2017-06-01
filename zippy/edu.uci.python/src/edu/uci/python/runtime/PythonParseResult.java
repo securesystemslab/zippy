@@ -69,13 +69,15 @@ public class PythonParseResult {
     }
 
     public void printAST() {
-        if (context.getPythonOptions().PrintASTFilter == null || "module".contains(context.getPythonOptions().PrintASTFilter)) {
+
+        if (PythonOptions.PrintASTFilter == null || "module".contains(PythonOptions.PrintASTFilter)) {
             printSeparationLine("module");
             NodeUtil.printCompactTree(System.out, rootNode);
         }
 
         for (String functionName : functions.keySet()) {
-            if (context.getPythonOptions().PrintASTFilter != null && !functionName.contains(context.getPythonOptions().PrintASTFilter)) {
+
+            if (PythonOptions.PrintASTFilter != null && !functionName.contains(PythonOptions.PrintASTFilter)) {
                 continue;
             }
 

@@ -1,14 +1,16 @@
 suite = {
-  "mxversion" : "5.34.3",
+  "mxversion" : "5.103.0",
   "name" : "zippy",
   "versionConflictResolution" : "latest",
   "imports" : {
     "suites" : [
             {
                "name" : "truffle",
-               "version" : "c02973969fb144b533ae0e53187674cb04c2aacc",
+               "subdir" : True,
+               "version" : "acbe9ec935090e0824372e508563c122b0e46682",
                "urls" : [
-                    {"url" : "https://github.com/graalvm/truffle", "kind" : "git"},
+                    {"url" : "https://github.com/graalvm/graal", "kind" : "git"},
+                    {"url" : "https://curio.ssw.jku.at/nexus/content/repositories/snapshots", "kind" : "binary"},
                 ]
             },
 
@@ -113,12 +115,10 @@ suite = {
       "dependencies" : [
         "edu.uci.python",
       ],
-
       "distDependencies" : [
         "truffle:TRUFFLE_API",
         "truffle:TRUFFLE_DSL_PROCESSOR",
         ],
-
       "exclude" : [
         "ASM",
         "JAMM",
@@ -126,9 +126,20 @@ suite = {
         "JYTHON",
         "mx:JUNIT",
         ],
-
       "sourcesPath" : "zippy.src.zip",
     },
 
+    "ZIPPY_UNIT_TESTS" : {
+      "description" : "unit tests",
+      "dependencies" : [
+        "edu.uci.python.test",
+       ],
+      "exclude": ["mx:JUNIT"],
+      "distDependencies" : [
+        "ZIPPY",
+      ],
+
+      "sourcesPath" : "zippy.tests.src.zip",
+      },
   },
 }

@@ -144,7 +144,8 @@ public class PythonTreeTranslator extends Visitor {
     @Override
     public Object visitFunctionDef(FunctionDef node) throws Exception {
         String name = node.getInternalName();
-        if (context.getPythonOptions().CatchZippyExceptionForUnitTesting) {
+
+        if (PythonOptions.CatchZippyExceptionForUnitTesting) {
             /**
              * Some unittest test functions might fail in the translation phase in ZipPy. Therefore,
              * NotCovered is caught here. The result of this test function will be a Fail, and the
@@ -1030,6 +1031,7 @@ public class PythonTreeTranslator extends Visitor {
 
     @Override
     public Object visitPrint(Print node) throws Exception {
+
         /**
          * This is a workaround for what produced by Jython's parser. <br>
          * It parses print to a statement with multiple arguments nested in a tuple. It causes the
@@ -1037,7 +1039,7 @@ public class PythonTreeTranslator extends Visitor {
          * However, we cannot distinguish between a real tuple parameter and an artificial one. The
          * real fix should be in the parser.
          */
-        if (!context.getPythonOptions().UsePrintFunction) {
+        if (!PythonOptions.UsePrintFunction) {
             Name print = new Name(node.getToken(), "print", expr_contextType.Load);
             List<expr> exprs = node.getInternalValues();
             if (exprs.size() == 1 && exprs.get(0) instanceof Tuple) {

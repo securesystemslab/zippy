@@ -31,10 +31,8 @@ import edu.uci.python.runtime.sequence.*;
 
 public class SequenceStorageFactory {
 
-    private static final PythonOptions options = new PythonOptions();
-
     public static SequenceStorage createStorage(Object[] values) {
-        if (!options.UnboxSequenceStorage) {
+        if (!PythonOptions.UnboxSequenceStorage) {
             if (values == null) {
                 return new ObjectSequenceStorage();
             } else {
@@ -50,7 +48,7 @@ public class SequenceStorageFactory {
         }
 
         if (canSpecializeToInt(values)) {
-            if (!options.forceLongType)
+            if (!PythonOptions.forceLongType)
                 return new IntSequenceStorage(specializeToInt(values));
             else
                 return new LongSequenceStorage(specializeToLong(values));

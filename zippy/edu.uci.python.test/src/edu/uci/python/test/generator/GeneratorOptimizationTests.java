@@ -25,8 +25,9 @@
 package edu.uci.python.test.generator;
 
 import static edu.uci.python.test.PythonTests.assertPrintContains;
-import static edu.uci.python.test.PythonTests.assertPrints;
+import static edu.uci.python.test.PythonTests.assertPrintsAndAST;
 import static org.junit.Assert.assertTrue;
+import static edu.uci.python.test.PythonTests.assertPrints;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,56 +45,53 @@ public class GeneratorOptimizationTests {
 
     @Test
     public void euler11() {
-        String[] options = {"disableOptimizeGeneratorExpressions"};
-        PythonOptions.setEnvOptions(options);
+        PythonOptions.OptimizeGeneratorExpressions = false;
         Path script = Paths.get("euler11-test.py");
         assertPrints("9507960\n9507960\n", script);
-        PythonOptions.unsetEnvOptions(options);
     }
 
     @Test
     public void inline() {
-        assertTrue(!PythonOptions.isEnvOptionSet("disableInlineGeneratorCalls"));
+        PythonOptions.InlineGeneratorCalls = true;
         Path script = Paths.get("generator-inline-test.py");
         assertPrints("99\n99\n99\n99\n99\n", script);
     }
 
     @Test
     public void inlineNone() {
-        assertTrue(!PythonOptions.isEnvOptionSet("disableInlineGeneratorCalls"));
+        PythonOptions.InlineGeneratorCalls = true;
         Path script = Paths.get("generator-inline-none-test.py");
         assertPrints("99\n99\n99\n99\n99\n", script);
     }
 
     @Test
     public void inlineGenexp() {
-        assertTrue(!PythonOptions.isEnvOptionSet("disableInlineGeneratorCalls"));
-        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
+        PythonOptions.InlineGeneratorCalls = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
         Path script = Paths.get("generator-inline-genexp-test.py");
         assertPrintContains("420\n", script);
     }
 
     @Test
     public void inlineGenexpLocalVar() {
-        assertTrue(!PythonOptions.isEnvOptionSet("disableInlineGeneratorCalls"));
-        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
+        PythonOptions.InlineGeneratorCalls = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
         Path script = Paths.get("generator-inline-genexp-localvar-test.py");
         assertPrintContains("420\n", script);
     }
 
     @Test
     public void inlineGenexpBuiltinCall() {
-        assertTrue(!PythonOptions.isEnvOptionSet("disableInlineGeneratorCalls"));
-        assertTrue(!PythonOptions.isEnvOptionSet("disableOptimizeGeneratorExpressions"));
-        assertTrue(!PythonOptions.isEnvOptionSet("disableIntrinsifyBuiltinCalls"));
-
-        assertTrue(!PythonOptions.isEnvOptionSet("disableIntrinsifyBuiltinCalls"));
+        PythonOptions.InlineGeneratorCalls = true;
+        PythonOptions.OptimizeGeneratorExpressions = true;
         Path script = Paths.get("generator-inline-genexp-builtin-test.py");
-        PythonParseResult ast = assertPrintContains("420\n", script);
-// Node listComp = NodeUtil.findFirstNodeInstance(ast.getFunctionRoot("call_generator_builtin"),
+        assertPrintContains("420\n", script);
+        // TODO: find a different way to verify #ListComprehensionNode.class
+        PythonParseResult ast = assertPrintsAndAST("420\n", script);
+// Node listComp =
+// NodeUtil.findFirstNodeInstance(ast.getFunctionRoot("call_generator_builtin"),
 // ListComprehensionNode.class);
-        Node listComp = NodeUtil.findAllNodeInstances(ast.getFunctionRoot("call_generator_builtin"),
-                        ListComprehensionNode.class).get(0);
+        Node listComp = NodeUtil.findAllNodeInstances(ast.getFunctionRoot("call_generator_builtin"), ListComprehensionNode.class).get(0);
         assertTrue(listComp != null);
     }
 

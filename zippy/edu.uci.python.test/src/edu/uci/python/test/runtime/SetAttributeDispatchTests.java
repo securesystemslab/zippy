@@ -47,7 +47,7 @@ public class SetAttributeDispatchTests {
                         "    self.b = b\n" + //
                         "for i in range(2):\n" + //
                         "  Task(1, 2)\n";
-        PythonParseResult result = assertPrints("", source);
+        PythonParseResult result = assertPrintsAndAST("", source);
         RootNode init = result.getFunctionRoot("__init__");
         List<SetAttributeNode> setNodes = NodeUtil.findAllNodeInstances(init, SetAttributeNode.class);
 

@@ -16,23 +16,17 @@ $ export JAVA_HOME=/path/to/jdk
 * Install `mx` build tool and append it to your `PATH`:
 > `mx` build tool, which is used in all projects built around Graal. `mx` requires Python 2.7 (not exactly ZipPy at this point...).
 
-      ```sh
-      $ git clone https://github.com/graalvm/mx.git
-      $ export PATH=$ZIPPY_HOME/mx:$PATH
-      ```
+```sh
+$ git clone https://github.com/graalvm/mx.git
+$ export PATH=$ZIPPY_HOME/mx:$PATH
+```
 > Its strongly recommended to add `mx` to your shell config file e.g. `.bashrc` for bash.
 >```sh
 > $ echo "export PATH=$ZIPPY_HOME/mx:$PATH" >> ~/.bashrc
 >```
 > For more information about `mx` please refer to the [mx](https://github.com/graalvm/mx).
 
-### Using Graal JVM (recommended):
-
-1. Install the most recent [JDK 8](http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html) and store its path on `$JAVA_HOME`:
-  ```sh
-    $ export JAVA_HOME=/path/to/jdk
-  ```
-2. Install **JVMCI JDK** by ether:
+* Install **JVMCI JDK** by ether:
   * Download and install [JVMCI JDK 8](http://www.oracle.com/technetwork/oracle-labs/program-languages/downloads/index.html) binary.
   ```sh
     $ export JVMCI_HOME=/path/to/jvmci_jdk
@@ -43,43 +37,32 @@ $ export JAVA_HOME=/path/to/jdk
     $ hg clone http://hg.openjdk.java.net/graal/graal-jvmci-8
     $ echo "JAVA_HOME=$JAVA_HOME" > $ZIPPY_HOME/graal-jvmci-8/mx.jvmci/env
     $ cd graal-jvmci-8
-    $ hg update jvmci-0.25
+    $ hg update jvmci-0.26
     $ mx build
     $ export JVMCI_HOME=$(mx jdkhome)
   ```
-3. Clone and build `graal-core`:
 
-  ```sh
-    $ cd $ZIPPY_HOME
-    $ git clone https://github.com/graalvm/graal-core.git
-    $ echo "JAVA_HOME=$JVMCI_HOME" > $ZIPPY_HOME/graal-core/mx.graal-core/env
-    $ echo "DEFAULT_VM=server" >> $ZIPPY_HOME/graal-core/mx.graal-core/env
-    $ cd graal-core
-    $ git checkout graal-vm-0.21
-    $ mx build
-  ```
+### Using Graal JVM (recommended):
 
-3. Clone `ZipPy`:
+1. Clone `ZipPy`:
       ```sh
       $ git clone https://github.com/securesystemslab/zippy.git
       ```
 
-4. Add environment variables to `ZipPy` to make it aware of `Graal JVM`:
+2. Add environment variables to `ZipPy` to make it aware of `Graal JVM`:
 
   ```sh
     $ echo "JAVA_HOME=$JVMCI_HOME" > $ZIPPY_HOME/zippy/mx.zippy/env
     $ echo "DEFAULT_VM=server" >> $ZIPPY_HOME/zippy/mx.zippy/env
-    $ echo "DEFAULT_DYNAMIC_IMPORTS=graal-core" >> $ZIPPY_HOME/zippy/mx.zippy/env
+    $ echo "DEFAULT_DYNAMIC_IMPORTS=truffle/compiler" >> $ZIPPY_HOME/zippy/mx.zippy/env
     $ echo "ZIPPY_MUST_USE_GRAAL=1" >> $ZIPPY_HOME/zippy/mx.zippy/env
   ```
 
-5. Pull the required projects:
+3. Pull the required projects:
       ```sh
       $ cd $ZIPPY_HOME/zippy
       $ mx spull
       ```
-
->Now you should have `zippy`, `truffle`, `graal-core` and `graal-jvmci-8` under the project root `$ZIPPY_HOME`.
 
 ## Building ZipPy
 
@@ -100,9 +83,9 @@ Sadly, interactive shell and many of the CPython command line options are not ye
 
 ## Unittest
 
-The subproject `edu.uci.python.test` includes a set of tests that we currently use. The `mx unittest` command runs all JUnit test it can find in the current _suite_. The following command runs all the unit tests with their class paths matching the pattern, `python.test`.
+The subproject `edu.uci.python.test` includes a set of tests that we currently use. The `mx junit` command runs all JUnit test it can find in the current _suite_. The following command runs all the unit tests with their class paths matching the pattern, `python.test`.
 
-    $ mx unittest python.test
+    $ mx junit
 
 Alternatively, you can run
 

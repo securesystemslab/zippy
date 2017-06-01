@@ -30,6 +30,7 @@ import org.python.core.Py;
 
 import com.oracle.truffle.api.CompilerDirectives;
 
+import edu.uci.python.runtime.PythonOptions;
 import edu.uci.python.runtime.datatype.PSlice;
 import edu.uci.python.runtime.iterator.PDoubleArrayIterator;
 import edu.uci.python.runtime.iterator.PIterator;
@@ -74,7 +75,7 @@ public final class PDoubleArray extends PArray {
 
     @Override
     public PIterator __iter__() {
-        if (options.UnboxSequenceIteration) {
+        if (PythonOptions.UnboxSequenceIteration) {
             return new PDoubleArrayIterator(this);
         } else {
             return new PSequenceIterator(this);

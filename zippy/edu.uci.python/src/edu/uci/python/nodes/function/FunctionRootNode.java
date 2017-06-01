@@ -24,35 +24,52 @@
  */
 package edu.uci.python.nodes.function;
 
-import java.io.*;
-import java.util.*;
+import java.io.PrintStream;
+import java.util.HashSet;
+import java.util.Set;
 
-import com.oracle.truffle.api.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
-import com.oracle.truffle.api.nodes.NodeUtil.*;
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeCost;
+import com.oracle.truffle.api.nodes.NodeUtil;
+import com.oracle.truffle.api.nodes.NodeUtil.NodeCountFilter;
+import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 
-import edu.uci.python.*;
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.subscript.*;
-import edu.uci.python.nodes.argument.*;
-import edu.uci.python.nodes.call.*;
+import edu.uci.python.PythonLanguage;
+import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.argument.ArgumentsNode;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.GeneratorDispatchBoxedNode;
 import edu.uci.python.nodes.call.CallDispatchNoneNode.GeneratorDispatchNoneNode;
 import edu.uci.python.nodes.call.CallDispatchSpecialNode.GeneratorDispatchSpecialNode;
+import edu.uci.python.nodes.call.GeneratorDispatch;
+import edu.uci.python.nodes.call.PythonCallNode;
 import edu.uci.python.nodes.call.PythonCallNode.BoxedCallNode;
 import edu.uci.python.nodes.call.PythonCallNode.NoneCallNode;
-import edu.uci.python.nodes.control.*;
+import edu.uci.python.nodes.control.BlockNode;
+import edu.uci.python.nodes.control.ForNode;
+import edu.uci.python.nodes.control.GetIteratorNode;
 import edu.uci.python.nodes.control.GetIteratorNode.GetGeneratorIteratorNode;
-import edu.uci.python.nodes.frame.*;
-import edu.uci.python.nodes.generator.*;
-import edu.uci.python.nodes.optimize.*;
+import edu.uci.python.nodes.frame.FrameSlotNode;
+import edu.uci.python.nodes.generator.FrameSwappingNode;
+import edu.uci.python.nodes.generator.FrameTransferNodeFactory;
+import edu.uci.python.nodes.generator.YieldNode;
+import edu.uci.python.nodes.optimize.GeneratorExpressionOptimizer;
+import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode;
 import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.PeeledGeneratorLoopBoxedNode;
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.function.*;
-import static edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.*;
+import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.PeeledGeneratorLoopNoCallNode;
+import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.PeeledGeneratorLoopNoneNode;
+import edu.uci.python.nodes.optimize.PeeledGeneratorLoopNode.PeeledGeneratorLoopSpecialNode;
+import edu.uci.python.nodes.subscript.SubscriptLoadIndexNode;
+import edu.uci.python.runtime.PythonContext;
+import edu.uci.python.runtime.PythonOptions;
+import edu.uci.python.runtime.datatype.PGenerator;
+import edu.uci.python.runtime.function.PGeneratorFunction;
 
 /**
  * RootNode of a Python Function body. It is invoked by a CallTarget.
@@ -63,6 +80,7 @@ public final class FunctionRootNode extends RootNode {
 
     private final PythonContext context;
     private final String functionName;
+    private final SourceSection sourceSection;
 
     /**
      * Generator related flags.
@@ -76,8 +94,8 @@ public final class FunctionRootNode extends RootNode {
     private PNode uninitializedBody;
 
     public FunctionRootNode(PythonContext context, SourceSection sourceSection, String functionName, boolean isGenerator, FrameDescriptor frameDescriptor, PNode body) {
-        super(PythonLanguage.class, sourceSection, frameDescriptor); // SourceSection is not
-// supported yet.
+        super(PythonLanguage.INSTANCE, frameDescriptor);
+        this.sourceSection = sourceSection;
         this.context = context;
         this.functionName = functionName;
         this.isGenerator = isGenerator;
@@ -132,11 +150,11 @@ public final class FunctionRootNode extends RootNode {
     private boolean optimizeHelper() {
         CompilerAsserts.neverPartOfCompilation();
 
-        if (CompilerDirectives.inCompiledCode() || !context.getPythonOptions().InlineGeneratorCalls || isGenerator) {
+        if (CompilerDirectives.inCompiledCode() || !PythonOptions.InlineGeneratorCalls || isGenerator) {
             return false;
         }
 
-        if (context.getPythonOptions().OptimizeGeneratorExpressions) {
+        if (PythonOptions.OptimizeGeneratorExpressions) {
             new GeneratorExpressionOptimizer(this).optimize();
         }
 
@@ -174,7 +192,8 @@ public final class FunctionRootNode extends RootNode {
     }
 
     private boolean isInlinable(Node dispatch, RootCallTarget generatorCallTarget) {
-        if (context.getPythonOptions().TraceGeneratorInlining) {
+
+        if (PythonOptions.TraceGeneratorInlining) {
             PrintStream ps = System.out;
             ps.println("[ZipPy] try to optimize " + generatorCallTarget + " in " + getRootNode());
         }
@@ -207,7 +226,7 @@ public final class FunctionRootNode extends RootNode {
             inlinable = true;
         }
 
-        if (context.getPythonOptions().TraceGeneratorInlining) {
+        if (PythonOptions.TraceGeneratorInlining) {
             PrintStream ps = System.out;
 
             if (inlinable) {
@@ -316,7 +335,8 @@ public final class FunctionRootNode extends RootNode {
         }
 
         optimizedGeneratorDispatches.add(dispatch);
-        if (context.getPythonOptions().TraceGeneratorInlining)
+
+        if (PythonOptions.TraceGeneratorInlining)
             System.out.println("[ZipPy] peeled generator " + genfun.getCallTarget() + " in " + getRootNode());
         return true;
     }
@@ -367,7 +387,7 @@ public final class FunctionRootNode extends RootNode {
             genexp.setEnclosingFrameGenerator(false);
         }
 
-        if (context.getPythonOptions().TraceGeneratorInlining)
+        if (PythonOptions.TraceGeneratorInlining)
             System.out.println("[ZipPy] peeled generator not aligned " + generator.getCallTarget() + " in " + getRootNode());
         return true;
     }
@@ -377,4 +397,9 @@ public final class FunctionRootNode extends RootNode {
         return "<function root " + functionName + " at " + Integer.toHexString(hashCode()) + ">";
     }
 
+    @Override
+    public SourceSection getSourceSection()
+    {
+        return sourceSection;
+    }
 }

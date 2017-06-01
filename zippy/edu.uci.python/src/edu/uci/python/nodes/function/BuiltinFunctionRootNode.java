@@ -42,7 +42,7 @@ public class BuiltinFunctionRootNode extends RootNode {
     private final PythonBuiltinNode uninitialized;
 
     public BuiltinFunctionRootNode(String functionName, PythonBuiltinNode builtinNode) {
-        super(PythonLanguage.class, null, null);
+        super(PythonLanguage.INSTANCE, null);
         this.functionName = functionName;
         this.body = builtinNode;
         this.uninitialized = NodeUtil.cloneNode(builtinNode);

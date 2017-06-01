@@ -36,18 +36,13 @@ import edu.uci.python.runtime.sequence.*;
 public final class EmptySequenceStorage extends SequenceStorage {
 
     public static final EmptySequenceStorage INSTANCE = new EmptySequenceStorage();
-    private final PythonOptions options;
-
-    private EmptySequenceStorage() {
-        this.options = new PythonOptions();
-    }
 
     @Override
     public SequenceStorage generalizeFor(Object value) {
         final SequenceStorage generalized;
 
         if (value instanceof Integer) {
-            if (!options.forceLongType)
+            if (!PythonOptions.forceLongType)
                 generalized = new IntSequenceStorage();
             else
                 generalized = new LongSequenceStorage();
@@ -63,7 +58,7 @@ public final class EmptySequenceStorage extends SequenceStorage {
             generalized = new ObjectSequenceStorage();
         }
 
-        if (options.TraceSequenceStorageGeneralization) {
+        if (PythonOptions.TraceSequenceStorageGeneralization) {
             PrintStream ps = System.out;
             ps.println("[ZipPy]" + this + " generalizing to " + generalized);
         }

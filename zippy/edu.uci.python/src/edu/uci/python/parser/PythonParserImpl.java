@@ -57,7 +57,7 @@ public class PythonParserImpl implements PythonParser {
         PythonTreeTranslator ptt = new PythonTreeTranslator(context, node, environment, module, source);
         PythonParseResult result = ptt.getTranslationResult();
 
-        if (context.getPythonOptions().OptimizeGeneratorExpressions) {
+        if (PythonOptions.OptimizeGeneratorExpressions) {
             for (RootNode functionRoot : result.getFunctionRoots()) {
                 if (functionRoot instanceof FunctionRootNode) {
                     new GeneratorExpressionOptimizer((FunctionRootNode) functionRoot).optimize();

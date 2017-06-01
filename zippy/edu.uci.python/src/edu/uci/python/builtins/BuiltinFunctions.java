@@ -24,6 +24,7 @@
  */
 package edu.uci.python.builtins;
 
+import java.io.IOException;
 import java.math.*;
 import java.util.*;
 
@@ -981,24 +982,28 @@ public final class BuiltinFunctions extends PythonBuiltins {
             String sep = possibleSep;
             String end = possibleEnd;
 
-            if (values.len() == 0) {
-                getContext().getStandardOut().print(System.getProperty("line.separator"));
-            } else {
-                if (sep == null) {
-                    sep = "";
-                }
+            try {
+                if (values.len() == 0) {
+                    getContext().getStandardOut().write(System.getProperty("line.separator").getBytes());
+                } else {
+                    if (sep == null) {
+                        sep = "";
+                    }
 
-                if (end == null) {
-                    end = System.getProperty("line.separator");
-                }
+                    if (end == null) {
+                        end = System.getProperty("line.separator");
+                    }
 
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < values.len() - 1; i++) {
-                    sb.append(stringifyElement(values.getItem(i)) + " ");
-                }
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < values.len() - 1; i++) {
+                        sb.append(stringifyElement(values.getItem(i)) + " ");
+                    }
 
-                sb.append(stringifyElement(values.getItem(values.len() - 1)));
-                getContext().getStandardOut().print(sb.toString() + sep + end);
+                    sb.append(stringifyElement(values.getItem(values.len() - 1)));
+                    getContext().getStandardOut().write((sb.toString() + sep + end).getBytes());
+                }
+            } catch (IOException e) {
+                // pass through
             }
 
             return PNone.NONE;

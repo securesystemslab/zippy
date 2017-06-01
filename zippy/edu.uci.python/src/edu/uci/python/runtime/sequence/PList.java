@@ -43,21 +43,17 @@ public class PList extends PSequence {
     public static final PythonBuiltinClass __class__ = PythonContext.getBuiltinTypeFor(PList.class);
 
     @CompilationFinal private SequenceStorage store;
-    private final PythonOptions options;
 
     public PList() {
         store = SequenceStorageFactory.createStorage(null);
-        this.options = new PythonOptions();
     }
 
     public PList(SequenceStorage store) {
         this.store = store;
-        this.options = new PythonOptions();
     }
 
     public PList(PIterator iter) {
         store = SequenceStorageFactory.createStorage(null);
-        this.options = new PythonOptions();
 
         try {
             while (true) {
@@ -75,7 +71,7 @@ public class PList extends PSequence {
 
     @Override
     public PIterator __iter__() {
-        if (options.UnboxSequenceIteration) {
+        if (PythonOptions.UnboxSequenceIteration) {
             if (store instanceof IntSequenceStorage) {
                 return new PIntegerSequenceIterator((IntSequenceStorage) store);
             } else if (store instanceof LongSequenceStorage) {

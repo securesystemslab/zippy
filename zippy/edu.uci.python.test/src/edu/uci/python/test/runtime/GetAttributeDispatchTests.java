@@ -105,7 +105,7 @@ public class GetAttributeDispatchTests {
         String source = "l = [1, 3.0, 'oo']\n" + //
                         "for i in l:\n" + //
                         "    i.__str__\n";
-        PythonParseResult result = assertPrints("", source);
+        PythonParseResult result = assertPrintsAndAST("", source);
         RootNode root = result.getModuleRoot();
 
         // depth of dispatch chain
@@ -122,7 +122,7 @@ public class GetAttributeDispatchTests {
         String source = "l = [1, 3.0, 'oo', []]\n" + //
                         "for i in l:\n" + //
                         "    i.__str__\n";
-        PythonParseResult result = assertPrints("", source);
+        PythonParseResult result = assertPrintsAndAST("", source);
         RootNode root = result.getModuleRoot();
 
         // depth of dispatch chain

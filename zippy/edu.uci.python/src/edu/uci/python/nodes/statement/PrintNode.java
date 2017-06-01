@@ -24,6 +24,8 @@
  */
 package edu.uci.python.nodes.statement;
 
+import java.io.IOException;
+
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -64,7 +66,11 @@ public class PrintNode extends StatementNode {
             sb.append(System.getProperty("line.separator"));
         }
 
-        context.getStandardOut().print(sb.toString());
+        try {
+            context.getStandardOut().write(sb.toString().getBytes());
+        } catch (IOException e) {
+            // pass through
+        }
         return PNone.NONE;
     }
 

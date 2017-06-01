@@ -30,6 +30,7 @@ import org.python.core.Py;
 
 import com.oracle.truffle.api.CompilerDirectives;
 
+import edu.uci.python.runtime.PythonOptions;
 import edu.uci.python.runtime.datatype.PSlice;
 import edu.uci.python.runtime.iterator.PIterator;
 import edu.uci.python.runtime.iterator.PLongArrayIterator;
@@ -74,7 +75,7 @@ public final class PLongArray extends PArray {
 
     @Override
     public PIterator __iter__() {
-        if (options.UnboxSequenceIteration) {
+        if (PythonOptions.UnboxSequenceIteration) {
             return new PLongArrayIterator(this);
         } else {
             return new PSequenceIterator(this);
