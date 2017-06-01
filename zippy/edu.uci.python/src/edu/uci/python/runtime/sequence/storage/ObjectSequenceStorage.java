@@ -163,7 +163,6 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
         length++;
     }
 
-    @ExplodeLoop
     @Override
     public void extend(SequenceStorage other) {
         int extendedLength = length + other.length();
