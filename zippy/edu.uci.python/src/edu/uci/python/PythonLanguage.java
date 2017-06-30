@@ -68,7 +68,7 @@ public final class PythonLanguage extends TruffleLanguage<PythonContext> impleme
         PythonOptions opts = new PythonOptions();
         opts.setStandardOut(env.out());
         opts.setStandardErr(env.err());
-        return new PythonContext(opts, new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
+        return new PythonContext(env, opts, new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
     }
 
     @Override

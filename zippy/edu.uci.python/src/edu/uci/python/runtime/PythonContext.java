@@ -31,6 +31,7 @@ import java.lang.invoke.MethodType;
 import java.math.BigInteger;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 
 import edu.uci.python.runtime.builtin.PythonBuiltinClass;
@@ -60,11 +61,13 @@ public class PythonContext {
     private final PythonFunctionRegistry functionRegistry;
     private final ImportManager importManager;
 
+    private final TruffleLanguage.Env env;
+
     private static PythonContext currentContext;
 
     private RuntimeException currentException;
 
-    public PythonContext(PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser) {
+    public PythonContext(TruffleLanguage.Env env, PythonOptions opts, PythonBuiltinsLookup lookup, PythonParser parser) {
         this.options = opts;
         this.lookup = lookup;
         this.typeClass = new PythonBuiltinClass(this, "type", null);
@@ -72,6 +75,7 @@ public class PythonContext {
         this.typeClass.unsafeSetSuperClass(objectClass);
         this.moduleClass = new PythonBuiltinClass(this, "module", objectClass);
         this.functionRegistry = new PythonFunctionRegistry();
+        this.env = env;
 
         assert typeClass.usePrivateLayout() && typeClass.getObjectLayout().isEmpty();
         assert objectClass.usePrivateLayout() && objectClass.getObjectLayout().isEmpty();
@@ -90,6 +94,10 @@ public class PythonContext {
         mainModule = new PythonModule(this, "__main__", path);
         mainModule.setAttribute("__builtins__", getBuiltins());
         return mainModule;
+    }
+
+    public TruffleLanguage.Env getEnv() {
+        return env;
     }
 
     public PythonModule getMainModule() {

@@ -142,7 +142,7 @@ public class ZipPyConsole extends InteractiveConsole {
         PythonOptions opts = new PythonOptions();
         opts.setStandardOut(out);
         opts.setStandardErr(err);
-        PythonContext context = new PythonContext(opts, new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
+        PythonContext context = new PythonContext(null, opts, new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
         PythonModule module = context.createMainModule(source.getPath());
         return context.getParser().parse(context, module, source);
     }

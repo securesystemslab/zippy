@@ -39,9 +39,19 @@ import org.python.core.PyObject;
 
 import com.oracle.truffle.api.Assumption;
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.NodeChildren;
+import com.oracle.truffle.api.dsl.TypeSystemReference;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.interop.ArityException;
+import com.oracle.truffle.api.interop.ForeignAccess;
+import com.oracle.truffle.api.interop.Message;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnsupportedMessageException;
+import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.InvalidAssumptionException;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeUtil;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
@@ -54,9 +64,12 @@ import edu.uci.python.nodes.PNodeUtil;
 import edu.uci.python.nodes.argument.ArgumentsNode;
 import edu.uci.python.nodes.call.CallDispatchBoxedNode.LinkedDispatchBoxedNode;
 import edu.uci.python.nodes.call.CallDispatchNoneNode.LinkedDispatchNoneNode;
+import edu.uci.python.nodes.interop.PForeignToPTypeNode;
+import edu.uci.python.nodes.interop.PForeignToPTypeNodeGen;
 import edu.uci.python.nodes.object.HasPrimaryNode;
 import edu.uci.python.nodes.optimize.BuiltinIntrinsifier;
 import edu.uci.python.nodes.optimize.IntrinsifiableBuiltin;
+import edu.uci.python.nodes.truffle.PythonTypes;
 import edu.uci.python.nodes.truffle.PythonTypesGen;
 import edu.uci.python.runtime.PythonContext;
 import edu.uci.python.runtime.PythonOptions;
@@ -68,6 +81,8 @@ import edu.uci.python.runtime.object.FlexibleObjectLayout;
 import edu.uci.python.runtime.object.PythonObject;
 import edu.uci.python.runtime.standardtype.PythonClass;
 
+@TypeSystemReference(PythonTypes.class)
+@NodeChildren({@NodeChild("functionNode"), @NodeChild("argumentsNode")})
 public abstract class PythonCallNode extends PNode {
 
     @Child protected PNode primaryNode;
@@ -131,7 +146,9 @@ public abstract class PythonCallNode extends PNode {
         return true;
     }
 
-    public abstract boolean isInlined();
+    public boolean isInlined() {
+        return false;
+    }
 
     protected Object rewriteAndExecuteCall(VirtualFrame frame, Object primary, Object callee) {
         CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -143,6 +160,10 @@ public abstract class PythonCallNode extends PNode {
             PyObject pyobj = (PyObject) callee;
             logJythonRuntime(pyobj);
             return replace(new JythonCallNode(context, pyobj.toString(), primaryNode, calleeNode, argumentsNode, keywordsNode)).executeCall(frame, pyobj);
+        }
+
+        if (isForeignFunction(callee)) {
+            return replace(new ForeignCallNode(context, callee, primaryNode, calleeNode, argumentsNode, keywordsNode)).execute(frame);
         }
 
         PythonCallable callable = null;
@@ -389,6 +410,64 @@ public abstract class PythonCallNode extends PNode {
             assert root != null;
             return root;
         }
+    }
+
+    public class ForeignCallNode extends PythonCallNode {
+
+        TruffleObject callee;
+
+        public ForeignCallNode(PythonContext context, Object calleeObject, PNode primary, PNode callee,
+                        ArgumentsNode arguments, ArgumentsNode keywords) {
+            super(context, callee.toString(), primary, callee, arguments, keywords, false);
+            this.callee = (TruffleObject) calleeObject;
+        }
+
+        @SuppressWarnings("unused")
+        @Override
+        public Object execute(VirtualFrame frame) {
+            Object primary = primaryNode.execute(frame);
+
+            final Object[] starargs = argumentsNode.executeStarargs(frame);
+            final PKeyword[] keystarags = keywordsNode.executeKeywordStarargs(frame);
+            Object[] arguments = argumentsNode.executeArgumentsForign(frame);
+            PKeyword[] keywords = keywordsNode.executeKeywordArguments(frame, keystarags);
+
+            try {
+
+                Node crossLanguageCallNode = createCrossLanguageCallNode(arguments);
+                PForeignToPTypeNode toPTypeNode = createToPTypeNode();
+                Object res = ForeignAccess.sendExecute(crossLanguageCallNode, callee, arguments);
+                return toPTypeNode.executeConvert(frame, res);
+            } catch (ArityException | UnsupportedTypeException | UnsupportedMessageException e) {
+                throw new IllegalStateException(e.toString());
+            }
+        }
+
+        /*
+         * @Specialization(guards = "isForeignFunction(function)") protected static Object
+         * doForeign(VirtualFrame frame, TruffleObject function, Object[] arguments,
+         *
+         * @Cached("createCrossLanguageCallNode(arguments)") Node crossLanguageCallNode,
+         *
+         * @Cached("createToPTypeNode()") PForeignToPTypeNode toPTypeNode) { try { Object res =
+         * ForeignAccess.sendExecute(crossLanguageCallNode, function, arguments); return
+         * toPTypeNode.executeConvert(frame, res); } catch (ArityException |
+         * UnsupportedTypeException | UnsupportedMessageException e) { throw new
+         * IllegalStateException(e.toString()); } }
+         */
+    }
+
+    protected static boolean isForeignFunction(Object function) {
+        return function instanceof TruffleObject &&
+                        !(function instanceof PythonCallable || function instanceof PyObject);
+    }
+
+    protected static Node createCrossLanguageCallNode(Object[] arguments) {
+        return Message.createExecute(arguments.length).createNode();
+    }
+
+    protected static PForeignToPTypeNode createToPTypeNode() {
+        return PForeignToPTypeNodeGen.create();
     }
 
     public static abstract class CallConstructorNode extends PythonCallNode {

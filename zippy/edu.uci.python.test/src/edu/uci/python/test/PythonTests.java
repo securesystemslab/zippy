@@ -253,7 +253,7 @@ public class PythonTests {
 
     public static PythonContext getContext() {
         PythonOptions opts = new PythonOptions();
-        PythonContext context = new PythonContext(opts, new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
+        PythonContext context = new PythonContext(null, opts, new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
         return context;
     }
 

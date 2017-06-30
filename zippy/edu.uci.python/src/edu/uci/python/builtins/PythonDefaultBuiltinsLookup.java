@@ -38,6 +38,7 @@ import edu.uci.python.builtins.type.ObjectBuiltins;
 import edu.uci.python.builtins.type.SetBuiltins;
 import edu.uci.python.builtins.type.StringBuiltins;
 import edu.uci.python.builtins.type.TupleBuiltins;
+import edu.uci.python.nodes.interop.InteropNodes;
 import edu.uci.python.runtime.PythonContext;
 import edu.uci.python.runtime.builtin.PythonBuiltinClass;
 import edu.uci.python.runtime.builtin.PythonBuiltinsLookup;
@@ -69,7 +70,7 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
     }
 
     public PythonModule populateBuiltins(PythonContext context) {
-        PythonModule builtinsModule = createModule("builtins", context, new BuiltinFunctions(), new BuiltinConstructors());
+        PythonModule builtinsModule = createModule("builtins", context, new BuiltinFunctions(), new BuiltinConstructors(), new InteropNodes());
         builtinsModule.setAttribute("object", context.getObjectClass());
         addModule("builtins", builtinsModule);
 

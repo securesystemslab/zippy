@@ -150,6 +150,15 @@ public class ArgumentsNode extends PNode {
         return values;
     }
 
+    public final Object[] executeArgumentsForign(VirtualFrame frame) {
+        final Object[] values = new Object[arguments.length];
+        frame.materialize();
+        for (int i = 0; i < arguments.length; i++) {
+            values[i] = arguments[i].execute(frame);
+        }
+        return values;
+    }
+
     private static PKeyword[] reshape(PKeyword[] keys, int reshape) {
         PKeyword[] keywords = new PKeyword[keys.length - reshape];
         int i = 0;
