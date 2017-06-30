@@ -60,6 +60,6 @@ ZipPy is currently maintained by [Secure Systems and Software Laboratory](https:
 ### Test:
 
     $ cd $ZIPPY_HOME/zippy
-    $ mx unittest python.test
+    $ mx junit
 
 For more details and instructions for downloading and building the system, please visit the [ZipPy Wiki](https://github.com/securesystemslab/zippy/wiki).
