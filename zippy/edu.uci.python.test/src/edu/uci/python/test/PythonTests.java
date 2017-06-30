@@ -257,14 +257,6 @@ public class PythonTests {
         return context;
     }
 
-    public static PythonContext getContext(PrintStream stdout, PrintStream stderr) {
-        PythonOptions opts = new PythonOptions();
-        opts.setStandardOut(stdout);
-        opts.setStandardErr(stderr);
-        PythonContext context = new PythonContext(opts, new PythonDefaultBuiltinsLookup(), new PythonParserImpl());
-        return context;
-    }
-
     public static VirtualFrame createVirtualFrame() {
         return Truffle.getRuntime().createVirtualFrame(null, new FrameDescriptor());
     }

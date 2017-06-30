@@ -22,7 +22,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- package edu.uci.python.runtime;
+package edu.uci.python.runtime;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -38,7 +38,7 @@ public class ZippyEnvVars {
 
     private static String zippyHome = null;
 
-    private static final Properties localEnvVars = new Properties();
+    public static final Properties localEnvVars = new Properties();
 
     public static String zippyHome() {
         if (zippyHome == null) {
