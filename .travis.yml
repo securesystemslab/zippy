@@ -7,25 +7,35 @@ matrix:
   include:
     - os: linux
       dist: trusty
-      env: ZIPPY_JDK_TYPE=STANDARD_LINUX
+      env:
+        - ZIPPY_JDK_TYPE=STANDARD_LINUX
+        - IS_GRAALJVM=FASLE
       jdk: oraclejdk8
       addons:
         apt:
           packages:
             - oracle-java8-installer
     - os: linux
+      # sudo will force Travis-CI to build on a machine that has larger memory (required for building JVMCI)
+      sudo: required
       dist: trusty
-      env: ZIPPY_JDK_TYPE=GRAALJVM_LINUX
+      env:
+        - ZIPPY_JDK_TYPE=GRAALJVM_LINUX
+        - IS_GRAALJVM=TRUE
       jdk: oraclejdk8
       addons:
         apt:
           packages:
             - oracle-java8-installer
     - os: osx
-      env: ZIPPY_JDK_TYPE=STANDARD_OSX
+      env:
+        - ZIPPY_JDK_TYPE=STANDARD_OSX
+        - IS_GRAALJVM=FASLE
       osx_image: xcode8.2
     - os: osx
-      env: ZIPPY_JDK_TYPE=GRAALJVM_OSX
+      env:
+        - ZIPPY_JDK_TYPE=GRAALJVM_OSX
+        - IS_GRAALJVM=TRUE
       osx_image: xcode8.2
 
 before_install:
@@ -33,24 +43,32 @@ before_install:
   - java -version
   - hg --version
   - python --version
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update && brew tap caskroom/cask && brew cask reinstall java && ls -l /Library/Java/JavaVirtualMachines/; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export JAVA_HOME=$(/usr/libexec/java_home); fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+        brew update;
+        brew tap caskroom/cask;
+        brew cask reinstall java;
+        ls -l /Library/Java/JavaVirtualMachines/;
+        export JAVA_HOME=$(/usr/libexec/java_home);
+    fi
   - echo $JAVA_HOME
   - export DEFAULT_VM=server
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo add-apt-repository -y ppa:mercurial-ppa/releases; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update -qq && sudo apt-get install -qq mercurial; fi
   - git clone https://github.com/graalvm/mx.git ../mx
   - export PATH=$PWD/../mx:$PATH
 
 install:
-  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd ..; fi
-  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then hg clone http://hg.openjdk.java.net/graal/graal-jvmci-8; fi
-  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd graal-jvmci-8 && hg update jvmci-0.26; fi
-  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then mx build && export JAVA_HOME=$(mx jdkhome); fi
-  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then echo $JAVA_HOME && mx jdkhome; fi
-  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then cd ../zippy; fi
-  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then export DEFAULT_DYNAMIC_IMPORTS=truffle/compiler; fi
-  - if [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_LINUX" ] || [ "$ZIPPY_JDK_TYPE" == "GRAALJVM_OSX" ]; then export ZIPPY_MUST_USE_GRAAL=1; fi
+  - if [ "$IS_GRAALJVM" == "TRUE" ]; then
+        cd ..;
+        hg clone http://hg.openjdk.java.net/graal/graal-jvmci-8;
+        cd graal-jvmci-8;
+        hg update jvmci-0.28;
+        mx build;
+        export JAVA_HOME=$(mx jdkhome);
+        echo $JAVA_HOME;
+        mx jdkhome;
+        cd ../zippy;
+        export DEFAULT_DYNAMIC_IMPORTS=truffle/compiler;
+        export ZIPPY_MUST_USE_GRAAL=1;
+    fi
 
 
 before_script:

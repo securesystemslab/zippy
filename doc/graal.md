@@ -37,7 +37,7 @@ $ export PATH=$ZIPPY_HOME/mx:$PATH
     $ hg clone http://hg.openjdk.java.net/graal/graal-jvmci-8
     $ echo "JAVA_HOME=$JAVA_HOME" > $ZIPPY_HOME/graal-jvmci-8/mx.jvmci/env
     $ cd graal-jvmci-8
-    $ hg update jvmci-0.26
+    $ hg update jvmci-0.28
     $ mx build
     $ export JVMCI_HOME=$(mx jdkhome)
   ```
