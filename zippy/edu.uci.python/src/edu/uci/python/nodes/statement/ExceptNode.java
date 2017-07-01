@@ -26,6 +26,8 @@ package edu.uci.python.nodes.statement;
 
 import org.python.core.*;
 
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.*;
 
@@ -54,6 +56,8 @@ public class ExceptNode extends StatementNode {
     }
 
     protected Object executeExcept(VirtualFrame frame, RuntimeException excep) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        CompilerAsserts.neverPartOfCompilation();
         PyException e = null;
         if (excep instanceof PyException) {
             e = (PyException) excep;
