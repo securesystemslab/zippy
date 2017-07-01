@@ -5,6 +5,6 @@ function binadd(a, b) {
 
 
 function main() {
-  println(binadd(2,4));
+  println("2 + 4 Executed inside SL: " + binadd(2,4));
 }
 

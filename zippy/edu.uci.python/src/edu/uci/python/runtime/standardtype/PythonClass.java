@@ -50,8 +50,8 @@ public class PythonClass extends FixedPythonObjectStorage implements PythonCalla
     /**
      * TODO: Compute complete MRO...
      */
-    @CompilationFinal private PythonClass[] baseClasses;
-    @CompilationFinal private PythonClass[] methodResolutionOrder;
+    @CompilationFinal(dimensions = 0) private PythonClass[] baseClasses;
+    @CompilationFinal(dimensions = 0) private PythonClass[] methodResolutionOrder;
 
     /**
      * Object layout of the instances of this class.
