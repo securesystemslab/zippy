@@ -22,3 +22,5 @@ mx.zippy/eclipse-launches
 asv
 *.json
 language
+.pydevproject
+mx.zippy.iml

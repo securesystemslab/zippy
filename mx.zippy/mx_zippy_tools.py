@@ -51,6 +51,10 @@ def _extract_zippy_internal_options(args):
         elif arg == '-visualize-ast':
             internal += ["-Dedu.uci.python.VisualizedAST=true"                          ] # false
 
+        elif arg == '-visualize-ast-verbose':
+            internal += ["-Dedu.uci.python.VisualizedAST=true"                          ] # false
+            internal += ["-Dedu.uci.python.VisualizedASTverbose=true"                   ] # false
+
         elif arg.startswith('-print-ast='):
             internal += ["-Dedu.uci.python.PrintASTFilter="+ arg.replace('-print-ast=') ] # null
 

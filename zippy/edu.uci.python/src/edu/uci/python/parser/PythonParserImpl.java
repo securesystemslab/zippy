@@ -47,7 +47,7 @@ public class PythonParserImpl implements PythonParser {
 
     @Override
     public PythonParseResult parse(PythonContext context, PythonModule module, Source source) {
-        InputStream istream = new ByteArrayInputStream(source.getCode().getBytes());
+        InputStream istream = new ByteArrayInputStream(source.getCharacters().toString().getBytes());
         String filename = source.getPath();
         org.python.antlr.base.mod node = ParserFacade.parse(istream, CompileMode.exec, filename, cookCompilerFlags());
 

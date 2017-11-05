@@ -39,6 +39,8 @@ public class PythonOptions {
 
     public static boolean VisualizedAST = Boolean.getBoolean(propPkgName + ".VisualizedAST"); // false
 
+    public static boolean VisualizedASTverbose = Boolean.getBoolean(propPkgName + ".VisualizedASTverbose"); // false
+
     public static String PrintASTFilter = System.getProperty(propPkgName + ".PrintASTFilter"); // null
 
     public static boolean TraceJythonRuntime = Boolean.getBoolean(propPkgName + ".TraceJythonRuntime"); // false

@@ -63,7 +63,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(rewriteOn = ArithmeticException.class)
         int doInteger(int left, int right) {
-            return ExactMath.addExact(left, right);
+            return Math.addExact(left, right);
         }
 
         @Specialization
@@ -194,7 +194,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(rewriteOn = ArithmeticException.class)
         int doInteger(int left, int right) {
-            return ExactMath.subtractExact(left, right);
+            return Math.subtractExact(left, right);
         }
 
         @Specialization
@@ -246,7 +246,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
 
         @Specialization(rewriteOn = ArithmeticException.class)
         int doInteger(int left, int right) {
-            return ExactMath.multiplyExact(left, right);
+            return Math.multiplyExact(left, right);
         }
 
         @Specialization

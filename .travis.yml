@@ -21,32 +21,63 @@ matrix:
       dist: trusty
       env:
         - ZIPPY_JDK_TYPE=GRAALJVM_LINUX
+        - JVMCI_VERSION="jvmci-0.36"
+        - JVMCI_BASE_JDK8="openjdk1.8.0_141"
+        - BUILD_JVMCI=FALSE
+        - IS_JDK9=FALSE
         - IS_GRAALJVM=TRUE
       jdk: oraclejdk8
       addons:
         apt:
           packages:
             - oracle-java8-installer
+            - wget
     - os: osx
       env:
         - ZIPPY_JDK_TYPE=STANDARD_OSX
         - IS_GRAALJVM=FASLE
-      osx_image: xcode8.2
+      osx_image: xcode9.1
     - os: osx
       env:
         - ZIPPY_JDK_TYPE=GRAALJVM_OSX
+        - BUILD_JVMCI=TRUE
+        - IS_JDK9=FALSE
         - IS_GRAALJVM=TRUE
-      osx_image: xcode8.2
+      osx_image: xcode9.1
+    # Future JDK9 with Graal
+    # - os: linux
+    #   dist: trusty
+    #   env:
+    #     - ZIPPY_JDK_TYPE=JVM9_LINUX
+    #     - IS_JDK9=TRUE
+    #     - IS_GRAALJVM=TRUE
+    #   jdk: oraclejdk9
+    #   addons:
+    #     apt:
+    #       packages:
+    #         - oracle-java9-installer
+    # - os: osx
+    #   env:
+    #     - ZIPPY_JDK_TYPE=JVM9_OSX
+    #     - IS_JDK9=TRUE
+    #     - IS_GRAALJVM=TRUE
+    #   osx_image: xcode9.1
 
 before_install:
   - echo $TRAVIS_OS_NAME
   - java -version
   - hg --version
   - python --version
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
         brew update;
         brew tap caskroom/cask;
-        brew cask reinstall java;
+
+        if [ "$IS_JDK9" == "FALSE" ]; then
+          brew cask reinstall caskroom/versions/java8;
+        else
+          brew cask reinstall java;
+        fi
+
         ls -l /Library/Java/JavaVirtualMachines/;
         export JAVA_HOME=$(/usr/libexec/java_home);
     fi
@@ -57,17 +88,28 @@ before_install:
 
 install:
   - if [ "$IS_GRAALJVM" == "TRUE" ]; then
-        cd ..;
-        hg clone http://hg.openjdk.java.net/graal/graal-jvmci-8;
-        cd graal-jvmci-8;
-        hg update jvmci-0.28;
-        mx build;
-        export JAVA_HOME=$(mx jdkhome);
-        echo $JAVA_HOME;
+      if [ "$IS_JDK9" == "FALSE" ]; then
+        if [ "$BUILD_JVMCI" == "FALSE" ]; then
+          JDK_TAR=${TRAVIS_BUILD_DIR}/../jdk.tar.gz;
+          wget https://github.com/dougxc/openjdk8-jvmci-builder/releases/download/${JVMCI_VERSION}/${JVMCI_BASE_JDK8}-${JVMCI_VERSION}-linux-amd64.tar.gz -O ${JDK_TAR};
+          tar -C ${TRAVIS_BUILD_DIR}/.. -xzf ${JDK_TAR};
+          export JAVA_HOME=${TRAVIS_BUILD_DIR}/../${JVMCI_BASE_JDK8}-${JVMCI_VERSION};
+        else
+          cd ..;
+          hg clone http://hg.openjdk.java.net/graal/graal-jvmci-8;
+          cd graal-jvmci-8;
+          hg update ${JVMCI_VERSION};
+          mx build;
+          export JAVA_HOME=$(mx jdkhome);
+        fi
+
         mx jdkhome;
-        cd ../zippy;
-        export DEFAULT_DYNAMIC_IMPORTS=truffle/compiler;
-        export ZIPPY_MUST_USE_GRAAL=1;
+      fi
+
+      echo $JAVA_HOME;
+      cd ../zippy;
+      export DEFAULT_DYNAMIC_IMPORTS=truffle/compiler;
+      export ZIPPY_MUST_USE_GRAAL=1;
     fi
 
 

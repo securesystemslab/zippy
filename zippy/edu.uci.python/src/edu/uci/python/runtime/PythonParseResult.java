@@ -94,11 +94,14 @@ public class PythonParseResult {
     }
 
     public void visualizeToNetwork() {
-        new GraphPrintVisitor().beginGraph("module").visit(rootNode).printToNetwork(true);
+        boolean verbose = PythonOptions.VisualizedASTverbose;
+        String rootStr = verbose ? NodeUtil.printTreeToString(rootNode) : NodeUtil.printCompactTreeToString(rootNode);
+        System.out.println(rootStr);
 
         for (String functionName : functions.keySet()) {
-            RootNode root = functions.get(functionName);
-            new GraphPrintVisitor().beginGraph(functionName).visit(root).printToNetwork(true);
+            RootNode froot = functions.get(functionName);
+            String frootStr = verbose ? NodeUtil.printTreeToString(froot) : NodeUtil.printCompactTreeToString(froot);
+            System.out.println(frootStr);
         }
     }
 }
