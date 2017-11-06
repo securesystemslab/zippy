@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import edu.uci.python.builtins.module.ArrayModuleBuiltins;
+import edu.uci.python.builtins.module.FunctoolsModuleBuiltins;
 import edu.uci.python.builtins.module.MathModuleBuiltins;
 import edu.uci.python.builtins.module.RandomModuleBuiltins;
 import edu.uci.python.builtins.module.TimeModuleBuiltins;
@@ -78,6 +79,7 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         addModule("time", createModule("time", context, new TimeModuleBuiltins()));
         addModule("math", createModule("math", context, new MathModuleBuiltins()));
         addModule("random", createModule("random", context, new RandomModuleBuiltins()));
+        addModule("functools", createModule("functools", context, new FunctoolsModuleBuiltins()));
 
         // Only populate builtins, no need to add it to the builtinTypes lookup.
         createType("object", context, builtinsModule, new ObjectBuiltins());

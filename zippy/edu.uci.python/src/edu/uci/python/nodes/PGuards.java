@@ -189,4 +189,8 @@ public abstract class PGuards {
         return (initializer instanceof PNone);
     }
 
+    public static boolean noInitializer(Object initializer) {
+        return (initializer instanceof PNone);
+    }
+
 }

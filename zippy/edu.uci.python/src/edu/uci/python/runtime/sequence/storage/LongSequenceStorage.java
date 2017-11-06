@@ -50,6 +50,15 @@ public final class LongSequenceStorage extends BasicSequenceStorage {
         length = elements.length;
     }
 
+    public LongSequenceStorage(int[] internalIntArray) {
+        this.values = new long[internalIntArray.length];
+        capacity = values.length;
+        length = internalIntArray.length;
+        for (int i = 0; i < length; i++) {
+            values[i] = internalIntArray[i];
+        }
+    }
+
     @Override
     protected void increaseCapacityExactWithCopy(int newCapacity) {
         values = Arrays.copyOf(values, newCapacity);
@@ -272,6 +281,9 @@ public final class LongSequenceStorage extends BasicSequenceStorage {
     public void extend(SequenceStorage other) throws SequenceStoreException {
         if (other instanceof LongSequenceStorage) {
             extendWithLongStorage((LongSequenceStorage) other);
+        }
+        if (other instanceof IntSequenceStorage) {
+            extendWithLongStorage(new LongSequenceStorage(((IntSequenceStorage) other).getInternalIntArray()));
         } else {
             throw SequenceStoreException.INSTANCE;
         }
