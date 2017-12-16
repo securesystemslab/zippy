@@ -30,11 +30,8 @@ import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.debug.DebuggerTags;
-import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
-import com.oracle.truffle.api.metadata.ScopeProvider;
-import com.oracle.truffle.api.nodes.Node;
 
 import edu.uci.python.builtins.PythonDefaultBuiltinsLookup;
 import edu.uci.python.nodes.ModuleNode;
@@ -49,7 +46,7 @@ import edu.uci.python.runtime.standardtype.PythonModule;
 
 @TruffleLanguage.Registration(name = "Python", version = "3.3", mimeType = PythonLanguage.MIME_TYPE, interactive = false)
 @ProvidedTags({StandardTags.CallTag.class, StandardTags.StatementTag.class, StandardTags.RootTag.class, DebuggerTags.AlwaysHalt.class})
-public final class PythonLanguage extends TruffleLanguage<PythonContext> implements ScopeProvider<PythonContext> {
+public final class PythonLanguage extends TruffleLanguage<PythonContext> {
 
     public static final String MIME_TYPE = "application/x-python";
     public static final String EXTENSION = ".py";
@@ -130,11 +127,6 @@ public final class PythonLanguage extends TruffleLanguage<PythonContext> impleme
     @Override
     protected boolean isObjectOfLanguage(Object object) {
         return object instanceof PNode;
-    }
-
-    public AbstractScope findScope(PythonContext langContext, Node node, Frame frame) {
-        // TODO implement ZipPy Scope for debugging
-        return null;
     }
 
 }

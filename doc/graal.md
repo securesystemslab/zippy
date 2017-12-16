@@ -34,10 +34,10 @@ $ export PATH=$ZIPPY_HOME/mx:$PATH
   * Build JVMCI from source (requires standard JDK and a C/C++ compiler tool chain):
   ```sh
     $ cd $ZIPPY_HOME
-    $ hg clone http://hg.openjdk.java.net/graal/graal-jvmci-8
+    $ git clone https://github.com/graalvm/graal-jvmci-8.git
     $ echo "JAVA_HOME=$JAVA_HOME" > $ZIPPY_HOME/graal-jvmci-8/mx.jvmci/env
     $ cd graal-jvmci-8
-    $ hg update jvmci-0.28
+    $ git checkout jvmci-0.39
     $ mx build
     $ export JVMCI_HOME=$(mx jdkhome)
   ```

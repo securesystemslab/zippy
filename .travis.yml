@@ -21,7 +21,7 @@ matrix:
       dist: trusty
       env:
         - ZIPPY_JDK_TYPE=GRAALJVM_LINUX
-        - JVMCI_VERSION="jvmci-0.36"
+        - JVMCI_VERSION="jvmci-0.39"
         - JVMCI_BASE_JDK8="openjdk1.8.0_141"
         - BUILD_JVMCI=FALSE
         - IS_JDK9=FALSE
@@ -43,6 +43,7 @@ matrix:
         - BUILD_JVMCI=TRUE
         - IS_JDK9=FALSE
         - IS_GRAALJVM=TRUE
+        - JVMCI_VERSION="jvmci-0.39"
       osx_image: xcode8.2
     # Future JDK9 with Graal
     # - os: linux
@@ -101,9 +102,9 @@ install:
         else
 
           cd ..;
-          hg clone http://hg.openjdk.java.net/graal/graal-jvmci-8;
+          git clone https://github.com/graalvm/graal-jvmci-8.git;
           cd graal-jvmci-8;
-          hg update ${JVMCI_VERSION};
+          git checkout ${JVMCI_VERSION};
           mx build;
           export JAVA_HOME=$(mx jdkhome);
 
