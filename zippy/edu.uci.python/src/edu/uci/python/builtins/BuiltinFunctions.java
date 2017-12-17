@@ -912,7 +912,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
                 b = (BigInteger) arg2;
 
             if (a != null && b != null) {
-                BigInteger m = a.max(b);
+                BigInteger m = a.min(b);
                 if (m.compareTo(BigInteger.valueOf(m.intValue())) == 0) {
                     return m.intValue();
                 }
