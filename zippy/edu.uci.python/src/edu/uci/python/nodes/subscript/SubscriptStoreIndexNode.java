@@ -57,6 +57,20 @@ public abstract class SubscriptStoreIndexNode extends SubscriptStoreNode {
         return PNone.NONE;
     }
 
+    @Specialization(guards = {"isLongStorage(primary)", "isIndexPositive(primary,idx)"})
+    public Object doPListLong(PList primary, int idx, long value) {
+        final LongSequenceStorage store = (LongSequenceStorage) primary.getStorage();
+        store.setLongItemNormalized(idx, value);
+        return PNone.NONE;
+    }
+
+    @Specialization(guards = {"isLongStorage(primary)", "isIndexNegative(primary,idx)"})
+    public Object doPListLongNegative(PList primary, int idx, long value) {
+        final LongSequenceStorage store = (LongSequenceStorage) primary.getStorage();
+        store.setLongItemNormalized(idx + store.length(), value);
+        return PNone.NONE;
+    }
+
     @Specialization(guards = {"isDoubleStorage(primary)", "isIndexPositive(primary,idx)"})
     public Object doPListDouble(PList primary, int idx, double value) {
         final DoubleSequenceStorage store = (DoubleSequenceStorage) primary.getStorage();

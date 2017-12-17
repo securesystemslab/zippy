@@ -99,8 +99,8 @@ public class PythonTypes {
     }
 
     @ImplicitCast
-    public static BigInteger intToBigInteger(int value) {
-        return BigInteger.valueOf(value);
+    public static long intToLong(int value) {
+        return Long.valueOf(value);
     }
 
     @ImplicitCast
@@ -110,6 +110,11 @@ public class PythonTypes {
 
     @ImplicitCast
     public static double intToDouble(int value) {
+        return value;
+    }
+
+    @ImplicitCast
+    public static double longToDouble(long value) {
         return value;
     }
 

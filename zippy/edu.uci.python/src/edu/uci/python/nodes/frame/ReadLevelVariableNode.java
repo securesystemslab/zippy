@@ -69,6 +69,11 @@ public abstract class ReadLevelVariableNode extends ReadVariableNode {
     }
 
     @Override
+    protected final ReadVariableNode createReadLong(ReadVariableNode prev) {
+        return new ReadLevelVariableLongNode((ReadLevelVariableNode) prev);
+    }
+
+    @Override
     protected final ReadVariableNode createReadDouble(ReadVariableNode prev) {
         return new ReadLevelVariableDoubleNode((ReadLevelVariableNode) prev);
     }
@@ -129,6 +134,26 @@ public abstract class ReadLevelVariableNode extends ReadVariableNode {
         public Object execute(VirtualFrame frame) {
             MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
             return doIntBoxed(frame, parent);
+        }
+    }
+
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
+    private static final class ReadLevelVariableLongNode extends ReadLevelVariableNode {
+
+        ReadLevelVariableLongNode(ReadLevelVariableNode copy) {
+            super(copy);
+        }
+
+        @Override
+        public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
+            MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
+            return doLongUnboxed(frame, parent);
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            MaterializedFrame parent = FrameUtil.getParentFrame(frame, level);
+            return doLongBoxed(frame, parent);
         }
     }
 

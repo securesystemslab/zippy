@@ -67,6 +67,11 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
     }
 
     @Override
+    protected final ReadVariableNode createReadLong(ReadVariableNode prev) {
+        return new ReadLocalVariableLongNode((ReadLocalVariableNode) prev);
+    }
+
+    @Override
     protected final ReadVariableNode createReadDouble(ReadVariableNode prev) {
         return new ReadLocalVariableDoubleNode((ReadLocalVariableNode) prev);
     }
@@ -126,6 +131,28 @@ public abstract class ReadLocalVariableNode extends ReadVariableNode {
         @Override
         public Object execute(VirtualFrame frame) {
             return doIntBoxed(frame, frame);
+        }
+    }
+
+    @NodeInfo(cost = NodeCost.MONOMORPHIC)
+    private static final class ReadLocalVariableLongNode extends ReadLocalVariableNode {
+
+        ReadLocalVariableLongNode(ReadLocalVariableNode copy) {
+            super(copy);
+        }
+
+        @Override
+        public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
+            if (frameSlot.getKind() == FrameSlotKind.Long) {
+                return getLong(frame);
+            } else {
+                return PythonTypesGen.expectLong(executeNext(frame));
+            }
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            return doLongBoxed(frame, frame);
         }
     }
 

@@ -68,6 +68,11 @@ public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
     }
 
     @Override
+    protected final ReadVariableNode createReadLong(ReadVariableNode prev) {
+        return new ReadGeneratorFrameVariableLongNode((ReadGeneratorFrameVariableNode) prev);
+    }
+
+    @Override
     protected final ReadVariableNode createReadDouble(ReadVariableNode prev) {
         return new ReadGeneratorFrameVariableDoubleNode((ReadGeneratorFrameVariableNode) prev);
     }
@@ -129,6 +134,29 @@ public abstract class ReadGeneratorFrameVariableNode extends ReadVariableNode {
         public Object execute(VirtualFrame frame) {
             MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
             return doIntBoxed(frame, mframe);
+        }
+    }
+
+    private static final class ReadGeneratorFrameVariableLongNode extends ReadGeneratorFrameVariableNode {
+
+        ReadGeneratorFrameVariableLongNode(ReadGeneratorFrameVariableNode copy) {
+            super(copy);
+        }
+
+        @Override
+        public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
+            MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
+            if (frameSlot.getKind() == FrameSlotKind.Long) {
+                return getLong(mframe);
+            } else {
+                return PythonTypesGen.expectLong(execute(frame));
+            }
+        }
+
+        @Override
+        public Object execute(VirtualFrame frame) {
+            MaterializedFrame mframe = PArguments.getGeneratorFrame(frame);
+            return doLongBoxed(frame, mframe);
         }
     }
 

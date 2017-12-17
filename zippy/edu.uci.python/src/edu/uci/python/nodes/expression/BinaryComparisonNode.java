@@ -44,13 +44,18 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     @GenerateNodeFactory
     public abstract static class EqualNode extends BinaryComparisonNode {
 
-        @Specialization()
+        @Specialization
         boolean doBoolean(boolean left, boolean right) {
             return left == right;
         }
 
-        @Specialization()
+        @Specialization
         boolean doInteger(int left, int right) {
+            return left == right;
+        }
+
+        @Specialization
+        boolean doLong(long left, long right) {
             return left == right;
         }
 
@@ -161,6 +166,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
 
         @Specialization
+        boolean doLong(long left, long right) {
+            return left != right;
+        }
+
+        @Specialization
         boolean doBigInteger(BigInteger left, BigInteger right) {
             return !left.equals(right);
         }
@@ -217,6 +227,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
         }
 
         @Specialization
+        boolean doLong(long left, long right) {
+            return left < right;
+        }
+
+        @Specialization
         boolean doBigInteger(BigInteger left, BigInteger right) {
             return left.compareTo(right) < 0;
         }
@@ -248,6 +263,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
         @Specialization
         boolean doInteger(int left, int right) {
+            return left <= right;
+        }
+
+        @Specialization
+        boolean doLong(long left, long right) {
             return left <= right;
         }
 
@@ -284,6 +304,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
         @Specialization()
         boolean doInteger(int left, int right) {
+            return left > right;
+        }
+
+        @Specialization
+        boolean doLong(long left, long right) {
             return left > right;
         }
 
@@ -324,6 +349,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
 
         @Specialization()
         boolean doInteger(int left, int right) {
+            return left >= right;
+        }
+
+        @Specialization
+        boolean doLong(long left, long right) {
             return left >= right;
         }
 
@@ -379,6 +409,11 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
             return left == right;
         }
 
+        @Specialization
+        boolean doLong(long left, long right) {
+            return left == right;
+        }
+
         @Specialization()
         boolean doBigInteger(BigInteger left, BigInteger right) {
             return left.compareTo(right) == 0;
@@ -411,17 +446,22 @@ public abstract class BinaryComparisonNode extends BinaryOpNode {
     @GenerateNodeFactory
     public abstract static class IsNotNode extends BinaryComparisonNode {
 
-        @Specialization()
+        @Specialization
         boolean doInteger(int left, int right) {
             return left != right;
         }
 
-        @Specialization()
+        @Specialization
+        boolean doLong(long left, long right) {
+            return left != right;
+        }
+
+        @Specialization
         boolean doBigInteger(BigInteger left, BigInteger right) {
             return left.compareTo(right) != 0;
         }
 
-        @Specialization()
+        @Specialization
         boolean doDouble(double left, double right) {
             return left != right;
         }

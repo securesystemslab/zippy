@@ -45,8 +45,37 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
         }
 
         @Specialization
+        BigInteger doLong(long left, int right) {
+            return BigInteger.valueOf(left).shiftLeft(right);
+        }
+
+        @Specialization
+        BigInteger doLong(long left, long right) {
+            /**
+             * Right operand may lose precision, but it is harmless for a left shift.
+             */
+            return BigInteger.valueOf(left).shiftLeft(((Long) right).intValue());
+        }
+
+        @Specialization
         BigInteger doBigInteger(BigInteger left, int right) {
             return left.shiftLeft(right);
+        }
+
+        @Specialization
+        BigInteger doBigInteger(long left, BigInteger right) {
+            /**
+             * Right operand may lose precision, but it is harmless for a left shift.
+             */
+            return BigInteger.valueOf(left).shiftLeft(right.intValue());
+        }
+
+        @Specialization
+        BigInteger doBigInteger(BigInteger left, long right) {
+            /**
+             * Right operand may lose precision, but it is harmless for a left shift.
+             */
+            return left.shiftLeft(((Long) right).intValue());
         }
 
         @Specialization
@@ -68,8 +97,34 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
         }
 
         @Specialization
+        long doLong(long left, int right) {
+            return left >> right;
+        }
+
+        @Specialization
+        long doLong(long left, long right) {
+            return left >> right;
+        }
+
+        @Specialization
         BigInteger doBigInteger(BigInteger left, int right) {
             return left.shiftRight(right);
+        }
+
+        @Specialization
+        BigInteger doBigInteger(long left, BigInteger right) {
+            /**
+             * Right operand may lose precision.
+             */
+            return BigInteger.valueOf(left).shiftRight(right.intValue());
+        }
+
+        @Specialization
+        BigInteger doBigInteger(BigInteger left, long right) {
+            /**
+             * Right operand may lose precision.
+             */
+            return left.shiftRight(((Long) right).intValue());
         }
 
         @Specialization
@@ -88,6 +143,26 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
         @Specialization
         int doInteger(int left, int right) {
             return left & right;
+        }
+
+        @Specialization
+        long doLong(long left, int right) {
+            return left & right;
+        }
+
+        @Specialization
+        long doLong(long left, long right) {
+            return left & right;
+        }
+
+        @Specialization
+        BigInteger doBigInteger(long left, BigInteger right) {
+            return BigInteger.valueOf(left).and(right);
+        }
+
+        @Specialization
+        BigInteger doBigInteger(BigInteger left, long right) {
+            return left.and(BigInteger.valueOf(right));
         }
 
         @Specialization
@@ -111,6 +186,26 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
         }
 
         @Specialization
+        long doLong(long left, int right) {
+            return left ^ right;
+        }
+
+        @Specialization
+        long doLong(long left, long right) {
+            return left ^ right;
+        }
+
+        @Specialization
+        BigInteger doBigInteger(long left, BigInteger right) {
+            return BigInteger.valueOf(left).xor(right);
+        }
+
+        @Specialization
+        BigInteger doBigInteger(BigInteger left, long right) {
+            return left.xor(BigInteger.valueOf(right));
+        }
+
+        @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return left.xor(right);
         }
@@ -123,6 +218,26 @@ public abstract class BinaryBitwiseNode extends BinaryOpNode {
         @Specialization
         int doInteger(int left, int right) {
             return left | right;
+        }
+
+        @Specialization
+        long doLong(long left, int right) {
+            return left | right;
+        }
+
+        @Specialization
+        long doLong(long left, long right) {
+            return left | right;
+        }
+
+        @Specialization
+        BigInteger doBigInteger(long left, BigInteger right) {
+            return BigInteger.valueOf(left).or(right);
+        }
+
+        @Specialization
+        BigInteger doBigInteger(BigInteger left, long right) {
+            return left.or(BigInteger.valueOf(right));
         }
 
         @Specialization

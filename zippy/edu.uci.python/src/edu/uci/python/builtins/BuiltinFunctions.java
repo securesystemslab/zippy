@@ -76,6 +76,16 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         @Specialization
+        public long absLong(long arg) {
+            return Math.abs(arg);
+        }
+
+        @Specialization
+        public BigInteger absBigInt(BigInteger arg) {
+            return arg.abs();
+        }
+
+        @Specialization
         public double absDouble(double arg) {
             return Math.abs(arg);
         }
@@ -778,7 +788,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         private static Object getMax(Object arg1, Object arg2) {
-
+            // FIXME: specialize
             if (arg1 instanceof Double) {
                 double arg1Double = (Double) arg1;
                 if (arg2 instanceof Integer || arg2 instanceof Double) {
@@ -803,8 +813,18 @@ public final class BuiltinFunctions extends PythonBuiltins {
             else if (arg2 instanceof BigInteger)
                 b = (BigInteger) arg2;
 
-            if (a != null && b != null)
-                return a.max(b);
+            if (a != null && b != null) {
+                BigInteger m = a.max(b);
+                if (m.compareTo(BigInteger.valueOf(m.intValue())) == 0) {
+                    return m.intValue();
+                }
+
+                if (m.compareTo(BigInteger.valueOf(m.longValue())) == 0) {
+                    return m.intValue();
+                }
+
+                return m;
+            }
 
             throw new RuntimeException("Unsupported max operation");
         }
@@ -867,6 +887,7 @@ public final class BuiltinFunctions extends PythonBuiltins {
         }
 
         private static Object getMin(Object arg1, Object arg2) {
+            // FIXME: specialize
             if (arg1 instanceof Double) {
                 double arg1Double = (Double) arg1;
                 if (arg2 instanceof Integer || arg2 instanceof Long || arg2 instanceof Double) {
@@ -890,8 +911,18 @@ public final class BuiltinFunctions extends PythonBuiltins {
             else if (arg2 instanceof BigInteger)
                 b = (BigInteger) arg2;
 
-            if (a != null && b != null)
-                return a.min(b);
+            if (a != null && b != null) {
+                BigInteger m = a.max(b);
+                if (m.compareTo(BigInteger.valueOf(m.intValue())) == 0) {
+                    return m.intValue();
+                }
+
+                if (m.compareTo(BigInteger.valueOf(m.longValue())) == 0) {
+                    return m.intValue();
+                }
+
+                return m;
+            }
 
             throw new RuntimeException("Unsupported min operation");
         }

@@ -53,6 +53,8 @@ public abstract class ReadVariableNode extends FrameSlotNode implements ReadNode
 
     protected abstract ReadVariableNode createReadInt(ReadVariableNode prev);
 
+    protected abstract ReadVariableNode createReadLong(ReadVariableNode prev);
+
     protected abstract ReadVariableNode createReadDouble(ReadVariableNode prev);
 
     protected abstract ReadVariableNode createReadObject(ReadVariableNode prev);
@@ -82,6 +84,8 @@ public abstract class ReadVariableNode extends FrameSlotNode implements ReadNode
             readNode = createReadObject(this);
         } else if (accessingFrame.isInt(frameSlot)) {
             readNode = createReadInt(this);
+        } else if (accessingFrame.isLong(frameSlot)) {
+            readNode = createReadLong(this);
         } else if (accessingFrame.isDouble(frameSlot)) {
             readNode = createReadDouble(this);
         } else if (accessingFrame.isBoolean(frameSlot)) {
@@ -120,6 +124,22 @@ public abstract class ReadVariableNode extends FrameSlotNode implements ReadNode
     protected final Object doIntBoxed(VirtualFrame frame, Frame accessingFrame) {
         if (frameSlot.getKind() == FrameSlotKind.Int) {
             return getInteger(accessingFrame);
+        } else {
+            return executeNext(frame);
+        }
+    }
+
+    protected final long doLongUnboxed(VirtualFrame frame, Frame accessingFrame) throws UnexpectedResultException {
+        if (frameSlot.getKind() == FrameSlotKind.Long) {
+            return getLong(accessingFrame);
+        } else {
+            return PythonTypesGen.expectLong(executeNext(frame));
+        }
+    }
+
+    protected final Object doLongBoxed(VirtualFrame frame, Frame accessingFrame) {
+        if (frameSlot.getKind() == FrameSlotKind.Long) {
+            return getLong(accessingFrame);
         } else {
             return executeNext(frame);
         }

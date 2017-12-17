@@ -88,6 +88,12 @@ public class BenchmarkTests {
     }
 
     @Test
+    public void binarytrees3_4() {
+        Path script = Paths.get("binarytrees3t.py");
+        assertBenchNoError(script, new String[]{script.toString(), "4"});
+    }
+
+    @Test
     public void nbody_acc_test() {
         Path script = Paths.get("nbody_acc_test.py");
         assertPrints("[[-22.62210194193863, 9.618242744937728], " + //

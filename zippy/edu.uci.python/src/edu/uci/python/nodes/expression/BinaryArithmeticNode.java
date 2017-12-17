@@ -66,9 +66,9 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return Math.addExact(left, right);
         }
 
-        @Specialization
-        Long doLong(Long left, Long right) {
-            return left + right;
+        @Specialization(rewriteOn = ArithmeticException.class)
+        long doLong(long left, long right) {
+            return Math.addExact(left, right);
         }
 
         @Specialization
@@ -197,9 +197,19 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return Math.subtractExact(left, right);
         }
 
-        @Specialization
+        @Specialization(rewriteOn = ArithmeticException.class)
         Long doLong(Long left, Long right) {
-            return left - right;
+            return Math.subtractExact(left, right);
+        }
+
+        @Specialization
+        BigInteger doBigInteger(long left, BigInteger right) {
+            return BigInteger.valueOf(left).subtract(right);
+        }
+
+        @Specialization
+        BigInteger doBigInteger(BigInteger left, long right) {
+            return left.subtract(BigInteger.valueOf(right));
         }
 
         @Specialization
@@ -249,9 +259,19 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return Math.multiplyExact(left, right);
         }
 
-        @Specialization
-        Long doLong(Long left, Long right) {
-            return left * right;
+        @Specialization(rewriteOn = ArithmeticException.class)
+        Long doLong(int left, long right) {
+            return Math.multiplyExact(left, right);
+        }
+
+        @Specialization(rewriteOn = ArithmeticException.class)
+        Long doLong(long left, int right) {
+            return Math.multiplyExact(left, right);
+        }
+
+        @Specialization(rewriteOn = ArithmeticException.class)
+        Long doLong(long left, long right) {
+            return Math.multiplyExact(left, right);
         }
 
         @Specialization
@@ -360,7 +380,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
          * double division by zero in Java doesn't throw an exception, instead it yield Infinity
          * (NaN).
          */
-        @Specialization(rewriteOn = ArithmeticException.class)
+        @Specialization
         double doInteger(int left, int right) {
             if (right == 0) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
@@ -386,13 +406,28 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization
-        double doLong(double left, Long right) {
-            return left / right;
+        double doBigInteger(BigInteger left, int right) {
+            return FastMathUtil.slowPathDivide(left, BigInteger.valueOf(right)).doubleValue();
+        }
+
+        @Specialization
+        double doBigInteger(BigInteger left, long right) {
+            return FastMathUtil.slowPathDivide(left, BigInteger.valueOf(right)).doubleValue();
         }
 
         @Specialization
         double doBigInteger(BigInteger left, BigInteger right) {
             return FastMathUtil.slowPathDivide(left, right).doubleValue();
+        }
+
+        @Specialization
+        double doDouble(double left, int right) {
+            return left / right;
+        }
+
+        @Specialization
+        double doDouble(double left, long right) {
+            return left / right;
         }
 
         @Specialization
@@ -448,6 +483,16 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization
+        BigInteger doBigInteger(long left, BigInteger right) {
+            return FastMathUtil.slowPathDivide(BigInteger.valueOf(left), right);
+        }
+
+        @Specialization
+        BigInteger doBigInteger(BigInteger left, long right) {
+            return FastMathUtil.slowPathDivide(left, BigInteger.valueOf(right));
+        }
+
+        @Specialization
         BigInteger doBigInteger(BigInteger left, BigInteger right) {
             return FastMathUtil.slowPathDivide(left, right);
         }
@@ -490,28 +535,20 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
             return left < 0;
         }
 
-        @Specialization(guards = "isLeftPositive(left)")
-        long doLong(long left, int right) {
-            return left % right;
-        }
-
+        @TruffleBoundary
         @Specialization
-        long doLongNegative(long left, int right) {
-            return (left + right) % right;
-        }
-
-        @Specialization(guards = "isLeftPositive(left)")
         long doLong(long left, long right) {
-            return left % right;
-        }
-
-        @Specialization
-        long doLongNegative(long left, long right) {
-            return (left + right) % right;
+            return BigInteger.valueOf(left).mod(BigInteger.valueOf(right)).longValue();
         }
 
         protected static boolean isLeftPositive(long left) {
             return left >= 0;
+        }
+
+        @TruffleBoundary
+        @Specialization
+        BigInteger doBigInteger(BigInteger left, long right) {
+            return left.mod(BigInteger.valueOf(right));
         }
 
         @TruffleBoundary
@@ -554,7 +591,10 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         @Specialization
         Object doInteger(int left, int right) {
             BigInteger val = BigInteger.valueOf(left).pow(right);
-            return (val.longValue() <= Integer.MAX_VALUE) ? val.intValue() : val;
+            if (val.longValue() <= Integer.MAX_VALUE) {
+                return val.intValue();
+            }
+            return (val.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) <= 0) ? val.longValue() : val;
         }
 
         @Specialization
