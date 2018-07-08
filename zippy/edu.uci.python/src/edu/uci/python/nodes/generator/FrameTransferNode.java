@@ -49,6 +49,10 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         super(prev.frameSlot);
     }
 
+    /**
+     * - TODO: To be fixed once there is a direct replacement
+     */
+    @SuppressWarnings("deprecation")
     @Specialization(guards = "isBooleanKind(frame)")
     public boolean write(VirtualFrame frame, boolean right) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
@@ -57,6 +61,10 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         return right;
     }
 
+    /**
+     * - TODO: To be fixed once there is a direct replacement
+     */
+    @SuppressWarnings("deprecation")
     @Specialization(guards = "isIntegerKind(frame)")
     public int doInteger(VirtualFrame frame, int value) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
@@ -65,6 +73,10 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         return value;
     }
 
+    /**
+     * - TODO: To be fixed once there is a direct replacement
+     */
+    @SuppressWarnings("deprecation")
     @Specialization(guards = "isIntOrObjectKind(frame)")
     public BigInteger write(VirtualFrame frame, BigInteger value) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
@@ -73,6 +85,10 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         return value;
     }
 
+    /**
+     * - TODO: To be fixed once there is a direct replacement
+     */
+    @SuppressWarnings("deprecation")
     @Specialization(guards = "isLongKind(frame)")
     public long doLong(VirtualFrame frame, long value) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
@@ -81,6 +97,10 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         return value;
     }
 
+    /**
+     * - TODO: To be fixed once there is a direct replacement
+     */
+    @SuppressWarnings("deprecation")
     @Specialization(guards = "isDoubleKind(frame)")
     public double doDouble(VirtualFrame frame, double right) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);
@@ -89,6 +109,10 @@ public abstract class FrameTransferNode extends FrameSlotNode {
         return right;
     }
 
+    /**
+     * - TODO: To be fixed once there is a direct replacement
+     */
+    @SuppressWarnings("deprecation")
     @Specialization(guards = "isObjectKind(frame)")
     public Object write(VirtualFrame frame, Object right) {
         VirtualFrame cargoFrame = PArguments.getVirtualFrameCargoArguments(frame);

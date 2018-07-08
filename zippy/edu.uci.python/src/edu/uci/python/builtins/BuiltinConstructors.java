@@ -386,10 +386,9 @@ public final class BuiltinConstructors extends PythonBuiltins {
     @GenerateNodeFactory
     public abstract static class MapNode extends PythonBuiltinNode {
 
-        @SuppressWarnings("unused")
         @Specialization
         public Object mapString(PythonCallable function, String str, PTuple iterators) {
-            return doMap(function, new PString(str).__iter__());
+            return doMap(function, new PString(str).__iter__(), iterators);
         }
 
         @SuppressWarnings("unused")
@@ -422,18 +421,27 @@ public final class BuiltinConstructors extends PythonBuiltins {
             return list;
         }
 
-        @SuppressWarnings("unused")
         @Specialization
         public Object mapFunctionIterable(PythonCallable function, PIterable iterable, PTuple iterators) {
-            return doMap(function, iterable.__iter__());
+            return doMap(function, iterable.__iter__(), iterators);
         }
 
-        private static PList doMap(PythonCallable mappingFunction, PIterator iter) {
+        private static PList doMap(PythonCallable mappingFunction, PIterator iter, PTuple iterators) {
             PList list = new PList();
-
+            Object[] objIters = iterators.getArray();
+            final int argsLen = objIters.length;
+            PIterator[] iters = new PIterator[argsLen];
+            for (int i = 0; i < argsLen; i++) {
+                iters[i] = objIters[i] instanceof PList ? ((PList) objIters[i]).__iter__() : (PIterator) objIters[i];
+            }
+            final Object[] args = new Object[1 + argsLen];
             try {
                 while (true) {
-                    list.append(mappingFunction.call(PArguments.createWithUserArguments(iter.__next__())));
+                    args[0] = iter.__next__();
+                    for (int i = 1; i < (argsLen + 1); i++) {
+                        args[i] = iters[i - 1].__next__();
+                    }
+                    list.append(mappingFunction.call(PArguments.createWithUserArguments(args)));
                 }
             } catch (StopIterationException e) {
 

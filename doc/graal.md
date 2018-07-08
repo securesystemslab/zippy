@@ -37,7 +37,7 @@ $ export PATH=$ZIPPY_HOME/mx:$PATH
     $ git clone https://github.com/graalvm/graal-jvmci-8.git
     $ echo "JAVA_HOME=$JAVA_HOME" > $ZIPPY_HOME/graal-jvmci-8/mx.jvmci/env
     $ cd graal-jvmci-8
-    $ git checkout jvmci-0.39
+    $ git checkout jvmci-0.46
     $ mx build
     $ export JVMCI_HOME=$(mx jdkhome)
   ```

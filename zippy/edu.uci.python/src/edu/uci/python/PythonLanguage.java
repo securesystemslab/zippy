@@ -40,14 +40,14 @@ import edu.uci.python.parser.PythonParserImpl;
 import edu.uci.python.runtime.PythonContext;
 import edu.uci.python.runtime.PythonOptions;
 import edu.uci.python.runtime.PythonParseResult;
-import edu.uci.python.runtime.function.PFunction;
 import edu.uci.python.runtime.object.PythonObjectAllocationInstrumentor;
 import edu.uci.python.runtime.standardtype.PythonModule;
 
-@TruffleLanguage.Registration(name = "Python", version = "3.3", mimeType = PythonLanguage.MIME_TYPE, interactive = false)
+@TruffleLanguage.Registration(name = PythonLanguage.LANGUAGE_ID, version = "3.3", mimeType = PythonLanguage.MIME_TYPE, interactive = false)
 @ProvidedTags({StandardTags.CallTag.class, StandardTags.StatementTag.class, StandardTags.RootTag.class, DebuggerTags.AlwaysHalt.class})
 public final class PythonLanguage extends TruffleLanguage<PythonContext> {
 
+    public static final String LANGUAGE_ID = "python";
     public static final String MIME_TYPE = "application/x-python";
     public static final String EXTENSION = ".py";
 
@@ -107,21 +107,6 @@ public final class PythonLanguage extends TruffleLanguage<PythonContext> {
 
         Py.flushLine();
 
-    }
-
-    @Override
-    protected Object findExportedSymbol(PythonContext context, String globalName, boolean onlyExplicit) {
-        for (PFunction f : context.getFunctionRegistry().getFunctions()) {
-            if (globalName.equals(f.getName())) {
-                return f;
-            }
-        }
-        return null;
-    }
-
-    @Override
-    protected Object getLanguageGlobal(PythonContext context) {
-        return context;
     }
 
     @Override

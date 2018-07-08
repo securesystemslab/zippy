@@ -131,6 +131,10 @@ public final class FunctionRootNode extends RootNode {
         return uninitializedBody;
     }
 
+    /**
+     * - TODO: To be fixed once there is a direct replacement
+     */
+    @SuppressWarnings("deprecation")
     @Override
     public FunctionRootNode copy() {
         return new FunctionRootNode(context, getSourceSection(), functionName, isGenerator, getFrameDescriptor().shallowCopy(), uninitializedBody);
@@ -398,8 +402,7 @@ public final class FunctionRootNode extends RootNode {
     }
 
     @Override
-    public SourceSection getSourceSection()
-    {
+    public SourceSection getSourceSection() {
         return sourceSection;
     }
 }

@@ -44,8 +44,6 @@ import org.python.util.JLineConsole;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.source.Source;
-import com.oracle.truffle.api.vm.PolyglotEngine;
-import com.oracle.truffle.api.vm.PolyglotEngine.Builder;
 
 import edu.uci.python.PythonLanguage;
 import edu.uci.python.builtins.PythonDefaultBuiltinsLookup;
@@ -59,8 +57,12 @@ import edu.uci.python.runtime.standardtype.PythonModule;
 
 public class ZipPyConsole extends InteractiveConsole {
 
+    /**
+     * - TODO: deprecation
+     */
+    @SuppressWarnings("deprecation")
     public void execfile(Source source, InputStream in, OutputStream out, OutputStream err) {
-        Builder builder = PolyglotEngine.newBuilder();
+        com.oracle.truffle.api.vm.PolyglotEngine.Builder builder = com.oracle.truffle.api.vm.PolyglotEngine.newBuilder();
         if (in != null)
             builder.setIn(in);
 
@@ -70,7 +72,7 @@ public class ZipPyConsole extends InteractiveConsole {
         if (err != null)
             builder.setErr(err);
 
-        PolyglotEngine engine = builder.build();
+        com.oracle.truffle.api.vm.PolyglotEngine engine = builder.build();
         engine.eval(source);
         engine.dispose();
     }
