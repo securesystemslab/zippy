@@ -22,7 +22,7 @@ matrix:
       env:
         - ZIPPY_JDK_TYPE=GRAALJVM_LINUX
         - JVMCI_VERSION="jvmci-0.46"
-        - JVMCI_BASE_JDK8_TAR="openjdk8u172-jvmci"
+        - JVMCI_BASE_JDK8_TAR="openjdk-8u172"
         - JVMCI_BASE_JDK8="openjdk1.8.0_172"
         - BUILD_JVMCI=FALSE
         - IS_JDK9=FALSE
@@ -36,6 +36,7 @@ matrix:
     - os: osx
       env:
         - ZIPPY_JDK_TYPE=STANDARD_OSX
+        - IS_JDK9=FALSE
         - IS_GRAALJVM=FASLE
       osx_image: xcode9.1
     - os: osx
@@ -45,7 +46,7 @@ matrix:
         - IS_JDK9=FALSE
         - IS_GRAALJVM=TRUE
         - JVMCI_VERSION="jvmci-0.46"
-      osx_image: xcode8.2
+      osx_image: xcode8.3
     # Future JDK9 with Graal
     # - os: linux
     #   dist: trusty
@@ -73,6 +74,7 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then
         brew update;
         brew tap caskroom/cask;
+        brew cask search java;
 
         if [ "$IS_JDK9" == "FALSE" ]; then
           brew cask reinstall caskroom/versions/java8;
@@ -101,12 +103,13 @@ install:
           export JAVA_HOME=${TRAVIS_BUILD_DIR}/../${JVMCI_BASE_JDK8}-${JVMCI_VERSION};
 
         else
-
+          echo "Building JDK with JVMCI"
           cd ..;
           git clone https://github.com/graalvm/graal-jvmci-8.git;
           cd graal-jvmci-8;
           git checkout ${JVMCI_VERSION};
-          mx build;
+          git --no-pager log -1;
+          mx --vm=server --vmbuild=product build;
           export JAVA_HOME=$(mx jdkhome);
 
         fi;
