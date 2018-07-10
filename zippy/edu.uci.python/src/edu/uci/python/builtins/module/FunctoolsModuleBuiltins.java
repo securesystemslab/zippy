@@ -32,6 +32,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 
 import edu.uci.python.builtins.Builtin;
 import edu.uci.python.builtins.PythonBuiltins;
+import edu.uci.python.nodes.PNode;
 import edu.uci.python.nodes.function.PythonBuiltinNode;
 import edu.uci.python.runtime.datatype.PIterable;
 import edu.uci.python.runtime.datatype.PNone;
@@ -58,13 +59,10 @@ public class FunctoolsModuleBuiltins extends PythonBuiltins {
     @GenerateNodeFactory
     public abstract static class ReduceNode extends PythonBuiltinNode {
 
-        public Object reduceFunctionIterableAthena(PFunction function, PList iterable, PythonBuiltinObject initializer) {
-            PIterator iter = iterable.__iter__();
-            Object init = (initializer instanceof PNone) ? iter.__next__() : initializer;
-            return doReduce(function, iter, init);
-        }
+        public abstract PNode[] getArguments();
 
-        public Object reduceFunctionIterableAthena(PFunction function, PList iterable, Object initializer) {
+        @Specialization
+        public Object reduceFunctionIterable(PFunction function, PList iterable, Object initializer) {
             PIterator iter = iterable.__iter__();
             Object init = (initializer instanceof PNone) ? iter.__next__() : initializer;
             return doReduce(function, iter, init);

@@ -105,6 +105,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setItemNormalized(int idx, Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof Integer) {
             setIntItemNormalized(idx, (int) value);
         } else {
@@ -113,6 +114,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     }
 
     public void setIntItemNormalized(int idx, int value) {
+        this.changed = true;
         try {
             values[idx] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -123,6 +125,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void insertItem(int idx, Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof Integer) {
             insertIntItem(idx, (int) value);
         } else {
@@ -160,6 +163,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) throws SequenceStoreException {
+        this.changed = true;
         if (sequence instanceof IntSequenceStorage) {
             setIntSliceInBound(start, stop, step, (IntSequenceStorage) sequence);
         } else {
@@ -189,6 +193,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delSlice(int start, int stop) {
+        this.changed = true;
         if (stop == SequenceUtil.MISSING_INDEX) {
             length = start;
         }
@@ -196,6 +201,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delItemInBound(int idx) {
+        this.changed = true;
         if (values.length - 1 == idx) {
             popInt();
         } else {
@@ -205,6 +211,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public Object popInBound(int idx) {
+        this.changed = true;
         int pop = values[idx];
 
         for (int i = idx; i < values.length - 1; i++) {
@@ -244,6 +251,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void append(Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof Integer) {
             appendInt((int) value);
         } else {
@@ -259,6 +267,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void extend(SequenceStorage other) throws SequenceStoreException {
+        this.changed = true;
         if (other instanceof IntSequenceStorage) {
             extendWithIntStorage((IntSequenceStorage) other);
         } else {
@@ -282,6 +291,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     @ExplodeLoop
     @Override
     public void reverse() {
+        this.changed = true;
         int head = 0;
         int tail = length - 1;
         int middle = (length - 1) / 2;
@@ -296,6 +306,7 @@ public final class IntSequenceStorage extends BasicSequenceStorage {
     @ExplodeLoop
     @Override
     public void sort() {
+        this.changed = true;
         int[] copy = Arrays.copyOf(values, length);
         Arrays.sort(copy);
         values = copy;

@@ -1,4 +1,39 @@
+import mx
+import time
+import sys
 
+def print_wait(wait_time):
+    for remaining in range(wait_time, 0, -1):
+        sys.stdout.write("\r")
+        sys.stdout.write("[  ...  ] continue in {:2d} seconds".format(remaining))
+        sys.stdout.flush()
+        time.sleep(1)
+    print('')
+
+def print_ok(msg):
+    ok = mx.colorize('  OK   ', 'green')
+    print('[' + ok + '] ' + msg)
+
+def print_progress(msg):
+    print('[  ...  ] ' + msg)
+
+def print_error(msg):
+    err = mx.colorize(' ERROR ', 'red')
+    print('[' + err + '] ' + msg)
+
+def print_warn(msg):
+    w = mx.colorize('WARNING', 'magenta')
+    print('[' + w + '] ' + msg)
+
+def print_info(msg):
+    i = mx.colorize(' INFO  ', 'yellow')
+    print('[' + i + '] ' + msg)
+
+def print_status(is_ok, msg):
+    if is_ok:
+        print_ok(msg)
+    else:
+        print_error(msg)
 
 def _sanitize_vmArgs(jdk, vmArgs):
     '''
@@ -124,7 +159,7 @@ def _graal_heuristics_options(_mx_graal):
         # result += ['-XX:JVMCINMethodSizeLimit=1000000']
         result += ['-XX:+UseJVMCICompiler', '-Djvmci.Compiler=graal']
         # result += ['-Xms10g', '-Xmx16g']
-        result += ['-Dgraal.TraceTruffleCompilation=true']
+        # result += ['-Dgraal.TraceTruffleCompilation=true']
         result += ['-Dgraal.TruffleCompileImmediately=true']
         # result += ['-Dgraal.TraceTrufflePerformanceWarnings=true']
         # result += ['-Dgraal.TruffleCompilationExceptionsArePrinted=true']

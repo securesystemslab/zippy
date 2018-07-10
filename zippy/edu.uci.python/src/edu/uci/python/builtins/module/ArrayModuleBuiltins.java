@@ -60,7 +60,7 @@ public final class ArrayModuleBuiltins extends PythonBuiltins {
     public abstract static class PythonArrayNode extends PythonBuiltinNode {
 
         @SuppressWarnings("unused")
-        @Specialization(guards = "noInitializer(typeCode,initializer)")
+        @Specialization(guards = "noInitializer(initializer)")
         public PArray array(String typeCode, Object initializer) {
             /**
              * TODO @param typeCode should be a char, not a string

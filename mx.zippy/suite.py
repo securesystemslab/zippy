@@ -30,19 +30,19 @@ suite = {
       "sha1" : "99a18e9a44834afdebc467294e1138364c207402",
     },
 
+    "JAMM" : {
+      "urls" : [
+        "http://central.maven.org/maven2/com/github/jbellis/jamm/0.3.1/jamm-0.3.1.jar",
+      ],
+      "sha1" : "6d33cd9836cda65b4e9f6fbd6958d27e512523d3",
+    },
+
     "JYTHON" : {
       "path" : "lib/jython-standalone-2.7.0.jar",
       "urls" : [
         "http://search.maven.org/remotecontent?filepath=org/python/jython-standalone/2.7.0/jython-standalone-2.7.0.jar"
       ],
       "sha1" : "cdfb38bc6f8343bcf1d6accc2e1147e8e7b63b75",
-    },
-
-    "JAMM" : {
-      "urls" : [
-        "http://central.maven.org/maven2/com/github/stephenc/jamm/0.2.5/jamm-0.2.5.jar",
-      ],
-      "sha1" : "0422d3543c01df2f1d8bd1f3064adb54fb9e93f3",
     },
 
     "ASM" : {

@@ -105,6 +105,7 @@ public final class BoolSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setItemNormalized(int idx, Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof Boolean) {
             setBoolItemNormalized(idx, (boolean) value);
         } else {
@@ -113,6 +114,7 @@ public final class BoolSequenceStorage extends BasicSequenceStorage {
     }
 
     public void setBoolItemNormalized(int idx, boolean value) {
+        this.changed = true;
         try {
             values[idx] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -123,6 +125,7 @@ public final class BoolSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void insertItem(int idx, Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof Boolean) {
             insertBoolItem(idx, (boolean) value);
         } else {
@@ -160,6 +163,7 @@ public final class BoolSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) throws SequenceStoreException {
+        this.changed = true;
         if (sequence instanceof BoolSequenceStorage) {
             setBoolSliceInBound(start, stop, step, (BoolSequenceStorage) sequence);
         } else {
@@ -196,6 +200,7 @@ public final class BoolSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delItemInBound(int idx) {
+        this.changed = true;
         if (values.length - 1 == idx) {
             popBool();
         } else {
@@ -205,6 +210,7 @@ public final class BoolSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public Object popInBound(int idx) {
+        this.changed = true;
         boolean pop = values[idx];
 
         for (int i = idx; i < values.length - 1; i++) {
@@ -244,6 +250,7 @@ public final class BoolSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void append(Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof Boolean) {
             appendBool((boolean) value);
         } else {
@@ -259,6 +266,7 @@ public final class BoolSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void extend(SequenceStorage other) throws SequenceStoreException {
+        this.changed = true;
         if (other instanceof BoolSequenceStorage) {
             extendWithBoolStorage((BoolSequenceStorage) other);
         } else {
@@ -282,6 +290,7 @@ public final class BoolSequenceStorage extends BasicSequenceStorage {
     @ExplodeLoop
     @Override
     public void reverse() {
+        this.changed = true;
         int head = 0;
         int tail = length - 1;
         int middle = (length - 1) / 2;
@@ -297,6 +306,7 @@ public final class BoolSequenceStorage extends BasicSequenceStorage {
     @ExplodeLoop
     @Override
     public void sort() {
+        this.changed = true;
         boolean[] copy = Arrays.copyOf(values, length);
         int count = 0;
         for (boolean b : copy) {

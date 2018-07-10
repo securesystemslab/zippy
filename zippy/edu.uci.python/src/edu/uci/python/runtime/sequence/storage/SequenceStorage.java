@@ -26,6 +26,18 @@ package edu.uci.python.runtime.sequence.storage;
 
 public abstract class SequenceStorage {
 
+    protected boolean changed;
+
+    public boolean isChangedAndReset() {
+        final boolean v = changed;
+        changed = false;
+        return v;
+    }
+
+    protected SequenceStorage() {
+        this.changed = false;
+    }
+
     public abstract int length();
 
     public abstract SequenceStorage copy();

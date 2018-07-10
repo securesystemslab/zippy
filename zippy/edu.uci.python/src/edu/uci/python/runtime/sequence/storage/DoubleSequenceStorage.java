@@ -102,6 +102,7 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setItemNormalized(int idx, Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof Double) {
             setDoubleItemNormalized(idx, (double) value);
         } else {
@@ -110,6 +111,7 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
     }
 
     public void setDoubleItemNormalized(int idx, double value) {
+        this.changed = true;
         try {
             values[idx] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -120,6 +122,7 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void insertItem(int idx, Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof Double) {
             insertDoubleItem(idx, (double) value);
         } else {
@@ -157,6 +160,7 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) throws SequenceStoreException {
+        this.changed = true;
         if (sequence instanceof DoubleSequenceStorage) {
             setDoubleSliceInBound(start, stop, step, (DoubleSequenceStorage) sequence);
         } else {
@@ -165,6 +169,7 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
     }
 
     public void setDoubleSliceInBound(int start, int stop, int step, DoubleSequenceStorage sequence) {
+        this.changed = true;
         int otherLength = sequence.length();
 
         // range is the whole sequence?
@@ -186,6 +191,7 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delSlice(int start, int stop) {
+        this.changed = true;
         if (stop == SequenceUtil.MISSING_INDEX) {
             length = start;
         }
@@ -193,11 +199,13 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delItemInBound(int idx) {
+        this.changed = true;
         popInBound(idx);
     }
 
     @Override
     public Object popInBound(int idx) {
+        this.changed = true;
         double pop = values[idx];
 
         for (int i = idx; i < values.length - 1; i++) {
@@ -236,6 +244,7 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void append(Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof Double) {
             appendDouble((double) value);
         } else {
@@ -251,14 +260,16 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void extend(SequenceStorage other) throws SequenceStoreException {
+        this.changed = true;
         if (other instanceof DoubleSequenceStorage) {
-            extendWithIntStorage((DoubleSequenceStorage) other);
+            extendWithDoubleStorage((DoubleSequenceStorage) other);
         } else {
             throw SequenceStoreException.INSTANCE;
         }
     }
 
-    public void extendWithIntStorage(DoubleSequenceStorage other) {
+    public void extendWithDoubleStorage(DoubleSequenceStorage other) {
+        this.changed = true;
         int extendedLength = length + other.length();
         ensureCapacity(extendedLength);
         double[] otherValues = other.values;
@@ -272,6 +283,7 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void reverse() {
+        this.changed = true;
         int head = 0;
         int tail = length - 1;
         int middle = (length - 1) / 2;
@@ -285,6 +297,7 @@ public final class DoubleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void sort() {
+        this.changed = true;
         double[] copy = Arrays.copyOf(values, length);
         Arrays.sort(copy);
         values = copy;

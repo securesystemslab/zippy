@@ -1,9 +1,7 @@
-from argparse import ArgumentParser
 import re
 import os
 import sys
 import subprocess
-import urllib2
 import mx
 import mx_benchmark
 import mx_gate
@@ -12,10 +10,12 @@ from mx_unittest import unittest
 
 from mx_zippy_tools import _extract_zippy_internal_options, _zippy_help_options
 from mx_zippy_tools import _graal_heuristics_options
+from mx_zippy_tools import print_warn
 import mx_zippy_benchmark
 import mx_zippy_benchmark_asv
 import mx_zippy_asv_chart
 import mx_zippy_junit
+
 
 _suite = mx.suite('zippy')
 _mx_graal = mx.suite("compiler", fatalIfMissing=False)
@@ -23,11 +23,11 @@ _mx_graal = mx.suite("compiler", fatalIfMissing=False)
 def check_vm(vm_warning=True, must_be_jvmci=False):
     if not _mx_graal:
         if must_be_jvmci:
-            print '** Error ** : graal compiler was not found!'
+            print_warn('** Error ** : graal compiler was not found!')
             sys.exit(1)
 
         if vm_warning:
-            print '** warning ** : graal compiler was not found!! Executing using standard VM..'
+            print_warn('** warning ** : graal compiler was not found!! Executing using standard VM..')
 
 
 def get_jdk():
@@ -70,8 +70,8 @@ def do_run_python(args, extraVmArgs=None, env=None, jdk=None, **kwargs):
     vmArgs += _graal_heuristics_options(_mx_graal)
 
     # default: assertion checking is enabled
-    if extraVmArgs is None or not '-da' in extraVmArgs:
-        vmArgs += ['-ea', '-esa']
+    # if extraVmArgs is None or not '-da' in extraVmArgs:
+    #     vmArgs += ['-ea', '-esa']
 
     if extraVmArgs:
         vmArgs += extraVmArgs

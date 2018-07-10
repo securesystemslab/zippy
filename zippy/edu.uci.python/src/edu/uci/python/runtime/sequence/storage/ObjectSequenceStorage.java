@@ -59,6 +59,7 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setItemNormalized(int idx, Object value) {
+        this.changed = true;
         try {
             values[idx] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -69,6 +70,7 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void insertItem(int idx, Object value) {
+        this.changed = true;
         ensureCapacity(length + 1);
 
         // shifting tail to the right by one slot
@@ -98,6 +100,7 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) {
+        this.changed = true;
         int otherLength = sequence.length();
 
         // range is the whole sequence?
@@ -119,6 +122,7 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delSlice(int start, int stop) {
+        this.changed = true;
         if (stop == SequenceUtil.MISSING_INDEX) {
             length = start;
         }
@@ -126,6 +130,7 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delItemInBound(int idx) {
+        this.changed = true;
         popInBound(idx);
     }
 
@@ -158,6 +163,7 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void append(Object value) {
+        this.changed = true;
         ensureCapacity(length + 1);
         values[length] = value;
         length++;
@@ -165,6 +171,7 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void extend(SequenceStorage other) {
+        this.changed = true;
         int extendedLength = length + other.length();
         ensureCapacity(extendedLength);
         Object[] otherValues = other.getInternalArray();
@@ -178,6 +185,7 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public Object popInBound(int idx) {
+        this.changed = true;
         Object pop = values[idx];
 
         for (int i = idx; i < values.length - 1; i++) {
@@ -196,6 +204,7 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void reverse() {
+        this.changed = true;
         int head = 0;
         int tail = length - 1;
         int middle = (length - 1) / 2;
@@ -209,6 +218,7 @@ public final class ObjectSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void sort() {
+        this.changed = true;
         Object[] copy = getCopyOfInternalArray();
         Arrays.sort(copy);
         values = copy;

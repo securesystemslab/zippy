@@ -75,6 +75,7 @@ public final class PythonDefaultBuiltinsLookup implements PythonBuiltinsLookup {
         builtinsModule.setAttribute("object", context.getObjectClass());
         addModule("builtins", builtinsModule);
 
+        addModule("functools", createModule("functools", context, new FunctoolsModuleBuiltins()));
         addModule("array", createModule("array", context, new ArrayModuleBuiltins()));
         addModule("time", createModule("time", context, new TimeModuleBuiltins()));
         addModule("math", createModule("math", context, new MathModuleBuiltins()));

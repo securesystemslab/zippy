@@ -166,15 +166,16 @@ public class ZipPyConsole extends InteractiveConsole {
     }
 
     private static PySystemState createPySystemState(String[] args) {
+        String[] argsFiltered = args;
 
         // Setup the basic python system state from these options
         PySystemState systemState = null;
-        if (args.length > 0) {
-            Py.setSystemState(new PySystemState()).argv = passArgs(args);
-            Py.getSystemState().argv = passArgs(args);
+        if (argsFiltered.length > 0) {
+            Py.setSystemState(new PySystemState()).argv = passArgs(argsFiltered);
+            Py.getSystemState().argv = passArgs(argsFiltered);
             systemState = Py.getSystemState();
         } else {
-            PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), args);
+            PySystemState.initialize(PySystemState.getBaseProperties(), PySystemState.getBaseProperties(), argsFiltered);
             systemState = Py.getSystemState();
         }
 

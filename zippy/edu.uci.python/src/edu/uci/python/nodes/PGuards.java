@@ -184,11 +184,6 @@ public abstract class PGuards {
         return idx < 0;
     }
 
-    @SuppressWarnings("unused")
-    public static boolean noInitializer(String typeCode, Object initializer) {
-        return (initializer instanceof PNone);
-    }
-
     public static boolean noInitializer(Object initializer) {
         return (initializer instanceof PNone);
     }

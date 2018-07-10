@@ -198,7 +198,12 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization(rewriteOn = ArithmeticException.class)
-        Long doLong(Long left, Long right) {
+        long doLong(long left, int right) {
+            return Math.subtractExact(left, right);
+        }
+
+        @Specialization(rewriteOn = ArithmeticException.class)
+        long doLong(long left, long right) {
             return Math.subtractExact(left, right);
         }
 
@@ -260,17 +265,17 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization(rewriteOn = ArithmeticException.class)
-        Long doLong(int left, long right) {
+        long doLong(int left, long right) {
             return Math.multiplyExact(left, right);
         }
 
         @Specialization(rewriteOn = ArithmeticException.class)
-        Long doLong(long left, int right) {
+        long doLong(long left, int right) {
             return Math.multiplyExact(left, right);
         }
 
         @Specialization(rewriteOn = ArithmeticException.class)
-        Long doLong(long left, long right) {
+        long doLong(long left, long right) {
             return Math.multiplyExact(left, right);
         }
 
@@ -391,7 +396,7 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization
-        double doLong(Long left, Long right) {
+        double doLong(long left, long right) {
             if (right == 0) {
                 CompilerDirectives.transferToInterpreterAndInvalidate();
                 throw new ArithmeticException("divide by zero");
@@ -401,8 +406,8 @@ public abstract class BinaryArithmeticNode extends BinaryOpNode {
         }
 
         @Specialization
-        double doLong(Long left, double right) {
-            return (double) left / right;
+        double doLong(long left, double right) {
+            return left / right;
         }
 
         @Specialization

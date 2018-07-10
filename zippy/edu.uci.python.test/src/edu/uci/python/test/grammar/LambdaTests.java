@@ -42,4 +42,21 @@ public class LambdaTests {
         assertPrints("44\n48\n55\n", source);
     }
 
+    @Test
+    public void mapLambdaTest() {
+        String source = "n = 5\n" + //
+                        "print(list(map(lambda x:x*2, [i for i in range(10)])))\n" + //
+                        "print(map(lambda x:x*2 + n, [i for i in range(10)]))\n";
+        assertPrints("[0, 2, 4, 6, 8, 10, 12, 14, 16, 18]\n[5, 7, 9, 11, 13, 15, 17, 19, 21, 23]\n", source);
+    }
+
+    @Test
+    public void mapReduceLambdaTest() {
+        String source = "from functools import reduce\n" + //
+                        "print(reduce(lambda x, y: x + y, list(map(lambda x:x*2, [i for i in range(10)]))))\n" + //
+                        "print(reduce(lambda x, y: x * y + 1, map(lambda x:x*2, [i for i in range(10)])))\n" + //
+                        "print(reduce(lambda x, y: x * y + 1, map(lambda x:x*2, [i for i in range(10)]), 5))\n";
+        assertPrints("90\n120528883\n306323443\n", source);
+    }
+
 }

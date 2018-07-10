@@ -35,6 +35,8 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import edu.uci.python.ast.VisitorIF;
 import edu.uci.python.nodes.PNode;
 import edu.uci.python.nodes.frame.WriteNode;
+import edu.uci.python.nodes.generator.ComprehensionNode.ListComprehensionNode;
+import edu.uci.python.nodes.generator.ListAppendNode;
 import edu.uci.python.runtime.PythonOptions;
 import edu.uci.python.runtime.datatype.PGenerator;
 import edu.uci.python.runtime.datatype.PNone;
@@ -49,6 +51,7 @@ import edu.uci.python.runtime.iterator.PRangeIterator;
 import edu.uci.python.runtime.iterator.PSequenceIterator;
 import edu.uci.python.runtime.sequence.PList;
 import edu.uci.python.runtime.sequence.PSequence;
+import edu.uci.python.runtime.sequence.storage.BasicSequenceStorage;
 import edu.uci.python.runtime.sequence.storage.IntSequenceStorage;
 import edu.uci.python.runtime.sequence.storage.LongSequenceStorage;
 import edu.uci.python.runtime.sequence.storage.ObjectSequenceStorage;
@@ -81,13 +84,39 @@ public abstract class ForNode extends LoopNode {
         final int start = range.getStart();
         final int stop = range.getStop();
         final int step = range.getStep();
-
-        for (int i = start; i < stop; i += step) {
+        int i = start;
+        if (i < stop) {
+            // execute once to specialize the storage
             ((WriteNode) target).executeWrite(frame, i);
             body.executeVoid(frame);
-        }
+            i += step;
 
+            if (i < stop) {
+                PList list = comprehensionHelper(frame);
+                if (list != null)
+                    ((BasicSequenceStorage) list.getStorage()).increaseCapacity((stop - i) / step + list.len());
+
+                for (; i < stop; i += step) {
+                    ((WriteNode) target).executeWrite(frame, i);
+                    body.executeVoid(frame);
+                }
+            }
+        }
         return PNone.NONE;
+    }
+
+    private PList comprehensionHelper(VirtualFrame frame) {
+        if ((this.getParent() instanceof ListComprehensionNode)) {
+            if (body instanceof ListAppendNode) {
+                Object o = ((ListAppendNode) body).getLeftNode().execute(frame);
+                if (o instanceof PList) {
+                    PList list = (PList) o;
+                    if (list.getStorage() instanceof BasicSequenceStorage)
+                        return list;
+                }
+            }
+        }
+        return null;
     }
 
     @Specialization

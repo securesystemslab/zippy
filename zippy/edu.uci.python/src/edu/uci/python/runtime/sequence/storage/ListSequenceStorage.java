@@ -141,6 +141,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setItemNormalized(int idx, Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof PList) {
             setListItemNormalized(idx, (PList) value);
         } else {
@@ -149,6 +150,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
     }
 
     public void setListItemNormalized(int idx, PList value) {
+        this.changed = true;
         try {
             values[idx] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -159,6 +161,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void insertItem(int idx, Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof PList) {
             insertListItem(idx, (PList) value);
         } else {
@@ -196,6 +199,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) throws SequenceStoreException {
+        this.changed = true;
         if (sequence instanceof ListSequenceStorage) {
             setListSliceInBound(start, stop, step, (ListSequenceStorage) sequence);
         } else {
@@ -204,6 +208,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
     }
 
     public void setListSliceInBound(int start, int stop, int step, ListSequenceStorage sequence) {
+        this.changed = true;
         int otherLength = sequence.length();
 
         // range is the whole sequence?
@@ -225,6 +230,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delSlice(int start, int stop) {
+        this.changed = true;
         if (stop == SequenceUtil.MISSING_INDEX) {
             length = start;
         }
@@ -232,6 +238,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delItemInBound(int idx) {
+        this.changed = true;
         if (values.length - 1 == idx) {
             popList();
         } else {
@@ -241,6 +248,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public Object popInBound(int idx) {
+        this.changed = true;
         PList pop = values[idx];
 
         for (int i = idx; i < values.length - 1; i++) {
@@ -252,6 +260,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
     }
 
     public PList popList() {
+        this.changed = true;
         PList pop = values[capacity - 1];
         length--;
         return pop;
@@ -280,6 +289,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void append(Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof PList) {
             SequenceStorage list = ((PList) value).getStorage();
             if (list instanceof ListSequenceStorage && ((ListSequenceStorage) list).getKind() == kind)
@@ -301,6 +311,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void extend(SequenceStorage other) throws SequenceStoreException {
+        this.changed = true;
         if (other instanceof ListSequenceStorage) {
             extendWithListStorage((ListSequenceStorage) other);
         } else {
@@ -324,6 +335,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
     @ExplodeLoop
     @Override
     public void reverse() {
+        this.changed = true;
         int head = 0;
         int tail = length - 1;
         int middle = (length - 1) / 2;
@@ -338,6 +350,7 @@ public final class ListSequenceStorage extends BasicSequenceStorage {
     @ExplodeLoop
     @Override
     public void sort() {
+        this.changed = true;
         // TODO: need to be tested
         Object[] copy = Arrays.copyOf(values, length);
         Arrays.sort(copy);

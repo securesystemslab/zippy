@@ -41,7 +41,7 @@ public abstract class BasicSequenceStorage extends SequenceStorage {
      * The capacity we should allocate for a given length.
      */
     public static int capacityFor(int length) {
-        return Math.max(16, length * 2);
+        return Math.max(16, length + 8 /* *2 */);
     }
 
     /**
@@ -52,6 +52,10 @@ public abstract class BasicSequenceStorage extends SequenceStorage {
         if (newCapacity > capacity) {
             increaseCapacityExactWithCopy(capacityFor(newCapacity));
         }
+    }
+
+    public void increaseCapacity(int newCapacity) {
+        increaseCapacityExactWithCopy(newCapacity);
     }
 
     protected abstract void increaseCapacityExactWithCopy(int newCapacity);

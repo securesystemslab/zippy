@@ -24,30 +24,51 @@
  */
 package edu.uci.python.builtins;
 
-import java.math.*;
-import java.util.*;
+import java.math.BigInteger;
+import java.util.List;
 
-import org.python.core.*;
+import org.python.core.Py;
 
-import com.oracle.truffle.api.*;
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
-import com.oracle.truffle.api.dsl.*;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.*;
+import com.oracle.truffle.api.dsl.Fallback;
+import com.oracle.truffle.api.dsl.GenerateNodeFactory;
+import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
 
-import edu.uci.python.nodes.*;
-import edu.uci.python.nodes.control.*;
-import edu.uci.python.nodes.function.*;
-import edu.uci.python.nodes.truffle.*;
-import edu.uci.python.runtime.*;
-import edu.uci.python.runtime.datatype.*;
-import edu.uci.python.runtime.exception.*;
-import edu.uci.python.runtime.function.*;
-import edu.uci.python.runtime.iterator.*;
-import edu.uci.python.runtime.misc.*;
-import edu.uci.python.runtime.object.*;
-import edu.uci.python.runtime.sequence.*;
-import edu.uci.python.runtime.standardtype.*;
+import edu.uci.python.nodes.EmptyNode;
+import edu.uci.python.nodes.PNode;
+import edu.uci.python.nodes.control.GetIteratorNode;
+import edu.uci.python.nodes.control.GetIteratorNodeFactory;
+import edu.uci.python.nodes.function.PythonBuiltinNode;
+import edu.uci.python.nodes.truffle.PythonTypesGen;
+import edu.uci.python.nodes.truffle.PythonTypesUtil;
+import edu.uci.python.runtime.PythonContext;
+import edu.uci.python.runtime.datatype.PComplex;
+import edu.uci.python.runtime.datatype.PDict;
+import edu.uci.python.runtime.datatype.PFrozenSet;
+import edu.uci.python.runtime.datatype.PIterable;
+import edu.uci.python.runtime.datatype.PNone;
+import edu.uci.python.runtime.datatype.PRange;
+import edu.uci.python.runtime.exception.StopIterationException;
+import edu.uci.python.runtime.function.PArguments;
+import edu.uci.python.runtime.function.PythonCallable;
+import edu.uci.python.runtime.iterator.PIterator;
+import edu.uci.python.runtime.iterator.PStringIterator;
+import edu.uci.python.runtime.iterator.PZip;
+import edu.uci.python.runtime.misc.JavaTypeConversions;
+import edu.uci.python.runtime.object.PythonObject;
+import edu.uci.python.runtime.sequence.PBaseSet;
+import edu.uci.python.runtime.sequence.PBytes;
+import edu.uci.python.runtime.sequence.PEnumerate;
+import edu.uci.python.runtime.sequence.PList;
+import edu.uci.python.runtime.sequence.PSequence;
+import edu.uci.python.runtime.sequence.PSet;
+import edu.uci.python.runtime.sequence.PString;
+import edu.uci.python.runtime.sequence.PTuple;
+import edu.uci.python.runtime.standardtype.PythonClass;
 
 /**
  * @author Gulfem
@@ -385,6 +406,8 @@ public final class BuiltinConstructors extends PythonBuiltins {
     @Builtin(name = "map", minNumOfArguments = 2, takesVariableArguments = true, isConstructor = true)
     @GenerateNodeFactory
     public abstract static class MapNode extends PythonBuiltinNode {
+
+        public abstract PNode[] getArguments();
 
         @Specialization
         public Object mapString(PythonCallable function, String str, PTuple iterators) {

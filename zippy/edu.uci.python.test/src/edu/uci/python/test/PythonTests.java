@@ -172,6 +172,30 @@ public class PythonTests {
         assertTrue(result.contains(expected));
     }
 
+    public static void assertNoError(Path scriptName) {
+        final ByteArrayOutputStream byteArrayErr = new ByteArrayOutputStream();
+        final ByteArrayOutputStream byteArrayOut = new ByteArrayOutputStream();
+        final PrintStream printErrStream = new PrintStream(byteArrayErr);
+        final PrintStream printOutStream = new PrintStream(byteArrayOut);
+
+        Source source = getSource(getTestFile(scriptName));
+        RunScript.runScript(new String[0], source, printOutStream, printErrStream);
+        String result = byteArrayErr.toString().replaceAll("\r\n", "\n");
+        assertEquals("", result);
+    }
+
+    public static void assertNoError(Path scriptName, String[] args) {
+        final ByteArrayOutputStream byteArrayErr = new ByteArrayOutputStream();
+        final ByteArrayOutputStream byteArrayOut = new ByteArrayOutputStream();
+        final PrintStream printErrStream = new PrintStream(byteArrayErr);
+        final PrintStream printOutStream = new PrintStream(byteArrayOut);
+
+        Source source = getSource(getTestFile(scriptName));
+        RunScript.runScript(args, source, printOutStream, printErrStream);
+        String result = byteArrayErr.toString().replaceAll("\r\n", "\n");
+        assertEquals("", result);
+    }
+
     private static Source getTestCode(String code) {
         Builder<RuntimeException, MissingMIMETypeException, MissingNameException> builder = Source.newBuilder(code);
         builder.name("(test)");
@@ -187,6 +211,9 @@ public class PythonTests {
     }
 
     public static File getTestFile(Path filename) {
+        if (Files.isReadable(filename)) {
+            return new File(filename.toString());
+        }
         Path path = Paths.get(ZippyEnvVars.zippyHome(), "zippy", "edu.uci.python.test", "src", "tests", filename.toString());
         if (Files.isReadable(path)) {
             return new File(path.toString());

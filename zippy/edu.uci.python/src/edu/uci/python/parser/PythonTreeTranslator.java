@@ -264,7 +264,10 @@ public class PythonTreeTranslator extends Visitor {
          */
         expr body = node.getInternalBody();
         PNode bodyNode = (PNode) visit(body);
+        PNode write = factory.createWriteLocal(bodyNode, environment.getReturnSlot());
+        bodyNode = factory.createFrameReturn(write);
         bodyNode = factory.createBlock(argumentLoads, bodyNode);
+        bodyNode = new ReturnTargetNode(bodyNode, factory.createReadLocal(environment.getReturnSlot()));
 
         /**
          * Defaults

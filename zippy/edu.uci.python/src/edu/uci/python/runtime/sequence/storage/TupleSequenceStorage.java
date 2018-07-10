@@ -106,6 +106,7 @@ public final class TupleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setItemNormalized(int idx, Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof PTuple) {
             setPTupleItemNormalized(idx, (PTuple) value);
         } else {
@@ -114,6 +115,7 @@ public final class TupleSequenceStorage extends BasicSequenceStorage {
     }
 
     public void setPTupleItemNormalized(int idx, PTuple value) {
+        this.changed = true;
         try {
             values[idx] = value;
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -124,6 +126,7 @@ public final class TupleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void insertItem(int idx, Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof PTuple) {
             insertPTupleItem(idx, (PTuple) value);
         } else {
@@ -161,6 +164,7 @@ public final class TupleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void setSliceInBound(int start, int stop, int step, SequenceStorage sequence) throws SequenceStoreException {
+        this.changed = true;
         if (sequence instanceof TupleSequenceStorage) {
             setPTupleSliceInBound(start, stop, step, (TupleSequenceStorage) sequence);
         } else {
@@ -190,6 +194,7 @@ public final class TupleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delSlice(int start, int stop) {
+        this.changed = true;
         if (stop == SequenceUtil.MISSING_INDEX) {
             length = start;
         }
@@ -197,6 +202,7 @@ public final class TupleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void delItemInBound(int idx) {
+        this.changed = true;
         if (values.length - 1 == idx) {
             popPTuple();
         } else {
@@ -206,6 +212,7 @@ public final class TupleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public Object popInBound(int idx) {
+        this.changed = true;
         PTuple pop = values[idx];
 
         for (int i = idx; i < values.length - 1; i++) {
@@ -245,6 +252,7 @@ public final class TupleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void append(Object value) throws SequenceStoreException {
+        this.changed = true;
         if (value instanceof PTuple) {
             appendPTuple((PTuple) value);
         } else {
@@ -260,6 +268,7 @@ public final class TupleSequenceStorage extends BasicSequenceStorage {
 
     @Override
     public void extend(SequenceStorage other) throws SequenceStoreException {
+        this.changed = true;
         if (other instanceof TupleSequenceStorage) {
             extendWithPTupleStorage((TupleSequenceStorage) other);
         } else {
@@ -283,6 +292,7 @@ public final class TupleSequenceStorage extends BasicSequenceStorage {
     @ExplodeLoop
     @Override
     public void reverse() {
+        this.changed = true;
         int head = 0;
         int tail = length - 1;
         int middle = (length - 1) / 2;
@@ -297,6 +307,7 @@ public final class TupleSequenceStorage extends BasicSequenceStorage {
     @ExplodeLoop
     @Override
     public void sort() {
+        this.changed = true;
         PTuple[] copy = Arrays.copyOf(values, length);
         Arrays.sort(copy);
         values = copy;

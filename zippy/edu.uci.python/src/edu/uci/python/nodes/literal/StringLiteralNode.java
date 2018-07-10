@@ -46,6 +46,10 @@ public final class StringLiteralNode extends LiteralNode {
         return value;
     }
 
+    public String getValue() {
+        return value;
+    }
+
     @Override
     public <R> R accept(VisitorIF<R> visitor) throws Exception {
         return visitor.visitStringLiteralNode(this);
